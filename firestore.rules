@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Characters ───────────────────────────────────────────────────────────
+    // Document ID is the owner's UID — match it directly.
+    match /characters/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Activity Logs ─────────────────────────────────────────────────────────
+    // Auto-generated IDs; ownership stored in the uid field.
+    // Logs are immutable once written — updates are denied.
+    match /activityLogs/{docId} {
+      allow read, delete: if request.auth != null
+                          && resource.data.uid == request.auth.uid;
+      allow create:       if request.auth != null
+                          && request.resource.data.uid == request.auth.uid;
+      allow update:       if false;
+    }
+
+    // ── Inventory ─────────────────────────────────────────────────────────────
+    // Auto-generated IDs; ownership stored in the uid field.
+    // uid field must not change on update (prevents ownership transfer).
+    match /inventory/{docId} {
+      allow read, delete: if request.auth != null
+                          && resource.data.uid == request.auth.uid;
+      allow create:       if request.auth != null
+                          && request.resource.data.uid == request.auth.uid;
+      allow update:       if request.auth != null
+                          && resource.data.uid == request.auth.uid
+                          && request.resource.data.uid == request.auth.uid;
+    }
+
+    // ── Active Quests ─────────────────────────────────────────────────────────
+    // Auto-generated IDs; ownership stored in the uid field.
+    // uid field must not change on update.
+    match /activeQuests/{docId} {
+      allow read, delete: if request.auth != null
+                          && resource.data.uid == request.auth.uid;
+      allow create:       if request.auth != null
+                          && request.resource.data.uid == request.auth.uid;
+      allow update:       if request.auth != null
+                          && resource.data.uid == request.auth.uid
+                          && request.resource.data.uid == request.auth.uid;
+    }
+  }
+}

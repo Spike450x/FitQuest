@@ -1,0 +1,240 @@
+import { create } from "zustand";
+import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { CLASS_DEFINITIONS, xpToNextLevel, LEVEL_UP, statCap } from "@/lib/gameLogic/constants";
+import { playerMaxHp, playerMaxStamina, playerMaxMagic } from "@/lib/gameLogic/combat";
+import { applyXp } from "@/lib/gameLogic/xp";
+import { applyStatGains } from "@/lib/gameLogic/stats";
+import type { Character, CharacterClass, Stats } from "@/types";
+
+interface CharacterStore {
+  character: Character | null;
+  loading: boolean;
+  error: string | null;
+
+  // Actions
+  fetchCharacter: (uid: string) => Promise<void>;
+  createCharacter: (uid: string, name: string, characterClass: CharacterClass) => Promise<void>;
+  awardXpAndStats: (xpGained: number, statGains: Partial<Stats>) => Promise<number>;
+  awardGold: (amount: number) => Promise<void>;
+  /** Instantly updates HP in local state only — no Firestore write. Use for live header during combat. */
+  setHpLocal: (hp: number) => void;
+  /** Persists current HP to Firestore. Call at end of combat or on retreat. */
+  updateCurrentHp: (hp: number) => Promise<void>;
+  /** Instantly updates stamina in local state only — no Firestore write. */
+  setStaminaLocal: (stamina: number) => void;
+  /** Persists current stamina to Firestore. Call at end of combat. */
+  updateCurrentStamina: (stamina: number) => Promise<void>;
+  /**
+   * Restore stamina by the given amount (capped at max).
+   * Persists immediately — called after activities like sleep, water, nutrition.
+   */
+  restoreStamina: (amount: number) => Promise<void>;
+  /** Instantly updates magic in local state only — no Firestore write. */
+  setMagicLocal: (magic: number) => void;
+  /** Persists current magic to Firestore. Call at end of combat. */
+  updateCurrentMagic: (magic: number) => Promise<void>;
+  /**
+   * Spend one pending stat point on the given stat.
+   * Does nothing if pendingStatPoints === 0.
+   */
+  allocateStatPoint: (stat: "strength" | "wisdom" | "agility" | "stamina") => Promise<void>;
+  /** Resets level, XP, and stats back to class starting values (death penalty). */
+  resetCharacter: () => Promise<void>;
+  clear: () => void;
+}
+
+export const useCharacterStore = create<CharacterStore>((set, get) => ({
+  character: null,
+  loading: false,
+  error: null,
+
+  fetchCharacter: async (uid) => {
+    set({ loading: true, error: null });
+    try {
+      const snap = await getDoc(doc(db, "characters", uid));
+      if (snap.exists()) {
+        const data = snap.data() as Character;
+        // Backfill agility for characters created before it was added
+        if (!data.stats?.agility) {
+          const startingAgility = CLASS_DEFINITIONS[data.class].startingStats.agility;
+          data.stats = { ...data.stats, agility: startingAgility };
+          await updateDoc(doc(db, "characters", uid), { "stats.agility": startingAgility });
+        }
+        set({ character: data, loading: false });
+      } else {
+        set({ character: null, loading: false });
+      }
+    } catch (e) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  createCharacter: async (uid, name, characterClass) => {
+    set({ loading: true, error: null });
+    try {
+      const classDef = CLASS_DEFINITIONS[characterClass];
+      const level = 1;
+      const character: Character = {
+        uid,
+        name: name.trim(),
+        class: characterClass,
+        level,
+        xp: 0,
+        xpToNextLevel: xpToNextLevel(level),
+        gold: 50, // starting gold
+        stats: { ...classDef.startingStats },
+        equippedGear: { weapon: null, armor: null, accessory: null },
+        createdAt: Date.now(),
+      };
+      await setDoc(doc(db, "characters", uid), character);
+      set({ character, loading: false });
+    } catch (e) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  awardXpAndStats: async (xpGained, statGains) => {
+    const { character } = get();
+    if (!character) return 0;
+
+    const { level, xp, xpToNextLevel: nextXp, levelsGained } = applyXp(character, xpGained);
+    let newStats = applyStatGains(character.stats, statGains, level);
+
+    const updated: Partial<Character> = {
+      level,
+      xp,
+      xpToNextLevel: nextXp,
+      stats: newStats,
+    };
+
+    // ── Level-up bonuses ──────────────────────────────────────────────────────
+    if (levelsGained > 0) {
+      const newCap = level * 5 + 10;
+      // Auto-increase health and defense per level gained
+      newStats = {
+        ...newStats,
+        health:  Math.min(newStats.health  + LEVEL_UP.HEALTH_PER_LEVEL  * levelsGained, newCap),
+        defense: Math.min(newStats.defense + LEVEL_UP.DEFENSE_PER_LEVEL * levelsGained, newCap),
+      };
+      updated.stats = newStats;
+
+      // Award player-choice stat points
+      updated.pendingStatPoints =
+        (character.pendingStatPoints ?? 0) + LEVEL_UP.STAT_POINTS_PER_LEVEL * levelsGained;
+
+      // Fully restore HP, Stamina, and Magic on level-up
+      updated.currentHp = playerMaxHp({ stats: newStats, equippedGear: character.equippedGear });
+      updated.currentStamina = playerMaxStamina({ stats: newStats, equippedGear: character.equippedGear });
+      updated.currentMagic = playerMaxMagic({ stats: newStats, class: character.class });
+    }
+
+    await updateDoc(doc(db, "characters", character.uid), updated);
+    set({ character: { ...character, ...updated } });
+
+    return levelsGained;
+  },
+
+  awardGold: async (amount) => {
+    const { character } = get();
+    if (!character) return;
+
+    const newGold = character.gold + amount;
+    await updateDoc(doc(db, "characters", character.uid), { gold: newGold });
+    set({ character: { ...character, gold: newGold } });
+  },
+
+  setHpLocal: (hp) => {
+    const { character } = get();
+    if (!character) return;
+    set({ character: { ...character, currentHp: hp } });
+  },
+
+  updateCurrentHp: async (hp) => {
+    const { character } = get();
+    if (!character) return;
+
+    await updateDoc(doc(db, "characters", character.uid), { currentHp: hp });
+    set({ character: { ...character, currentHp: hp } });
+  },
+
+  setStaminaLocal: (stamina) => {
+    const { character } = get();
+    if (!character) return;
+    set({ character: { ...character, currentStamina: stamina } });
+  },
+
+  updateCurrentStamina: async (stamina) => {
+    const { character } = get();
+    if (!character) return;
+    await updateDoc(doc(db, "characters", character.uid), { currentStamina: stamina });
+    set({ character: { ...character, currentStamina: stamina } });
+  },
+
+  restoreStamina: async (amount) => {
+    const { character } = get();
+    if (!character || amount <= 0) return;
+    const max = playerMaxStamina(character);
+    const current = character.currentStamina ?? max;
+    const newStamina = Math.min(current + amount, max);
+    if (newStamina === current) return; // already full
+    await updateDoc(doc(db, "characters", character.uid), { currentStamina: newStamina });
+    set({ character: { ...character, currentStamina: newStamina } });
+  },
+
+  setMagicLocal: (magic) => {
+    const { character } = get();
+    if (!character) return;
+    set({ character: { ...character, currentMagic: magic } });
+  },
+
+  updateCurrentMagic: async (magic) => {
+    const { character } = get();
+    if (!character) return;
+    await updateDoc(doc(db, "characters", character.uid), { currentMagic: magic });
+    set({ character: { ...character, currentMagic: magic } });
+  },
+
+  allocateStatPoint: async (stat) => {
+    const { character } = get();
+    if (!character) return;
+    const pending = character.pendingStatPoints ?? 0;
+    if (pending <= 0) return;
+
+    const newStats: Stats = {
+      ...character.stats,
+      [stat]: Math.min((character.stats[stat] ?? 0) + 1, statCap(stat, character.level)),
+    };
+    const newPending = pending - 1;
+    await updateDoc(doc(db, "characters", character.uid), {
+      stats: newStats,
+      pendingStatPoints: newPending,
+    });
+    set({ character: { ...character, stats: newStats, pendingStatPoints: newPending } });
+  },
+
+  resetCharacter: async () => {
+    const { character } = get();
+    if (!character) return;
+
+    const classDef = CLASS_DEFINITIONS[character.class];
+    const level = 1;
+    const resetStats = { ...classDef.startingStats };
+    // Recalculate max HP from reset stats so currentHp is immediately correct
+    const resetHp =
+      50 + resetStats.stamina * 2 + resetStats.health * 1;
+
+    const reset: Partial<Character> = {
+      level,
+      xp: 0,
+      xpToNextLevel: xpToNextLevel(level),
+      stats: resetStats,
+      currentHp: resetHp,
+    };
+
+    await updateDoc(doc(db, "characters", character.uid), reset);
+    set({ character: { ...character, ...reset } });
+  },
+
+  clear: () => set({ character: null, error: null }),
+}));

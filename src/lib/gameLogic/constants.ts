@@ -1,0 +1,186 @@
+import type { CharacterClass, Stats } from "@/types";
+
+// ─── Class Definitions ────────────────────────────────────────────────────────
+
+export const CLASS_DEFINITIONS: Record<
+  CharacterClass,
+  {
+    label: string;
+    description: string;
+    emoji: string;
+    startingStats: Stats;
+    statMultipliers: Stats;
+  }
+> = {
+  warrior: {
+    label: "Warrior",
+    description:
+      "Masters of physical combat. Heavy plate armor and a shield give them the highest natural defense. Best for tanking through long fights.",
+    emoji: "⚔️",
+    startingStats: { strength: 8, stamina: 6, agility: 4, health: 7, wisdom: 3, defense: 6 },
+    statMultipliers: { strength: 1.5, stamina: 1.2, agility: 0.8, health: 1.0, wisdom: 0.8, defense: 1.5 },
+  },
+  wizard: {
+    label: "Wizard",
+    description:
+      "Glass cannon in cloth robes. Lowest defense in the game — kill fast with magic or die. Wisdom grows rapidly from nutrition and mindfulness.",
+    emoji: "🧙",
+    startingStats: { strength: 3, stamina: 5, agility: 6, health: 6, wisdom: 8, defense: 1 },
+    statMultipliers: { strength: 0.8, stamina: 1.0, agility: 1.0, health: 1.2, wisdom: 1.5, defense: 0.7 },
+  },
+  rogue: {
+    label: "Rogue",
+    description:
+      "Light leather armor and quick reflexes. Agility is their edge — harder to catch and easier to escape. High stamina fuels relentless special attacks.",
+    emoji: "🗡️",
+    startingStats: { strength: 5, stamina: 8, agility: 8, health: 5, wisdom: 6, defense: 3 },
+    statMultipliers: { strength: 1.2, stamina: 1.5, agility: 1.5, health: 0.8, wisdom: 1.0, defense: 1.2 },
+  },
+};
+
+// ─── Activity Base XP & Stat Gains ───────────────────────────────────────────
+
+export const ACTIVITY_DEFINITIONS = {
+  workout: {
+    label: "Workout",
+    description: "Resistance training, weightlifting, or gym session",
+    unit: "minutes",
+    baseXp: 10,
+    // Per 30 minutes
+    statGainsPerUnit: { strength: 2, stamina: 1, agility: 1, health: 0, wisdom: 0, defense: 1 },
+    unitDivisor: 30,
+  },
+  run: {
+    label: "Run",
+    description: "Running or jogging, tracked in miles",
+    unit: "miles",
+    baseXp: 15,
+    // Per mile
+    statGainsPerUnit: { strength: 1, stamina: 2, agility: 2, health: 1, wisdom: 0, defense: 0 },
+    unitDivisor: 1,
+  },
+  steps: {
+    label: "Steps",
+    description: "Daily step count",
+    unit: "steps",
+    baseXp: 8,
+    // Per 10,000 steps
+    statGainsPerUnit: { strength: 0, stamina: 3, agility: 1, health: 1, wisdom: 0, defense: 0 },
+    unitDivisor: 10000,
+  },
+  sleep: {
+    label: "Sleep",
+    description: "Hours of sleep (7–9 is optimal)",
+    unit: "hours",
+    baseXp: 8,
+    // Per 8 hours — recovery builds resilience
+    statGainsPerUnit: { strength: 0, stamina: 0, agility: 0, health: 2, wisdom: 0, defense: 1 },
+    unitDivisor: 8,
+  },
+  water: {
+    label: "Water",
+    description: "Glasses of water (8oz each)",
+    unit: "glasses",
+    baseXp: 5,
+    // Per 8 glasses
+    statGainsPerUnit: { strength: 0, stamina: 0, agility: 0, health: 1, wisdom: 1, defense: 0 },
+    unitDivisor: 8,
+  },
+  nutrition: {
+    label: "Nutrition",
+    description: "Healthy meals logged",
+    unit: "meals",
+    baseXp: 6,
+    // Per meal
+    statGainsPerUnit: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 2, defense: 0 },
+    unitDivisor: 1,
+  },
+} as const;
+
+// ─── Stamina Restore (via activities) ────────────────────────────────────────
+
+export const RESTORE = {
+  /** Stamina restored per hour of sleep (primary restore). 8h = 40 stamina. */
+  STAMINA_PER_SLEEP_HOUR: 5,
+  /** Stamina restored per glass of water. 8 glasses = 16 stamina. */
+  STAMINA_PER_WATER_GLASS: 2,
+  /** Stamina restored per healthy meal logged. 3 meals = 15 stamina. */
+  STAMINA_PER_MEAL: 5,
+};
+
+// ─── Level-Up Bonuses ─────────────────────────────────────────────────────────
+
+export const LEVEL_UP = {
+  /** Health stat auto-increased per level gained. */
+  HEALTH_PER_LEVEL: 1,
+  /** Defense stat auto-increased per level gained. */
+  DEFENSE_PER_LEVEL: 1,
+  /** Player-choice stat points awarded per level gained. */
+  STAT_POINTS_PER_LEVEL: 1,
+};
+
+// ─── XP / Leveling ────────────────────────────────────────────────────────────
+
+/** XP required to reach a given level from the previous level. */
+export function xpToNextLevel(level: number): number {
+  return Math.floor(100 * Math.pow(level, 1.5));
+}
+
+/** Flat cap for primary combat stats: Strength, Wisdom, Agility. */
+export const PRIMARY_STAT_CAP = 50;
+
+/** Level-scaled cap for secondary stats: Stamina, Health, Defense. */
+export function maxStatForLevel(level: number): number {
+  return level * 5 + 10;
+}
+
+/** Returns the correct cap for a given stat key. */
+export function statCap(stat: keyof import("@/types").Stats, level: number): number {
+  if (stat === "strength" || stat === "wisdom" || stat === "agility") return PRIMARY_STAT_CAP;
+  return maxStatForLevel(level);
+}
+
+// ─── Combat ──────────────────────────────────────────────────────────────────
+
+export const COMBAT = {
+  /** Base HP before stamina/health bonuses. */
+  BASE_HP: 50,
+  /** HP gained per point of stamina. */
+  HP_PER_STAMINA: 2,
+  /** HP gained per point of health. */
+  HP_PER_HEALTH: 1,
+  /** RNG range added to attack rolls (d10). */
+  ATTACK_RNG_MIN: 1,
+  ATTACK_RNG_MAX: 10,
+  /** Strength contribution to physical attack (full stat value). */
+  STRENGTH_ATTACK_FACTOR: 1.0,
+  /** Wisdom contribution to magic attack (full stat value). */
+  WISDOM_ATTACK_FACTOR: 1.0,
+  /** Agility contribution to escape roll when running away (full stat value). */
+  AGILITY_ESCAPE_FACTOR: 1.0,
+  /** Minimum damage dealt per hit. */
+  MIN_DAMAGE: 1,
+  /**
+   * Probability (0–1) that a defender's defense stat is bypassed entirely.
+   * Applies to both player defense and monster defense each round.
+   * At 0.25: defense fails 1 in 4 attacks.
+   */
+  DEFENSE_FAIL_CHANCE: 0.25,
+  /** Base stamina pool available at the start of every fight. */
+  BASE_STAMINA: 20,
+  /** Stamina pool points per point of stamina stat. */
+  STAMINA_PER_STAT: 5,
+  /** Stamina cost to trigger a special class ability. */
+  ABILITY_STAMINA_COST: 10,
+  // ── Magic (spell system) ───────────────────────────────────────────────────
+  /** Base magic pool before wisdom bonuses. */
+  BASE_MAGIC: 20,
+  /** Magic pool points per point of wisdom stat. */
+  MAGIC_PER_WISDOM: 3,
+  /** Extra magic awarded to wizards (class bonus). */
+  WIZARD_MAGIC_BONUS: 10,
+  /** Maximum number of spells a player can have equipped when entering combat. */
+  MAX_EQUIPPED_SPELLS: 5,
+  /** Maximum number of consumables a player can have packed when entering combat. */
+  MAX_EQUIPPED_CONSUMABLES: 5,
+};
