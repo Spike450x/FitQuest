@@ -74,7 +74,8 @@ export interface ActivityLog {
 export type ItemType = "weapon" | "armor" | "accessory" | "consumable" | "spell";
 export type ItemRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
-export interface ItemEffect {
+/** Effect applied when a consumable item is used (potions, elixirs). */
+export interface ConsumableEffect {
   type: "restore_hp" | "restore_stamina" | "restore_magic";
   amount: number;
 }
@@ -95,7 +96,8 @@ export interface SpellDiceRequirement {
   length?: number;     // for straight: how many consecutive values needed (default 3)
 }
 
-export interface SpellCombatEffect {
+/** The in-combat effect applied when a spell's dice requirement is met. */
+export interface SpellEffect {
   damage?: number;                    // extra damage dealt to monster
   damageScalesWithWisdom?: boolean;   // if true, adds character.stats.wisdom to damage
   heal?: number;                      // HP restored to player
@@ -109,9 +111,10 @@ export interface SpellCombatEffect {
   lifestealPct?: number;              // fraction (0–1) of damage dealt returned as HP
 }
 
-export interface SpellMechanics {
+/** All configuration needed to cast and resolve a spell in combat. */
+export interface SpellConfig {
   requirement: SpellDiceRequirement;
-  effect: SpellCombatEffect;
+  effect: SpellEffect;
   magicCost: number;
   classRestriction: CharacterClass | "all";
 }
@@ -125,9 +128,9 @@ export interface ItemDef {
   price: number;
   tier: number;
   description: string;
-  effect?: ItemEffect;
-  /** Spell mechanics — only present when type === "spell". */
-  spellMechanics?: SpellMechanics;
+  effect?: ConsumableEffect;
+  /** Spell configuration — only present when type === "spell". */
+  spellMechanics?: SpellConfig;
   /** If true, item can only be obtained via monster loot — never appears in the shop. */
   lootOnly?: boolean;
 }
@@ -189,6 +192,11 @@ export interface MonsterDef {
   description: string;
 }
 
+/**
+ * Summary of one round in a completed fight — reserved for a future battle-summary
+ * screen or server-side replay. The active combat page uses its own RoundEntry type
+ * (local to combat/page.tsx) for live rendering and does not currently consume these.
+ */
 export interface CombatRound {
   round: number;
   playerDamage: number;
@@ -197,6 +205,7 @@ export interface CombatRound {
   monsterHpRemaining: number;
 }
 
+/** Full summary of a completed fight. See CombatRound note above. */
 export interface CombatResult {
   outcome: "win" | "loss";
   rounds: CombatRound[];

@@ -18,10 +18,17 @@ export type PersonalRecords = Partial<Record<ActivityType, PersonalRecord>>;
 
 export interface StreakTier {
   minDays: number;
+  /** Display name for this tier. null = no active streak (below threshold). */
   label: string | null;
-  /** Multiplier applied to rare+ item drop chances. 1.0 = no bonus. */
-  multiplier: number;
+  /**
+   * Drop-chance multiplier applied exclusively to items of rarity "rare", "epic",
+   * or "legendary" in a monster's loot table. Common and uncommon are unaffected.
+   * 1.0 = no bonus. Effective chance is still capped at 0.95 in rollLoot().
+   */
+  lootDropMultiplier: number;
+  /** Tailwind text color class for displaying the tier name. */
   color: string;
+  /** Tailwind background + border classes for the streak badge. */
   bgColor: string;
 }
 
@@ -34,12 +41,12 @@ export interface StreakTier {
 // Tiers are checked highest → lowest; the first match wins.
 
 export const STREAK_TIERS: StreakTier[] = [
-  { minDays: 30, label: "Blessed",      multiplier: 2.00, color: "text-orange-500", bgColor: "bg-orange-50 border-orange-200" },
-  { minDays: 21, label: "Unstoppable",  multiplier: 1.75, color: "text-purple-600", bgColor: "bg-purple-50 border-purple-200" },
-  { minDays: 14, label: "Relentless",   multiplier: 1.50, color: "text-blue-600",   bgColor: "bg-blue-50 border-blue-200"     },
-  { minDays:  7, label: "Dedicated",    multiplier: 1.30, color: "text-indigo-600", bgColor: "bg-indigo-50 border-indigo-200" },
-  { minDays:  3, label: "Focused",      multiplier: 1.15, color: "text-emerald-600",bgColor: "bg-emerald-50 border-emerald-200"},
-  { minDays:  0, label: null,           multiplier: 1.00, color: "text-gray-400",   bgColor: "bg-gray-50 border-gray-200"     },
+  { minDays: 30, label: "Blessed",     lootDropMultiplier: 2.00, color: "text-orange-500", bgColor: "bg-orange-50 border-orange-200"   },
+  { minDays: 21, label: "Unstoppable", lootDropMultiplier: 1.75, color: "text-purple-600", bgColor: "bg-purple-50 border-purple-200"   },
+  { minDays: 14, label: "Relentless",  lootDropMultiplier: 1.50, color: "text-blue-600",   bgColor: "bg-blue-50 border-blue-200"       },
+  { minDays:  7, label: "Dedicated",   lootDropMultiplier: 1.30, color: "text-indigo-600", bgColor: "bg-indigo-50 border-indigo-200"   },
+  { minDays:  3, label: "Focused",     lootDropMultiplier: 1.15, color: "text-emerald-600",bgColor: "bg-emerald-50 border-emerald-200" },
+  { minDays:  0, label: null,          lootDropMultiplier: 1.00, color: "text-gray-400",   bgColor: "bg-gray-50 border-gray-200"       },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -99,5 +106,5 @@ export function getStreakTier(streak: number): StreakTier {
  * player's current streak. Common and uncommon item chances are unaffected.
  */
 export function getStreakLootMultiplier(streak: number): number {
-  return getStreakTier(streak).multiplier;
+  return getStreakTier(streak).lootDropMultiplier;
 }

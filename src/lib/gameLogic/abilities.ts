@@ -1,5 +1,5 @@
 import type { Character, MonsterDef } from "@/types";
-import { gearAttackBonus, gearDefenseBonus } from "./combat";
+import { gearAttackBonus, gearDefenseBonus, rollD10 } from "./combat";
 import { COMBAT } from "./constants";
 import { applySubclassAbilityMods, getAbilityDamageMultiplier } from "./passives";
 
@@ -38,9 +38,9 @@ export interface AbilityResolution {
 }
 
 // ─── Ability catalog ──────────────────────────────────────────────────────────
-// One ability per class × pattern combination (5 patterns × 3 classes = 15).
+// One ability per class × pattern combination: 5 patterns × 3 classes = 15 total.
 
-const ABILITIES: Record<string, Record<DicePattern, AbilityDef>> = {
+const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
   warrior: {
     three_of_a_kind: {
       id: "power-strike",
@@ -269,12 +269,20 @@ export function getAbility(
   characterClass: string,
   pattern: DicePattern,
 ): AbilityDef | null {
-  return ABILITIES[characterClass]?.[pattern] ?? null;
+  return CLASS_ABILITY_CATALOG[characterClass]?.[pattern] ?? null;
 }
 
 // ─── Resolve ability ──────────────────────────────────────────────────────────
 
-/** Roll 6d6 and resolve the ability outcome for the given character vs monster. */
+/**
+ * Roll 6d6, detect the poker-like pattern, and resolve the class ability outcome.
+ *
+ * If no pattern matches, it's a "fizzle" — the stamina is still spent, the player
+ * deals reduced damage using the average of the 6 dice, and the monster retaliates.
+ *
+ * isFirstAbility — true only for the first ability roll of this fight; used by
+ * Assassin (Lethal Opener: 2× damage) and Opening Strike (0 stamina cost).
+ */
 export function resolveAbility(
   character: Character,
   monster: MonsterDef,
@@ -286,13 +294,13 @@ export function resolveAbility(
 
   // Stat bonus (same factors as regular combat)
   const isWizard = character.class === "wizard";
-  const attackType = isWizard ? "magic" : "attack";
-  const gearBonus = gearAttackBonus(character, attackType);
+  const attackMode = isWizard ? "magic" : "attack";
+  const gearBonus = gearAttackBonus(character, attackMode);
   const statBonus = isWizard
     ? Math.floor(character.stats.wisdom * COMBAT.WISDOM_ATTACK_FACTOR)
     : Math.floor(character.stats.strength * COMBAT.STRENGTH_ATTACK_FACTOR);
 
-  // Avg of 6 dice as the "roll" (replaces d10)
+  // Average of all 6 dice serves as the base roll (replaces the d10 used in regular attacks).
   const avgRoll = Math.round(dice.reduce((a, b) => a + b, 0) / dice.length);
   const baseHit = avgRoll + statBonus + gearBonus;
 
@@ -321,11 +329,12 @@ export function resolveAbility(
     return { ability: null, dice, pattern, playerDamage, monsterDamage, monsterStunned: false, playerDefFailed, flatPassiveHeal: 0 };
   }
 
-  // ── Phase 1 of 2: intrinsic ability modifiers ─────────────────────────────
-  // Apply subclass modifications (Berserker Rage ×4, Paladin flat heals, etc.)
-  // and Lethal Opener multiplier (Assassin). These bake into playerDamage here.
+  // ── Step 1: bake in ability-specific subclass mods ───────────────────────────
+  // applySubclassAbilityMods adjusts the ability's damage multiplier, lifesteal,
+  // stun flag, or flatHeal for subclasses like Berserker, Paladin, Archmage, etc.
+  // Lethal Opener (Assassin) extra multiplier is also applied here.
   //
-  // Phase 2 happens in handleAbility (combat/page.tsx): applyOutgoingPassives
+  // Step 2 happens in handleAbility (combat/page.tsx): applyOutgoingPassives then
   // adds Battle-Hardened flat bonus and Bloodlust multiplier on top of this value.
   const ability = applySubclassAbilityMods(character, baseAbility);
 
@@ -365,7 +374,7 @@ function rollMonsterAttack(
   monster: MonsterDef,
   bypassPlayerDef: boolean,
 ): { monsterDamage: number; playerDefFailed: boolean } {
-  const monsterRoll = Math.ceil(Math.random() * 10);
+  const monsterRoll = rollD10();
   const playerDef = (character.stats.defense ?? 0) + gearDefenseBonus(character);
   const playerDefFailed = bypassPlayerDef || Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
   const rawMonsterDamage = monsterRoll + monster.attack;

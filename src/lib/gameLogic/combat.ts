@@ -40,10 +40,11 @@ export function totalGearBonuses(equippedGear: EquippedGear | null | undefined):
 /**
  * Total STR or WIS bonus from all equipped items.
  * Includes weapon AND accessories (e.g. Warrior's Pendant gives +3 STR).
+ * attackMode "attack" = physical (uses STR gear), "magic" = magical (uses WIS gear).
  */
-export function gearAttackBonus(character: Character, attackType: "attack" | "magic"): number {
+export function gearAttackBonus(character: Character, attackMode: "attack" | "magic"): number {
   const bonuses = totalGearBonuses(character.equippedGear);
-  return attackType === "magic"
+  return attackMode === "magic"
     ? (bonuses.wisdom ?? 0)
     : (bonuses.strength ?? 0);
 }
@@ -56,8 +57,8 @@ export function gearDefenseBonus(character: Character): number {
   return totalGearBonuses(character.equippedGear).defense ?? 0;
 }
 
-/** Roll a d10 — returns a value between ATTACK_RNG_MIN and ATTACK_RNG_MAX inclusive. */
-export function rollDice(): number {
+/** Roll a d10 — returns a value between ATTACK_RNG_MIN (1) and ATTACK_RNG_MAX (10) inclusive. */
+export function rollD10(): number {
   return (
     Math.floor(Math.random() * (COMBAT.ATTACK_RNG_MAX - COMBAT.ATTACK_RNG_MIN + 1)) +
     COMBAT.ATTACK_RNG_MIN
@@ -87,25 +88,23 @@ export function playerMaxStamina(character: Pick<Character, "stats" | "equippedG
 }
 
 /**
- * Calculate one interactive round of combat.
+ * Calculate one interactive round of combat for Attack or Magic actions.
  *
- * attackType:
- *   "attack" — uses Strength (warrior/rogue playstyle)
- *   "magic"  — uses Wisdom  (wizard playstyle, or any class with high WIS)
+ * attackMode:
+ *   "attack" — physical strike, uses Strength (warrior/rogue playstyle)
+ *   "magic"  — magical strike, uses Wisdom  (wizard playstyle, or any class with high WIS)
  *
  * Each defender has a DEFENSE_FAIL_CHANCE of their defense being bypassed entirely.
  *
- * Future — Special Abilities (Post-MVP):
- *   Plan to support multi-dice (6d10) combo abilities. A specific combination of
- *   dice values (e.g. three 7s, a straight 1-2-3) triggers a class-specific ability
- *   with bonus effects (stun, lifesteal, double damage, etc.). One "ability roll"
- *   available per fight. The single-d10 mechanics here are the base; ability mode
- *   adds a separate "roll all 6 dice" action alongside Attack / Magic / Run Away.
+ * Monster damage in this path is deterministic: flat monster.attack minus player defense.
+ * The monster's d10 roll (monsterRoll) is returned for UI animation only — it does NOT
+ * affect damage here. Ability and spell resolutions (abilities.ts / spells.ts) add the
+ * monster roll to damage for more chaos on those riskier actions.
  */
 export function calculateRound(
   character: Character,
   monster: MonsterDef,
-  attackType: "attack" | "magic"
+  attackMode: "attack" | "magic"
 ): {
   roll: number;
   attackBonus: number;
@@ -116,15 +115,15 @@ export function calculateRound(
   playerDefFailed: boolean;
   monsterDefFailed: boolean;
 } {
-  const roll = rollDice();
+  const roll = rollD10();
 
   const statBonus =
-    attackType === "magic"
+    attackMode === "magic"
       ? Math.floor(character.stats.wisdom * COMBAT.WISDOM_ATTACK_FACTOR)
       : Math.floor(character.stats.strength * COMBAT.STRENGTH_ATTACK_FACTOR);
-  const weaponBonus = gearAttackBonus(character, attackType);
+  const weaponBonus = gearAttackBonus(character, attackMode);
   const attackBonus = statBonus + weaponBonus;
-  const attackBonusLabel = attackType === "magic" ? "WIS" : "STR";
+  const attackBonusLabel = attackMode === "magic" ? "WIS" : "STR";
 
   // Monster's defense might fail
   const monsterDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
@@ -132,7 +131,7 @@ export function calculateRound(
   const playerDamage = Math.max(COMBAT.MIN_DAMAGE, attackBonus + roll - effectiveMonsterDef);
 
   // Monster rolls its own d10 for its counter-attack
-  const monsterRoll = rollDice();
+  const monsterRoll = rollD10();
 
   // Player's defense might fail (stat + gear)
   const playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
@@ -196,13 +195,13 @@ export function rollRunAway(
   monsterDamage: number;
   playerDefFailed: boolean;
 } {
-  const playerRoll = rollDice();
+  const playerRoll = rollD10();
   const gear = totalGearBonuses(character.equippedGear);
   const effectiveAgility = (character.stats.agility ?? 0) + (gear.agility ?? 0);
   const agilityBonus = Math.floor(effectiveAgility * COMBAT.AGILITY_ESCAPE_FACTOR);
   // Ghost Step (Assassin/Ranger): additional agility-based escape bonus
   const ghostStepBonus = getEscapeBonus(character);
-  const monsterRoll = rollDice();
+  const monsterRoll = rollD10();
   // Sure Escape (Ranger): always succeeds
   const escaped = hasSureEscape(character) || playerRoll + agilityBonus + ghostStepBonus > monsterRoll;
 

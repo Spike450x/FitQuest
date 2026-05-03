@@ -1,5 +1,5 @@
-import type { SpellDiceRequirement, SpellCombatEffect } from "@/types";
-import { gearDefenseBonus } from "./combat";
+import type { SpellDiceRequirement, SpellEffect } from "@/types";
+import { gearDefenseBonus, rollD10 } from "./combat";
 import { COMBAT } from "./constants";
 import type { Character, MonsterDef } from "@/types";
 import { applySpellDamagePassives } from "./passives";
@@ -91,7 +91,7 @@ export interface SpellResolution {
  * but no effect is applied. Monster always retaliates unless stunned.
  */
 export function resolveSpell(
-  effect: SpellCombatEffect,
+  effect: SpellEffect,
   req: SpellDiceRequirement,
   character: Character,
   monster: MonsterDef,
@@ -137,7 +137,7 @@ export function resolveSpell(
   let monsterDamage = 0;
   let playerDefFailed = false;
   if (!monsterStunned) {
-    const monsterRoll = Math.ceil(Math.random() * 10);
+    const monsterRoll = rollD10();
     const totalDef = (character.stats.defense ?? 0) + gearDefenseBonus(character) + defenseBoost;
     playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
     const effectiveDef = playerDefFailed ? 0 : totalDef;

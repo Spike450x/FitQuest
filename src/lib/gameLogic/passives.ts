@@ -330,9 +330,11 @@ export function applyIncomingPassives(
     }
   }
 
-  // ── All Wizards ───────────────────────────────────────────────────────────────
+  // ── All Wizards ─────────────────────────────────────────────────────────────
+  // Mana Barrier is a base wizard class feature (not subclass-gated).
+  // Both Archmage and Warlock list it as a perk in the UI, but it's always active
+  // for any wizard who has currentMagic available.
   if (character.class === "wizard") {
-    // Mana Barrier: absorb up to 10 incoming damage from magic pool
     if (ctx.currentMagic > 0 && damage > 0) {
       const absorbed = Math.min(10, damage, ctx.currentMagic);
       damage -= absorbed;
@@ -449,12 +451,12 @@ export function getPerRoundPassives(character: Character): PerRoundPassives {
   let magicRestore = 0;
   let hpRestore = 0;
 
-  // All Wizards — Wisdom Flow: +2 magic/round
+  // All Wizards — base magic regeneration: +2/round; Archmage (Scholarly) upgrades to +3/round
   if (character.class === "wizard") {
-    magicRestore = character.subclass === "archmage" ? 3 : 2; // Scholarly upgrades to 3
+    magicRestore = character.subclass === "archmage" ? 3 : 2;
   }
 
-  // Paladin — Sacred Vow: +8 HP/round survived
+  // Paladin — Sacred Vow: +8 HP restored at the end of each survived round
   if (character.subclass === "paladin") {
     hpRestore = 8;
   }

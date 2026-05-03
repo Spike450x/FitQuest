@@ -84,7 +84,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       const snap = await getDoc(doc(db, "characters", uid));
       if (snap.exists()) {
         const data = snap.data() as Character;
-        // Backfill agility for characters created before it was added
+        // Backfill: agility was added after launch; old character docs don't have it.
         if (!data.stats?.agility) {
           const startingAgility = CLASS_DEFINITIONS[data.class].startingStats.agility;
           data.stats = { ...data.stats, agility: startingAgility };
@@ -152,7 +152,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       updated.pendingStatPoints =
         (character.pendingStatPoints ?? 0) + LEVEL_UP.STAT_POINTS_PER_LEVEL * levelsGained;
 
-      // Fully restore HP, Stamina, and Magic on level-up
+      // Level-up fully restores all combat resources to the new (possibly higher) max.
       updated.currentHp = playerMaxHp({ stats: newStats, equippedGear: character.equippedGear });
       updated.currentStamina = playerMaxStamina({ stats: newStats, equippedGear: character.equippedGear });
       updated.currentMagic = playerMaxMagic({ stats: newStats, class: character.class });
@@ -249,9 +249,8 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const classDef = CLASS_DEFINITIONS[character.class];
     const level = 1;
     const resetStats = { ...classDef.startingStats };
-    // Recalculate max HP from reset stats so currentHp is immediately correct
-    const resetHp =
-      50 + resetStats.stamina * 2 + resetStats.health * 1;
+    // Use the canonical HP formula so this stays in sync with playerMaxHp()
+    const resetHp = playerMaxHp({ stats: resetStats, equippedGear: { weapon: null, armor: null, accessory: null } });
 
     const reset: Partial<Character> = {
       level,
@@ -327,7 +326,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       const { linkedStat } = MASTERY_CONFIG[activityType];
       updates.stats = {
         ...character.stats,
-        [linkedStat]: (character.stats[linkedStat] ?? 0) + 1,
+        [linkedStat]: Math.min((character.stats[linkedStat] ?? 0) + 1, statCap(linkedStat, character.level)),
       };
     }
 

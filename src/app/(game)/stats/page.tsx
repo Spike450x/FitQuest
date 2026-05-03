@@ -282,10 +282,10 @@ function StreakPanel({ character }: { character: Character }) {
             Longest streak: {longest} {longest === 1 ? "day" : "days"}
           </p>
         </div>
-        {tier.multiplier > 1 && (
+        {tier.lootDropMultiplier > 1 && (
           <div className={`ml-auto text-center px-3 py-2 rounded-lg border ${tier.bgColor}`}>
             <p className={`text-lg font-bold ${tier.color}`}>
-              +{Math.round((tier.multiplier - 1) * 100)}%
+              +{Math.round((tier.lootDropMultiplier - 1) * 100)}%
             </p>
             <p className="text-xs text-gray-500">rare+ drops</p>
           </div>
@@ -309,7 +309,7 @@ function StreakPanel({ character }: { character: Character }) {
             >
               <span>{isActive ? "✓" : `Day ${t.minDays}`} {t.label}</span>
               <span className="text-xs">
-                +{Math.round((t.multiplier - 1) * 100)}% rare+ drops
+                +{Math.round((t.lootDropMultiplier - 1) * 100)}% rare+ drops
               </span>
             </div>
           );

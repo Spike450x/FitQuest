@@ -90,9 +90,9 @@ export default function DashboardPage() {
                   Day {currentStreak}
                   {streakTier.label ? ` · ${streakTier.label}` : ""}
                 </span>
-                {streakTier.multiplier > 1 && (
+                {streakTier.lootDropMultiplier > 1 && (
                   <span className="text-xs text-gray-400 font-medium">
-                    +{Math.round((streakTier.multiplier - 1) * 100)}% rare drops
+                    +{Math.round((streakTier.lootDropMultiplier - 1) * 100)}% rare drops
                   </span>
                 )}
               </div>
