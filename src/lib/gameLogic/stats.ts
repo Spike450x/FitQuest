@@ -1,50 +1,33 @@
-import { ACTIVITY_DEFINITIONS, CLASS_DEFINITIONS, maxStatForLevel, statCap, RESTORE } from "./constants";
-import type { ActivityType, CharacterClass, Stats } from "@/types";
+import { RESTORE, statCap } from "./constants";
+import type { ActivityType, Stats } from "@/types";
+
+// ─── Resource Restore ─────────────────────────────────────────────────────────
+
+export type ResourceType = "hp" | "stamina" | "magic";
+
+export interface ResourceRestore {
+  resourceType: ResourceType;
+  amount: number;
+}
 
 /**
- * Calculates stat gains and XP for a logged activity,
- * applying the character's class multipliers and level caps.
+ * Returns the resource type and raw restore amount for a restoration activity.
+ * Nutrition → HP · Sleep → Stamina · Water → Magic.
+ * Returns null for mastery activities (run / workout / steps) — they don't restore resources.
  */
-export function calculateActivityGains(
+export function calculateResourceRestore(
   activityType: ActivityType,
   amount: number,
-  characterClass: CharacterClass,
-  characterLevel: number
-): { statGains: Partial<Stats>; xpGained: number } {
-  const def = ACTIVITY_DEFINITIONS[activityType];
-  const multipliers = CLASS_DEFINITIONS[characterClass].statMultipliers;
-  const units = amount / def.unitDivisor;
-
-  const statGains: Partial<Stats> = {};
-  const statKeys: (keyof Stats)[] = ["strength", "stamina", "agility", "health", "wisdom", "defense"];
-
-  for (const key of statKeys) {
-    const base = def.statGainsPerUnit[key] * units;
-    const withMultiplier = base * multipliers[key];
-    const rounded = Math.floor(withMultiplier);
-    if (rounded > 0) {
-      statGains[key] = Math.min(rounded, statCap(key, characterLevel));
-    }
-  }
-
-  const xpGained = Math.floor(def.baseXp * units);
-
-  return { statGains, xpGained };
-}
-
-/**
- * Stamina (currentStamina) restored by logging a given activity.
- * Sleep is the primary source; water and nutrition restore less.
- * Returns 0 for activities that don't restore stamina.
- */
-export function calculateStaminaRestore(activityType: ActivityType, amount: number): number {
+): ResourceRestore | null {
   switch (activityType) {
-    case "sleep":     return Math.floor(amount * RESTORE.STAMINA_PER_SLEEP_HOUR);
-    case "water":     return Math.floor(amount * RESTORE.STAMINA_PER_WATER_GLASS);
-    case "nutrition": return Math.floor(amount * RESTORE.STAMINA_PER_MEAL);
-    default:          return 0;
+    case "nutrition": return { resourceType: "hp",      amount: Math.floor(amount * RESTORE.HP_PER_MEAL)            };
+    case "sleep":     return { resourceType: "stamina", amount: Math.floor(amount * RESTORE.STAMINA_PER_SLEEP_HOUR) };
+    case "water":     return { resourceType: "magic",   amount: Math.floor(amount * RESTORE.MAGIC_PER_WATER_GLASS)  };
+    default:          return null;
   }
 }
+
+// ─── Stat application ─────────────────────────────────────────────────────────
 
 /** Adds stat gains to existing stats, respecting per-stat caps. */
 export function applyStatGains(

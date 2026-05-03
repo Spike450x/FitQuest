@@ -2,6 +2,14 @@
 
 export type CharacterClass = "warrior" | "wizard" | "rogue";
 
+export type CharacterSubclass =
+  | "berserker"  // warrior
+  | "paladin"    // warrior
+  | "archmage"   // wizard
+  | "warlock"    // wizard
+  | "assassin"   // rogue
+  | "ranger";    // rogue
+
 export interface Stats {
   strength: number;
   stamina: number;
@@ -32,6 +40,19 @@ export interface Character {
   currentStamina?: number;   // persists between battles; undefined = full stamina
   currentMagic?: number;     // persists between battles; undefined = full magic
   pendingStatPoints?: number; // unspent level-up stat points; 0 = none pending
+  subclass?: CharacterSubclass; // chosen at level 10; undefined = not yet chosen
+  /** Log counts for mastery activities — incremented on each log, milestones grant +1 stat. */
+  masteryCounts?: Partial<Record<"run" | "workout" | "steps", number>>;
+  streakData?: {
+    currentStreak: number;
+    longestStreak: number;
+    lastLogDate: string; // "YYYY-MM-DD" UTC
+  };
+  personalRecords?: Partial<Record<ActivityType, {
+    value: number;
+    loggedAt: number; // unix ms
+    unit: string;
+  }>>;
 }
 
 // ─── Activity ────────────────────────────────────────────────────────────────

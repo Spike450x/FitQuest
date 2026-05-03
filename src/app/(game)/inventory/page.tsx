@@ -139,6 +139,9 @@ export default function InventoryPage() {
         <p className="text-sm text-gray-500 mt-1">Equip gear for stat bonuses. Load up to 5 spells before combat.</p>
       </div>
 
+      {/* Loadout row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
       {/* Gear loadout */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
         <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">Gear Loadout</p>
@@ -289,6 +292,8 @@ export default function InventoryPage() {
         )}
       </div>
 
+      </div>{/* end loadout row */}
+
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto">
         {TYPE_TABS.map(({ type, label, icon }) => (
@@ -325,7 +330,7 @@ export default function InventoryPage() {
         </div>
       ) : activeTab === "spell" ? (
         /* Spell tab: playing card grid */
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map((invItem) => {
             const def = getItemById(invItem.itemDefId);
             if (!def?.spellMechanics) return null;
@@ -350,8 +355,8 @@ export default function InventoryPage() {
           })}
         </div>
       ) : (
-        /* Non-spell tabs: original card layout */
-        <div className="space-y-3">
+        /* Non-spell tabs: 2-col grid */
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {filtered.map((invItem) => {
             const def = getItemById(invItem.itemDefId);
             if (!def) return null;

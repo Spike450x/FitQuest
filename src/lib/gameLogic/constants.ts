@@ -38,75 +38,55 @@ export const CLASS_DEFINITIONS: Record<
   },
 };
 
-// ─── Activity Base XP & Stat Gains ───────────────────────────────────────────
+// ─── Activity Definitions ─────────────────────────────────────────────────────
 
 export const ACTIVITY_DEFINITIONS = {
-  workout: {
-    label: "Workout",
-    description: "Resistance training, weightlifting, or gym session",
-    unit: "minutes",
-    baseXp: 10,
-    // Per 30 minutes
-    statGainsPerUnit: { strength: 2, stamina: 1, agility: 1, health: 0, wisdom: 0, defense: 1 },
-    unitDivisor: 30,
-  },
-  run: {
-    label: "Run",
-    description: "Running or jogging, tracked in miles",
-    unit: "miles",
-    baseXp: 15,
-    // Per mile
-    statGainsPerUnit: { strength: 1, stamina: 2, agility: 2, health: 1, wisdom: 0, defense: 0 },
-    unitDivisor: 1,
-  },
-  steps: {
-    label: "Steps",
-    description: "Daily step count",
-    unit: "steps",
-    baseXp: 8,
-    // Per 10,000 steps
-    statGainsPerUnit: { strength: 0, stamina: 3, agility: 1, health: 1, wisdom: 0, defense: 0 },
-    unitDivisor: 10000,
-  },
-  sleep: {
-    label: "Sleep",
-    description: "Hours of sleep (7–9 is optimal)",
-    unit: "hours",
-    baseXp: 8,
-    // Per 8 hours — recovery builds resilience
-    statGainsPerUnit: { strength: 0, stamina: 0, agility: 0, health: 2, wisdom: 0, defense: 1 },
-    unitDivisor: 8,
-  },
-  water: {
-    label: "Water",
-    description: "Glasses of water (8oz each)",
-    unit: "glasses",
-    baseXp: 5,
-    // Per 8 glasses
-    statGainsPerUnit: { strength: 0, stamina: 0, agility: 0, health: 1, wisdom: 1, defense: 0 },
-    unitDivisor: 8,
-  },
-  nutrition: {
-    label: "Nutrition",
-    description: "Healthy meals logged",
-    unit: "meals",
-    baseXp: 6,
-    // Per meal
-    statGainsPerUnit: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 2, defense: 0 },
-    unitDivisor: 1,
-  },
+  workout:   { label: "Workout",   description: "Resistance training, weightlifting, or gym session", unit: "minutes" },
+  run:       { label: "Run",       description: "Running or jogging, tracked in miles",               unit: "miles"   },
+  steps:     { label: "Steps",     description: "Daily step count",                                   unit: "steps"   },
+  sleep:     { label: "Sleep",     description: "Hours of sleep (7–9 is optimal)",                    unit: "hours"   },
+  water:     { label: "Water",     description: "Glasses of water (8oz each)",                        unit: "glasses" },
+  nutrition: { label: "Nutrition", description: "Healthy meals logged",                               unit: "meals"   },
 } as const;
 
-// ─── Stamina Restore (via activities) ────────────────────────────────────────
+// ─── Resource Restore (via activities) ───────────────────────────────────────
+// Sleep restores Stamina · Water restores Magic · Nutrition restores HP.
+// These are capped at the player's current maximum — logging when full does nothing.
 
 export const RESTORE = {
-  /** Stamina restored per hour of sleep (primary restore). 8h = 40 stamina. */
+  /** HP restored per healthy meal logged. 3 meals = +60 HP. */
+  HP_PER_MEAL: 20,
+  /** Stamina restored per hour of sleep. 8h = +40 stamina. */
   STAMINA_PER_SLEEP_HOUR: 5,
-  /** Stamina restored per glass of water. 8 glasses = 16 stamina. */
-  STAMINA_PER_WATER_GLASS: 2,
-  /** Stamina restored per healthy meal logged. 3 meals = 15 stamina. */
-  STAMINA_PER_MEAL: 5,
+  /** Magic restored per glass of water. 8 glasses = +40 magic. */
+  MAGIC_PER_WATER_GLASS: 5,
 };
+
+// ─── Mastery System ───────────────────────────────────────────────────────────
+// Logging run/workout/steps builds mastery toward permanent +1 stat milestones.
+// Open-ended: milestones fire at log 5, then every 10 forever (5, 15, 25, …).
+
+export type MasteryActivityType = "run" | "workout" | "steps";
+
+export const MASTERY_CONFIG: Record<
+  MasteryActivityType,
+  { linkedStat: "agility" | "strength" | "wisdom"; linkedStatLabel: string }
+> = {
+  run:     { linkedStat: "agility",  linkedStatLabel: "Agility"  },
+  workout: { linkedStat: "strength", linkedStatLabel: "Strength" },
+  steps:   { linkedStat: "wisdom",   linkedStatLabel: "Wisdom"   },
+};
+
+/** Returns true if this log count hits a mastery milestone (5, 15, 25, 35, …). */
+export function isMasteryMilestone(count: number): boolean {
+  return count === 5 || (count > 5 && (count - 5) % 10 === 0);
+}
+
+/** Returns the next milestone log count above the given count. */
+export function nextMasteryMilestone(count: number): number {
+  if (count < 5) return 5;
+  return Math.floor((count - 5) / 10) * 10 + 15;
+}
 
 // ─── Level-Up Bonuses ─────────────────────────────────────────────────────────
 

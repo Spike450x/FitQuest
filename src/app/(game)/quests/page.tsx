@@ -204,7 +204,7 @@ export default function QuestsPage() {
       {loading ? (
         <LoadingSkeleton />
       ) : (
-        <>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <QuestSection
             title="Daily Quests"
             icon="📅"
@@ -219,7 +219,7 @@ export default function QuestsPage() {
             claiming={claiming}
             onClaim={handleClaim}
           />
-        </>
+        </div>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
@@ -10,20 +11,21 @@ import { XPBar } from "@/components/ui/XPBar";
 import { playerMaxHp, totalGearBonuses } from "@/lib/gameLogic/combat";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: "🏠" },
-  { href: "/character", label: "Character", icon: "⚔️" },
+  { href: "/dashboard",  label: "Dashboard",  icon: "🏠" },
+  { href: "/character",  label: "Character",  icon: "⚔️" },
   { href: "/activities", label: "Activities", icon: "📋" },
-  { href: "/combat", label: "Combat", icon: "🐉" },
-  { href: "/quests", label: "Quests", icon: "📜" },
-  { href: "/inventory", label: "Inventory", icon: "🎒" },
-  { href: "/shop", label: "Shop", icon: "🏪" },
-  { href: "/profile", label: "Profile", icon: "👤" },
+  { href: "/combat",     label: "Combat",     icon: "🐉" },
+  { href: "/quests",     label: "Quests",     icon: "📜" },
+  { href: "/inventory",  label: "Inventory",  icon: "🎒" },
+  { href: "/shop",       label: "Shop",       icon: "🏪" },
+  { href: "/stats",      label: "Stats",      icon: "📊" },
 ];
 
 export default function GameLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { character, loading } = useCharacter();
+  const [collapsed, setCollapsed] = useState(true);
 
   async function handleSignOut() {
     await signOut(auth);
@@ -31,22 +33,24 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      {/* Top bar */}
-      <header className="border-b border-gray-200 bg-white/90 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <Link href="/dashboard" className="text-indigo-600 font-bold text-lg tracking-tight">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
+
+      {/* ── Top bar ─────────────────────────────────────────────────────────── */}
+      <header className="border-b border-gray-200 bg-white/90 backdrop-blur sticky top-0 z-20 h-14">
+        <div className="h-full px-4 flex items-center justify-between gap-4">
+          <Link href="/dashboard" className="text-indigo-600 font-bold text-lg tracking-tight shrink-0">
             FitQuest
           </Link>
 
-          {/* XP bar (compact) */}
+          {/* XP bar */}
           {character && !loading && (
-            <div className="flex-1 max-w-xs hidden sm:block">
+            <div className="flex-1 max-w-sm hidden sm:block">
               <XPBar xp={character.xp} level={character.level} xpToNextLevel={character.xpToNextLevel} />
             </div>
           )}
 
-          <div className="flex items-center gap-4">
+          {/* Right-side stats + actions */}
+          <div className="flex items-center gap-3">
             {character && (
               <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500">
                 {(() => {
@@ -59,14 +63,12 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
                         ❤️{" "}
                         <span className="font-semibold text-gray-700">
                           {character.currentHp ?? maxHp}/{maxHp}
-                        </span>{" "}
-                        HP
+                        </span>
                       </span>
-                      <span>·</span>
+                      <span className="text-gray-300">·</span>
                       <span>
                         🛡️{" "}
-                        <span className="font-semibold text-gray-700">{defense}</span>{" "}
-                        DEF
+                        <span className="font-semibold text-gray-700">{defense}</span>
                       </span>
                     </>
                   );
@@ -97,46 +99,76 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 flex gap-6 py-6">
-        {/* Sidebar nav */}
-        <nav className="w-44 shrink-0 hidden md:block">
-          <ul className="space-y-1">
-            {NAV_ITEMS.map(({ href, label, icon }) => (
-              <li key={href}>
+      {/* ── Body ────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-1">
+
+        {/* ── Sidebar (desktop) ─────────────────────────────────────────────── */}
+        <aside
+          className={`
+            hidden md:flex flex-col shrink-0
+            bg-white border-r border-gray-200
+            sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto
+            transition-all duration-200 ease-in-out
+            ${collapsed ? "w-14" : "w-44"}
+          `}
+        >
+          {/* Collapse toggle */}
+          <button
+            onClick={() => setCollapsed((v) => !v)}
+            title={collapsed ? "Expand menu" : "Collapse menu"}
+            className="flex items-center justify-center h-9 border-b border-gray-100 hover:bg-gray-50 transition-colors text-gray-400 hover:text-gray-600 shrink-0"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`w-4 h-4 transition-transform duration-200 ${collapsed ? "" : "rotate-180"}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          {/* Nav links */}
+          <nav className="flex-1 py-2 px-1.5 space-y-0.5">
+            {NAV_ITEMS.map(({ href, label, icon }) => {
+              const active = pathname === href;
+              return (
                 <Link
+                  key={href}
                   href={href}
+                  title={collapsed ? label : undefined}
                   className={`
-                    flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors
-                    ${
-                      pathname === href
-                        ? "bg-indigo-50 text-indigo-700 font-medium border border-indigo-100"
-                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                    flex items-center gap-2.5 rounded-lg text-sm transition-colors
+                    ${collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2"}
+                    ${active
+                      ? "bg-indigo-50 text-indigo-700 font-medium border border-indigo-100"
+                      : "text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent"
                     }
                   `}
                 >
-                  <span>{icon}</span>
-                  {label}
+                  <span className="text-base leading-none shrink-0">{icon}</span>
+                  {!collapsed && <span className="truncate">{label}</span>}
                 </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+              );
+            })}
+          </nav>
+        </aside>
 
-        {/* Main content */}
-        <main className="flex-1 min-w-0">{children}</main>
+        {/* ── Main content ──────────────────────────────────────────────────── */}
+        <main className="flex-1 min-w-0 py-6 px-4 sm:px-6">
+          {children}
+        </main>
       </div>
 
-      {/* Mobile bottom nav */}
+      {/* ── Mobile bottom nav ─────────────────────────────────────────────── */}
       <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t border-gray-200 z-10">
         <ul className="flex justify-around">
           {NAV_ITEMS.slice(0, 5).map(({ href, label, icon }) => (
             <li key={href}>
               <Link
                 href={href}
-                className={`
-                  flex flex-col items-center py-2 px-3 text-xs transition-colors
-                  ${pathname === href ? "text-indigo-600" : "text-gray-400"}
-                `}
+                className={`flex flex-col items-center py-2 px-3 text-xs transition-colors ${
+                  pathname === href ? "text-indigo-600" : "text-gray-400"
+                }`}
               >
                 <span className="text-lg">{icon}</span>
                 {label}

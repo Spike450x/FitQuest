@@ -2,6 +2,7 @@ import type { SpellDiceRequirement, SpellCombatEffect } from "@/types";
 import { gearDefenseBonus } from "./combat";
 import { COMBAT } from "./constants";
 import type { Character, MonsterDef } from "@/types";
+import { applySpellDamagePassives } from "./passives";
 
 // ─── Dice check ───────────────────────────────────────────────────────────────
 
@@ -109,7 +110,9 @@ export function resolveSpell(
   if (requirementMet) {
     // ── Deal damage ──────────────────────────────────────────────────────────
     if (effect.damage) {
-      const raw = effect.damage + (effect.damageScalesWithWisdom ? wis : 0);
+      const baseRaw = effect.damage + (effect.damageScalesWithWisdom ? wis : 0);
+      // Apply wizard passives (Arcane Amplification, Archmage ×1.25) to raw pre-defense damage
+      const raw = applySpellDamagePassives(character, baseRaw);
       playerDamage = effect.bypassMonsterDef
         ? raw
         : Math.max(1, raw - monster.defense);

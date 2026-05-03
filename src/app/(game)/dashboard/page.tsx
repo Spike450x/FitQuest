@@ -10,9 +10,12 @@ import { GoldDisplay } from "@/components/ui/GoldDisplay";
 import { StatBar } from "@/components/character/StatBar";
 import { CLASS_DEFINITIONS, ACTIVITY_DEFINITIONS } from "@/lib/gameLogic/constants";
 import { playerMaxStamina, totalGearBonuses } from "@/lib/gameLogic/combat";
+import { getStreakTier } from "@/lib/gameLogic/streaks";
 import { useQuestStore } from "@/store/questStore";
 import { getQuestDef } from "@/lib/gameLogic/quests";
 import { StatAllocModal } from "@/components/character/StatAllocModal";
+import { SubclassModal } from "@/components/character/SubclassModal";
+import { getSubclassDef } from "@/lib/gameLogic/passives";
 import type { ActivityLog, ActiveQuest } from "@/types";
 
 const QUICK_ACTIONS = [
@@ -51,6 +54,9 @@ export default function DashboardPage() {
   const maxStamina = playerMaxStamina(character);
   const currentStamina = character.currentStamina ?? maxStamina;
   const dailyQuests = quests.filter((q) => getQuestDef(q.questDefId)?.type === "daily");
+  const currentStreak = character.streakData?.currentStreak ?? 0;
+  const streakTier = getStreakTier(currentStreak);
+  const subclassDef = character.subclass ? getSubclassDef(character.subclass) : undefined;
 
   return (
     <div className="space-y-6">
@@ -59,13 +65,38 @@ export default function DashboardPage() {
         <StatAllocModal character={character} />
       )}
 
+      {/* Subclass picker — shown at level 10 before subclass is chosen */}
+      {character.level >= 10 && !character.subclass && (
+        <SubclassModal character={character} />
+      )}
+
       {/* Hero banner */}
       <div className="bg-gradient-to-br from-indigo-50 via-white to-violet-50 border border-indigo-100 rounded-xl p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-indigo-400 text-sm font-medium">{classDef.emoji} {classDef.label}</p>
             <h2 className="text-2xl font-bold text-gray-900">{character.name}</h2>
-            <p className="text-indigo-600 text-sm mt-0.5 font-medium">Level {character.level} Adventurer</p>
+            <p className="text-indigo-600 text-sm mt-0.5 font-medium">
+              Level {character.level} {subclassDef ? subclassDef.name : "Adventurer"}
+              {subclassDef && (
+                <span className="ml-1.5 text-violet-500">{subclassDef.emoji}</span>
+              )}
+            </p>
+            {/* Streak badge */}
+            {currentStreak > 0 && (
+              <div className="flex items-center gap-1.5 mt-2">
+                <span className="text-base">🔥</span>
+                <span className={`text-sm font-semibold ${streakTier.color}`}>
+                  Day {currentStreak}
+                  {streakTier.label ? ` · ${streakTier.label}` : ""}
+                </span>
+                {streakTier.multiplier > 1 && (
+                  <span className="text-xs text-gray-400 font-medium">
+                    +{Math.round((streakTier.multiplier - 1) * 100)}% rare drops
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           <GoldDisplay amount={character.gold} size="lg" />
         </div>
@@ -112,30 +143,30 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats overview */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <h3 className="text-xs font-semibold text-gray-400 mb-4 uppercase tracking-wider">Stats</h3>
-        <div className="space-y-3">
-          {STAT_CONFIG.map(({ key, label, icon, color, max }) => {
-            const base = character.stats[key];
-            const bonus = gearBonuses[key] ?? 0;
-            return (
-              <StatBar
-                key={key}
-                label={label}
-                value={base + bonus}
-                max={max}
-                color={color}
-                icon={icon}
-                suffix={bonus > 0 ? `+${bonus} gear` : undefined}
-              />
-            );
-          })}
+      {/* Lower three-column grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Stats overview */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <h3 className="text-xs font-semibold text-gray-400 mb-4 uppercase tracking-wider">Stats</h3>
+          <div className="space-y-3">
+            {STAT_CONFIG.map(({ key, label, icon, color, max }) => {
+              const base = character.stats[key];
+              const bonus = gearBonuses[key] ?? 0;
+              return (
+                <StatBar
+                  key={key}
+                  label={label}
+                  value={base + bonus}
+                  max={max}
+                  color={color}
+                  icon={icon}
+                  suffix={bonus > 0 ? `+${bonus} gear` : undefined}
+                />
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Bottom row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Active quests widget */}
         <ActiveQuestsWidget quests={dailyQuests} loading={questsLoading} />
 
@@ -203,8 +234,12 @@ function ActivityFeedItem({ log }: { log: ActivityLog }) {
         </span>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className="text-indigo-600 font-semibold">+{log.xpGained} XP</span>
-        <span className="text-gray-300">·</span>
+        {log.xpGained > 0 && (
+          <>
+            <span className="text-indigo-600 font-semibold">+{log.xpGained} XP</span>
+            <span className="text-gray-300">·</span>
+          </>
+        )}
         <span className="text-gray-400 text-xs">{timeAgo(log.loggedAt)}</span>
       </div>
     </li>

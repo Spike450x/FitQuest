@@ -1,6 +1,7 @@
 import type { Character, MonsterDef } from "@/types";
 import { gearAttackBonus, gearDefenseBonus } from "./combat";
 import { COMBAT } from "./constants";
+import { applySubclassAbilityMods, getAbilityDamageMultiplier } from "./passives";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,9 +31,10 @@ export interface AbilityResolution {
   pattern: DicePattern | null;
   playerDamage: number;
   monsterDamage: number;
-  healAmount: number;
   monsterStunned: boolean;
   playerDefFailed: boolean;
+  /** Flat HP healed at end of this round — Paladin subclass bonuses (shield-slam, unstoppable). */
+  flatPassiveHeal: number;
 }
 
 // ─── Ability catalog ──────────────────────────────────────────────────────────
@@ -276,6 +278,7 @@ export function getAbility(
 export function resolveAbility(
   character: Character,
   monster: MonsterDef,
+  isFirstAbility = false,
 ): AbilityResolution {
   // Roll 6 d6
   const dice = Array.from({ length: 6 }, () => Math.ceil(Math.random() * 6));
@@ -303,28 +306,37 @@ export function resolveAbility(
       pattern: null,
       playerDamage,
       monsterDamage,
-      healAmount: 0,
       monsterStunned: false,
       playerDefFailed,
+      flatPassiveHeal: 0,
     };
   }
 
   // ── Ability path ───────────────────────────────────────────────────────────
-  const ability = getAbility(character.class, pattern);
-  if (!ability) {
+  const baseAbility = getAbility(character.class, pattern);
+  if (!baseAbility) {
     // Fallback — treat as fizzle if somehow class is unknown
     const playerDamage = Math.max(0, baseHit - monster.defense);
     const { monsterDamage, playerDefFailed } = rollMonsterAttack(character, monster, false);
-    return { ability: null, dice, pattern, playerDamage, monsterDamage, healAmount: 0, monsterStunned: false, playerDefFailed };
+    return { ability: null, dice, pattern, playerDamage, monsterDamage, monsterStunned: false, playerDefFailed, flatPassiveHeal: 0 };
   }
 
-  const rawDamage = Math.round(baseHit * ability.damageMultiplier);
+  // ── Phase 1 of 2: intrinsic ability modifiers ─────────────────────────────
+  // Apply subclass modifications (Berserker Rage ×4, Paladin flat heals, etc.)
+  // and Lethal Opener multiplier (Assassin). These bake into playerDamage here.
+  //
+  // Phase 2 happens in handleAbility (combat/page.tsx): applyOutgoingPassives
+  // adds Battle-Hardened flat bonus and Bloodlust multiplier on top of this value.
+  const ability = applySubclassAbilityMods(character, baseAbility);
+
+  // Apply Lethal Opener (Assassin) — 2× on first ability this fight
+  const extraMultiplier = getAbilityDamageMultiplier(character, isFirstAbility);
+
+  const rawDamage = Math.round(baseHit * ability.damageMultiplier * extraMultiplier);
   const playerDamage = Math.max(
     1,
     ability.bypassMonsterDef ? rawDamage : rawDamage - monster.defense,
   );
-
-  const healAmount = Math.round(playerDamage * ability.lifestealPct);
 
   let monsterDamage = 0;
   let playerDefFailed = false;
@@ -340,9 +352,9 @@ export function resolveAbility(
     pattern,
     playerDamage,
     monsterDamage,
-    healAmount,
     monsterStunned: ability.stunMonster,
     playerDefFailed,
+    flatPassiveHeal: ability.flatHeal,
   };
 }
 

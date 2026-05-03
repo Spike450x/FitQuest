@@ -1,6 +1,7 @@
 import { COMBAT } from "./constants";
 import { getItemById } from "./items";
 import type { Character, EquippedGear, MonsterDef, Stats } from "@/types";
+import { getEscapeBonus, hasSureEscape } from "./passives";
 
 /**
  * Total magic pool available to the player.
@@ -155,10 +156,26 @@ export function calculateRound(
  * Roll the loot table for a defeated monster.
  * Each entry is an independent Bernoulli trial — items can each drop (or not)
  * regardless of what else drops. Returns the item IDs that were awarded.
+ *
+ * streakMultiplier — from the player's active Blessing (streak tier).
+ * Applied exclusively to items of rarity "rare", "epic", or "legendary";
+ * common and uncommon item chances are unchanged. Effective chance is capped
+ * at 0.95 so there is always some RNG even at max streak.
  */
-export function rollLoot(lootTable: Array<{ itemId: string; chance: number }>): string[] {
+export function rollLoot(
+  lootTable: Array<{ itemId: string; chance: number }>,
+  streakMultiplier = 1.0
+): string[] {
+  const RARE_PLUS = new Set(["rare", "epic", "legendary"]);
   return lootTable
-    .filter(({ chance }) => Math.random() < chance)
+    .filter(({ itemId, chance }) => {
+      const item = getItemById(itemId);
+      const isRarePlus = item ? RARE_PLUS.has(item.rarity) : false;
+      const effectiveChance = isRarePlus
+        ? Math.min(chance * streakMultiplier, 0.95)
+        : chance;
+      return Math.random() < effectiveChance;
+    })
     .map(({ itemId }) => itemId);
 }
 
@@ -183,8 +200,11 @@ export function rollRunAway(
   const gear = totalGearBonuses(character.equippedGear);
   const effectiveAgility = (character.stats.agility ?? 0) + (gear.agility ?? 0);
   const agilityBonus = Math.floor(effectiveAgility * COMBAT.AGILITY_ESCAPE_FACTOR);
+  // Ghost Step (Assassin/Ranger): additional agility-based escape bonus
+  const ghostStepBonus = getEscapeBonus(character);
   const monsterRoll = rollDice();
-  const escaped = playerRoll + agilityBonus > monsterRoll;
+  // Sure Escape (Ranger): always succeeds
+  const escaped = hasSureEscape(character) || playerRoll + agilityBonus + ghostStepBonus > monsterRoll;
 
   let monsterDamage = 0;
   let playerDefFailed = false;

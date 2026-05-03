@@ -9,9 +9,22 @@ import { useInventoryStore } from "@/store/inventoryStore";
 import { MONSTER_CATALOG } from "@/lib/gameLogic/monsters";
 import { getDailyPick, dailyExpiresAt, formatCountdown } from "@/lib/gameLogic/rotation";
 import { playerMaxHp, playerMaxStamina, playerMaxMagic, calculateRound, rollRunAway, rollLoot, gearAttackBonus, gearDefenseBonus } from "@/lib/gameLogic/combat";
+import { getStreakLootMultiplier } from "@/lib/gameLogic/streaks";
 import { getItemById, RARITY_BADGE } from "@/lib/gameLogic/items";
 import { resolveAbility, getAbility } from "@/lib/gameLogic/abilities";
 import { resolveSpell, describeRequirement, getHighlightedSpellDiceIndices } from "@/lib/gameLogic/spells";
+import {
+  getSubclassDef,
+  applyOutgoingPassives,
+  applyIncomingPassives,
+  resolveLifesteal,
+  getAbilityStaminaCost,
+  getPerRoundPassives,
+  getMomentumRestore,
+  checkExecute,
+  getEffectiveSpellCost,
+  canBloodPact,
+} from "@/lib/gameLogic/passives";
 import { SpellCard } from "@/components/ui/SpellCard";
 import { COMBAT } from "@/lib/gameLogic/constants";
 import type { MonsterDef, ItemDef, SpellDiceRequirement } from "@/types";
@@ -59,6 +72,18 @@ interface RoundEntry {
   recoveryRoll?: number;
   recoveredStamina?: number;
   recoveredMagic?: number;
+  // passive events
+  eagleEyeCrit?: boolean;
+  divineAegisBlocked?: boolean;
+  soulDrainHeal?: number;
+  hemorrhageDrain?: number;
+  executeTriggered?: boolean;
+  momentumRestore?: number;
+  manaBarrierAbsorbed?: number;
+  perRoundHpRestore?: number;
+  perRoundMagicRestore?: number;
+  bloodPactUsed?: boolean;
+  flatPassiveHeal?: number;
 }
 
 interface FightState {
@@ -71,6 +96,10 @@ interface FightState {
   log: RoundEntry[];
   outcome: "win" | "loss" | "fled" | null;
   droppedItems: string[];
+  /** True until the first class ability roll is confirmed this fight. */
+  isFirstAbility: boolean;
+  /** True once Execute (Assassin) has fired once this fight. */
+  executeUsed: boolean;
 }
 
 interface PendingSpell {
@@ -163,6 +192,11 @@ export default function CombatPage() {
   const [pendingAbility, setPendingAbility] = useState<PendingAbility | null>(null);
   const [pendingSpell, setPendingSpell] = useState<PendingSpell | null>(null);
 
+  // Streak-based loot multiplier — applied to rare+ item drop chances on win
+  const streakMultiplier = getStreakLootMultiplier(
+    character?.streakData?.currentStreak ?? 0
+  );
+
   useEffect(() => {
     if (character?.uid) fetchInventory(character.uid);
   }, [character?.uid, fetchInventory]);
@@ -195,6 +229,8 @@ export default function CombatPage() {
       log: [],
       outcome: null,
       droppedItems: [],
+      isFirstAbility: true,
+      executeUsed: false,
     });
     setPhase("fighting");
   }
@@ -272,14 +308,47 @@ export default function CombatPage() {
     }
 
     // ── Attack / Magic ─────────────────────────────────────────────────────────
-    const { roll, attackBonus, attackBonusLabel, playerDamage, monsterDamage, monsterRoll, playerDefFailed, monsterDefFailed } =
+    const { roll, attackBonus, attackBonusLabel, playerDamage: basePlayerDamage, monsterDamage: baseMonsterDamage, monsterRoll, playerDefFailed, monsterDefFailed } =
       calculateRound(character, snapshot.monster, actionType);
 
+    // ── Outgoing passives (Battle-Hardened, Bloodlust, Eagle Eye) ─────────────
+    const passiveCtx = {
+      currentHpPct: snapshot.playerHp / maxHp,
+      currentMagic: snapshot.playerMagic,
+      isFirstAbility: snapshot.isFirstAbility,
+      executeUsed: snapshot.executeUsed,
+      roll,
+    };
+    const outgoing = applyOutgoingPassives(character, basePlayerDamage, passiveCtx);
+    const playerDamage = outgoing.damage;
+
+    // ── Warlock Soul Drain on attack damage ────────────────────────────────────
+    const { soulDrainHeal: attackSoulDrain } = resolveLifesteal(character, 0, playerDamage);
+
     const newMonsterHp = Math.max(0, snapshot.monsterHp - playerDamage);
-    const actualMonsterDamage = newMonsterHp === 0 ? 0 : monsterDamage;
-    const newPlayerHp = Math.max(0, snapshot.playerHp - actualMonsterDamage);
-    const outcome: "win" | "loss" | null = newPlayerHp === 0 ? "loss" : newMonsterHp === 0 ? "win" : null;
-    const droppedItems = outcome === "win" ? rollLoot(snapshot.monster.lootTable) : snapshot.droppedItems;
+    const killedMonster = newMonsterHp === 0;
+
+    // ── Incoming passives (Iron Will, Divine Aegis, Mana Barrier) ─────────────
+    const rawMonsterDamage = killedMonster ? 0 : baseMonsterDamage;
+    const incoming = killedMonster
+      ? { damage: 0, magicDrained: 0, divineAegisBlocked: false, ironWillActive: false }
+      : applyIncomingPassives(character, rawMonsterDamage, passiveCtx);
+    const actualMonsterDamage = incoming.damage;
+
+    // ── Per-round passive resources (Wisdom Flow, Sacred Vow) ─────────────────
+    const perRound = getPerRoundPassives(character);
+
+    // ── Final HP / magic calc ──────────────────────────────────────────────────
+    const healedHp = Math.min(snapshot.playerHp + attackSoulDrain, maxHp);
+    const newPlayerHpRaw = Math.max(0, healedHp - actualMonsterDamage);
+    const outcome: "win" | "loss" | null = newPlayerHpRaw === 0 ? "loss" : killedMonster ? "win" : null;
+
+    // Per-round passives apply only when player survives
+    const finalPlayerHp = outcome === null ? Math.min(newPlayerHpRaw + perRound.hpRestore, maxHp) : newPlayerHpRaw;
+    const magicAfterBarrier = Math.max(0, snapshot.playerMagic - incoming.magicDrained);
+    const finalPlayerMagic = outcome === null ? Math.min(magicAfterBarrier + perRound.magicRestore, maxMagic) : magicAfterBarrier;
+
+    const droppedItems = killedMonster ? rollLoot(snapshot.monster.lootTable, streakMultiplier) : snapshot.droppedItems;
 
     const entry: RoundEntry = {
       round: snapshot.log.length + 1,
@@ -288,8 +357,14 @@ export default function CombatPage() {
       playerDamage,
       monsterDamage: actualMonsterDamage,
       playerDefFailed, monsterDefFailed,
-      playerHpAfter: newPlayerHp,
+      playerHpAfter: finalPlayerHp,
       monsterHpAfter: newMonsterHp,
+      eagleEyeCrit: outgoing.eagleEyeCrit,
+      divineAegisBlocked: incoming.divineAegisBlocked,
+      manaBarrierAbsorbed: incoming.magicDrained > 0 ? incoming.magicDrained : undefined,
+      soulDrainHeal: attackSoulDrain > 0 ? attackSoulDrain : undefined,
+      perRoundHpRestore: perRound.hpRestore > 0 && outcome === null ? perRound.hpRestore : undefined,
+      perRoundMagicRestore: perRound.magicRestore > 0 && outcome === null ? perRound.magicRestore : undefined,
     };
 
     setPendingAction({
@@ -302,13 +377,14 @@ export default function CombatPage() {
       playerDefFailed, monsterDefFailed,
       outcome,
       applyResult: async () => {
-        setFightState({ ...snapshot, playerHp: newPlayerHp, monsterHp: newMonsterHp, log: [...snapshot.log, entry], outcome, droppedItems });
-        setHpLocal(newPlayerHp);
+        setFightState({ ...snapshot, playerHp: finalPlayerHp, monsterHp: newMonsterHp, playerMagic: finalPlayerMagic, log: [...snapshot.log, entry], outcome, droppedItems });
+        setHpLocal(finalPlayerHp);
         setStaminaLocal(snapshot.playerStamina);
+        setMagicLocal(finalPlayerMagic);
         if (outcome !== null) {
-          await updateCurrentHp(newPlayerHp);
+          await updateCurrentHp(finalPlayerHp);
           await updateCurrentStamina(snapshot.playerStamina);
-          await updateCurrentMagic(snapshot.playerMagic);
+          await updateCurrentMagic(finalPlayerMagic);
           if (outcome === "win") {
             setPendingRewards({
               xpReward: snapshot.monster.xpReward,
@@ -327,72 +403,134 @@ export default function CombatPage() {
 
   function handleAbility() {
     if (!fightState || !character || rollingAction !== null || fightState.outcome !== null) return;
-    if (fightState.playerStamina < COMBAT.ABILITY_STAMINA_COST) return;
+
+    // ── Actual stamina cost (Rogue Opening Strike: 0; Berserker Frenzy: halved) ─
+    const actualStaminaCost = getAbilityStaminaCost(character, COMBAT.ABILITY_STAMINA_COST, fightState.isFirstAbility);
+    if (fightState.playerStamina < actualStaminaCost) return;
 
     // Lock other actions immediately — overlay handles the rest
     setRollingAction("ability");
 
-    // Resolve dice + damage up front so animation can show the real values
-    const resolution = resolveAbility(character, fightState.monster);
+    // Resolve dice + base damage (subclass mods + Lethal Opener applied inside)
+    const resolution = resolveAbility(character, fightState.monster, fightState.isFirstAbility);
     const fizzled = resolution.ability === null;
 
-    const newMonsterHp = Math.max(0, fightState.monsterHp - resolution.playerDamage);
+    // ── Outgoing passives (Battle-Hardened, Bloodlust; Eagle Eye skipped for abilities) ─
+    const abilityCtx = {
+      currentHpPct: fightState.playerHp / maxHp,
+      currentMagic: fightState.playerMagic,
+      isFirstAbility: fightState.isFirstAbility,
+      executeUsed: fightState.executeUsed,
+      roll: undefined as number | undefined, // Eagle Eye only on d10 attacks
+    };
+    const outgoing = applyOutgoingPassives(character, resolution.playerDamage, abilityCtx);
+    const effectivePlayerDamage = outgoing.damage;
+
+    // ── Lifesteal: Hemorrhage + Soul Drain ────────────────────────────────────
+    const { totalPct, hemorrhageDrain, soulDrainHeal } = resolveLifesteal(
+      character,
+      resolution.ability?.lifestealPct ?? 0,
+      effectivePlayerDamage,
+    );
+    const lifestealHeal = Math.round(effectivePlayerDamage * totalPct);
+    const totalHeal = lifestealHeal + soulDrainHeal + resolution.flatPassiveHeal;
+
+    // ── Execute (Assassin) — instant kill when monster drops to ≤15% HP ──────
+    const monsterHpBefore = fightState.monsterHp;
+    let newMonsterHp = Math.max(0, monsterHpBefore - effectivePlayerDamage - hemorrhageDrain);
+    const executeTriggered = checkExecute(
+      character, monsterHpBefore, newMonsterHp, fightState.monster.hp, fightState.executeUsed,
+    );
+    if (executeTriggered) newMonsterHp = 0;
+
     const killedMonster = newMonsterHp === 0;
-    const actualMonsterDamage = killedMonster ? 0 : resolution.monsterDamage;
-    const healedHp = Math.min(fightState.playerHp + resolution.healAmount, maxHp);
-    const newPlayerHp = Math.max(0, healedHp - actualMonsterDamage);
+
+    // ── Incoming passives (Iron Will, Divine Aegis, Mana Barrier) ─────────────
+    const rawMonsterDamage = killedMonster ? 0 : resolution.monsterDamage;
+    const incoming = killedMonster
+      ? { damage: 0, magicDrained: 0, divineAegisBlocked: false, ironWillActive: false }
+      : applyIncomingPassives(character, rawMonsterDamage, abilityCtx);
+    const actualMonsterDamage = incoming.damage;
+
+    // ── Per-round passives (Wisdom Flow, Scholarly, Sacred Vow) ───────────────
+    const perRound = getPerRoundPassives(character);
+
+    // ── Final HP / magic calc ──────────────────────────────────────────────────
+    const healedHp = Math.min(fightState.playerHp + totalHeal, maxHp);
+    const newPlayerHpRaw = Math.max(0, healedHp - actualMonsterDamage);
+    const outcome: "win" | "loss" | null = newPlayerHpRaw === 0 ? "loss" : killedMonster ? "win" : null;
+
+    const finalPlayerHp = outcome === null ? Math.min(newPlayerHpRaw + perRound.hpRestore, maxHp) : newPlayerHpRaw;
+    const magicAfterBarrier = Math.max(0, fightState.playerMagic - incoming.magicDrained);
+    const finalPlayerMagic = outcome === null ? Math.min(magicAfterBarrier + perRound.magicRestore, maxMagic) : magicAfterBarrier;
+
+    // ── Warrior Momentum — restore stamina on ability kill ────────────────────
+    const momentumRestore = getMomentumRestore(character, killedMonster);
+    const newStamina = Math.min(
+      Math.max(0, fightState.playerStamina - actualStaminaCost) + momentumRestore,
+      maxStamina,
+    );
+
+    const droppedItems = killedMonster
+      ? rollLoot(fightState.monster.lootTable, streakMultiplier)
+      : fightState.droppedItems;
+
+    const snapshot = fightState;
+    const uid = character.uid;
 
     const entry: RoundEntry = {
       round: fightState.log.length + 1,
       action: "ability",
-      playerDamage: resolution.playerDamage,
+      playerDamage: effectivePlayerDamage,
       monsterDamage: actualMonsterDamage,
       playerDefFailed: resolution.playerDefFailed,
-      playerHpAfter: newPlayerHp,
+      playerHpAfter: finalPlayerHp,
       monsterHpAfter: newMonsterHp,
       abilityName: resolution.ability?.name,
       abilityEmoji: resolution.ability?.emoji,
       abilityPattern: resolution.pattern,
       abilityFizzled: fizzled,
       abilityDice: resolution.dice,
-      healAmount: resolution.healAmount,
+      healAmount: totalHeal > 0 ? totalHeal : undefined,
       monsterStunned: resolution.monsterStunned,
-      staminaCost: COMBAT.ABILITY_STAMINA_COST,
+      staminaCost: actualStaminaCost,
+      soulDrainHeal: soulDrainHeal > 0 ? soulDrainHeal : undefined,
+      hemorrhageDrain: hemorrhageDrain > 0 ? hemorrhageDrain : undefined,
+      executeTriggered: executeTriggered || undefined,
+      divineAegisBlocked: incoming.divineAegisBlocked || undefined,
+      manaBarrierAbsorbed: incoming.magicDrained > 0 ? incoming.magicDrained : undefined,
+      momentumRestore: momentumRestore > 0 ? momentumRestore : undefined,
+      flatPassiveHeal: resolution.flatPassiveHeal > 0 ? resolution.flatPassiveHeal : undefined,
+      perRoundHpRestore: perRound.hpRestore > 0 && outcome === null ? perRound.hpRestore : undefined,
+      perRoundMagicRestore: perRound.magicRestore > 0 && outcome === null ? perRound.magicRestore : undefined,
     };
-
-    const outcome: "win" | "loss" | null =
-      newPlayerHp === 0 ? "loss" : killedMonster ? "win" : null;
-
-    const droppedItems =
-      outcome === "win" ? rollLoot(fightState.monster.lootTable) : fightState.droppedItems;
-
-    // Snapshot state so the async applyResult closure doesn't go stale
-    const snapshot = fightState;
-    const uid = character.uid;
 
     setPendingAbility({
       dice: resolution.dice,
       pattern: resolution.pattern,
       ability: resolution.ability,
       applyResult: async () => {
-        const newStamina = Math.max(0, snapshot.playerStamina - COMBAT.ABILITY_STAMINA_COST);
         const nextState: FightState = {
           ...snapshot,
-          playerHp: newPlayerHp,
+          playerHp: finalPlayerHp,
           playerStamina: newStamina,
+          playerMagic: finalPlayerMagic,
           monsterHp: newMonsterHp,
           log: [...snapshot.log, entry],
           outcome,
           droppedItems,
+          isFirstAbility: false,
+          executeUsed: snapshot.executeUsed || executeTriggered,
         };
         setFightState(nextState);
-        setHpLocal(newPlayerHp);
+        setHpLocal(finalPlayerHp);
         setStaminaLocal(newStamina);
+        setMagicLocal(finalPlayerMagic);
 
         if (outcome !== null) {
-          await updateCurrentHp(newPlayerHp);
+          await updateCurrentHp(finalPlayerHp);
           await updateCurrentStamina(newStamina);
-          await updateCurrentMagic(snapshot.playerMagic);
+          await updateCurrentMagic(finalPlayerMagic);
           if (outcome === "win") {
             setPendingRewards({
               xpReward: snapshot.monster.xpReward,
@@ -414,7 +552,11 @@ export default function CombatPage() {
     if (!fightState || !character || rollingAction !== null || fightState.outcome !== null) return;
     const sm = spellDef.spellMechanics;
     if (!sm) return;
-    if (fightState.playerMagic < sm.magicCost) return;
+
+    // ── Archmage discount; Blood Pact (Warlock) alternate payment ──────────────
+    const effectiveMagicCost = getEffectiveSpellCost(character, sm.magicCost);
+    const useBloodPact = canBloodPact(character, effectiveMagicCost, fightState.playerMagic, fightState.playerHp);
+    if (!useBloodPact && fightState.playerMagic < effectiveMagicCost) return;
 
     setShowSpellPanel(false);
     setRollingAction("ability"); // re-use lock
@@ -424,18 +566,49 @@ export default function CombatPage() {
 
     const resolution = resolveSpell(sm.effect, sm.requirement, character, snapshot.monster);
 
-    const newMagic = Math.max(0, snapshot.playerMagic - sm.magicCost);
+    // ── Magic / HP payment ─────────────────────────────────────────────────────
+    const newMagic = useBloodPact
+      ? snapshot.playerMagic
+      : Math.max(0, snapshot.playerMagic - effectiveMagicCost);
+    const bloodPactHpCost = useBloodPact ? 10 : 0;
+
+    // ── Warlock Soul Drain on spell damage ─────────────────────────────────────
+    const { soulDrainHeal: spellSoulDrain } = resolveLifesteal(character, 0, resolution.playerDamage);
+
     const newMonsterHp = Math.max(0, snapshot.monsterHp - resolution.playerDamage);
     const killedMonster = newMonsterHp === 0;
-    const actualMonsterDamage = killedMonster ? 0 : resolution.monsterDamage;
-    const healedHp = Math.min(snapshot.playerHp + resolution.healAmount, maxHp);
-    const newPlayerHp = Math.max(0, healedHp - actualMonsterDamage);
+
+    // ── Incoming passives (Iron Will, Divine Aegis, Mana Barrier) ─────────────
+    const spellCtx = {
+      currentHpPct: snapshot.playerHp / maxHp,
+      currentMagic: newMagic,
+      isFirstAbility: snapshot.isFirstAbility,
+      executeUsed: snapshot.executeUsed,
+    };
+    const rawMonsterDamage = killedMonster ? 0 : resolution.monsterDamage;
+    const incoming = killedMonster
+      ? { damage: 0, magicDrained: 0, divineAegisBlocked: false, ironWillActive: false }
+      : applyIncomingPassives(character, rawMonsterDamage, spellCtx);
+    const actualMonsterDamage = incoming.damage;
+
+    // ── Per-round passives ─────────────────────────────────────────────────────
+    const perRound = getPerRoundPassives(character);
+
+    const healedHp = Math.min(snapshot.playerHp + resolution.healAmount + spellSoulDrain - bloodPactHpCost, maxHp);
+    const newPlayerHpRaw = Math.max(0, healedHp - actualMonsterDamage);
     const newStamina = Math.min(snapshot.playerStamina + resolution.staminaRestored, maxStamina);
+    const magicAfterBarrier = Math.max(0, newMagic - incoming.magicDrained);
 
     const outcome: "win" | "loss" | null =
-      newPlayerHp === 0 ? "loss" : killedMonster ? "win" : null;
+      newPlayerHpRaw === 0 ? "loss" : killedMonster ? "win" : null;
+
+    const finalPlayerHp = outcome === null ? Math.min(newPlayerHpRaw + perRound.hpRestore, maxHp) : newPlayerHpRaw;
+    const finalPlayerMagic = outcome === null ? Math.min(magicAfterBarrier + perRound.magicRestore, maxMagic) : magicAfterBarrier;
+
     const droppedItems =
-      outcome === "win" ? rollLoot(snapshot.monster.lootTable) : snapshot.droppedItems;
+      killedMonster ? rollLoot(snapshot.monster.lootTable, streakMultiplier) : snapshot.droppedItems;
+
+    const totalSpellHeal = resolution.healAmount + spellSoulDrain;
 
     const entry: RoundEntry = {
       round: snapshot.log.length + 1,
@@ -443,17 +616,23 @@ export default function CombatPage() {
       spellName: spellDef.name,
       spellDice: resolution.dice,
       spellRequirementMet: resolution.requirementMet,
-      spellMagicCost: sm.magicCost,
+      spellMagicCost: effectiveMagicCost,
       spellDiceReq: sm.requirement,
       playerDamage: resolution.playerDamage,
       monsterDamage: actualMonsterDamage,
-      healAmount: resolution.healAmount,
+      healAmount: totalSpellHeal > 0 ? totalSpellHeal : undefined,
       spellStaminaRestored: resolution.staminaRestored,
       monsterStunned: resolution.monsterStunned,
       defenseBoost: resolution.defenseBoost,
       playerDefFailed: resolution.playerDefFailed,
-      playerHpAfter: newPlayerHp,
+      playerHpAfter: finalPlayerHp,
       monsterHpAfter: newMonsterHp,
+      soulDrainHeal: spellSoulDrain > 0 ? spellSoulDrain : undefined,
+      divineAegisBlocked: incoming.divineAegisBlocked || undefined,
+      manaBarrierAbsorbed: incoming.magicDrained > 0 ? incoming.magicDrained : undefined,
+      bloodPactUsed: useBloodPact || undefined,
+      perRoundHpRestore: perRound.hpRestore > 0 && outcome === null ? perRound.hpRestore : undefined,
+      perRoundMagicRestore: perRound.magicRestore > 0 && outcome === null ? perRound.magicRestore : undefined,
     };
 
     setPendingSpell({
@@ -463,23 +642,23 @@ export default function CombatPage() {
       applyResult: async () => {
         const nextState: FightState = {
           ...snapshot,
-          playerHp: newPlayerHp,
+          playerHp: finalPlayerHp,
           playerStamina: newStamina,
-          playerMagic: newMagic,
+          playerMagic: finalPlayerMagic,
           monsterHp: newMonsterHp,
           log: [...snapshot.log, entry],
           outcome,
           droppedItems,
         };
         setFightState(nextState);
-        setHpLocal(newPlayerHp);
+        setHpLocal(finalPlayerHp);
         setStaminaLocal(newStamina);
-        setMagicLocal(newMagic);
+        setMagicLocal(finalPlayerMagic);
 
         if (outcome !== null) {
-          await updateCurrentHp(newPlayerHp);
+          await updateCurrentHp(finalPlayerHp);
           await updateCurrentStamina(newStamina);
-          await updateCurrentMagic(newMagic);
+          await updateCurrentMagic(finalPlayerMagic);
           if (outcome === "win") {
             setPendingRewards({
               xpReward: snapshot.monster.xpReward,
@@ -697,13 +876,18 @@ export default function CombatPage() {
             color="bg-rose-400"
             sub={`🛡️ ${playerDefStat} DEF · ${Math.round(COMBAT.DEFENSE_FAIL_CHANCE * 100)}% bypass chance`}
           />
-          <HpBar
-            label="Stamina"
-            current={playerStamina}
-            max={maxStamina}
-            color="bg-amber-400"
-            sub={`${COMBAT.ABILITY_STAMINA_COST} per ability · ${Math.floor(playerStamina / COMBAT.ABILITY_STAMINA_COST)} uses remaining`}
-          />
+          {(() => {
+            const staCost = getAbilityStaminaCost(character, COMBAT.ABILITY_STAMINA_COST, fightState.isFirstAbility);
+            return (
+              <HpBar
+                label="Stamina"
+                current={playerStamina}
+                max={maxStamina}
+                color="bg-amber-400"
+                sub={`${staCost} per ability · ${Math.floor(playerStamina / Math.max(staCost, 1))} uses remaining`}
+              />
+            );
+          })()}
           <HpBar
             label="✨ Magic"
             current={playerMagic}
@@ -763,18 +947,26 @@ export default function CombatPage() {
             />
             {/* Row 2: Roll Ability + Cast Spell */}
             <div className="grid grid-cols-2 gap-2">
-              <ActionButton
-                label="🎲 Roll Ability"
-                sublabel={
-                  playerStamina < COMBAT.ABILITY_STAMINA_COST
-                    ? `Not enough stamina (need ${COMBAT.ABILITY_STAMINA_COST})`
-                    : `Costs ${COMBAT.ABILITY_STAMINA_COST} sta · 6d6 class ability`
-                }
-                onClick={handleAbility}
-                loading={rollingAction === "ability"}
-                disabled={isRolling || playerStamina < COMBAT.ABILITY_STAMINA_COST}
-                color="rose"
-              />
+              {(() => {
+                const staCost = getAbilityStaminaCost(character, COMBAT.ABILITY_STAMINA_COST, fightState.isFirstAbility);
+                const canAbility = playerStamina >= staCost;
+                return (
+                  <ActionButton
+                    label="🎲 Roll Ability"
+                    sublabel={
+                      !canAbility
+                        ? `Not enough stamina (need ${staCost})`
+                        : staCost === 0
+                        ? "FREE this roll · 6d6 class ability"
+                        : `Costs ${staCost} sta · 6d6 class ability`
+                    }
+                    onClick={handleAbility}
+                    loading={rollingAction === "ability"}
+                    disabled={isRolling || !canAbility}
+                    color="rose"
+                  />
+                );
+              })()}
               <ActionButton
                 label="✨ Cast Spell"
                 sublabel={
@@ -845,17 +1037,26 @@ export default function CombatPage() {
                   {equippedSpells.map(({ invItem, def }) => {
                     if (!def?.spellMechanics) return null;
                     const sm = def.spellMechanics;
-                    const affordable = playerMagic >= sm.magicCost;
+                    const effectiveCost = getEffectiveSpellCost(character, sm.magicCost);
+                    const affordable = playerMagic >= effectiveCost;
+                    const bloodPactAvail = canBloodPact(character, effectiveCost, playerMagic, playerHp);
                     const classOk = sm.classRestriction === "all" || sm.classRestriction === character.class;
-                    const canCast = affordable && classOk;
+                    const canCast = (affordable || bloodPactAvail) && classOk;
+                    const actionLabel = !classOk
+                      ? `${sm.classRestriction} only`
+                      : bloodPactAvail
+                      ? "Cast (Blood Pact −10 HP)"
+                      : !affordable
+                      ? "Not enough magic"
+                      : "Cast Spell";
                     return (
                       <SpellCard
                         key={invItem.id}
                         def={def}
                         wisdomValue={character.stats.wisdom}
-                        affordable={affordable}
+                        affordable={affordable || bloodPactAvail}
                         disabled={!canCast || isRolling}
-                        actionLabel={!classOk ? `${sm.classRestriction} only` : !affordable ? "Not enough magic" : "Cast Spell"}
+                        actionLabel={actionLabel}
                         onAction={() => canCast && handleCastSpell(def)}
                       />
                     );
@@ -1019,11 +1220,22 @@ export default function CombatPage() {
 
       {/* Ability reference card */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
-          🎲 Ability Guide · <span className="capitalize">{character.class}</span>
-        </p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            🎲 Ability Guide · <span className="capitalize">{character.class}</span>
+          </p>
+          {character.subclass && (() => {
+            const sd = getSubclassDef(character.subclass);
+            return sd ? (
+              <span className="text-xs font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2.5 py-0.5">
+                {sd.emoji} {sd.name}
+              </span>
+            ) : null;
+          })()}
+        </div>
         <p className="text-xs text-gray-400 mb-3">
-          Roll 6d6 and spend {COMBAT.ABILITY_STAMINA_COST} stamina. Hit one of these patterns to unleash your class ability. Use it multiple times while you have stamina!
+          Roll 6d6 and spend {COMBAT.ABILITY_STAMINA_COST} stamina. Hit one of these patterns to unleash your class ability.
+          {character.subclass && " Subclass passives apply automatically."}
         </p>
         <AbilityReference characterClass={character.class} />
       </div>

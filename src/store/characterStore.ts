@@ -1,11 +1,12 @@
 import { create } from "zustand";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { CLASS_DEFINITIONS, xpToNextLevel, LEVEL_UP, statCap } from "@/lib/gameLogic/constants";
+import { CLASS_DEFINITIONS, xpToNextLevel, LEVEL_UP, statCap, MASTERY_CONFIG, isMasteryMilestone, type MasteryActivityType } from "@/lib/gameLogic/constants";
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from "@/lib/gameLogic/combat";
 import { applyXp } from "@/lib/gameLogic/xp";
 import { applyStatGains } from "@/lib/gameLogic/stats";
-import type { Character, CharacterClass, Stats } from "@/types";
+import { computeNewStreak, todayUTC } from "@/lib/gameLogic/streaks";
+import type { Character, CharacterClass, CharacterSubclass, Stats, ActivityType } from "@/types";
 
 interface CharacterStore {
   character: Character | null;
@@ -41,6 +42,34 @@ interface CharacterStore {
   allocateStatPoint: (stat: "strength" | "wisdom" | "agility" | "stamina") => Promise<void>;
   /** Resets level, XP, and stats back to class starting values (death penalty). */
   resetCharacter: () => Promise<void>;
+  /**
+   * Updates the player's streak after an activity log and checks for a new
+   * personal record on that activity type. Persists both in a single Firestore
+   * write. Returns true if a new personal record was set.
+   */
+  persistStreakAndRecord: (
+    activityType: ActivityType,
+    value: number,
+    unit: string
+  ) => Promise<boolean>;
+  /**
+   * Restore HP by the given amount (capped at max).
+   * Persists immediately — called after nutrition logging.
+   */
+  restoreHp: (amount: number) => Promise<void>;
+  /**
+   * Restore magic by the given amount (capped at max).
+   * Persists immediately — called after water logging.
+   */
+  restoreMagic: (amount: number) => Promise<void>;
+  /**
+   * Increment the mastery log count for a mastery activity (run/workout/steps).
+   * If the new count hits a milestone, awards +1 to the linked stat automatically.
+   * Returns true if a milestone was hit.
+   */
+  awardMastery: (activityType: MasteryActivityType) => Promise<boolean>;
+  /** Permanently records the chosen subclass. Can only be called once (level 10). */
+  chooseSubclass: (subclass: CharacterSubclass) => Promise<void>;
   clear: () => void;
 }
 
@@ -234,6 +263,87 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
 
     await updateDoc(doc(db, "characters", character.uid), reset);
     set({ character: { ...character, ...reset } });
+  },
+
+  persistStreakAndRecord: async (activityType, value, unit) => {
+    const { character } = get();
+    if (!character) return false;
+
+    const today = todayUTC();
+    const newStreakData = computeNewStreak(character.streakData, today);
+
+    const currentPr = character.personalRecords?.[activityType];
+    const isNewRecord = !currentPr || value > currentPr.value;
+
+    const updates: Partial<Character> = { streakData: newStreakData };
+    if (isNewRecord) {
+      updates.personalRecords = {
+        ...character.personalRecords,
+        [activityType]: { value, loggedAt: Date.now(), unit },
+      };
+    }
+
+    await updateDoc(doc(db, "characters", character.uid), updates);
+    set({ character: { ...character, ...updates } });
+
+    return isNewRecord;
+  },
+
+  restoreHp: async (amount) => {
+    const { character } = get();
+    if (!character || amount <= 0) return;
+    const max = playerMaxHp(character);
+    const current = character.currentHp ?? max;
+    const newHp = Math.min(current + amount, max);
+    if (newHp === current) return; // already full
+    await updateDoc(doc(db, "characters", character.uid), { currentHp: newHp });
+    set({ character: { ...character, currentHp: newHp } });
+  },
+
+  restoreMagic: async (amount) => {
+    const { character } = get();
+    if (!character || amount <= 0) return;
+    const max = playerMaxMagic(character);
+    const current = character.currentMagic ?? max;
+    const newMagic = Math.min(current + amount, max);
+    if (newMagic === current) return; // already full
+    await updateDoc(doc(db, "characters", character.uid), { currentMagic: newMagic });
+    set({ character: { ...character, currentMagic: newMagic } });
+  },
+
+  awardMastery: async (activityType) => {
+    const { character } = get();
+    if (!character) return false;
+
+    const oldCount = character.masteryCounts?.[activityType] ?? 0;
+    const newCount = oldCount + 1;
+    const milestoneHit = isMasteryMilestone(newCount);
+
+    const updates: Partial<Character> = {
+      masteryCounts: { ...character.masteryCounts, [activityType]: newCount },
+    };
+
+    if (milestoneHit) {
+      const { linkedStat } = MASTERY_CONFIG[activityType];
+      updates.stats = {
+        ...character.stats,
+        [linkedStat]: (character.stats[linkedStat] ?? 0) + 1,
+      };
+    }
+
+    await updateDoc(doc(db, "characters", character.uid), updates);
+    set({ character: { ...character, ...updates } });
+
+    return milestoneHit;
+  },
+
+  chooseSubclass: async (subclass) => {
+    const { character } = get();
+    if (!character) return;
+    // Guard: only allow if level >= 10 and subclass not already chosen
+    if (character.level < 10 || character.subclass) return;
+    await updateDoc(doc(db, "characters", character.uid), { subclass });
+    set({ character: { ...character, subclass } });
   },
 
   clear: () => set({ character: null, error: null }),

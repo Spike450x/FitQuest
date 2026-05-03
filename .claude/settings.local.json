@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(firebase --version)",
+      "Bash(firebase projects:list)",
+      "Bash(firebase firestore:rules:get)",
+      "Bash(firebase deploy:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(echo \"TSC EXIT:$?\")",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 22572 //F)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/combat)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(cmd /c \"cd c:\\\\Users\\\\joshw\\\\Documents\\\\fitness-rpg && node_modules\\\\.bin\\\\tsc --noEmit 2>&1\")",
+      "Bash(cmd /c \"cd c:\\\\Users\\\\joshw\\\\Documents\\\\fitness-rpg && node_modules\\\\.bin\\\\tsc --noEmit && echo NO_ERRORS || echo HAS_ERRORS\")",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(cd \"c:\\\\\\\\Users\\\\\\\\joshw\\\\\\\\Documents\\\\\\\\fitness-rpg\")",
+      "Bash(ls \"c:\\\\\\\\Users\\\\\\\\joshw\\\\\\\\Documents\\\\\\\\fitness-rpg\")",
+      "Bash(npx --prefix \"c:\\\\\\\\Users\\\\\\\\joshw\\\\\\\\Documents\\\\\\\\fitness-rpg\" tsc --noEmit --project \"c:\\\\\\\\Users\\\\\\\\joshw\\\\\\\\Documents\\\\\\\\fitness-rpg\\\\\\\\tsconfig.json\")",
+      "Bash(gh auth:*)",
+      "Bash(git --version)",
+      "Bash(git config:*)",
+      "Read(//c/Program Files/GitHub CLI//**)",
+      "Read(//c/Users/joshw/AppData/Local/Programs/**)",
+      "Bash(gh.exe auth:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth status)",
+      "Bash(wc -l c:/Users/joshw/Documents/fitness-rpg/src/lib/gameLogic/*.ts)",
+      "Bash(Get-Content \"C:\\\\Users\\\\joshw\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-joshw-Documents-fitness-rpg\\\\8d45a0d6-97e1-4184-822e-65134f6452a3\\\\tasks\\\\bw0bsrg7h.output\" -Wait)"
+    ]
+  }
+}
