@@ -9,7 +9,7 @@ import {
   doc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { DAILY_QUEST_POOL, WEEKLY_QUESTS, getQuestDef } from "@/lib/gameLogic/quests";
+import { DAILY_QUEST_POOL, WEEKLY_QUEST_POOL, getQuestDef } from "@/lib/gameLogic/quests";
 import { getDailyPick, getWeeklyPick, dailyExpiresAt, weeklyExpiresAt } from "@/lib/gameLogic/rotation";
 import { useCharacterStore } from "./characterStore";
 import type { ActiveQuest, ActivityType } from "@/types";
@@ -22,8 +22,8 @@ interface QuestStore {
   loading: boolean;
   /**
    * Loads active (non-expired) quests for the user.
-   * Automatically assigns 3 daily quests and all 5 weekly quests if
-   * the current set has fully expired or is empty.
+   * Automatically assigns 3 daily quests and 3 weekly quests (picked from the
+   * 5-quest weekly pool) if the current set has fully expired or is empty.
    */
   fetchAndAssignQuests: (uid: string) => Promise<void>;
   /**
@@ -86,7 +86,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       // Uses a week-seeded deterministic pick so the same 3 quests appear all week.
       const hasWeeklies = existing.some((q) => getQuestDef(q.questDefId)?.type === "weekly");
       if (!hasWeeklies) {
-        const picked = getWeeklyPick(WEEKLY_QUESTS, WEEKLY_QUEST_COUNT);
+        const picked = getWeeklyPick(WEEKLY_QUEST_POOL, WEEKLY_QUEST_COUNT);
         const expiry = weeklyExpiresAt();
         for (const def of picked) {
           const questData = {

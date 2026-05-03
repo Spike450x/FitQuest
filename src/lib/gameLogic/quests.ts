@@ -116,9 +116,9 @@ export const DAILY_QUEST_POOL: QuestDef[] = [
 
 // ─── Weekly Quest Pool ────────────────────────────────────────────────────────
 // 3 quests are picked each week via deterministic rotation (rotation.ts).
-// Pool: 1 per activity type = 5 total.
+// Pool: 1 per activity type = 5 quests total; 3 are active each week.
 
-export const WEEKLY_QUESTS: QuestDef[] = [
+export const WEEKLY_QUEST_POOL: QuestDef[] = [
   {
     id: "weekly-run",
     name: "Running Streak",
@@ -163,7 +163,7 @@ export const WEEKLY_QUESTS: QuestDef[] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const ALL_QUESTS = [...DAILY_QUEST_POOL, ...WEEKLY_QUESTS];
+const ALL_QUESTS = [...DAILY_QUEST_POOL, ...WEEKLY_QUEST_POOL];
 
 export function getQuestDef(questDefId: string): QuestDef | undefined {
   return ALL_QUESTS.find((q) => q.id === questDefId);

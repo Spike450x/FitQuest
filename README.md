@@ -10,10 +10,14 @@ Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Firebase**, and *
 
 - [Tech Stack](#tech-stack)
 - [Project Status](#project-status)
+- [Architecture](#architecture)
 - [Features](#features)
   - [Authentication & Character Creation](#authentication--character-creation)
   - [Activity Logging](#activity-logging)
+  - [Streaks & Personal Records](#streaks--personal-records)
   - [Combat System](#combat-system)
+  - [Class Abilities](#class-abilities)
+  - [Subclass System](#subclass-system)
   - [Spell System](#spell-system)
   - [Inventory & Shop](#inventory--shop)
   - [Consumable Combat Pack](#consumable-combat-pack)
@@ -58,9 +62,140 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
 | Bonus | Spell System (dice-based) | ✅ Complete |
 | Bonus | Magic Consumables + Combat Pack | ✅ Complete |
 | Bonus | Rest & Meditate combat actions | ✅ Complete |
+| Bonus | Streaks & Blessing system | ✅ Complete |
+| Bonus | Personal Records | ✅ Complete |
+| Bonus | Subclass System (6 subclasses) | ✅ Complete |
 | Future | Dungeons (multi-room runs) | 🔲 Not started |
+| Future | Achievement system | 🔲 Not started |
+| Future | Prestige / Ascension | 🔲 Not started |
 | Future | Apple Health integration | 🔲 Not started |
 | Future | Leaderboards | 🔲 Not started |
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          FitQuest — Architecture                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  BROWSER
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │  Next.js 14 (App Router)                                           │
+  │                                                                     │
+  │  Auth Routes            Game Routes (behind middleware)            │
+  │  ┌──────────────┐       ┌──────────────────────────────────────┐   │
+  │  │ /login       │       │ /dashboard  /activities  /combat     │   │
+  │  │ /register    │       │ /inventory  /shop        /quests     │   │
+  │  │ /character-  │       │ /profile    /stats       /character  │   │
+  │  │  creation    │       └──────────────────────────────────────┘   │
+  │  └──────────────┘                        │                         │
+  │                               React Components                      │
+  │                         ┌────────────────────────────┐             │
+  │                         │ ActivityLogForm             │             │
+  │                         │ CharacterCard / StatBar     │             │
+  │                         │ SubclassModal               │             │
+  │                         │ SpellCard / StatAllocModal  │             │
+  │                         └────────────────────────────┘             │
+  │                                   │                                 │
+  │                       ┌───────────┼───────────┐                    │
+  │                       ▼           ▼           ▼                    │
+  │  ┌─────────────────────────────────────────────────────────────┐   │
+  │  │                    Zustand Stores                           │   │
+  │  │                                                             │   │
+  │  │  characterStore          inventoryStore      questStore     │   │
+  │  │  ─────────────           ─────────────       ──────────     │   │
+  │  │  fetchCharacter          fetchInventory      fetchAndAssign │   │
+  │  │  createCharacter         buyItem             Quests         │   │
+  │  │  awardXpAndStats         awardLoot           updateQuest    │   │
+  │  │  awardGold               equipItem           Progress       │   │
+  │  │  setHpLocal              unequipItem         claimReward    │   │
+  │  │  updateCurrentHp         useConsumable                      │   │
+  │  │  restoreHp/Stamina/Magic equipSpell/                        │   │
+  │  │  allocateStatPoint        Consumable                        │   │
+  │  │  resetCharacter                                             │   │
+  │  │  persistStreakAndRecord                                     │   │
+  │  │  awardMastery                                               │   │
+  │  │  chooseSubclass                                             │   │
+  │  └─────────────────────────────────────────────────────────────┘   │
+  │                                   │                                 │
+  │  ┌─────────────────────────────────────────────────────────────┐   │
+  │  │              Pure Game Logic  (src/lib/gameLogic/)          │   │
+  │  │                                                             │   │
+  │  │  constants.ts   CLASS_DEFINITIONS, COMBAT, LEVEL_UP,        │   │
+  │  │                 RESTORE, MASTERY_CONFIG, stat caps, XP      │   │
+  │  │                                                             │   │
+  │  │  xp.ts          applyXp(), xpProgress()                     │   │
+  │  │  stats.ts       applyStatGains(), calculateResourceRestore() │   │
+  │  │  combat.ts      calculateRound(), rollLoot(), rollRunAway()  │   │
+  │  │                 playerMaxHp/Stamina/Magic(), rollD10()       │   │
+  │  │                                                             │   │
+  │  │  abilities.ts   resolveAbility(), detectPattern()           │   │
+  │  │                 CLASS_ABILITY_CATALOG (15 abilities)        │   │
+  │  │  spells.ts      resolveSpell(), checkRequirement()          │   │
+  │  │                 rollSpellDice(), describeRequirement()       │   │
+  │  │  passives.ts    applyOutgoing/IncomingPassives()            │   │
+  │  │                 resolveLifesteal(), SUBCLASS_CATALOG        │   │
+  │  │                                                             │   │
+  │  │  items.ts       ITEM_CATALOG (gear/consumables/spells)      │   │
+  │  │  monsters.ts    MONSTER_CATALOG (10 monsters)               │   │
+  │  │  quests.ts      DAILY_QUEST_POOL (12), WEEKLY_QUEST_POOL (5)│   │
+  │  │  rotation.ts    getDailyPick(), getWeeklyPick(),            │   │
+  │  │                 seededShuffle(), dailyExpiresAt()           │   │
+  │  │  streaks.ts     computeNewStreak(), getStreakTier(),        │   │
+  │  │                 STREAK_TIERS (6 tiers)                      │   │
+  │  └─────────────────────────────────────────────────────────────┘   │
+  └─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │  Firebase (Cloud)                                                   │
+  │                                                                     │
+  │  Authentication          Firestore Collections                      │
+  │  ─────────────           ─────────────────────                      │
+  │  Email/Password          characters/{uid}                           │
+  │  Route guard via         ├─ uid, name, class, level, xp, gold       │
+  │  middleware.ts           ├─ stats { str/sta/agi/hp/wis/def }        │
+  │                          ├─ equippedGear { weapon/armor/accessory } │
+  │                          ├─ currentHp / currentStamina / currentMagic│
+  │                          ├─ pendingStatPoints, subclass             │
+  │                          ├─ masteryCounts, streakData               │
+  │                          └─ personalRecords                         │
+  │                                                                     │
+  │                          inventory/{docId}                          │
+  │                          ├─ uid, itemDefId, quantity                │
+  │                          └─ equipped, acquiredAt                    │
+  │                                                                     │
+  │                          activityLogs/{docId}                       │
+  │                          └─ uid, type, data, statGains, xpGained    │
+  │                                                                     │
+  │                          activeQuests/{docId}                       │
+  │                          ├─ uid, questDefId, progress               │
+  │                          └─ completedAt, claimedAt, expiresAt       │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  KEY DATA FLOWS
+  ─────────────
+  Activity Log  →  awardMastery() + persistStreakAndRecord()
+                →  restoreHp/Stamina/Magic() [nutrition/sleep/water]
+                →  updateQuestProgress() → quest completedAt set
+                →  activityLogs Firestore write
+
+  Combat Round  →  calculateRound() | resolveAbility() | resolveSpell()
+                →  applyOutgoingPassives() → applyIncomingPassives()
+                →  setHpLocal/StaminaLocal/MagicLocal() [live, no Firestore]
+                →  On win: rollLoot() → awardLoot() → awardXpAndStats() + awardGold()
+                →  updateCurrentHp/Stamina/Magic() [Firestore persist on fight end]
+
+  Quest Claim   →  claimReward() → awardXpAndStats() + awardGold() [in parallel]
+
+  Shop Purchase →  awardGold(-price) + buyItem() [caller responsible for both]
+
+  Level-Up      →  applyXp() → levelsGained > 0 → LEVEL_UP bonuses applied
+                →  health + defense auto-increase; pendingStatPoints++
+                →  HP / Stamina / Magic fully restored to new maximums
+```
 
 ---
 
@@ -86,18 +221,36 @@ Each class has unique stat multipliers applied to every XP gain, and a unique se
 
 Log 6 real-world fitness activities. Each one grants XP and raises specific stats based on class multipliers.
 
-| Activity | Unit | XP (base) | Stats Gained |
+| Activity | Unit | Primary Stats Gained | Resource Restored |
 |---|---|---|---|
-| 🏋️ Workout | per 30 min | 10 | STR, STA, AGI, DEF |
-| 🏃 Run | per mile | 15 | STR, STA, AGI, HP |
-| 👣 Steps | per 10,000 | 8 | STA, AGI, HP |
-| 😴 Sleep | per 8 hours | 8 | HP, DEF |
-| 💧 Water | per 8 glasses | 5 | HP, WIS |
-| 🥗 Nutrition | per meal | 6 | WIS |
+| 🏋️ Workout | per 30 min | STR, STA, AGI, DEF | — |
+| 🏃 Run | per mile | STR, STA, AGI, HP | — |
+| 👣 Steps | per 10,000 | STA, AGI, HP | — |
+| 😴 Sleep | per 8 hours | HP, DEF | +5 Stamina per hour |
+| 💧 Water | per 8 glasses | HP, WIS | +5 Magic per glass |
+| 🥗 Nutrition | per meal | WIS | +20 HP per meal |
 
 Activity logs are persisted to Firestore. A real-time preview shows XP and stat gains before you submit. Level-up banners trigger on submission.
 
-Sleep, water, and nutrition also restore out-of-combat **stamina** (5 per sleep hour, 2 per glass of water, 5 per meal).
+**Mastery system:** Logging run, workout, or steps accumulates a mastery count. At log 5, then every 10 after that (5, 15, 25, …), you permanently gain +1 to the linked stat: Agility (run), Strength (workout), Wisdom (steps).
+
+---
+
+### Streaks & Personal Records
+
+**Activity Streaks:** Log at least one activity every day to build a streak. Longer streaks unlock Blessing tiers that boost rare item drop rates in combat.
+
+| Tier | Days | Rare+ Loot Bonus |
+|---|---|---|
+| Focused | 3+ | +15% |
+| Dedicated | 7+ | +30% |
+| Relentless | 14+ | +50% |
+| Unstoppable | 21+ | +75% |
+| Blessed | 30+ | +100% |
+
+The bonus applies only to "rare", "epic", and "legendary" items in monster loot tables. Common and uncommon drop chances are unaffected.
+
+**Personal Records:** Each activity type tracks your all-time best logged value. Breaking a personal record awards **1.5× XP** for that log and displays a "New Personal Record!" banner.
 
 ---
 
@@ -110,20 +263,75 @@ Turn-based combat against a roster of 10 monsters. Each day a rotation of 4 mons
 | Action | Cost | Effect |
 |---|---|---|
 | ⚔️ Attack | Free | d10 + STR + gear bonus vs monster defense |
+| 🔮 Magic | Free | d10 + WIS + gear bonus vs monster defense |
 | 🎲 Roll Ability | 10 stamina | Roll 6d6, trigger poker-like class ability |
 | ✨ Cast Spell | Magic (varies) | Roll 2–4d6, meet requirement to trigger spell effect |
 | 🛌 Rest | Free turn | Roll d10 × 3 stamina restored; monster gets a free undefended attack |
 | 🧘 Meditate | Free turn | Roll d10 + WIS magic restored; monster gets a free undefended attack |
 | 🧪 Use Item | **Free action** | Use a packed consumable without spending your combat turn |
-| 🏃 Run Away | Free | Roll d10 + AGI vs monster; success = escape |
+| 🏃 Run Away | Free | Roll d10 + AGI vs monster d10; success = escape |
 
 **Defense mechanics:**
 - Every incoming attack has a **25% chance to bypass all defense** (armor piercing)
-- Rest/Meditate free attacks bypass defense entirely — recovery is a meaningful risk
+- Rest/Meditate free attacks bypass defense entirely — recovery carries real risk
 
 **Persistence:** HP, stamina, and magic persist between battles. Death resets the character to level 1.
 
 **Loot:** Winning a fight rolls the monster's loot table. Gear, consumables, and spells can all drop.
+
+---
+
+### Class Abilities
+
+Roll 6d6 during combat to trigger a class-specific ability. Costs 10 stamina. The ability triggered depends on the poker-like pattern rolled.
+
+**Pattern priority (highest wins):** Four of a Kind > Full House > Large Straight (1–5 or 2–6) > Small Straight (any 4 consecutive) > Three of a Kind
+
+**Warrior:**
+| Pattern | Ability | Effect |
+|---|---|---|
+| Three of a Kind | Power Strike | 2× damage, bypasses monster defense |
+| Full House | Shield Slam | 2× damage, stuns monster |
+| Small Straight | War Cry | 1.5× damage, stuns monster |
+| Large Straight | Berserker Rage | 3× damage, bypasses all defense (yours too) |
+| Four of a Kind | Unstoppable | 3× damage, bypasses defense, stuns monster |
+
+**Wizard:**
+| Pattern | Ability | Effect |
+|---|---|---|
+| Three of a Kind | Arcane Bolt | 2× magic damage |
+| Full House | Mana Surge | 2× magic damage, stuns monster |
+| Small Straight | Chain Lightning | 3× magic damage |
+| Large Straight | Meteor | 3× magic damage, bypasses defense |
+| Four of a Kind | Time Warp | 2.5× magic damage, stuns monster |
+
+**Rogue:**
+| Pattern | Ability | Effect |
+|---|---|---|
+| Three of a Kind | Backstab | 2× damage |
+| Full House | Smoke Bomb | 1.5× damage, stuns monster |
+| Small Straight | Blade Dance | 1.5× damage, 30% lifesteal |
+| Large Straight | Death Mark | 2.5× damage, 50% lifesteal |
+| Four of a Kind | Assassinate | 3× damage, bypasses defense, stuns monster |
+
+---
+
+### Subclass System
+
+At level 10, the player permanently chooses one of two subclasses per class. Subclasses add passive abilities that modify combat every round.
+
+| Class | Subclass | Identity |
+|---|---|---|
+| Warrior | 🪓 Berserker | Damage scales with HP lost; ability cost halved |
+| Warrior | 🛡️ Paladin | Block attacks by divine will; heal every round |
+| Wizard | 🔮 Archmage | Spells hit harder, cost less, magic regens faster |
+| Wizard | 💀 Warlock | Drain life from every hit; spend HP when magic runs out |
+| Rogue | ☠️ Assassin | First ability hits 2×; execute enemies at low HP |
+| Rogue | 🏹 Ranger | Crit on high d10 rolls; always escapes safely |
+
+All subclassed Warriors share **Battle-Hardened** (+2 attack per 5 DEF) and **Iron Will** (−20% incoming damage below 30% HP).  
+All subclassed Rogues share **Hemorrhage** (lifesteal abilities drain an extra 15%) and **Ghost Step** (+AGI÷4 escape bonus).  
+All Wizards share **Mana Barrier** (absorb up to 10 damage per round from magic pool) and base magic regeneration (+2/round).
 
 ---
 
@@ -136,10 +344,10 @@ Spells are items with `type: "spell"`. They must be purchased or looted, then eq
 - 5 Warrior spells
 - 5 Wizard spells
 - 5 Rogue spells
-- 3 epic/legendary spells are loot-only (one per class, dropped from hard monsters)
+- 3 epic spells are loot-only (one per class, dropped from hard monsters)
 
 **How casting works:**
-1. Click "✨ Cast Spell" during your turn → spell panel opens (free action, no turn spent opening it)
+1. Click "✨ Cast Spell" during your turn → spell panel opens
 2. Pick a spell — magic cost is deducted and you roll the spell's dice
 3. If the dice meet the requirement → full effect applied
 4. If the dice fail → spell fizzles (magic still spent, no effect)
@@ -166,14 +374,12 @@ Spells are items with `type: "spell"`. They must be purchased or looted, then eq
 | `defenseBoost` | Temporary defense bonus for this round |
 | `lifestealPct` | Fraction of damage dealt returned as HP |
 
-**Wisdom scaling:** Many spells scale with the player's WIS stat. Spell cards display the formula clearly — e.g., `20 base + 8 WIS = 28 heal`. Warrior physical spells don't scale; wizard/rogue magical spells generally do.
+**Wisdom scaling:** Many spells scale with the player's WIS stat. Spell cards display the formula clearly — e.g., `20 base + 8 WIS = 28 heal`.
 
 **Magic resource:**
 - `maxMagic = 20 (base) + WIS × 3 + 10 (wizard bonus only)`
 - Persists to Firestore between battles
 - Restored to full on level-up
-
-**Spell cards** are displayed as physical playing cards — rarity-colored header, magic cost in corners, emoji center, dice requirement, effect tags.
 
 ---
 
@@ -187,58 +393,31 @@ Spells are items with `type: "spell"`. They must be purchased or looted, then eq
 | Uncommon | Green | Meaningful mid-game bonuses |
 | Rare | Blue | Late-game, strong bonuses |
 | Epic | Purple | High-end, very expensive |
-| Legendary | Orange | Best-in-slot; loot-only (no shop) |
+| Legendary | Orange | Best-in-slot; loot-only (never sold in shop) |
 
 **Item types:** Weapons (boost STR or WIS in combat), Armor (boost DEF), Accessories (mixed bonuses), Consumables (HP/stamina/magic restore), Spells.
 
-**Gear slots:** Weapon, Armor, Accessory. Equipping a new item to an occupied slot automatically unequips the old one.
+**Gear slots:** Weapon, Armor, Accessory. Equipping a new item to an occupied slot automatically unequips the old one. HP and stamina adjust immediately when gear changes.
 
-**Shop:** 8 daily-rotating purchasable items (gear changes each day, consumables always available, spells always available in a separate tab). Legendary items never appear in the shop.
+**Shop:** 8 daily-rotating purchasable items (gear changes each day; consumables and spells are always available in separate tabs). Legendary items never appear in the shop.
 
 ---
 
 ### Consumable Combat Pack
 
-Consumables must be packed into a **Combat Pack** before entering battle (up to 5 consumables). You cannot use items from your bag mid-fight — only what's in the pack.
+Consumables must be packed into a **Combat Pack** before entering battle (up to 5 slots). You cannot use items from your bag mid-fight — only what's in the pack.
 
 **Consumable types:**
 
-| Type | Items |
-|---|---|
-| ❤️ HP Potions | Minor (30 HP), Standard (60 HP), Greater (120 HP) |
-| ⚡ Stamina Potions | Minor (20 STA), Standard (40 STA), Greater (80 STA) |
-| ✨ Magic Potions | Minor (15 magic), Standard (30 magic), Greater (60 magic) |
+| Type | Items | Restore Amount |
+|---|---|---|
+| ❤️ HP Potions | Minor, Standard, Greater | 25 / 50 / 100 HP |
+| ⚡ Stamina Potions | Minor, Standard, Greater | 20 / 40 / 80 Stamina |
+| ✨ Magic Potions | Minor, Standard, Greater | 15 / 30 / 60 Magic |
 
-**Using a consumable in combat is a free action** — it does not consume your turn. You can heal and still attack in the same round.
+**Using a consumable in combat is a free action** — it does not consume your turn.
 
-Pack management is handled from the **Inventory → Consumables** tab, which shows the current pack loadout (up to 5 slots, emerald-themed UI).
-
----
-
-### Class Abilities
-
-Roll 6d6 during combat to trigger a class-specific ability. Costs 10 stamina. The ability triggered depends on the poker-like pattern rolled.
-
-**Warrior abilities:**
-- Three of a Kind → Shield Slam (heavy damage + stun)
-- Small Straight → War Cry (attack bonus this round)
-- Large Straight → Heroic Strike (massive damage)
-- Four of a Kind → Bulwark (near-perfect defense)
-- Full House → Rallying Blow (damage + self-heal)
-
-**Wizard abilities:**
-- Three of a Kind → Arcane Burst (magic AoE-style hit)
-- Small Straight → Mana Surge (bonus magic restored)
-- Large Straight → Time Warp (extra action)
-- Four of a Kind → Void Collapse (obliterating damage, bypass defense)
-- Full House → Arcane Shield (absorb incoming damage)
-
-**Rogue abilities:**
-- Three of a Kind → Backstab (precision crit)
-- Small Straight → Evasion (dodge next hit)
-- Large Straight → Shadow Step (stun + escape)
-- Four of a Kind → Death Mark (stacking damage debuff)
-- Full House → Smoke Bomb (confusion, monster misses)
+Pack management is handled from the **Inventory → Consumables** tab.
 
 ---
 
@@ -246,7 +425,7 @@ Roll 6d6 during combat to trigger a class-specific ability. Costs 10 stamina. Th
 
 **Daily quests:** 3 quests active per day, drawn from a pool of 12 (2 per activity type). Rotate deterministically — same quests for all players on a given day.
 
-**Weekly quests:** 3 quests active per week, drawn from a pool of 5. Cover running, workouts, steps, sleep, and nutrition.
+**Weekly quests:** 3 quests active per week, drawn from a pool of 5 (one per activity type). Rotate deterministically — same quests for all players in a given week.
 
 Quest progress updates automatically as you log activities. Rewards (XP + gold) are claimed manually via a button. Quests expire at the end of the day/week with a live countdown timer.
 
@@ -257,6 +436,7 @@ Quest progress updates automatically as you log activities. Rewards (XP + gold) 
 A dedicated profile page with:
 - XP earned over time (line chart)
 - Activity breakdown by type (bar chart)
+- Streak history and personal records panel
 - Quests claimed count
 - Time range filters (7 days, 30 days, all time)
 - Account management: change display name, email, password
@@ -271,7 +451,7 @@ A dedicated profile page with:
 |---|---|---|
 | Strength (STR) | Physical attack damage | Workouts, runs |
 | Stamina (STA) | Max HP pool, ability fuel | Runs, steps, sleep |
-| Agility (AGI) | Escape rolls, dodge | Runs, steps, workouts |
+| Agility (AGI) | Escape rolls | Runs, steps, workouts |
 | Health (HP) | Max HP pool | Runs, steps, sleep, water |
 | Wisdom (WIS) | Magic pool, spell scaling | Water, nutrition |
 | Defense (DEF) | Reduces incoming damage | Workouts, sleep |
@@ -280,7 +460,7 @@ A dedicated profile page with:
 - Primary stats (STR, WIS, AGI): hard cap at **50**
 - Secondary stats (STA, HP, DEF): level-scaled cap of `level × 5 + 10`
 
-**Level-up bonuses (per level):** +1 HP (auto), +1 DEF (auto), +1 free stat point (player choice)
+**Level-up bonuses (per level):** +1 HP (auto), +1 DEF (auto), +1 free stat point (player choice: STR, WIS, AGI, or STA)
 
 ### XP & Leveling
 
@@ -293,14 +473,19 @@ Examples: Level 1 → 2 requires 100 XP. Level 5 → 6 requires 559 XP. Level 10
 ### Combat Formulas
 
 ```
-Player Max HP     = 50 + (stamina × 2) + (health × 1)
-Player Max Stamina = BASE_STAMINA(20) + (stamina stat × 5)
-Player Max Magic  = 20 + (wisdom × 3) [+10 for wizards]
+Player Max HP      = 50 + (stamina × 2) + (health × 1) + gear bonuses
+Player Max Stamina = 20  + (stamina stat × 5) + gear bonuses
+Player Max Magic   = 20  + (wisdom × 3) [+10 for wizards]
 
-Attack roll       = d10 + STR + gear weapon bonus
-Spell damage      = spell base [+ WIS if scalable] − monster defense [unless bypass]
-Monster attack    = monster.attack + d10 − player DEF [25% chance DEF = 0]
-Escape roll       = d10 + AGI vs monster.attack + d10
+Physical attack    = d10 + STR + weapon gear bonus − monster defense
+Magic attack       = d10 + WIS + weapon gear bonus − monster defense
+Defense bypass     = 25% chance per hit for defender's defense to be ignored
+
+Regular round      = monster deals flat monster.attack − player defense
+                     (monster d10 roll is displayed for atmosphere only)
+Ability/Spell round = monster counter-attack adds d10 + monster.attack − player defense
+
+Escape roll        = d10 + AGI vs monster d10
 ```
 
 ### Monsters
@@ -343,36 +528,38 @@ src/
 │
 ├── components/
 │   ├── activities/          # ActivityLogForm
-│   ├── character/           # CharacterCard, ClassSelector, StatBar, StatAllocModal
+│   ├── character/           # CharacterCard, ClassSelector, StatBar, StatAllocModal, SubclassModal
 │   └── ui/                  # SpellCard, XPBar, GoldDisplay
 │
 ├── lib/
 │   └── gameLogic/
-│       ├── constants.ts     # COMBAT, RESTORE, LEVEL_UP, stat caps, XP formula
-│       ├── items.ts         # Full item catalog (weapons, armor, consumables, spells)
-│       ├── monsters.ts      # Monster catalog
-│       ├── quests.ts        # Daily + weekly quest pools
-│       ├── rotation.ts      # Deterministic daily/weekly rotation (LCG seed)
-│       ├── abilities.ts     # 6d6 class ability resolution
-│       ├── spells.ts        # Dice rolling, requirement checks, resolveSpell
-│       ├── combat.ts        # HP/stamina/magic calculations, gear bonuses
-│       ├── stats.ts         # Stat gain application, class multipliers
-│       └── xp.ts            # XP award, leveling
+│       ├── constants.ts     # COMBAT, RESTORE, LEVEL_UP, stat caps, XP formula, class/activity defs
+│       ├── items.ts         # Full item catalog (weapons, armor, consumables, spells) + rarity styles
+│       ├── monsters.ts      # MONSTER_CATALOG (10 monsters with loot tables)
+│       ├── quests.ts        # DAILY_QUEST_POOL (12) + WEEKLY_QUEST_POOL (5)
+│       ├── rotation.ts      # Deterministic daily/weekly rotation via seeded LCG shuffle
+│       ├── abilities.ts     # 6d6 class ability system (CLASS_ABILITY_CATALOG, detectPattern)
+│       ├── spells.ts        # Spell dice rolling, requirement checks, resolveSpell
+│       ├── passives.ts      # Subclass passive system (SUBCLASS_CATALOG, all passive functions)
+│       ├── combat.ts        # HP/stamina/magic max calcs, gear bonuses, rollD10, calculateRound
+│       ├── stats.ts         # Stat gain application, resource restore calculations
+│       ├── streaks.ts       # Streak tracking, STREAK_TIERS, loot multiplier
+│       └── xp.ts            # XP award and leveling logic
 │
 ├── store/
-│   ├── characterStore.ts    # Zustand: character state, stat/HP/magic sync
-│   ├── inventoryStore.ts    # Zustand: inventory, equip/unequip, spell/consumable loadout
-│   └── questStore.ts        # Zustand: active quests, progress, claiming
+│   ├── characterStore.ts    # Zustand: character state, XP/stat/HP/magic sync with Firestore
+│   ├── inventoryStore.ts    # Zustand: inventory, equip/unequip, spell and consumable loadouts
+│   └── questStore.ts        # Zustand: active quests, progress tracking, reward claiming
 │
 ├── hooks/
-│   ├── useAuth.ts
-│   ├── useCharacter.ts
-│   └── useRecentActivity.ts
+│   ├── useAuth.ts           # Firebase auth state listener
+│   ├── useCharacter.ts      # Convenience wrapper around characterStore
+│   └── useRecentActivity.ts # Firestore query for recent activity logs
 │
 ├── types/
-│   └── index.ts             # All shared TypeScript types
+│   └── index.ts             # All shared TypeScript types and interfaces
 │
-└── middleware.ts             # Firebase Auth route protection
+└── middleware.ts             # Firebase Auth route protection (redirects unauthenticated users)
 ```
 
 ---
@@ -421,6 +608,8 @@ src/
 ## Roadmap
 
 - **Dungeons** — multi-room dungeon runs with sequential monster encounters and persistent state between rooms
+- **Achievement system** — one-time milestone badges for combat kills, streak lengths, level milestones, etc.
+- **Prestige / Ascension** — reset to level 1 with permanent carry-over bonuses for replayability
 - **Apple Health integration** — auto-import workouts, steps, and sleep directly from HealthKit
 - **Leaderboards** — compare XP, level, and kill counts with other players via Firestore
 

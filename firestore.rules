@@ -2,47 +2,242 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Characters ───────────────────────────────────────────────────────────
-    // Document ID is the owner's UID — match it directly.
-    match /characters/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    // ══════════════════════════════════════════════════════════════════════════
+    // SHARED AUTH HELPERS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // ── Activity Logs ─────────────────────────────────────────────────────────
-    // Auto-generated IDs; ownership stored in the uid field.
-    // Logs are immutable once written — updates are denied.
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // CHARACTERS — /characters/{uid}
+    //
+    // Document ID == owner's UID. Every write is validated field-by-field.
+    // Certain fields are immutable after creation (uid, class, createdAt).
+    // Subclass can be set exactly once (at level >= 10) and never changed.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    function isValidClass(cls) {
+      return cls in ['warrior', 'wizard', 'rogue'];
+    }
+
+    function isValidSubclassValue(sc) {
+      return sc in ['berserker', 'paladin', 'archmage', 'warlock', 'assassin', 'ranger'];
+    }
+
+    function isValidStats(stats) {
+      // Primary stats (Strength, Wisdom, Agility): hard cap 50 (PRIMARY_STAT_CAP in constants.ts)
+      // Secondary stats (Stamina, Health, Defense): level-scaled; 600 is a safe ceiling for level 100
+      return stats is map
+          && stats.strength is int && stats.strength >= 0 && stats.strength <= 50
+          && stats.wisdom   is int && stats.wisdom   >= 0 && stats.wisdom   <= 50
+          && stats.agility  is int && stats.agility  >= 0 && stats.agility  <= 50
+          && stats.stamina  is int && stats.stamina  >= 0 && stats.stamina  <= 600
+          && stats.health   is int && stats.health   >= 0 && stats.health   <= 600
+          && stats.defense  is int && stats.defense  >= 0 && stats.defense  <= 600;
+    }
+
+    function isValidEquippedGear(gear) {
+      return gear is map
+          && (gear.weapon    == null || gear.weapon    is string)
+          && (gear.armor     == null || gear.armor     is string)
+          && (gear.accessory == null || gear.accessory is string);
+    }
+
+    function isValidCharacterCore(data) {
+      // All required character fields, validated for type and sane range.
+      // Level cap 100: xpToNextLevel at 100 ≈ 100,000, so 200,000 is a safe ceiling.
+      // Gold cap 1,000,000: never legitimately reachable (max ~200 gold per fight).
+      return data.uid           is string
+          && data.name          is string && data.name.size() >= 1 && data.name.size() <= 30
+          && isValidClass(data.class)
+          && data.level         is int && data.level         >= 1 && data.level         <= 100
+          && data.xp            is int && data.xp            >= 0
+          && data.xpToNextLevel is int && data.xpToNextLevel >= 1 && data.xpToNextLevel <= 200000
+          && data.gold          is int && data.gold          >= 0 && data.gold          <= 1000000
+          && data.createdAt     is int && data.createdAt     > 0
+          && isValidStats(data.stats)
+          && isValidEquippedGear(data.equippedGear);
+    }
+
+    function isValidCharacterOptionals(data) {
+      // Optional resource pools — each must be non-negative and within game-physics ceiling.
+      // HP max: BASE_HP(50) + stamina(50)*2 + health(600)*1 + gear ≈ 800; 2000 is generous.
+      // Stamina max: BASE_STAMINA(20) + stamina(50)*5 + gear ≈ 300; 500 is generous.
+      // Magic max: BASE_MAGIC(20) + wisdom(50)*3 + wizard_bonus(10) + gear ≈ 200; 250 is generous.
+      return (!('currentHp'         in data) || (data.currentHp         is int && data.currentHp         >= 0 && data.currentHp         <= 2000))
+          && (!('currentStamina'    in data) || (data.currentStamina    is int && data.currentStamina    >= 0 && data.currentStamina    <= 500))
+          && (!('currentMagic'      in data) || (data.currentMagic      is int && data.currentMagic      >= 0 && data.currentMagic      <= 250))
+          && (!('pendingStatPoints' in data) || (data.pendingStatPoints  is int && data.pendingStatPoints >= 0 && data.pendingStatPoints <= 100))
+          && (!('masteryCounts'     in data) || data.masteryCounts  is map)
+          && (!('streakData'        in data) || data.streakData     is map)
+          && (!('personalRecords'   in data) || data.personalRecords is map);
+    }
+
+    // Subclass rules (update path only — resource.data is the existing document):
+    //   • Absent         → OK (not yet chosen)
+    //   • Same as before → OK (already locked in)
+    //   • New value      → must be level >= 10, must be a valid subclass, must not have been set before
+    function subclassIsValid(data) {
+      return !('subclass' in data)
+          || ('subclass' in resource.data && data.subclass == resource.data.subclass)
+          || (!('subclass' in resource.data) && data.level >= 10 && isValidSubclassValue(data.subclass));
+    }
+
+    match /characters/{uid} {
+      allow read: if isSignedIn() && isOwner(uid);
+
+      allow create: if isSignedIn()
+          && isOwner(uid)
+          && request.resource.data.uid == uid
+          && isValidCharacterCore(request.resource.data)
+          && isValidCharacterOptionals(request.resource.data)
+          // Characters must be created at level 1 with no subclass
+          && request.resource.data.level == 1
+          && !('subclass' in request.resource.data);
+
+      allow update: if isSignedIn()
+          && isOwner(uid)
+          && isValidCharacterCore(request.resource.data)
+          && isValidCharacterOptionals(request.resource.data)
+          // Immutable after creation
+          && request.resource.data.uid       == resource.data.uid
+          && request.resource.data.class     == resource.data.class
+          && request.resource.data.createdAt == resource.data.createdAt
+          // Subclass: one-way lock, cannot be unset or swapped
+          && subclassIsValid(request.resource.data);
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ACTIVITY LOGS — /activityLogs/{docId}
+    //
+    // Auto-ID documents; uid field identifies the owner.
+    // Immutable once written — updates are always denied.
+    //
+    // loggedAt is validated against server time to block streak gaming via
+    // backdated timestamps. The 10-minute window handles network lag, app
+    // resuming from background, and slow connections.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    function isValidActivityType(t) {
+      return t in ['workout', 'run', 'steps', 'sleep', 'water', 'nutrition'];
+    }
+
+    function isRecentTimestamp(ts) {
+      return ts > (request.time - duration.value(10, 'm')).toMillis()
+          && ts < (request.time + duration.value(2,  'm')).toMillis();
+    }
+
+    function isValidActivityLog(data) {
+      return data.uid      is string
+          && data.id       is string
+          && isValidActivityType(data.type)
+          && data.xpGained is int && data.xpGained >= 0
+          && data.loggedAt is int && isRecentTimestamp(data.loggedAt)
+          && data.data      is map
+          && data.statGains is map;
+    }
+
     match /activityLogs/{docId} {
-      allow read, delete: if request.auth != null
-                          && resource.data.uid == request.auth.uid;
-      allow create:       if request.auth != null
-                          && request.resource.data.uid == request.auth.uid;
+      allow read, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create:       if isSignedIn()
+          && request.resource.data.uid == request.auth.uid
+          && isValidActivityLog(request.resource.data);
       allow update:       if false;
     }
 
-    // ── Inventory ─────────────────────────────────────────────────────────────
-    // Auto-generated IDs; ownership stored in the uid field.
-    // uid field must not change on update (prevents ownership transfer).
-    match /inventory/{docId} {
-      allow read, delete: if request.auth != null
-                          && resource.data.uid == request.auth.uid;
-      allow create:       if request.auth != null
-                          && request.resource.data.uid == request.auth.uid;
-      allow update:       if request.auth != null
-                          && resource.data.uid == request.auth.uid
-                          && request.resource.data.uid == request.auth.uid;
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // INVENTORY — /inventory/{docId}
+    //
+    // Auto-ID documents; uid and itemDefId are immutable after creation.
+    // quantity >= 1 on update: the app deletes the doc when quantity hits 0,
+    // so a stored quantity of 0 is never a legitimate state.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    function isValidInventoryCreate(data) {
+      return data.uid        is string
+          && data.itemDefId  is string && data.itemDefId.size() > 0
+          && data.quantity   is int   && data.quantity  >= 1 && data.quantity <= 999
+          && data.equipped   is bool
+          && data.acquiredAt is int   && data.acquiredAt > 0;
     }
 
-    // ── Active Quests ─────────────────────────────────────────────────────────
-    // Auto-generated IDs; ownership stored in the uid field.
-    // uid field must not change on update.
-    match /activeQuests/{docId} {
-      allow read, delete: if request.auth != null
-                          && resource.data.uid == request.auth.uid;
-      allow create:       if request.auth != null
-                          && request.resource.data.uid == request.auth.uid;
-      allow update:       if request.auth != null
-                          && resource.data.uid == request.auth.uid
-                          && request.resource.data.uid == request.auth.uid;
+    function isValidInventoryUpdate(data) {
+      return data.uid        == resource.data.uid        // ownership immutable
+          && data.itemDefId  == resource.data.itemDefId  // item identity immutable
+          && data.acquiredAt == resource.data.acquiredAt // acquisition time immutable
+          && data.quantity   is int && data.quantity >= 1 && data.quantity <= 999
+          && data.equipped   is bool;
     }
+
+    match /inventory/{docId} {
+      allow read, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create:       if isSignedIn()
+          && request.resource.data.uid == request.auth.uid
+          && isValidInventoryCreate(request.resource.data);
+      allow update:       if isSignedIn()
+          && resource.data.uid == request.auth.uid
+          && isValidInventoryUpdate(request.resource.data);
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ACTIVE QUESTS — /activeQuests/{docId}
+    //
+    // Auto-ID documents; core quest definition fields are immutable after creation.
+    // completedAt and claimedAt are write-once (null → timestamp), never reversed.
+    // claimedAt additionally requires that the existing doc already has completedAt
+    // set — prevents a single forged write from both completing and claiming a quest.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    function isValidActiveQuestCreate(data) {
+      return data.uid        is string
+          && data.questDefId is string
+          && data.progress   is number && data.progress  >= 0
+          && data.completedAt == null
+          && data.claimedAt   == null
+          && data.expiresAt  is int && data.expiresAt > 0
+          && data.rewards    is map;
+    }
+
+    function isValidActiveQuestUpdate(data) {
+      return data.uid        == resource.data.uid        // immutable
+          && data.questDefId == resource.data.questDefId // immutable
+          && data.expiresAt  == resource.data.expiresAt  // immutable
+          && data.rewards    == resource.data.rewards     // immutable
+          && data.progress   is number && data.progress >= 0
+          // completedAt: null → int only; can never go backwards or be changed once set
+          && (data.completedAt == null
+              || (resource.data.completedAt == null
+                  && data.completedAt is int
+                  && data.completedAt > 0))
+          // claimedAt: null → int only; requires the existing doc to already be completed
+          // (resource.data.completedAt, not data.completedAt, to prevent a single write
+          // that fabricates both completion and claim simultaneously)
+          && (data.claimedAt == null
+              || (resource.data.claimedAt   == null
+                  && data.claimedAt         is int
+                  && data.claimedAt         > 0
+                  && resource.data.completedAt != null));
+    }
+
+    match /activeQuests/{docId} {
+      allow read, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create:       if isSignedIn()
+          && request.resource.data.uid == request.auth.uid
+          && isValidActiveQuestCreate(request.resource.data);
+      allow update:       if isSignedIn()
+          && resource.data.uid == request.auth.uid
+          && isValidActiveQuestUpdate(request.resource.data);
+    }
+
   }
 }

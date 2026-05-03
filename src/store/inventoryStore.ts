@@ -108,11 +108,14 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   },
 
   awardLoot: async (uid, itemIds) => {
+    // Items are processed one at a time (not batched) so each consumable stack write
+    // is visible to the next iteration before it checks for an existing doc.
     for (const itemDefId of itemIds) {
       const def = getItemById(itemDefId);
       if (!def) continue;
 
-      // Read fresh state each iteration so stacking picks up updates from prior iterations
+      // Re-read state each iteration: earlier loop iterations may have added new docs
+      // that we need to find when stacking the same consumable dropped twice.
       const currentItems = get().items;
 
       if (def.type === "consumable") {
@@ -160,7 +163,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     if (!target) return;
 
     const itemDef = getItemById(target.itemDefId);
-    // Spells and consumables are not handled by the slot-based equip flow
+    // Spells and consumables use their own equip flows (equipSpell / equipConsumable).
     if (!itemDef || itemDef.type === "consumable" || itemDef.type === "spell") return;
 
     const slot = itemDef.type as "weapon" | "armor" | "accessory";

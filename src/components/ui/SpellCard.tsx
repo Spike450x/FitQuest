@@ -1,6 +1,6 @@
 "use client";
 
-import type { ItemDef, ItemRarity, SpellCombatEffect } from "@/types";
+import type { ItemDef, ItemRarity, SpellEffect } from "@/types";
 import { describeRequirement } from "@/lib/gameLogic/spells";
 import { RARITY_BADGE } from "@/lib/gameLogic/items";
 
@@ -16,7 +16,7 @@ const RARITY_CARD: Record<ItemRarity, { header: string; border: string; glow: st
 
 // ─── Effect → emoji ───────────────────────────────────────────────────────────
 
-function getSpellEmoji(effect: SpellCombatEffect): string {
+function getSpellEmoji(effect: SpellEffect): string {
   if (effect.stun && effect.damage) return "💫";
   if (effect.stun && effect.heal)   return "✨";
   if (effect.stun)                  return "❄️";
@@ -37,7 +37,7 @@ interface EffectTag {
   color: string;
 }
 
-function buildEffectTags(effect: SpellCombatEffect, wisdom?: number): EffectTag[] {
+function buildEffectTags(effect: SpellEffect, wisdom?: number): EffectTag[] {
   const tags: EffectTag[] = [];
 
   if (effect.damage) {

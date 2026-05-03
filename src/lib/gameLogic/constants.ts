@@ -100,6 +100,10 @@ export const LEVEL_UP = {
 };
 
 // ─── XP / Leveling ────────────────────────────────────────────────────────────
+// Note: these are calculation functions co-located here so constants and their
+// derived formulas stay in one place. Pure data lives above; pure XP math lives
+// in xp.ts, but xpToNextLevel must be here because constants.ts itself uses it
+// (LEVEL_UP block) and xp.ts imports FROM here to avoid a circular dependency.
 
 /** XP required to reach a given level from the previous level. */
 export function xpToNextLevel(level: number): number {
@@ -109,12 +113,15 @@ export function xpToNextLevel(level: number): number {
 /** Flat cap for primary combat stats: Strength, Wisdom, Agility. */
 export const PRIMARY_STAT_CAP = 50;
 
-/** Level-scaled cap for secondary stats: Stamina, Health, Defense. */
+/**
+ * Level-scaled cap for secondary stats: Stamina, Health, Defense.
+ * Formula: level × 5 + 10 (so level 1 cap = 15, level 10 cap = 60).
+ */
 export function maxStatForLevel(level: number): number {
   return level * 5 + 10;
 }
 
-/** Returns the correct cap for a given stat key. */
+/** Returns the stat cap for a given stat key at the character's current level. */
 export function statCap(stat: keyof import("@/types").Stats, level: number): number {
   if (stat === "strength" || stat === "wisdom" || stat === "agility") return PRIMARY_STAT_CAP;
   return maxStatForLevel(level);
