@@ -29,6 +29,9 @@ yarn-error.log*
 # Claude Code — machine-specific settings (permissions, hooks, hardcoded paths)
 .claude/settings.local.json
 
+# Claude Code — git worktrees managed by Claude (parallel branch checkouts)
+.claude/worktrees/
+
 # vercel
 .vercel
 
