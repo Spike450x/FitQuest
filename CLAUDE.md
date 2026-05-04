@@ -20,6 +20,43 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 ---
 
+## Current Status (last updated 2026-05-03)
+
+**Shipped:** MVP phases 1–5 + Spells (21-spell catalog, dice resolution) + Streaks/PRs (Blessing tiers, 1.5× PR XP) + Subclasses (6, level-10 unlock) + Profile analytics. Recent: type renames, Firestore rules hardening, `resetCharacter` / `awardMastery` correctness fixes (2026-05-03).
+
+**Active focus:** Stable. Planning next post-MVP feature.
+
+**Next priorities (post-MVP backlog, prioritized):**
+1. **Dungeons** — multi-room runs with escalating loot
+2. **Achievements** — milestone badges, one-time rewards
+3. **Prestige / Ascension** — reset for permanent bonuses
+4. **PWA** — installable mobile experience
+5. **Apple Health integration** — auto-import workouts
+6. **Leaderboards** — compare with other users
+
+**Update protocol:** when a feature ships, move it from "Next" to "Shipped", bump the date, and append an entry to [docs/CHANGELOG.md](docs/CHANGELOG.md). This section in CLAUDE.md is the **canonical** status snapshot — `memory/project_state.md` no longer tracks status, only deep implementation details.
+
+---
+
+## How to Work
+
+**Commands** (run from repo root):
+- `npm run dev` — start dev server on `http://localhost:3000`
+- `npm run typecheck` — `tsc --noEmit`. Fast TS-only check
+- `npm run lint` — ESLint check
+- `npm run build` — production build. Catches everything `typecheck` + `lint` catch, plus build-time issues
+- `npm run start` — serve the built output
+
+**Verification:**
+- No automated test suite. UI / behavior changes must be verified manually in the browser before claiming done — golden path *and* edge cases for the touched feature, plus a quick check that adjacent features didn't regress
+- Before opening a PR: `npm run typecheck` + `npm run lint` pass + manual browser verification (the pre-commit hook runs both for you)
+
+**Firebase:** live project `fitness-rpg-claude`. No emulator setup; dev hits live Firestore. Be intentional about test data — it's real.
+
+**Changelog:** when a meaningful change ships on `master`, append an entry to [docs/CHANGELOG.md](docs/CHANGELOG.md). Skip trivial (typos, comment-only). Keep newest-first.
+
+---
+
 ## Development Partner Role
 
 You are a **senior full-stack engineer and game systems designer** co-creating this product. Your job is not to blindly execute — it is to co-create, challenge, and elevate.
@@ -98,6 +135,40 @@ Core game systems to keep internally consistent:
 - If an idea is flawed, explain why and offer a better alternative
 - When appropriate, offer 2–3 approaches with tradeoffs
 - Ask clarifying questions when it improves the outcome
+
+---
+
+## Git Workflow
+
+### Commit messages (imperative prose)
+- Subject ≤ 50 characters, imperative mood, no trailing period
+  - Good: `Add streak loot multiplier`, `Fix awardMastery stat overflow`
+  - Bad: `Added streak system.`, `Updates and fixes`
+- Blank line + body for any commit beyond a one-line trivial change
+- Body explains *why*, not *what* (the diff shows what)
+- Always include `Co-Authored-By: Claude <model> <noreply@anthropic.com>` when Claude wrote or edited code
+
+### Branching
+- Claude worktree branches use auto-generated names — fine, treat them as disposable
+- Human-initiated branches: `feat/<topic>`, `fix/<topic>`, `refactor/<topic>`, `chore/<topic>`
+- Always branch from latest `master`
+
+### Merging
+- **Squash-merge via GitHub PR.** One clean commit per PR on master
+- The PR title becomes the squash commit subject — PR titles must follow the commit-message rules above
+- After a PR merges: delete the local branch and remove the worktree (`git worktree remove <path>`). Don't let merged branches accumulate
+
+### Git hooks (husky + lint-staged)
+- **pre-commit:** runs `lint-staged` (ESLint on staged `.ts`/`.tsx`) + `npm run typecheck` (project-wide). Blocks commits that fail type or lint
+- **pre-push:** blocks direct pushes to `master` (use PRs). Bypass in a true emergency only: `HUSKY=0 git push ...`
+- Hooks activate via the `prepare` script — they install on every `npm install`. If a fresh clone's hooks aren't firing, re-run `npm install`
+
+### DO NOT
+- Never commit `.env.local` or any file matching `.env*.local`
+- Never commit `.claude/settings.local.json` (gitignored — keep it that way)
+- Never call Firestore directly from React components — go through `src/lib/` utilities or Zustand store actions
+- Never bypass Firestore security rules client-side
+- Never use `--no-verify`, `git push --force` to a shared branch, or `git reset --hard` over uncommitted work
 
 ---
 
