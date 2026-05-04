@@ -110,3 +110,28 @@ After completing the steps above:
 - The **Insights → Dependency graph → Dependabot** view should list both alerts and version-update PRs.
 
 Re-run this checklist any time the repository changes ownership or moves between organizations.
+
+---
+
+## Remediations Log
+
+Chronological log of hardening work that has actually shipped — pair each row with [`docs/CHANGELOG.md`](CHANGELOG.md) for the surrounding context. Newest first.
+
+| Date       | Change                                                                                                                                                                                                                               | Source                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| 2026-05-03 | CI third-party actions pinned to commit SHAs; `permissions: contents: read` added to `ci.yml`.                                                                                                                                       | [#15](https://github.com/Spike450x/FitQuest/pull/15) `a81e8ad`                                             |
+| 2026-05-03 | `.gitattributes` added for LF line-ending normalization across the repo.                                                                                                                                                             | [#14](https://github.com/Spike450x/FitQuest/pull/14) `68964e4`                                             |
+| 2026-05-03 | `SECURITY.md` published (vulnerability reporting policy + safe harbor) and this hardening checklist.                                                                                                                                 | [#13](https://github.com/Spike450x/FitQuest/pull/13) `abd984e`                                             |
+| 2026-05-03 | Firestore rules: field-level validation, `level` 1–100 cap, immutable `uid`/`class`/`createdAt`/`itemDefId`/`acquiredAt`, 10-min `loggedAt` window (blocks backdated streak gaming), write-once `completedAt`/`claimedAt` on quests. | [`docs/CHANGELOG.md`](CHANGELOG.md#2026-05-03--type-renames--correctness-fixes--firestore-rules-hardening) |
+| 2026-05-03 | Firebase admin / service-account file patterns (`*-firebase-adminsdk-*.json`, `*service-account*.json`) added to `.gitignore`.                                                                                                       | [`docs/CHANGELOG.md`](CHANGELOG.md#2026-05-03--workflow--instructions-hardening)                           |
+| 2026-05-03 | Husky `pre-push` hook blocks direct pushes to `master`; husky `pre-commit` runs lint-staged + typecheck + vitest.                                                                                                                    | [#10](https://github.com/Spike450x/FitQuest/pull/10) `c065b1a`                                             |
+| 2026-05-03 | Branch protection on `master` enabled requiring the `Typecheck, Lint, Test` check (GitHub-side).                                                                                                                                     | [`docs/CHANGELOG.md`](CHANGELOG.md#2026-05-03--prettier-ci-build-repo-polish)                              |
+
+### Outstanding hardening (not yet shipped)
+
+Tracked as backlog — see [`docs/CHANGELOG.md`](CHANGELOG.md#backlog-not-started). For each item below, when it ships, add a row above and link the PR.
+
+- **CodeQL workflow** — referenced in section 6 above but the workflow file does not yet exist.
+- **Private vulnerability reporting** — section 7 toggle; no code change required, but verify it is enabled in repo settings.
+- **Firestore emulator setup** — would let dev and CI exercise the rules without touching production data.
+- **Automated Firestore rules deploy on `master` push** — currently a manual `firebase deploy --only firestore:rules`.

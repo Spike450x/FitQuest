@@ -11,6 +11,7 @@ Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Firebase**, and *
 ## Table of Contents
 
 - [Tech Stack](#tech-stack)
+- [Documentation](#documentation)
 - [Project Status](#project-status)
 - [Architecture](#architecture)
 - [Features](#features)
@@ -46,6 +47,23 @@ Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Firebase**, and *
 | Auth & Database  | Firebase Auth + Firestore |
 | State Management | Zustand 4                 |
 | Charts           | Recharts                  |
+
+---
+
+## Documentation
+
+This README covers feature breakdowns and game mechanics. Deeper engineering references live under [`docs/`](docs/):
+
+| Doc                                              | Covers                                                                 |
+| ------------------------------------------------ | ---------------------------------------------------------------------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     | Layered architecture, folder map, route reference, data-flow diagrams. |
+| [docs/FIRESTORE.md](docs/FIRESTORE.md)           | Collections, schemas, validation rules, the security model.            |
+| [docs/CI.md](docs/CI.md)                         | GitHub Actions, husky hooks, Dependabot, action SHA-pinning policy.    |
+| [docs/GAME-LOGIC.md](docs/GAME-LOGIC.md)         | Reference for every export under `src/lib/gameLogic/`.                 |
+| [docs/SECURITY-SETUP.md](docs/SECURITY-SETUP.md) | GitHub-side hardening checklist + log of shipped remediations.         |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md)           | Newest-first feature log.                                              |
+| [SECURITY.md](SECURITY.md)                       | Vulnerability reporting policy.                                        |
+| [CLAUDE.md](CLAUDE.md)                           | Development partner guide (commands, workflow, conventions).           |
 
 ---
 
