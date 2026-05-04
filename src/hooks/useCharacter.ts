@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useCharacterStore } from "@/store/characterStore";
-import { useAuth } from "./useAuth";
+import { useEffect } from 'react';
+import { useCharacterStore } from '@/store/characterStore';
+import { useAuth } from './useAuth';
 
 /** Loads the character from Firestore when a user is authenticated. */
 export function useCharacter() {

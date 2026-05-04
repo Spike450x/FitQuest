@@ -31,6 +31,7 @@ If `$ARGUMENTS` is provided, it specifies what to document (e.g., "combat system
    - Component Reference
 
    ### Targeted Documentation (with arguments)
+
    Focus the document on the specific system described in `$ARGUMENTS`, but still include an executive summary and relevant data models.
 
 3. Save to: `docs/FitQuest_Architecture_[YYYY-MM-DD].docx`
@@ -40,6 +41,7 @@ If `$ARGUMENTS` is provided, it specifies what to document (e.g., "combat system
 ## Diagram Style
 
 Use Mermaid syntax for:
+
 - Architecture diagrams: `graph TD` or `graph LR`
 - User journey flows: `sequenceDiagram`
 - State machines: `stateDiagram-v2`

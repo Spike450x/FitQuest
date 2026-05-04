@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { xpProgress } from "@/lib/gameLogic/xp";
+import { xpProgress } from '@/lib/gameLogic/xp';
 
 interface XPBarProps {
   xp: number;

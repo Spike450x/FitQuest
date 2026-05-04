@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { ClassSelector } from "@/components/character/ClassSelector";
-import { useCharacterStore } from "@/store/characterStore";
-import { useCharacter } from "@/hooks/useCharacter";
-import type { CharacterClass } from "@/types";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ClassSelector } from '@/components/character/ClassSelector';
+import { useCharacterStore } from '@/store/characterStore';
+import { useCharacter } from '@/hooks/useCharacter';
+import type { CharacterClass } from '@/types';
 
 export default function CharacterCreationPage() {
   const router = useRouter();
@@ -15,11 +15,11 @@ export default function CharacterCreationPage() {
   // Redirect to dashboard if a character already exists
   useEffect(() => {
     if (!charLoading && character) {
-      router.replace("/dashboard");
+      router.replace('/dashboard');
     }
   }, [character, charLoading, router]);
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState('');
   const [selectedClass, setSelectedClass] = useState<CharacterClass | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
 
@@ -31,17 +31,17 @@ export default function CharacterCreationPage() {
 
     const trimmed = name.trim();
     if (trimmed.length < 2) {
-      setNameError("Name must be at least 2 characters.");
+      setNameError('Name must be at least 2 characters.');
       return;
     }
     if (trimmed.length > 24) {
-      setNameError("Name must be 24 characters or less.");
+      setNameError('Name must be 24 characters or less.');
       return;
     }
     if (!selectedClass) return;
 
     await createCharacter(user.uid, trimmed, selectedClass);
-    router.push("/dashboard");
+    router.push('/dashboard');
   }
 
   return (
@@ -56,9 +56,7 @@ export default function CharacterCreationPage() {
           <form onSubmit={handleCreate} className="space-y-8">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Character Name
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Character Name</label>
               <input
                 type="text"
                 value={name}
@@ -89,7 +87,7 @@ export default function CharacterCreationPage() {
               disabled={!name.trim() || !selectedClass || loading}
               className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition-colors text-lg"
             >
-              {loading ? "Forging your destiny..." : "Begin Adventure"}
+              {loading ? 'Forging your destiny...' : 'Begin Adventure'}
             </button>
           </form>
         </div>

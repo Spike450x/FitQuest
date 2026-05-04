@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
-import { useCharacter } from "@/hooks/useCharacter";
-import { MASTERY_CONFIG, nextMasteryMilestone, RESTORE } from "@/lib/gameLogic/constants";
-import { playerMaxHp, playerMaxStamina, playerMaxMagic } from "@/lib/gameLogic/combat";
-import type { MasteryActivityType } from "@/lib/gameLogic/constants";
+import { useCharacter } from '@/hooks/useCharacter';
+import { MASTERY_CONFIG, nextMasteryMilestone, RESTORE } from '@/lib/gameLogic/constants';
+import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
+import type { MasteryActivityType } from '@/lib/gameLogic/constants';
 
 const MASTERY_ITEMS: { type: MasteryActivityType; icon: string }[] = [
-  { type: "workout", icon: "🏋️" },
-  { type: "run",     icon: "🏃" },
-  { type: "steps",   icon: "👟" },
+  { type: 'workout', icon: '🏋️' },
+  { type: 'run', icon: '🏃' },
+  { type: 'steps', icon: '👟' },
 ];
 
 export function ActivitySidePanel() {
   const { character } = useCharacter();
   if (!character) return null;
 
-  const maxHp      = playerMaxHp(character);
+  const maxHp = playerMaxHp(character);
   const maxStamina = playerMaxStamina(character);
-  const maxMagic   = playerMaxMagic(character);
-  const currentHp      = character.currentHp      ?? maxHp;
+  const maxMagic = playerMaxMagic(character);
+  const currentHp = character.currentHp ?? maxHp;
   const currentStamina = character.currentStamina ?? maxStamina;
-  const currentMagic   = character.currentMagic   ?? maxMagic;
+  const currentMagic = character.currentMagic ?? maxMagic;
 
   return (
     <div className="space-y-4">
@@ -127,7 +127,9 @@ function ResourceBar({
         <span className="flex items-center gap-1.5 text-gray-700 font-medium">
           {icon} {label}
         </span>
-        <span className={`text-xs font-semibold tabular-nums ${isFull ? "text-emerald-600" : "text-gray-600"}`}>
+        <span
+          className={`text-xs font-semibold tabular-nums ${isFull ? 'text-emerald-600' : 'text-gray-600'}`}
+        >
           {current}
           <span className="text-gray-300 font-normal"> / {max}</span>
           {isFull && <span className="ml-1 text-emerald-500">✓</span>}
@@ -135,7 +137,7 @@ function ResourceBar({
       </div>
       <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
         <div
-          className={`h-2 rounded-full transition-all duration-300 ${isFull ? "bg-emerald-400" : color}`}
+          className={`h-2 rounded-full transition-all duration-300 ${isFull ? 'bg-emerald-400' : color}`}
           style={{ width: `${pct}%` }}
         />
       </div>

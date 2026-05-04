@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useCharacter } from "@/hooks/useCharacter";
-import { useQuestStore } from "@/store/questStore";
-import { getQuestDef } from "@/lib/gameLogic/quests";
-import type { ActiveQuest } from "@/types";
+import { useEffect, useState } from 'react';
+import { useCharacter } from '@/hooks/useCharacter';
+import { useQuestStore } from '@/store/questStore';
+import { getQuestDef } from '@/lib/gameLogic/quests';
+import type { ActiveQuest } from '@/types';
 
 function timeUntilExpiry(expiresAt: number): string {
   const diff = expiresAt - Date.now();
-  if (diff <= 0) return "Expired";
+  if (diff <= 0) return 'Expired';
   const hours = Math.floor(diff / 3_600_000);
   const minutes = Math.floor((diff % 3_600_000) / 60_000);
   if (hours >= 48) return `${Math.floor(hours / 24)}d remaining`;
@@ -39,10 +39,10 @@ function QuestCard({
     <div
       className={`bg-white border rounded-xl p-4 shadow-sm space-y-3 transition-colors ${
         isClaimed
-          ? "border-emerald-200 opacity-60"
+          ? 'border-emerald-200 opacity-60'
           : isComplete
-          ? "border-amber-300 bg-amber-50/30"
-          : "border-gray-200"
+            ? 'border-amber-300 bg-amber-50/30'
+            : 'border-gray-200'
       }`}
     >
       {/* Header */}
@@ -78,7 +78,7 @@ function QuestCard({
       <div className="space-y-1">
         <div className="flex justify-between text-xs text-gray-500">
           <span>
-            {quest.progress.toLocaleString()} / {def.requirement.target.toLocaleString()}{" "}
+            {quest.progress.toLocaleString()} / {def.requirement.target.toLocaleString()}{' '}
             {def.requirement.unit}
           </span>
           <span>{pct}%</span>
@@ -86,7 +86,7 @@ function QuestCard({
         <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
           <div
             className={`h-2 rounded-full transition-all duration-500 ${
-              isClaimed ? "bg-emerald-400" : isComplete ? "bg-amber-400" : "bg-indigo-500"
+              isClaimed ? 'bg-emerald-400' : isComplete ? 'bg-amber-400' : 'bg-indigo-500'
             }`}
             style={{ width: `${pct}%` }}
           />
@@ -100,9 +100,7 @@ function QuestCard({
           disabled={!!claiming}
           className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold py-2 rounded-lg transition-colors"
         >
-          {isClaiming
-            ? "Claiming…"
-            : `Claim +${def.rewards.xp} XP & +${def.rewards.gold} 💰`}
+          {isClaiming ? 'Claiming…' : `Claim +${def.rewards.xp} XP & +${def.rewards.gold} 💰`}
         </button>
       )}
     </div>
@@ -182,8 +180,8 @@ export default function QuestsPage() {
 
   if (!character) return null;
 
-  const dailyQuests = quests.filter((q) => getQuestDef(q.questDefId)?.type === "daily");
-  const weeklyQuests = quests.filter((q) => getQuestDef(q.questDefId)?.type === "weekly");
+  const dailyQuests = quests.filter((q) => getQuestDef(q.questDefId)?.type === 'daily');
+  const weeklyQuests = quests.filter((q) => getQuestDef(q.questDefId)?.type === 'weekly');
 
   async function handleClaim(questId: string) {
     if (claiming) return;

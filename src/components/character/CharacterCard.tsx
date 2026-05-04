@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { XPBar } from "@/components/ui/XPBar";
-import { GoldDisplay } from "@/components/ui/GoldDisplay";
-import { StatBar } from "./StatBar";
-import { CLASS_DEFINITIONS } from "@/lib/gameLogic/constants";
-import { playerMaxStamina, totalGearBonuses } from "@/lib/gameLogic/combat";
-import type { Character } from "@/types";
+import { XPBar } from '@/components/ui/XPBar';
+import { GoldDisplay } from '@/components/ui/GoldDisplay';
+import { StatBar } from './StatBar';
+import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
+import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
+import type { Character } from '@/types';
 
 // The three primary combat stats shown as bars
 const STAT_CONFIG = [
-  { key: "strength" as const, label: "Strength", icon: "⚔️", color: "bg-red-400" },
-  { key: "wisdom" as const,   label: "Wisdom",   icon: "🧠", color: "bg-blue-400" },
-  { key: "agility" as const,  label: "Agility",  icon: "🌬️", color: "bg-teal-400" },
+  { key: 'strength' as const, label: 'Strength', icon: '⚔️', color: 'bg-red-400' },
+  { key: 'wisdom' as const, label: 'Wisdom', icon: '🧠', color: 'bg-blue-400' },
+  { key: 'agility' as const, label: 'Agility', icon: '🌬️', color: 'bg-teal-400' },
 ];
 
 interface CharacterCardProps {
@@ -84,11 +84,11 @@ export function CharacterCard({ character }: CharacterCardProps) {
       <div className="pt-1 border-t border-gray-100">
         <p className="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Equipped</p>
         <div className="grid grid-cols-3 gap-2 text-center text-xs">
-          {(["weapon", "armor", "accessory"] as const).map((slot) => (
+          {(['weapon', 'armor', 'accessory'] as const).map((slot) => (
             <div key={slot} className="bg-gray-50 rounded-lg p-2 border border-gray-200">
               <p className="text-gray-400 capitalize">{slot}</p>
               <p className="text-gray-700 mt-0.5 truncate font-medium">
-                {character.equippedGear[slot] ?? "—"}
+                {character.equippedGear[slot] ?? '—'}
               </p>
             </div>
           ))}

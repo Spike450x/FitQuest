@@ -1,12 +1,20 @@
-import { create } from "zustand";
-import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { CLASS_DEFINITIONS, xpToNextLevel, LEVEL_UP, statCap, MASTERY_CONFIG, isMasteryMilestone, type MasteryActivityType } from "@/lib/gameLogic/constants";
-import { playerMaxHp, playerMaxStamina, playerMaxMagic } from "@/lib/gameLogic/combat";
-import { applyXp } from "@/lib/gameLogic/xp";
-import { applyStatGains } from "@/lib/gameLogic/stats";
-import { computeNewStreak, todayUTC } from "@/lib/gameLogic/streaks";
-import type { Character, CharacterClass, CharacterSubclass, Stats, ActivityType } from "@/types";
+import { create } from 'zustand';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import {
+  CLASS_DEFINITIONS,
+  xpToNextLevel,
+  LEVEL_UP,
+  statCap,
+  MASTERY_CONFIG,
+  isMasteryMilestone,
+  type MasteryActivityType,
+} from '@/lib/gameLogic/constants';
+import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
+import { applyXp } from '@/lib/gameLogic/xp';
+import { applyStatGains } from '@/lib/gameLogic/stats';
+import { computeNewStreak, todayUTC } from '@/lib/gameLogic/streaks';
+import type { Character, CharacterClass, CharacterSubclass, Stats, ActivityType } from '@/types';
 
 interface CharacterStore {
   character: Character | null;
@@ -39,7 +47,7 @@ interface CharacterStore {
    * Spend one pending stat point on the given stat.
    * Does nothing if pendingStatPoints === 0.
    */
-  allocateStatPoint: (stat: "strength" | "wisdom" | "agility" | "stamina") => Promise<void>;
+  allocateStatPoint: (stat: 'strength' | 'wisdom' | 'agility' | 'stamina') => Promise<void>;
   /** Resets level, XP, and stats back to class starting values (death penalty). */
   resetCharacter: () => Promise<void>;
   /**
@@ -50,7 +58,7 @@ interface CharacterStore {
   persistStreakAndRecord: (
     activityType: ActivityType,
     value: number,
-    unit: string
+    unit: string,
   ) => Promise<boolean>;
   /**
    * Restore HP by the given amount (capped at max).
@@ -81,14 +89,14 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
   fetchCharacter: async (uid) => {
     set({ loading: true, error: null });
     try {
-      const snap = await getDoc(doc(db, "characters", uid));
+      const snap = await getDoc(doc(db, 'characters', uid));
       if (snap.exists()) {
         const data = snap.data() as Character;
         // Backfill: agility was added after launch; old character docs don't have it.
         if (!data.stats?.agility) {
           const startingAgility = CLASS_DEFINITIONS[data.class].startingStats.agility;
           data.stats = { ...data.stats, agility: startingAgility };
-          await updateDoc(doc(db, "characters", uid), { "stats.agility": startingAgility });
+          await updateDoc(doc(db, 'characters', uid), { 'stats.agility': startingAgility });
         }
         set({ character: data, loading: false });
       } else {
@@ -116,7 +124,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         equippedGear: { weapon: null, armor: null, accessory: null },
         createdAt: Date.now(),
       };
-      await setDoc(doc(db, "characters", uid), character);
+      await setDoc(doc(db, 'characters', uid), character);
       set({ character, loading: false });
     } catch (e) {
       set({ error: (e as Error).message, loading: false });
@@ -143,7 +151,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       // Auto-increase health and defense per level gained
       newStats = {
         ...newStats,
-        health:  Math.min(newStats.health  + LEVEL_UP.HEALTH_PER_LEVEL  * levelsGained, newCap),
+        health: Math.min(newStats.health + LEVEL_UP.HEALTH_PER_LEVEL * levelsGained, newCap),
         defense: Math.min(newStats.defense + LEVEL_UP.DEFENSE_PER_LEVEL * levelsGained, newCap),
       };
       updated.stats = newStats;
@@ -154,11 +162,14 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
 
       // Level-up fully restores all combat resources to the new (possibly higher) max.
       updated.currentHp = playerMaxHp({ stats: newStats, equippedGear: character.equippedGear });
-      updated.currentStamina = playerMaxStamina({ stats: newStats, equippedGear: character.equippedGear });
+      updated.currentStamina = playerMaxStamina({
+        stats: newStats,
+        equippedGear: character.equippedGear,
+      });
       updated.currentMagic = playerMaxMagic({ stats: newStats, class: character.class });
     }
 
-    await updateDoc(doc(db, "characters", character.uid), updated);
+    await updateDoc(doc(db, 'characters', character.uid), updated);
     set({ character: { ...character, ...updated } });
 
     return levelsGained;
@@ -169,7 +180,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     if (!character) return;
 
     const newGold = character.gold + amount;
-    await updateDoc(doc(db, "characters", character.uid), { gold: newGold });
+    await updateDoc(doc(db, 'characters', character.uid), { gold: newGold });
     set({ character: { ...character, gold: newGold } });
   },
 
@@ -183,7 +194,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const { character } = get();
     if (!character) return;
 
-    await updateDoc(doc(db, "characters", character.uid), { currentHp: hp });
+    await updateDoc(doc(db, 'characters', character.uid), { currentHp: hp });
     set({ character: { ...character, currentHp: hp } });
   },
 
@@ -196,7 +207,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
   updateCurrentStamina: async (stamina) => {
     const { character } = get();
     if (!character) return;
-    await updateDoc(doc(db, "characters", character.uid), { currentStamina: stamina });
+    await updateDoc(doc(db, 'characters', character.uid), { currentStamina: stamina });
     set({ character: { ...character, currentStamina: stamina } });
   },
 
@@ -207,7 +218,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const current = character.currentStamina ?? max;
     const newStamina = Math.min(current + amount, max);
     if (newStamina === current) return; // already full
-    await updateDoc(doc(db, "characters", character.uid), { currentStamina: newStamina });
+    await updateDoc(doc(db, 'characters', character.uid), { currentStamina: newStamina });
     set({ character: { ...character, currentStamina: newStamina } });
   },
 
@@ -220,7 +231,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
   updateCurrentMagic: async (magic) => {
     const { character } = get();
     if (!character) return;
-    await updateDoc(doc(db, "characters", character.uid), { currentMagic: magic });
+    await updateDoc(doc(db, 'characters', character.uid), { currentMagic: magic });
     set({ character: { ...character, currentMagic: magic } });
   },
 
@@ -235,7 +246,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       [stat]: Math.min((character.stats[stat] ?? 0) + 1, statCap(stat, character.level)),
     };
     const newPending = pending - 1;
-    await updateDoc(doc(db, "characters", character.uid), {
+    await updateDoc(doc(db, 'characters', character.uid), {
       stats: newStats,
       pendingStatPoints: newPending,
     });
@@ -250,7 +261,10 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const level = 1;
     const resetStats = { ...classDef.startingStats };
     // Use the canonical HP formula so this stays in sync with playerMaxHp()
-    const resetHp = playerMaxHp({ stats: resetStats, equippedGear: { weapon: null, armor: null, accessory: null } });
+    const resetHp = playerMaxHp({
+      stats: resetStats,
+      equippedGear: { weapon: null, armor: null, accessory: null },
+    });
 
     const reset: Partial<Character> = {
       level,
@@ -260,7 +274,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       currentHp: resetHp,
     };
 
-    await updateDoc(doc(db, "characters", character.uid), reset);
+    await updateDoc(doc(db, 'characters', character.uid), reset);
     set({ character: { ...character, ...reset } });
   },
 
@@ -282,7 +296,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       };
     }
 
-    await updateDoc(doc(db, "characters", character.uid), updates);
+    await updateDoc(doc(db, 'characters', character.uid), updates);
     set({ character: { ...character, ...updates } });
 
     return isNewRecord;
@@ -295,7 +309,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const current = character.currentHp ?? max;
     const newHp = Math.min(current + amount, max);
     if (newHp === current) return; // already full
-    await updateDoc(doc(db, "characters", character.uid), { currentHp: newHp });
+    await updateDoc(doc(db, 'characters', character.uid), { currentHp: newHp });
     set({ character: { ...character, currentHp: newHp } });
   },
 
@@ -306,7 +320,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const current = character.currentMagic ?? max;
     const newMagic = Math.min(current + amount, max);
     if (newMagic === current) return; // already full
-    await updateDoc(doc(db, "characters", character.uid), { currentMagic: newMagic });
+    await updateDoc(doc(db, 'characters', character.uid), { currentMagic: newMagic });
     set({ character: { ...character, currentMagic: newMagic } });
   },
 
@@ -326,11 +340,14 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       const { linkedStat } = MASTERY_CONFIG[activityType];
       updates.stats = {
         ...character.stats,
-        [linkedStat]: Math.min((character.stats[linkedStat] ?? 0) + 1, statCap(linkedStat, character.level)),
+        [linkedStat]: Math.min(
+          (character.stats[linkedStat] ?? 0) + 1,
+          statCap(linkedStat, character.level),
+        ),
       };
     }
 
-    await updateDoc(doc(db, "characters", character.uid), updates);
+    await updateDoc(doc(db, 'characters', character.uid), updates);
     set({ character: { ...character, ...updates } });
 
     return milestoneHit;
@@ -341,7 +358,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     if (!character) return;
     // Guard: only allow if level >= 10 and subclass not already chosen
     if (character.level < 10 || character.subclass) return;
-    await updateDoc(doc(db, "characters", character.uid), { subclass });
+    await updateDoc(doc(db, 'characters', character.uid), { subclass });
     set({ character: { ...character, subclass } });
   },
 

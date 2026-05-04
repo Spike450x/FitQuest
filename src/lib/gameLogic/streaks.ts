@@ -1,4 +1,4 @@
-import type { ActivityType } from "@/types";
+import type { ActivityType } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,12 +41,48 @@ export interface StreakTier {
 // Tiers are checked highest → lowest; the first match wins.
 
 export const STREAK_TIERS: StreakTier[] = [
-  { minDays: 30, label: "Blessed",     lootDropMultiplier: 2.00, color: "text-orange-500", bgColor: "bg-orange-50 border-orange-200"   },
-  { minDays: 21, label: "Unstoppable", lootDropMultiplier: 1.75, color: "text-purple-600", bgColor: "bg-purple-50 border-purple-200"   },
-  { minDays: 14, label: "Relentless",  lootDropMultiplier: 1.50, color: "text-blue-600",   bgColor: "bg-blue-50 border-blue-200"       },
-  { minDays:  7, label: "Dedicated",   lootDropMultiplier: 1.30, color: "text-indigo-600", bgColor: "bg-indigo-50 border-indigo-200"   },
-  { minDays:  3, label: "Focused",     lootDropMultiplier: 1.15, color: "text-emerald-600",bgColor: "bg-emerald-50 border-emerald-200" },
-  { minDays:  0, label: null,          lootDropMultiplier: 1.00, color: "text-gray-400",   bgColor: "bg-gray-50 border-gray-200"       },
+  {
+    minDays: 30,
+    label: 'Blessed',
+    lootDropMultiplier: 2.0,
+    color: 'text-orange-500',
+    bgColor: 'bg-orange-50 border-orange-200',
+  },
+  {
+    minDays: 21,
+    label: 'Unstoppable',
+    lootDropMultiplier: 1.75,
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-50 border-purple-200',
+  },
+  {
+    minDays: 14,
+    label: 'Relentless',
+    lootDropMultiplier: 1.5,
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50 border-blue-200',
+  },
+  {
+    minDays: 7,
+    label: 'Dedicated',
+    lootDropMultiplier: 1.3,
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-50 border-indigo-200',
+  },
+  {
+    minDays: 3,
+    label: 'Focused',
+    lootDropMultiplier: 1.15,
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50 border-emerald-200',
+  },
+  {
+    minDays: 0,
+    label: null,
+    lootDropMultiplier: 1.0,
+    color: 'text-gray-400',
+    bgColor: 'bg-gray-50 border-gray-200',
+  },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -73,10 +109,7 @@ function yesterdayUTC(): string {
  *   - lastLogDate === yesterday → streak continues (+1)
  *   - anything else             → streak resets to 1
  */
-export function computeNewStreak(
-  current: StreakData | undefined,
-  today: string
-): StreakData {
+export function computeNewStreak(current: StreakData | undefined, today: string): StreakData {
   if (!current) {
     return { currentStreak: 1, longestStreak: 1, lastLogDate: today };
   }
@@ -95,10 +128,7 @@ export function computeNewStreak(
 
 /** Returns the StreakTier for a given streak day count. */
 export function getStreakTier(streak: number): StreakTier {
-  return (
-    STREAK_TIERS.find((t) => streak >= t.minDays) ??
-    STREAK_TIERS[STREAK_TIERS.length - 1]
-  );
+  return STREAK_TIERS.find((t) => streak >= t.minDays) ?? STREAK_TIERS[STREAK_TIERS.length - 1];
 }
 
 /**

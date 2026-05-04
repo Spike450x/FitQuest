@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useCharacterStore } from "@/store/characterStore";
-import type { Character } from "@/types";
+import { useState } from 'react';
+import { useCharacterStore } from '@/store/characterStore';
+import type { Character } from '@/types';
 
-type AllocStat = "strength" | "wisdom" | "agility" | "stamina";
+type AllocStat = 'strength' | 'wisdom' | 'agility' | 'stamina';
 
 const ALLOC_OPTIONS: {
   stat: AllocStat;
@@ -14,32 +14,32 @@ const ALLOC_OPTIONS: {
   description: string;
 }[] = [
   {
-    stat: "strength",
-    label: "Strength",
-    icon: "⚔️",
-    color: "border-red-300 bg-red-50 hover:bg-red-100 text-red-800",
-    description: "Increases physical attack damage",
+    stat: 'strength',
+    label: 'Strength',
+    icon: '⚔️',
+    color: 'border-red-300 bg-red-50 hover:bg-red-100 text-red-800',
+    description: 'Increases physical attack damage',
   },
   {
-    stat: "wisdom",
-    label: "Wisdom",
-    icon: "🧠",
-    color: "border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-800",
-    description: "Increases magic attack damage",
+    stat: 'wisdom',
+    label: 'Wisdom',
+    icon: '🧠',
+    color: 'border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-800',
+    description: 'Increases magic attack damage',
   },
   {
-    stat: "agility",
-    label: "Agility",
-    icon: "🌬️",
-    color: "border-teal-300 bg-teal-50 hover:bg-teal-100 text-teal-800",
-    description: "Improves chance to escape combat",
+    stat: 'agility',
+    label: 'Agility',
+    icon: '🌬️',
+    color: 'border-teal-300 bg-teal-50 hover:bg-teal-100 text-teal-800',
+    description: 'Improves chance to escape combat',
   },
   {
-    stat: "stamina",
-    label: "Stamina",
-    icon: "⚡",
-    color: "border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800",
-    description: "Increases HP pool and stamina for abilities",
+    stat: 'stamina',
+    label: 'Stamina',
+    icon: '⚡',
+    color: 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800',
+    description: 'Increases HP pool and stamina for abilities',
   },
 ];
 
@@ -73,8 +73,8 @@ export function StatAllocModal({ character }: StatAllocModalProps) {
         )}
       </div>
       <p className="text-sm text-amber-700 mb-4">
-        Choose a stat to increase. You have{" "}
-        <span className="font-bold">{pending}</span> unspent {pending === 1 ? "point" : "points"}.
+        Choose a stat to increase. You have <span className="font-bold">{pending}</span> unspent{' '}
+        {pending === 1 ? 'point' : 'points'}.
       </p>
 
       <div className="grid grid-cols-2 gap-2">
@@ -87,14 +87,10 @@ export function StatAllocModal({ character }: StatAllocModalProps) {
           >
             <span className="font-bold text-sm flex items-center gap-1.5">
               {icon} {label}
-              <span className="font-normal opacity-70 ml-0.5">
-                ({character.stats[stat] ?? 0})
-              </span>
+              <span className="font-normal opacity-70 ml-0.5">({character.stats[stat] ?? 0})</span>
             </span>
             <span className="text-xs opacity-70">{description}</span>
-            {allocating === stat && (
-              <span className="text-xs font-semibold mt-0.5">Saving…</span>
-            )}
+            {allocating === stat && <span className="text-xs font-semibold mt-0.5">Saving…</span>}
           </button>
         ))}
       </div>

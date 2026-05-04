@@ -1,4 +1,4 @@
-import type { CharacterClass, Stats } from "@/types";
+import type { CharacterClass, Stats } from '@/types';
 
 // ─── Class Definitions ────────────────────────────────────────────────────────
 
@@ -13,40 +13,65 @@ export const CLASS_DEFINITIONS: Record<
   }
 > = {
   warrior: {
-    label: "Warrior",
+    label: 'Warrior',
     description:
-      "Masters of physical combat. Heavy plate armor and a shield give them the highest natural defense. Best for tanking through long fights.",
-    emoji: "⚔️",
+      'Masters of physical combat. Heavy plate armor and a shield give them the highest natural defense. Best for tanking through long fights.',
+    emoji: '⚔️',
     startingStats: { strength: 8, stamina: 6, agility: 4, health: 7, wisdom: 3, defense: 6 },
-    statMultipliers: { strength: 1.5, stamina: 1.2, agility: 0.8, health: 1.0, wisdom: 0.8, defense: 1.5 },
+    statMultipliers: {
+      strength: 1.5,
+      stamina: 1.2,
+      agility: 0.8,
+      health: 1.0,
+      wisdom: 0.8,
+      defense: 1.5,
+    },
   },
   wizard: {
-    label: "Wizard",
+    label: 'Wizard',
     description:
-      "Glass cannon in cloth robes. Lowest defense in the game — kill fast with magic or die. Wisdom grows rapidly from nutrition and mindfulness.",
-    emoji: "🧙",
+      'Glass cannon in cloth robes. Lowest defense in the game — kill fast with magic or die. Wisdom grows rapidly from nutrition and mindfulness.',
+    emoji: '🧙',
     startingStats: { strength: 3, stamina: 5, agility: 6, health: 6, wisdom: 8, defense: 1 },
-    statMultipliers: { strength: 0.8, stamina: 1.0, agility: 1.0, health: 1.2, wisdom: 1.5, defense: 0.7 },
+    statMultipliers: {
+      strength: 0.8,
+      stamina: 1.0,
+      agility: 1.0,
+      health: 1.2,
+      wisdom: 1.5,
+      defense: 0.7,
+    },
   },
   rogue: {
-    label: "Rogue",
+    label: 'Rogue',
     description:
-      "Light leather armor and quick reflexes. Agility is their edge — harder to catch and easier to escape. High stamina fuels relentless special attacks.",
-    emoji: "🗡️",
+      'Light leather armor and quick reflexes. Agility is their edge — harder to catch and easier to escape. High stamina fuels relentless special attacks.',
+    emoji: '🗡️',
     startingStats: { strength: 5, stamina: 8, agility: 8, health: 5, wisdom: 6, defense: 3 },
-    statMultipliers: { strength: 1.2, stamina: 1.5, agility: 1.5, health: 0.8, wisdom: 1.0, defense: 1.2 },
+    statMultipliers: {
+      strength: 1.2,
+      stamina: 1.5,
+      agility: 1.5,
+      health: 0.8,
+      wisdom: 1.0,
+      defense: 1.2,
+    },
   },
 };
 
 // ─── Activity Definitions ─────────────────────────────────────────────────────
 
 export const ACTIVITY_DEFINITIONS = {
-  workout:   { label: "Workout",   description: "Resistance training, weightlifting, or gym session", unit: "minutes" },
-  run:       { label: "Run",       description: "Running or jogging, tracked in miles",               unit: "miles"   },
-  steps:     { label: "Steps",     description: "Daily step count",                                   unit: "steps"   },
-  sleep:     { label: "Sleep",     description: "Hours of sleep (7–9 is optimal)",                    unit: "hours"   },
-  water:     { label: "Water",     description: "Glasses of water (8oz each)",                        unit: "glasses" },
-  nutrition: { label: "Nutrition", description: "Healthy meals logged",                               unit: "meals"   },
+  workout: {
+    label: 'Workout',
+    description: 'Resistance training, weightlifting, or gym session',
+    unit: 'minutes',
+  },
+  run: { label: 'Run', description: 'Running or jogging, tracked in miles', unit: 'miles' },
+  steps: { label: 'Steps', description: 'Daily step count', unit: 'steps' },
+  sleep: { label: 'Sleep', description: 'Hours of sleep (7–9 is optimal)', unit: 'hours' },
+  water: { label: 'Water', description: 'Glasses of water (8oz each)', unit: 'glasses' },
+  nutrition: { label: 'Nutrition', description: 'Healthy meals logged', unit: 'meals' },
 } as const;
 
 // ─── Resource Restore (via activities) ───────────────────────────────────────
@@ -66,15 +91,15 @@ export const RESTORE = {
 // Logging run/workout/steps builds mastery toward permanent +1 stat milestones.
 // Open-ended: milestones fire at log 5, then every 10 forever (5, 15, 25, …).
 
-export type MasteryActivityType = "run" | "workout" | "steps";
+export type MasteryActivityType = 'run' | 'workout' | 'steps';
 
 export const MASTERY_CONFIG: Record<
   MasteryActivityType,
-  { linkedStat: "agility" | "strength" | "wisdom"; linkedStatLabel: string }
+  { linkedStat: 'agility' | 'strength' | 'wisdom'; linkedStatLabel: string }
 > = {
-  run:     { linkedStat: "agility",  linkedStatLabel: "Agility"  },
-  workout: { linkedStat: "strength", linkedStatLabel: "Strength" },
-  steps:   { linkedStat: "wisdom",   linkedStatLabel: "Wisdom"   },
+  run: { linkedStat: 'agility', linkedStatLabel: 'Agility' },
+  workout: { linkedStat: 'strength', linkedStatLabel: 'Strength' },
+  steps: { linkedStat: 'wisdom', linkedStatLabel: 'Wisdom' },
 };
 
 /** Returns true if this log count hits a mastery milestone (5, 15, 25, 35, …). */
@@ -122,8 +147,8 @@ export function maxStatForLevel(level: number): number {
 }
 
 /** Returns the stat cap for a given stat key at the character's current level. */
-export function statCap(stat: keyof import("@/types").Stats, level: number): number {
-  if (stat === "strength" || stat === "wisdom" || stat === "agility") return PRIMARY_STAT_CAP;
+export function statCap(stat: keyof import('@/types').Stats, level: number): number {
+  if (stat === 'strength' || stat === 'wisdom' || stat === 'agility') return PRIMARY_STAT_CAP;
   return maxStatForLevel(level);
 }
 

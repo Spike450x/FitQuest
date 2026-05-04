@@ -1,17 +1,17 @@
-import { COMBAT } from "./constants";
-import { getItemById } from "./items";
-import type { Character, EquippedGear, MonsterDef, Stats } from "@/types";
-import { getEscapeBonus, hasSureEscape } from "./passives";
+import { COMBAT } from './constants';
+import { getItemById } from './items';
+import type { Character, EquippedGear, MonsterDef, Stats } from '@/types';
+import { getEscapeBonus, hasSureEscape } from './passives';
 
 /**
  * Total magic pool available to the player.
  * Scales with wisdom stat; wizards receive an additional class bonus.
  */
-export function playerMaxMagic(character: Pick<Character, "stats" | "class">): number {
+export function playerMaxMagic(character: Pick<Character, 'stats' | 'class'>): number {
   return (
     COMBAT.BASE_MAGIC +
     character.stats.wisdom * COMBAT.MAGIC_PER_WISDOM +
-    (character.class === "wizard" ? COMBAT.WIZARD_MAGIC_BONUS : 0)
+    (character.class === 'wizard' ? COMBAT.WIZARD_MAGIC_BONUS : 0)
   );
 }
 
@@ -42,11 +42,9 @@ export function totalGearBonuses(equippedGear: EquippedGear | null | undefined):
  * Includes weapon AND accessories (e.g. Warrior's Pendant gives +3 STR).
  * attackMode "attack" = physical (uses STR gear), "magic" = magical (uses WIS gear).
  */
-export function gearAttackBonus(character: Character, attackMode: "attack" | "magic"): number {
+export function gearAttackBonus(character: Character, attackMode: 'attack' | 'magic'): number {
   const bonuses = totalGearBonuses(character.equippedGear);
-  return attackMode === "magic"
-    ? (bonuses.wisdom ?? 0)
-    : (bonuses.strength ?? 0);
+  return attackMode === 'magic' ? (bonuses.wisdom ?? 0) : (bonuses.strength ?? 0);
 }
 
 /**
@@ -69,12 +67,12 @@ export function rollD10(): number {
  * Total HP available to the player.
  * Includes health and stamina bonuses from all equipped gear.
  */
-export function playerMaxHp(character: Pick<Character, "stats" | "equippedGear">): number {
+export function playerMaxHp(character: Pick<Character, 'stats' | 'equippedGear'>): number {
   const gear = totalGearBonuses(character.equippedGear);
   return (
     COMBAT.BASE_HP +
     (character.stats.stamina + (gear.stamina ?? 0)) * COMBAT.HP_PER_STAMINA +
-    (character.stats.health  + (gear.health  ?? 0)) * COMBAT.HP_PER_HEALTH
+    (character.stats.health + (gear.health ?? 0)) * COMBAT.HP_PER_HEALTH
   );
 }
 
@@ -82,9 +80,11 @@ export function playerMaxHp(character: Pick<Character, "stats" | "equippedGear">
  * Stamina pool available at the start of a fight.
  * Includes stamina bonuses from all equipped gear.
  */
-export function playerMaxStamina(character: Pick<Character, "stats" | "equippedGear">): number {
+export function playerMaxStamina(character: Pick<Character, 'stats' | 'equippedGear'>): number {
   const gear = totalGearBonuses(character.equippedGear);
-  return COMBAT.BASE_STAMINA + (character.stats.stamina + (gear.stamina ?? 0)) * COMBAT.STAMINA_PER_STAT;
+  return (
+    COMBAT.BASE_STAMINA + (character.stats.stamina + (gear.stamina ?? 0)) * COMBAT.STAMINA_PER_STAT
+  );
 }
 
 /**
@@ -104,11 +104,11 @@ export function playerMaxStamina(character: Pick<Character, "stats" | "equippedG
 export function calculateRound(
   character: Character,
   monster: MonsterDef,
-  attackMode: "attack" | "magic"
+  attackMode: 'attack' | 'magic',
 ): {
   roll: number;
   attackBonus: number;
-  attackBonusLabel: "STR" | "WIS";
+  attackBonusLabel: 'STR' | 'WIS';
   playerDamage: number;
   monsterRoll: number;
   monsterDamage: number;
@@ -118,12 +118,12 @@ export function calculateRound(
   const roll = rollD10();
 
   const statBonus =
-    attackMode === "magic"
+    attackMode === 'magic'
       ? Math.floor(character.stats.wisdom * COMBAT.WISDOM_ATTACK_FACTOR)
       : Math.floor(character.stats.strength * COMBAT.STRENGTH_ATTACK_FACTOR);
   const weaponBonus = gearAttackBonus(character, attackMode);
   const attackBonus = statBonus + weaponBonus;
-  const attackBonusLabel = attackMode === "magic" ? "WIS" : "STR";
+  const attackBonusLabel = attackMode === 'magic' ? 'WIS' : 'STR';
 
   // Monster's defense might fail
   const monsterDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
@@ -163,16 +163,14 @@ export function calculateRound(
  */
 export function rollLoot(
   lootTable: Array<{ itemId: string; chance: number }>,
-  streakMultiplier = 1.0
+  streakMultiplier = 1.0,
 ): string[] {
-  const RARE_PLUS = new Set(["rare", "epic", "legendary"]);
+  const RARE_PLUS = new Set(['rare', 'epic', 'legendary']);
   return lootTable
     .filter(({ itemId, chance }) => {
       const item = getItemById(itemId);
       const isRarePlus = item ? RARE_PLUS.has(item.rarity) : false;
-      const effectiveChance = isRarePlus
-        ? Math.min(chance * streakMultiplier, 0.95)
-        : chance;
+      const effectiveChance = isRarePlus ? Math.min(chance * streakMultiplier, 0.95) : chance;
       return Math.random() < effectiveChance;
     })
     .map(({ itemId }) => itemId);
@@ -186,7 +184,7 @@ export function rollLoot(
  */
 export function rollRunAway(
   character: Character,
-  monster: MonsterDef
+  monster: MonsterDef,
 ): {
   playerRoll: number;
   agilityBonus: number;
@@ -203,7 +201,8 @@ export function rollRunAway(
   const ghostStepBonus = getEscapeBonus(character);
   const monsterRoll = rollD10();
   // Sure Escape (Ranger): always succeeds
-  const escaped = hasSureEscape(character) || playerRoll + agilityBonus + ghostStepBonus > monsterRoll;
+  const escaped =
+    hasSureEscape(character) || playerRoll + agilityBonus + ghostStepBonus > monsterRoll;
 
   let monsterDamage = 0;
   let playerDefFailed = false;

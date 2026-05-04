@@ -1,24 +1,24 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Navigate only after onAuthStateChanged has fired and set the cookie
   useEffect(() => {
     if (!authLoading && user) {
-      router.push("/dashboard");
+      router.push('/dashboard');
     }
   }, [user, authLoading, router]);
 
@@ -30,7 +30,7 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       // Navigation is handled by the useEffect above once auth state updates
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Login failed";
+      const msg = err instanceof Error ? err.message : 'Login failed';
       setError(friendlyAuthError(msg));
       setLoading(false);
     }
@@ -76,13 +76,16 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg transition-colors"
         >
-          {loading ? "Entering the realm..." : "Enter the Realm"}
+          {loading ? 'Entering the realm...' : 'Enter the Realm'}
         </button>
       </form>
 
       <p className="text-center text-gray-400 text-sm mt-6">
-        New adventurer?{" "}
-        <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors">
+        New adventurer?{' '}
+        <Link
+          href="/register"
+          className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+        >
           Create a character
         </Link>
       </p>
@@ -91,8 +94,12 @@ export default function LoginPage() {
 }
 
 function friendlyAuthError(msg: string): string {
-  if (msg.includes("user-not-found") || msg.includes("wrong-password") || msg.includes("invalid-credential"))
-    return "Invalid email or password.";
-  if (msg.includes("too-many-requests")) return "Too many attempts. Try again later.";
-  return "Something went wrong. Please try again.";
+  if (
+    msg.includes('user-not-found') ||
+    msg.includes('wrong-password') ||
+    msg.includes('invalid-credential')
+  )
+    return 'Invalid email or password.';
+  if (msg.includes('too-many-requests')) return 'Too many attempts. Try again later.';
+  return 'Something went wrong. Please try again.';
 }
