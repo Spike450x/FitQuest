@@ -1,0 +1,8 @@
+# Commits listed here are skipped by `git blame` when this file is
+# configured: `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+# GitHub's web blame view honors it automatically.
+#
+# Add format-only / mass-mechanical commits here so they don't pollute blame.
+
+# Prettier baseline format pass (PR #11 — "Add Prettier, CI build step, repo polish")
+1a988191ce953b3ba9d31153f675b8ce70e75c34
