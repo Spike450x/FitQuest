@@ -584,6 +584,13 @@ src/
    npm install
    ```
 
+   This also activates **git hooks** via `husky` (runs automatically through the `prepare` script):
+
+   - **pre-commit** — runs `lint-staged` (ESLint on staged `.ts`/`.tsx`) + `npm run typecheck` (project-wide `tsc --noEmit`) + `npm test` (vitest unit tests). Blocks commits with type, lint, or test failures.
+   - **pre-push** — blocks direct pushes to `master`. Use a feature branch + PR. Bypass in a true emergency with `HUSKY=0 git push ...`.
+
+   If you ever clone the repo and the hooks aren't firing, run `npm install` again — `prepare` is what wires them up.
+
 3. **Configure Firebase**
 
    Copy `.env.local.example` to `.env.local` and fill in your Firebase project credentials:

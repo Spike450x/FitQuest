@@ -1,0 +1,15 @@
+protected='refs/heads/master'
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "$protected" ]; then
+    echo ""
+    echo "  Direct push to master is blocked."
+    echo "  Open a PR from your branch and squash-merge through GitHub."
+    echo ""
+    echo "  To bypass in a true emergency: HUSKY=0 git push ..."
+    echo ""
+    exit 1
+  fi
+done
+
+exit 0

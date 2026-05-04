@@ -26,6 +26,11 @@ yarn-error.log*
 # local env files — never commit these
 .env*.local
 
+# Firebase admin / service-account credentials — never commit these
+serviceAccount*.json
+*-firebase-adminsdk-*.json
+*-service-account-*.json
+
 # Claude Code — machine-specific settings (permissions, hooks, hardcoded paths)
 .claude/settings.local.json
 

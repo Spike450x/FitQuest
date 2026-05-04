@@ -30,7 +30,7 @@ export default function InventoryPage() {
   const {
     items, loading, fetchInventory,
     equipItem, unequipItem,
-    useConsumable, equipConsumable, unequipConsumable,
+    useConsumable: consumeItem, equipConsumable, unequipConsumable,
     equipSpell, unequipSpell,
   } = useInventoryStore();
   const [activeTab, setActiveTab] = useState<ItemType | "all">("all");
@@ -72,7 +72,7 @@ export default function InventoryPage() {
     const maxHp = playerMaxHp(character);
     const maxStamina = playerMaxStamina(character);
     const maxMagic = playerMaxMagic(character);
-    await useConsumable(
+    await consumeItem(
       inventoryItemId,
       character.currentHp ?? maxHp,
       maxHp,
