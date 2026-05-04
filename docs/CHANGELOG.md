@@ -16,7 +16,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 ## 2026-05-03 — Workflow & instructions hardening
 - Added `Current Status`, `How to Work`, `Git Workflow` sections to CLAUDE.md
 - Created `.github/pull_request_template.md` with verification checklist + Next-Level / Risks sections
-- Added `npm run typecheck` script and `husky` + `lint-staged` pre-commit (lint staged files + project-wide typecheck) and pre-push (block direct push to master)
+- Added `npm run typecheck` script and `husky` + `lint-staged` pre-commit (lint staged files + project-wide typecheck + `vitest run`) and pre-push (block direct push to master)
+- Wired the existing vitest suite (3 files, 72 tests) into the local pre-commit gate so broken game logic can't be committed
+- Fallout fixes surfaced by the new gate (master had silently broken state):
+  - Added missing `.eslintrc.json` (`{ extends: "next/core-web-vitals" }`) — `npm run lint` was prompting interactively without one, which CI's lint step would have failed on too
+  - Fixed pre-existing TS error in `combat.test.ts` (test passed `null` for non-nullable `EquippedGear` field — added explicit cast since the function handles null at runtime)
+  - Renamed `useConsumable` → `consumeItem` at the inventory page call site to satisfy `react-hooks/rules-of-hooks` (Zustand action whose name collided with the hook-naming rule)
 - Added Firebase admin/service-account file patterns to `.gitignore`
 - Cleaned up 4 stale merged local branches and pruned remote refs
 - Why: established sustainable git/PR conventions and made CLAUDE.md a complete onboarding doc for future Claude sessions

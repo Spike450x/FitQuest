@@ -44,12 +44,17 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 - `npm run dev` — start dev server on `http://localhost:3000`
 - `npm run typecheck` — `tsc --noEmit`. Fast TS-only check
 - `npm run lint` — ESLint check
-- `npm run build` — production build. Catches everything `typecheck` + `lint` catch, plus build-time issues
+- `npm test` — `vitest run` (pure game-logic unit tests in `src/lib/gameLogic/__tests__/`)
+- `npm run test:watch` — vitest in watch mode while developing
+- `npm run test:coverage` — coverage report via `@vitest/coverage-v8`
+- `npm run build` — production build. Catches everything above + build-time issues
 - `npm run start` — serve the built output
 
 **Verification:**
-- No automated test suite. UI / behavior changes must be verified manually in the browser before claiming done — golden path *and* edge cases for the touched feature, plus a quick check that adjacent features didn't regress
-- Before opening a PR: `npm run typecheck` + `npm run lint` pass + manual browser verification (the pre-commit hook runs both for you)
+- Unit tests cover pure game logic (combat, spells, xp). UI / behavior changes still must be verified manually in the browser — golden path *and* edge cases — since there's no E2E layer
+- New game-logic functions in `src/lib/gameLogic/` should ship with vitest tests when feasible
+- Before opening a PR: hooks (`typecheck` + `lint` + `vitest run`) pass + manual browser verification of any UI/UX change
+- CI runs the same checks via `.github/workflows/` on every push
 
 **Firebase:** live project `fitness-rpg-claude`. No emulator setup; dev hits live Firestore. Be intentional about test data — it's real.
 
@@ -159,7 +164,7 @@ Core game systems to keep internally consistent:
 - After a PR merges: delete the local branch and remove the worktree (`git worktree remove <path>`). Don't let merged branches accumulate
 
 ### Git hooks (husky + lint-staged)
-- **pre-commit:** runs `lint-staged` (ESLint on staged `.ts`/`.tsx`) + `npm run typecheck` (project-wide). Blocks commits that fail type or lint
+- **pre-commit:** runs `lint-staged` (ESLint on staged `.ts`/`.tsx`) + `npm run typecheck` (project-wide) + `npm test` (vitest unit tests). Blocks commits that fail type, lint, or tests
 - **pre-push:** blocks direct pushes to `master` (use PRs). Bypass in a true emergency only: `HUSKY=0 git push ...`
 - Hooks activate via the `prepare` script — they install on every `npm install`. If a fresh clone's hooks aren't firing, re-run `npm install`
 

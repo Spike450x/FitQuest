@@ -11,7 +11,7 @@ import {
   rollRunAway,
 } from "../combat";
 import { COMBAT } from "../constants";
-import type { Character, MonsterDef } from "@/types";
+import type { Character, EquippedGear, MonsterDef } from "@/types";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -72,7 +72,7 @@ describe("playerMaxHp", () => {
   });
 
   it("returns same result for null and empty gear", () => {
-    const withNull  = playerMaxHp({ stats: BASE_STATS, equippedGear: null });
+    const withNull  = playerMaxHp({ stats: BASE_STATS, equippedGear: null as unknown as EquippedGear });
     const withEmpty = playerMaxHp({ stats: BASE_STATS, equippedGear: { weapon: null, armor: null, accessory: null } });
     expect(withNull).toBe(withEmpty);
   });
