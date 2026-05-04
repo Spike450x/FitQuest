@@ -26,6 +26,9 @@ yarn-error.log*
 # local env files — never commit these
 .env*.local
 
+# Claude Code — machine-specific settings (permissions, hooks, hardcoded paths)
+.claude/settings.local.json
+
 # vercel
 .vercel
 
