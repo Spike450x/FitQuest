@@ -1,0 +1,15 @@
+# Default owner for everything in this repo.
+# CODEOWNERS auto-requests review on pull requests touching matched paths.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @Spike450x
+
+# Security-critical surfaces — explicit ownership ensures these are never
+# merged without a deliberate review, even on otherwise sweeping PRs.
+/firestore.rules        @Spike450x
+/.github/workflows/     @Spike450x
+/.github/CODEOWNERS     @Spike450x
+/.github/dependabot.yml @Spike450x
+/SECURITY.md            @Spike450x
+/next.config.*          @Spike450x
+/src/middleware.ts      @Spike450x

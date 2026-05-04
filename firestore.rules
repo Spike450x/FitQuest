@@ -66,6 +66,18 @@ service cloud.firestore {
           && isValidEquippedGear(data.equippedGear);
     }
 
+    // Per-write delta caps — the rules can't prove a reward was earned, but they
+    // can stop a single forged write from instantly maxing the account. Numbers
+    // chosen with ~5–10× headroom over the highest legitimate single-write gain
+    // observed in the current game (boss xp ~320, top quest xp 250, multipliers
+    // up to 1.5×). Decreases are always allowed (level-up rollover, gold spend,
+    // resetCharacter, future prestige).
+    function isValidCharacterDelta(newData, oldData) {
+      return (newData.xp    - oldData.xp)    <= 5000
+          && (newData.gold  - oldData.gold)  <= 2000
+          && (newData.level - oldData.level) <= 5;
+    }
+
     function isValidCharacterOptionals(data) {
       // Optional resource pools — each must be non-negative and within game-physics ceiling.
       // HP max: BASE_HP(50) + stamina(50)*2 + health(600)*1 + gear ≈ 800; 2000 is generous.
@@ -111,7 +123,9 @@ service cloud.firestore {
           && request.resource.data.class     == resource.data.class
           && request.resource.data.createdAt == resource.data.createdAt
           // Subclass: one-way lock, cannot be unset or swapped
-          && subclassIsValid(request.resource.data);
+          && subclassIsValid(request.resource.data)
+          // Per-write delta cap on progression fields
+          && isValidCharacterDelta(request.resource.data, resource.data);
     }
 
 
@@ -122,8 +136,12 @@ service cloud.firestore {
     // Immutable once written — updates are always denied.
     //
     // loggedAt is validated against server time to block streak gaming via
-    // backdated timestamps. The 10-minute window handles network lag, app
-    // resuming from background, and slow connections.
+    // backdated timestamps. The ±2-minute window handles network lag and
+    // brief background-resume jitter; tighter than this risks false denials
+    // on slow mobile connections.
+    //
+    // xpGained is upper-bounded at 500 — generous headroom for any future
+    // activity-XP wiring (current legit max ≈ ~200 for a long workout).
     // ══════════════════════════════════════════════════════════════════════════
 
     function isValidActivityType(t) {
@@ -131,15 +149,15 @@ service cloud.firestore {
     }
 
     function isRecentTimestamp(ts) {
-      return ts > (request.time - duration.value(10, 'm')).toMillis()
-          && ts < (request.time + duration.value(2,  'm')).toMillis();
+      return ts > (request.time - duration.value(2, 'm')).toMillis()
+          && ts < (request.time + duration.value(2, 'm')).toMillis();
     }
 
     function isValidActivityLog(data) {
       return data.uid      is string
           && data.id       is string
           && isValidActivityType(data.type)
-          && data.xpGained is int && data.xpGained >= 0
+          && data.xpGained is int && data.xpGained >= 0 && data.xpGained <= 500
           && data.loggedAt is int && isRecentTimestamp(data.loggedAt)
           && data.data      is map
           && data.statGains is map;
@@ -214,6 +232,10 @@ service cloud.firestore {
           && data.expiresAt  == resource.data.expiresAt  // immutable
           && data.rewards    == resource.data.rewards     // immutable
           && data.progress   is number && data.progress >= 0
+          // Per-write delta cap: the largest quest target today is 50,000 steps
+          // (a single legit activity log can move progress by that much). 100,000
+          // gives ~2× headroom for future quests while blocking "set progress to MAX_INT".
+          && (data.progress - resource.data.progress) <= 100000
           // completedAt: null → int only; can never go backwards or be changed once set
           && (data.completedAt == null
               || (resource.data.completedAt == null
