@@ -1,0 +1,13 @@
+# Normalize all text files to LF in the repository.
+# Working-tree line endings are still up to each contributor's git config
+# (core.autocrlf), but what's stored in the repo is always LF.
+* text=auto eol=lf
+
+# Binary assets — never normalize.
+*.docx binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
