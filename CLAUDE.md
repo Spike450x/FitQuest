@@ -212,6 +212,22 @@ Things that might break, scale poorly, or reduce player engagement.
 | `ui-critic`         | Visual consistency, game feel, UX patterns               |
 | `code-reviewer`     | Pattern consistency, anti-patterns, refactor suggestions |
 
+## MCP / Tool Usage
+
+Pick the right tool the first time — don't fall back to general-purpose tools when a connector is wired.
+
+| Task                                                | Use this                                | Don't use                                 |
+| --------------------------------------------------- | --------------------------------------- | ----------------------------------------- |
+| Library docs (Next.js, Firebase, Zustand, Recharts) | `context7` plugin (`query-docs`)        | WebFetch, training-data recall            |
+| Querying live Firestore data / Auth users           | Firebase MCP                            | `firebase` CLI shell-out                  |
+| Reading deployed Firestore security rules           | Firebase MCP                            | `firebase firestore:rules:get`            |
+| Ad-hoc UI verification after a code change          | `Claude Preview` (`preview_*`)          | asking user to "test it in the browser"   |
+| Authoring E2E / regression tests in `tests/e2e/`    | `playwright` plugin (`browser_*`)       | Claude Preview                            |
+| GitHub PR / issue / CI ops                          | `github` plugin / `gh` CLI              | manual git commands for PR work           |
+| Searching past Claude sessions for context          | `ccd_session_mgmt__search_session_transcripts` | rereading old chats by hand        |
+
+**Firestore safety:** Firebase MCP can hit the live `fitness-rpg-claude` project. Default to read-only queries. Confirm before any write/delete against production data — CLAUDE.md's "be intentional about test data" rule applies double here.
+
 ## Available Slash Commands
 
 | Command          | Purpose                                  |
