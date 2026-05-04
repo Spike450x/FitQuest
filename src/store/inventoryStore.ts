@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 import {
   collection,
   query,
@@ -8,13 +8,13 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-} from "firebase/firestore";
-import { useCharacterStore } from "./characterStore";
-import { db } from "@/lib/firebase";
-import { getItemById } from "@/lib/gameLogic/items";
-import { playerMaxHp, playerMaxStamina, playerMaxMagic } from "@/lib/gameLogic/combat";
-import { COMBAT } from "@/lib/gameLogic/constants";
-import type { EquippedGear, InventoryItem } from "@/types";
+} from 'firebase/firestore';
+import { useCharacterStore } from './characterStore';
+import { db } from '@/lib/firebase';
+import { getItemById } from '@/lib/gameLogic/items';
+import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
+import { COMBAT } from '@/lib/gameLogic/constants';
+import type { EquippedGear, InventoryItem } from '@/types';
 
 interface InventoryStore {
   items: InventoryItem[];
@@ -79,9 +79,9 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   fetchInventory: async (uid) => {
     set({ loading: true, error: null });
     try {
-      const q = query(collection(db, "inventory"), where("uid", "==", uid));
+      const q = query(collection(db, 'inventory'), where('uid', '==', uid));
       const snap = await getDocs(q);
-      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() } as InventoryItem));
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as InventoryItem);
       set({ items, loading: false });
     } catch (e) {
       set({ error: (e as Error).message, loading: false });
@@ -90,14 +90,14 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
 
   buyItem: async (uid, itemDefId) => {
     try {
-      const newItem: Omit<InventoryItem, "id"> & { uid: string } = {
+      const newItem: Omit<InventoryItem, 'id'> & { uid: string } = {
         uid,
         itemDefId,
         quantity: 1,
         equipped: false,
         acquiredAt: Date.now(),
       };
-      const docRef = await addDoc(collection(db, "inventory"), newItem);
+      const docRef = await addDoc(collection(db, 'inventory'), newItem);
       const item: InventoryItem = { id: docRef.id, ...newItem };
       set((state) => ({ items: [...state.items, item] }));
       return true;
@@ -118,40 +118,38 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       // that we need to find when stacking the same consumable dropped twice.
       const currentItems = get().items;
 
-      if (def.type === "consumable") {
+      if (def.type === 'consumable') {
         // Stack with an existing consumable doc for this item, or create new
         const existing = currentItems.find((i) => i.itemDefId === itemDefId);
         if (existing) {
           const newQty = existing.quantity + 1;
-          await updateDoc(doc(db, "inventory", existing.id), { quantity: newQty });
+          await updateDoc(doc(db, 'inventory', existing.id), { quantity: newQty });
           set((state) => ({
-            items: state.items.map((i) =>
-              i.id === existing.id ? { ...i, quantity: newQty } : i
-            ),
+            items: state.items.map((i) => (i.id === existing.id ? { ...i, quantity: newQty } : i)),
           }));
         } else {
-          const newItem: Omit<InventoryItem, "id"> & { uid: string } = {
+          const newItem: Omit<InventoryItem, 'id'> & { uid: string } = {
             uid,
             itemDefId,
             quantity: 1,
             equipped: false,
             acquiredAt: Date.now(),
           };
-          const docRef = await addDoc(collection(db, "inventory"), newItem);
+          const docRef = await addDoc(collection(db, 'inventory'), newItem);
           set((state) => ({ items: [...state.items, { id: docRef.id, ...newItem }] }));
         }
       } else {
         // Equipment: skip if already owned
         const alreadyOwned = currentItems.some((i) => i.itemDefId === itemDefId);
         if (alreadyOwned) continue;
-        const newItem: Omit<InventoryItem, "id"> & { uid: string } = {
+        const newItem: Omit<InventoryItem, 'id'> & { uid: string } = {
           uid,
           itemDefId,
           quantity: 1,
           equipped: false,
           acquiredAt: Date.now(),
         };
-        const docRef = await addDoc(collection(db, "inventory"), newItem);
+        const docRef = await addDoc(collection(db, 'inventory'), newItem);
         set((state) => ({ items: [...state.items, { id: docRef.id, ...newItem }] }));
       }
     }
@@ -164,9 +162,9 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
 
     const itemDef = getItemById(target.itemDefId);
     // Spells and consumables use their own equip flows (equipSpell / equipConsumable).
-    if (!itemDef || itemDef.type === "consumable" || itemDef.type === "spell") return;
+    if (!itemDef || itemDef.type === 'consumable' || itemDef.type === 'spell') return;
 
-    const slot = itemDef.type as "weapon" | "armor" | "accessory";
+    const slot = itemDef.type as 'weapon' | 'armor' | 'accessory';
 
     const currentlyEquipped = items.find((i) => {
       if (!i.equipped) return false;
@@ -178,12 +176,16 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     const newEquippedGear: EquippedGear = character
       ? { ...character.equippedGear, [slot]: target.itemDefId }
       : { weapon: null, armor: null, accessory: null, [slot]: target.itemDefId };
-    const oldMaxHp       = character ? playerMaxHp(character) : 0;
-    const oldMaxStamina  = character ? playerMaxStamina(character) : 0;
-    const newMaxHp       = character ? playerMaxHp({ stats: character.stats, equippedGear: newEquippedGear }) : 0;
-    const newMaxStamina  = character ? playerMaxStamina({ stats: character.stats, equippedGear: newEquippedGear }) : 0;
-    const hpDelta        = newMaxHp - oldMaxHp;
-    const staminaDelta   = newMaxStamina - oldMaxStamina;
+    const oldMaxHp = character ? playerMaxHp(character) : 0;
+    const oldMaxStamina = character ? playerMaxStamina(character) : 0;
+    const newMaxHp = character
+      ? playerMaxHp({ stats: character.stats, equippedGear: newEquippedGear })
+      : 0;
+    const newMaxStamina = character
+      ? playerMaxStamina({ stats: character.stats, equippedGear: newEquippedGear })
+      : 0;
+    const hpDelta = newMaxHp - oldMaxHp;
+    const staminaDelta = newMaxStamina - oldMaxStamina;
 
     // Build a single character update (equippedGear + optional HP/stamina)
     const charUpdate: Record<string, unknown> = { [`equippedGear.${slot}`]: target.itemDefId };
@@ -194,31 +196,36 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       charUpdate.currentHp = newCurrentHp;
     }
     if (character && staminaDelta !== 0) {
-      newCurrentStamina = Math.max(0, Math.min((character.currentStamina ?? oldMaxStamina) + staminaDelta, newMaxStamina));
+      newCurrentStamina = Math.max(
+        0,
+        Math.min((character.currentStamina ?? oldMaxStamina) + staminaDelta, newMaxStamina),
+      );
       charUpdate.currentStamina = newCurrentStamina;
     }
 
     await Promise.all([
       currentlyEquipped
-        ? updateDoc(doc(db, "inventory", currentlyEquipped.id), { equipped: false })
+        ? updateDoc(doc(db, 'inventory', currentlyEquipped.id), { equipped: false })
         : Promise.resolve(),
-      updateDoc(doc(db, "inventory", inventoryItemId), { equipped: true }),
-      updateDoc(doc(db, "characters", uid), charUpdate),
+      updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: true }),
+      updateDoc(doc(db, 'characters', uid), charUpdate),
     ]);
 
     useCharacterStore.setState((state) => ({
-      character: state.character ? {
-        ...state.character,
-        equippedGear: { ...state.character.equippedGear, [slot]: target.itemDefId },
-        ...(newCurrentHp      !== undefined && { currentHp: newCurrentHp }),
-        ...(newCurrentStamina !== undefined && { currentStamina: newCurrentStamina }),
-      } : null,
+      character: state.character
+        ? {
+            ...state.character,
+            equippedGear: { ...state.character.equippedGear, [slot]: target.itemDefId },
+            ...(newCurrentHp !== undefined && { currentHp: newCurrentHp }),
+            ...(newCurrentStamina !== undefined && { currentStamina: newCurrentStamina }),
+          }
+        : null,
     }));
 
     set((state) => ({
       items: state.items.map((i) => {
         if (i.id === currentlyEquipped?.id) return { ...i, equipped: false };
-        if (i.id === inventoryItemId)       return { ...i, equipped: true };
+        if (i.id === inventoryItemId) return { ...i, equipped: true };
         return i;
       }),
     }));
@@ -230,20 +237,24 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     if (!target) return;
 
     const itemDef = getItemById(target.itemDefId);
-    if (!itemDef || itemDef.type === "consumable" || itemDef.type === "spell") return;
-    const slot = itemDef.type as "weapon" | "armor" | "accessory";
+    if (!itemDef || itemDef.type === 'consumable' || itemDef.type === 'spell') return;
+    const slot = itemDef.type as 'weapon' | 'armor' | 'accessory';
 
     // Compute HP/stamina delta (will be ≤ 0 when removing a bonus item)
     const character = useCharacterStore.getState().character;
     const newEquippedGear: EquippedGear = character
       ? { ...character.equippedGear, [slot]: null }
       : { weapon: null, armor: null, accessory: null };
-    const oldMaxHp       = character ? playerMaxHp(character) : 0;
-    const oldMaxStamina  = character ? playerMaxStamina(character) : 0;
-    const newMaxHp       = character ? playerMaxHp({ stats: character.stats, equippedGear: newEquippedGear }) : 0;
-    const newMaxStamina  = character ? playerMaxStamina({ stats: character.stats, equippedGear: newEquippedGear }) : 0;
-    const hpDelta        = newMaxHp - oldMaxHp;
-    const staminaDelta   = newMaxStamina - oldMaxStamina;
+    const oldMaxHp = character ? playerMaxHp(character) : 0;
+    const oldMaxStamina = character ? playerMaxStamina(character) : 0;
+    const newMaxHp = character
+      ? playerMaxHp({ stats: character.stats, equippedGear: newEquippedGear })
+      : 0;
+    const newMaxStamina = character
+      ? playerMaxStamina({ stats: character.stats, equippedGear: newEquippedGear })
+      : 0;
+    const hpDelta = newMaxHp - oldMaxHp;
+    const staminaDelta = newMaxStamina - oldMaxStamina;
 
     const charUpdate: Record<string, unknown> = { [`equippedGear.${slot}`]: null };
     let newCurrentHp: number | undefined;
@@ -258,48 +269,58 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     }
 
     await Promise.all([
-      updateDoc(doc(db, "inventory", inventoryItemId), { equipped: false }),
-      updateDoc(doc(db, "characters", uid), charUpdate),
+      updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: false }),
+      updateDoc(doc(db, 'characters', uid), charUpdate),
     ]);
 
     useCharacterStore.setState((state) => ({
-      character: state.character ? {
-        ...state.character,
-        equippedGear: { ...state.character.equippedGear, [slot]: null },
-        ...(newCurrentHp      !== undefined && { currentHp: newCurrentHp }),
-        ...(newCurrentStamina !== undefined && { currentStamina: newCurrentStamina }),
-      } : null,
+      character: state.character
+        ? {
+            ...state.character,
+            equippedGear: { ...state.character.equippedGear, [slot]: null },
+            ...(newCurrentHp !== undefined && { currentHp: newCurrentHp }),
+            ...(newCurrentStamina !== undefined && { currentStamina: newCurrentStamina }),
+          }
+        : null,
     }));
 
     set((state) => ({
-      items: state.items.map((i) =>
-        i.id === inventoryItemId ? { ...i, equipped: false } : i
-      ),
+      items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, equipped: false } : i)),
     }));
   },
 
-  useConsumable: async (inventoryItemId, currentHp, maxHp, currentStamina, maxStamina, currentMagic, maxMagic) => {
+  useConsumable: async (
+    inventoryItemId,
+    currentHp,
+    maxHp,
+    currentStamina,
+    maxStamina,
+    currentMagic,
+    maxMagic,
+  ) => {
     const { items } = get();
     const invItem = items.find((i) => i.id === inventoryItemId);
     if (!invItem) return { hpGained: 0, staminaGained: 0, magicGained: 0 };
 
     const def = getItemById(invItem.itemDefId);
-    if (!def || def.type !== "consumable" || !def.effect) return { hpGained: 0, staminaGained: 0, magicGained: 0 };
+    if (!def || def.type !== 'consumable' || !def.effect)
+      return { hpGained: 0, staminaGained: 0, magicGained: 0 };
 
     let hpGained = 0;
     let staminaGained = 0;
     let magicGained = 0;
-    const { updateCurrentHp, updateCurrentStamina, updateCurrentMagic } = useCharacterStore.getState();
+    const { updateCurrentHp, updateCurrentStamina, updateCurrentMagic } =
+      useCharacterStore.getState();
 
-    if (def.effect.type === "restore_hp") {
+    if (def.effect.type === 'restore_hp') {
       const newHp = Math.min(currentHp + def.effect.amount, maxHp);
       hpGained = newHp - currentHp;
       if (hpGained > 0) await updateCurrentHp(newHp);
-    } else if (def.effect.type === "restore_stamina") {
+    } else if (def.effect.type === 'restore_stamina') {
       const newStamina = Math.min(currentStamina + def.effect.amount, maxStamina);
       staminaGained = newStamina - currentStamina;
       if (staminaGained > 0) await updateCurrentStamina(newStamina);
-    } else if (def.effect.type === "restore_magic") {
+    } else if (def.effect.type === 'restore_magic') {
       const character = useCharacterStore.getState().character;
       const resolvedMax = maxMagic ?? (character ? playerMaxMagic(character) : 20);
       const resolvedCurrent = currentMagic ?? 0;
@@ -311,14 +332,12 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     // Consume one from the stack; delete the doc only when quantity reaches 0
     if (invItem.quantity > 1) {
       const newQty = invItem.quantity - 1;
-      await updateDoc(doc(db, "inventory", inventoryItemId), { quantity: newQty });
+      await updateDoc(doc(db, 'inventory', inventoryItemId), { quantity: newQty });
       set((state) => ({
-        items: state.items.map((i) =>
-          i.id === inventoryItemId ? { ...i, quantity: newQty } : i
-        ),
+        items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, quantity: newQty } : i)),
       }));
     } else {
-      await deleteDoc(doc(db, "inventory", inventoryItemId));
+      await deleteDoc(doc(db, 'inventory', inventoryItemId));
       set((state) => ({ items: state.items.filter((i) => i.id !== inventoryItemId) }));
     }
 
@@ -328,24 +347,27 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   equipSpell: async (inventoryItemId) => {
     const { items } = get();
     const target = items.find((i) => i.id === inventoryItemId);
-    if (!target) return { ok: false, reason: "Item not found." };
+    if (!target) return { ok: false, reason: 'Item not found.' };
 
     const itemDef = getItemById(target.itemDefId);
-    if (!itemDef || itemDef.type !== "spell") return { ok: false, reason: "Not a spell." };
+    if (!itemDef || itemDef.type !== 'spell') return { ok: false, reason: 'Not a spell.' };
     if (target.equipped) return { ok: true }; // already equipped, no-op
 
     const equippedSpellCount = items.filter((i) => {
       const d = getItemById(i.itemDefId);
-      return i.equipped && d?.type === "spell";
+      return i.equipped && d?.type === 'spell';
     }).length;
 
     if (equippedSpellCount >= COMBAT.MAX_EQUIPPED_SPELLS) {
-      return { ok: false, reason: `Spell loadout is full (${COMBAT.MAX_EQUIPPED_SPELLS} max). Unequip a spell first.` };
+      return {
+        ok: false,
+        reason: `Spell loadout is full (${COMBAT.MAX_EQUIPPED_SPELLS} max). Unequip a spell first.`,
+      };
     }
 
-    await updateDoc(doc(db, "inventory", inventoryItemId), { equipped: true });
+    await updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: true });
     set((state) => ({
-      items: state.items.map((i) => i.id === inventoryItemId ? { ...i, equipped: true } : i),
+      items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, equipped: true } : i)),
     }));
     return { ok: true };
   },
@@ -355,33 +377,37 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     const target = items.find((i) => i.id === inventoryItemId);
     if (!target || !target.equipped) return;
 
-    await updateDoc(doc(db, "inventory", inventoryItemId), { equipped: false });
+    await updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: false });
     set((state) => ({
-      items: state.items.map((i) => i.id === inventoryItemId ? { ...i, equipped: false } : i),
+      items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, equipped: false } : i)),
     }));
   },
 
   equipConsumable: async (inventoryItemId) => {
     const { items } = get();
     const target = items.find((i) => i.id === inventoryItemId);
-    if (!target) return { ok: false, reason: "Item not found." };
+    if (!target) return { ok: false, reason: 'Item not found.' };
 
     const itemDef = getItemById(target.itemDefId);
-    if (!itemDef || itemDef.type !== "consumable") return { ok: false, reason: "Not a consumable." };
+    if (!itemDef || itemDef.type !== 'consumable')
+      return { ok: false, reason: 'Not a consumable.' };
     if (target.equipped) return { ok: true }; // already packed, no-op
 
     const packedCount = items.filter((i) => {
       const d = getItemById(i.itemDefId);
-      return i.equipped && d?.type === "consumable";
+      return i.equipped && d?.type === 'consumable';
     }).length;
 
     if (packedCount >= COMBAT.MAX_EQUIPPED_CONSUMABLES) {
-      return { ok: false, reason: `Combat pack is full (${COMBAT.MAX_EQUIPPED_CONSUMABLES} max). Remove one first.` };
+      return {
+        ok: false,
+        reason: `Combat pack is full (${COMBAT.MAX_EQUIPPED_CONSUMABLES} max). Remove one first.`,
+      };
     }
 
-    await updateDoc(doc(db, "inventory", inventoryItemId), { equipped: true });
+    await updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: true });
     set((state) => ({
-      items: state.items.map((i) => i.id === inventoryItemId ? { ...i, equipped: true } : i),
+      items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, equipped: true } : i)),
     }));
     return { ok: true };
   },
@@ -391,9 +417,9 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     const target = items.find((i) => i.id === inventoryItemId);
     if (!target || !target.equipped) return;
 
-    await updateDoc(doc(db, "inventory", inventoryItemId), { equipped: false });
+    await updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: false });
     set((state) => ({
-      items: state.items.map((i) => i.id === inventoryItemId ? { ...i, equipped: false } : i),
+      items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, equipped: false } : i)),
     }));
   },
 

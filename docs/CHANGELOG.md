@@ -3,6 +3,7 @@
 Append a new entry whenever a feature ships or a meaningful change lands on `master`. Newest first.
 
 **Format:**
+
 ```
 ## YYYY-MM-DD — <short title>
 - What changed (1–3 bullets)
@@ -13,7 +14,19 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-03 — Prettier, CI build, repo polish
+
+- Added Prettier (`.prettierrc.json`, `.prettierignore`) and wired `eslint-config-prettier` into `.eslintrc.json` so ESLint/Prettier rules don't conflict
+- New `npm run format` / `format:check` scripts; `lint-staged` now runs `prettier --write` on TS/JS/JSON/MD/CSS/YAML before commit
+- Baseline `prettier --write .` pass across the repo (formatting-only, no logic changes)
+- CI: added `Format check` step (`npm run format:check`) and `Build` step (`npm run build:ci`) — the build catches Next.js issues that typecheck misses
+- New `.env.ci` (committed, dummy Firebase values) + `dotenv-cli` + `npm run build:ci` — reusable build env for CI and offline smoke tests; replaces inline env vars in `ci.yml`
+- README: added CI status badge
+- GitHub-side (no code changes): repo flipped to public, renamed `fitness-rpg-2.0` → `FitQuest`, master branch protection enabled requiring the `Typecheck, Lint, Test` check, repo description set, stale `claude/dreamy-clarke-9297ff` branch deleted
+- Why: enforce consistent formatting automatically, surface build-time regressions in CI, and align repo identity with the project name
+
 ## 2026-05-03 — Workflow & instructions hardening
+
 - Added `Current Status`, `How to Work`, `Git Workflow` sections to CLAUDE.md
 - Created `.github/pull_request_template.md` with verification checklist + Next-Level / Risks sections
 - Added `npm run typecheck` script and `husky` + `lint-staged` pre-commit (lint staged files + project-wide typecheck + `vitest run`) and pre-push (block direct push to master)
@@ -27,17 +40,20 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 - Why: established sustainable git/PR conventions and made CLAUDE.md a complete onboarding doc for future Claude sessions
 
 ## 2026-05-03 — Type renames + correctness fixes + Firestore rules hardening
+
 - Renamed types: `ItemEffect`→`ConsumableEffect`, `SpellMechanics`→`SpellConfig`, `SpellCombatEffect`→`SpellEffect`, `ABILITIES`→`CLASS_ABILITY_CATALOG`, `WEEKLY_QUESTS`→`WEEKLY_QUEST_POOL`, `attackType`→`attackMode`, `StreakTier.multiplier`→`StreakTier.lootDropMultiplier`
 - `resetCharacter` now uses `playerMaxHp()` instead of a hardcoded HP formula
 - `awardMastery` now clamps stat gains via `statCap()` to enforce the stat ceiling
 - Firestore rules: field-level validation, level 1–100 cap, immutable `uid`/`class`/`createdAt`/`itemDefId`/`acquiredAt`, 10-minute server-time window on `activityLogs` (blocks backdated streak gaming), write-once `completedAt`/`claimedAt` on quests
 
 ## 2026-04-17 — Streaks, PRs, Subclasses
+
 - Streak ("Blessing") system: 5 tiers (Focused → Blessed), multiplier on rare+ loot drops only
 - Personal Records: per-activity-type all-time bests, 1.5× XP for breaking a PR
 - Subclass system: 6 subclasses (2 per class), chosen at level 10, permanent passives wired into combat/spells/escape
 
 ## 2026-04-14 — Spells, abilities, MVP completion
+
 - 21-spell catalog with dice-resolution mechanics (sum_gte, exact_value, pair, three_of_a_kind, straight) and effects (damage, heal, restoreStamina, stun, defenseBoost, bypassMonsterDef, lifestealPct)
 - 6-dice class ability system (15 abilities across warrior/wizard/rogue)
 - Magic resource (`currentMagic`) with persistence and level-up restore

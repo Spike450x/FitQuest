@@ -1,13 +1,13 @@
-import { xpToNextLevel } from "./constants";
-import type { Character } from "@/types";
+import { xpToNextLevel } from './constants';
+import type { Character } from '@/types';
 
 /**
  * Given a character and XP to award, returns the updated level, xp,
  * and xpToNextLevel — handling multi-level gains in one call.
  */
 export function applyXp(
-  character: Pick<Character, "level" | "xp" | "xpToNextLevel">,
-  xpGained: number
+  character: Pick<Character, 'level' | 'xp' | 'xpToNextLevel'>,
+  xpGained: number,
 ): { level: number; xp: number; xpToNextLevel: number; levelsGained: number } {
   let { level, xp } = character;
   let levelsGained = 0;

@@ -1,18 +1,15 @@
-import { create } from "zustand";
+import { create } from 'zustand';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { DAILY_QUEST_POOL, WEEKLY_QUEST_POOL, getQuestDef } from '@/lib/gameLogic/quests';
 import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  updateDoc,
-  doc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { DAILY_QUEST_POOL, WEEKLY_QUEST_POOL, getQuestDef } from "@/lib/gameLogic/quests";
-import { getDailyPick, getWeeklyPick, dailyExpiresAt, weeklyExpiresAt } from "@/lib/gameLogic/rotation";
-import { useCharacterStore } from "./characterStore";
-import type { ActiveQuest, ActivityType } from "@/types";
+  getDailyPick,
+  getWeeklyPick,
+  dailyExpiresAt,
+  weeklyExpiresAt,
+} from '@/lib/gameLogic/rotation';
+import { useCharacterStore } from './characterStore';
+import type { ActiveQuest, ActivityType } from '@/types';
 
 const DAILY_QUEST_COUNT = 3;
 const WEEKLY_QUEST_COUNT = 3;
@@ -50,20 +47,17 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
 
       // Query by uid only — a compound (uid + expiresAt) query would require a
       // Firestore composite index. Filter the expiry check client-side instead.
-      const q = query(
-        collection(db, "activeQuests"),
-        where("uid", "==", uid)
-      );
+      const q = query(collection(db, 'activeQuests'), where('uid', '==', uid));
       const snap = await getDocs(q);
       const existing = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() } as ActiveQuest))
+        .map((d) => ({ id: d.id, ...d.data() }) as ActiveQuest)
         .filter((q) => q.expiresAt > now);
 
       const assigned: ActiveQuest[] = [];
 
       // Assign daily quests if none are active for today
       // Uses a day-seeded deterministic pick so the same 3 quests appear for everyone today.
-      const hasDailies = existing.some((q) => getQuestDef(q.questDefId)?.type === "daily");
+      const hasDailies = existing.some((q) => getQuestDef(q.questDefId)?.type === 'daily');
       if (!hasDailies) {
         const picked = getDailyPick(DAILY_QUEST_POOL, DAILY_QUEST_COUNT);
         const expiry = dailyExpiresAt();
@@ -77,14 +71,14 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
             expiresAt: expiry,
             rewards: def.rewards,
           };
-          const ref = await addDoc(collection(db, "activeQuests"), questData);
+          const ref = await addDoc(collection(db, 'activeQuests'), questData);
           assigned.push({ id: ref.id, ...questData });
         }
       }
 
       // Assign weekly quests if none are active for this week
       // Uses a week-seeded deterministic pick so the same 3 quests appear all week.
-      const hasWeeklies = existing.some((q) => getQuestDef(q.questDefId)?.type === "weekly");
+      const hasWeeklies = existing.some((q) => getQuestDef(q.questDefId)?.type === 'weekly');
       if (!hasWeeklies) {
         const picked = getWeeklyPick(WEEKLY_QUEST_POOL, WEEKLY_QUEST_COUNT);
         const expiry = weeklyExpiresAt();
@@ -98,7 +92,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
             expiresAt: expiry,
             rewards: def.rewards,
           };
-          const ref = await addDoc(collection(db, "activeQuests"), questData);
+          const ref = await addDoc(collection(db, 'activeQuests'), questData);
           assigned.push({ id: ref.id, ...questData });
         }
       }
@@ -132,7 +126,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       const completedAt = newProgress >= def.requirement.target ? now : null;
 
       dbUpdates.push(
-        updateDoc(doc(db, "activeQuests", q.id), { progress: newProgress, completedAt })
+        updateDoc(doc(db, 'activeQuests', q.id), { progress: newProgress, completedAt }),
       );
 
       return { ...q, progress: newProgress, completedAt };
@@ -149,19 +143,14 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
     if (!quest || quest.completedAt === null || quest.claimedAt !== null) return false;
 
     const now = Date.now();
-    await updateDoc(doc(db, "activeQuests", questId), { claimedAt: now });
+    await updateDoc(doc(db, 'activeQuests', questId), { claimedAt: now });
 
     // Award rewards through character store
     const { awardXpAndStats, awardGold } = useCharacterStore.getState();
-    await Promise.all([
-      awardXpAndStats(quest.rewards.xp, {}),
-      awardGold(quest.rewards.gold),
-    ]);
+    await Promise.all([awardXpAndStats(quest.rewards.xp, {}), awardGold(quest.rewards.gold)]);
 
     set((state) => ({
-      quests: state.quests.map((q) =>
-        q.id === questId ? { ...q, claimedAt: now } : q
-      ),
+      quests: state.quests.map((q) => (q.id === questId ? { ...q, claimedAt: now } : q)),
     }));
 
     return true;

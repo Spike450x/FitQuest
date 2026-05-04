@@ -12,6 +12,7 @@ You are acting as a game designer. Evaluate:
 6. **Integration** — how does this connect to XP, quests, combat, and gear systems?
 
 End with:
+
 - **Next-Level Suggestions**: how to make this more engaging
 - **Potential Risks / Gaps**: balance issues, edge cases, cheat vectors, engagement cliffs
 

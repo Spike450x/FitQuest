@@ -1,16 +1,16 @@
-import type { Character, MonsterDef } from "@/types";
-import { gearAttackBonus, gearDefenseBonus, rollD10 } from "./combat";
-import { COMBAT } from "./constants";
-import { applySubclassAbilityMods, getAbilityDamageMultiplier } from "./passives";
+import type { Character, MonsterDef } from '@/types';
+import { gearAttackBonus, gearDefenseBonus, rollD10 } from './combat';
+import { COMBAT } from './constants';
+import { applySubclassAbilityMods, getAbilityDamageMultiplier } from './passives';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type DicePattern =
-  | "three_of_a_kind"
-  | "four_of_a_kind"
-  | "full_house"
-  | "small_straight"
-  | "large_straight";
+  | 'three_of_a_kind'
+  | 'four_of_a_kind'
+  | 'full_house'
+  | 'small_straight'
+  | 'large_straight';
 
 export interface AbilityDef {
   id: string;
@@ -20,13 +20,13 @@ export interface AbilityDef {
   emoji: string;
   damageMultiplier: number;
   bypassMonsterDef: boolean;
-  stunMonster: boolean;       // monster skips counter-attack this round
-  lifestealPct: number;       // 0–1 fraction of damage dealt returned as HP
-  bypassPlayerDef: boolean;   // Berserker Rage: player also ignores their own defense
+  stunMonster: boolean; // monster skips counter-attack this round
+  lifestealPct: number; // 0–1 fraction of damage dealt returned as HP
+  bypassPlayerDef: boolean; // Berserker Rage: player also ignores their own defense
 }
 
 export interface AbilityResolution {
-  ability: AbilityDef | null;  // null = fizzle
+  ability: AbilityDef | null; // null = fizzle
   dice: number[];
   pattern: DicePattern | null;
   playerDamage: number;
@@ -43,11 +43,11 @@ export interface AbilityResolution {
 const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
   warrior: {
     three_of_a_kind: {
-      id: "power-strike",
-      name: "Power Strike",
-      description: "Channel raw force into a single devastating blow.",
-      pattern: "three_of_a_kind",
-      emoji: "💪",
+      id: 'power-strike',
+      name: 'Power Strike',
+      description: 'Channel raw force into a single devastating blow.',
+      pattern: 'three_of_a_kind',
+      emoji: '💪',
       damageMultiplier: 2,
       bypassMonsterDef: true,
       stunMonster: false,
@@ -55,11 +55,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: false,
     },
     full_house: {
-      id: "shield-slam",
-      name: "Shield Slam",
+      id: 'shield-slam',
+      name: 'Shield Slam',
       description: "Bash the enemy with your shield — they can't counter.",
-      pattern: "full_house",
-      emoji: "🛡️",
+      pattern: 'full_house',
+      emoji: '🛡️',
       damageMultiplier: 2,
       bypassMonsterDef: false,
       stunMonster: true,
@@ -67,11 +67,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: false,
     },
     small_straight: {
-      id: "war-cry",
-      name: "War Cry",
-      description: "A fearsome roar that shakes the enemy to their core.",
-      pattern: "small_straight",
-      emoji: "📣",
+      id: 'war-cry',
+      name: 'War Cry',
+      description: 'A fearsome roar that shakes the enemy to their core.',
+      pattern: 'small_straight',
+      emoji: '📣',
       damageMultiplier: 1.5,
       bypassMonsterDef: false,
       stunMonster: true,
@@ -79,11 +79,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: false,
     },
     large_straight: {
-      id: "berserker-rage",
-      name: "Berserker Rage",
-      description: "All defenses down — yours and theirs. Pure destruction.",
-      pattern: "large_straight",
-      emoji: "🔥",
+      id: 'berserker-rage',
+      name: 'Berserker Rage',
+      description: 'All defenses down — yours and theirs. Pure destruction.',
+      pattern: 'large_straight',
+      emoji: '🔥',
       damageMultiplier: 3,
       bypassMonsterDef: true,
       stunMonster: false,
@@ -91,11 +91,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: true,
     },
     four_of_a_kind: {
-      id: "unstoppable",
-      name: "Unstoppable",
-      description: "Nothing stands between you and your target.",
-      pattern: "four_of_a_kind",
-      emoji: "⚡",
+      id: 'unstoppable',
+      name: 'Unstoppable',
+      description: 'Nothing stands between you and your target.',
+      pattern: 'four_of_a_kind',
+      emoji: '⚡',
       damageMultiplier: 3,
       bypassMonsterDef: true,
       stunMonster: true,
@@ -106,11 +106,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
 
   wizard: {
     three_of_a_kind: {
-      id: "arcane-bolt",
-      name: "Arcane Bolt",
-      description: "A concentrated burst of arcane energy.",
-      pattern: "three_of_a_kind",
-      emoji: "✨",
+      id: 'arcane-bolt',
+      name: 'Arcane Bolt',
+      description: 'A concentrated burst of arcane energy.',
+      pattern: 'three_of_a_kind',
+      emoji: '✨',
       damageMultiplier: 2,
       bypassMonsterDef: false,
       stunMonster: false,
@@ -118,11 +118,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: false,
     },
     full_house: {
-      id: "mana-surge",
-      name: "Mana Surge",
-      description: "Release a surge of raw mana that staggers the enemy.",
-      pattern: "full_house",
-      emoji: "🌀",
+      id: 'mana-surge',
+      name: 'Mana Surge',
+      description: 'Release a surge of raw mana that staggers the enemy.',
+      pattern: 'full_house',
+      emoji: '🌀',
       damageMultiplier: 2,
       bypassMonsterDef: false,
       stunMonster: true,
@@ -130,11 +130,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: false,
     },
     small_straight: {
-      id: "chain-lightning",
-      name: "Chain Lightning",
-      description: "Lightning that arcs through the target with triple force.",
-      pattern: "small_straight",
-      emoji: "⚡",
+      id: 'chain-lightning',
+      name: 'Chain Lightning',
+      description: 'Lightning that arcs through the target with triple force.',
+      pattern: 'small_straight',
+      emoji: '⚡',
       damageMultiplier: 3,
       bypassMonsterDef: false,
       stunMonster: false,
@@ -142,11 +142,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: false,
     },
     large_straight: {
-      id: "meteor",
-      name: "Meteor",
-      description: "Call down a meteor from the sky. Defense is meaningless.",
-      pattern: "large_straight",
-      emoji: "☄️",
+      id: 'meteor',
+      name: 'Meteor',
+      description: 'Call down a meteor from the sky. Defense is meaningless.',
+      pattern: 'large_straight',
+      emoji: '☄️',
       damageMultiplier: 3,
       bypassMonsterDef: true,
       stunMonster: false,
@@ -154,11 +154,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: false,
     },
     four_of_a_kind: {
-      id: "time-warp",
-      name: "Time Warp",
+      id: 'time-warp',
+      name: 'Time Warp',
       description: "Bend time to strike 2.5× and prevent the enemy's response.",
-      pattern: "four_of_a_kind",
-      emoji: "⏳",
+      pattern: 'four_of_a_kind',
+      emoji: '⏳',
       damageMultiplier: 2.5,
       bypassMonsterDef: false,
       stunMonster: true,
@@ -169,11 +169,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
 
   rogue: {
     three_of_a_kind: {
-      id: "backstab",
-      name: "Backstab",
-      description: "Strike from the shadows for twice the pain.",
-      pattern: "three_of_a_kind",
-      emoji: "🗡️",
+      id: 'backstab',
+      name: 'Backstab',
+      description: 'Strike from the shadows for twice the pain.',
+      pattern: 'three_of_a_kind',
+      emoji: '🗡️',
       damageMultiplier: 2,
       bypassMonsterDef: false,
       stunMonster: false,
@@ -181,11 +181,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: false,
     },
     full_house: {
-      id: "smoke-bomb",
-      name: "Smoke Bomb",
+      id: 'smoke-bomb',
+      name: 'Smoke Bomb',
       description: "Blind the enemy — they can't counter while coughing.",
-      pattern: "full_house",
-      emoji: "💨",
+      pattern: 'full_house',
+      emoji: '💨',
       damageMultiplier: 1.5,
       bypassMonsterDef: false,
       stunMonster: true,
@@ -193,11 +193,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: false,
     },
     small_straight: {
-      id: "blade-dance",
-      name: "Blade Dance",
-      description: "A fluid sequence of cuts — 30% of damage returns as HP.",
-      pattern: "small_straight",
-      emoji: "💃",
+      id: 'blade-dance',
+      name: 'Blade Dance',
+      description: 'A fluid sequence of cuts — 30% of damage returns as HP.',
+      pattern: 'small_straight',
+      emoji: '💃',
       damageMultiplier: 1.5,
       bypassMonsterDef: false,
       stunMonster: false,
@@ -205,11 +205,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: false,
     },
     large_straight: {
-      id: "death-mark",
-      name: "Death Mark",
-      description: "Brand the target for 2.5× damage — 50% returned as life.",
-      pattern: "large_straight",
-      emoji: "💀",
+      id: 'death-mark',
+      name: 'Death Mark',
+      description: 'Brand the target for 2.5× damage — 50% returned as life.',
+      pattern: 'large_straight',
+      emoji: '💀',
       damageMultiplier: 2.5,
       bypassMonsterDef: false,
       stunMonster: false,
@@ -217,11 +217,11 @@ const CLASS_ABILITY_CATALOG: Record<string, Record<DicePattern, AbilityDef>> = {
       bypassPlayerDef: false,
     },
     four_of_a_kind: {
-      id: "assassinate",
-      name: "Assassinate",
-      description: "Eliminate the target instantly — bypass defense, stun, triple damage.",
-      pattern: "four_of_a_kind",
-      emoji: "☠️",
+      id: 'assassinate',
+      name: 'Assassinate',
+      description: 'Eliminate the target instantly — bypass defense, stun, triple damage.',
+      pattern: 'four_of_a_kind',
+      emoji: '☠️',
       damageMultiplier: 3,
       bypassMonsterDef: true,
       stunMonster: true,
@@ -242,33 +242,30 @@ export function detectPattern(dice: number[]): DicePattern | null {
   const uniqueSet = new Set(dice);
 
   // Four of a kind
-  if (vals[0] >= 4) return "four_of_a_kind";
+  if (vals[0] >= 4) return 'four_of_a_kind';
 
   // Full house — 3 of one value + 2 of another
-  if (vals[0] >= 3 && (vals[1] ?? 0) >= 2) return "full_house";
+  if (vals[0] >= 3 && (vals[1] ?? 0) >= 2) return 'full_house';
 
   // Large straight — 5 consecutive distinct values (1-5 or 2-6 on d6)
   for (let start = 1; start <= 2; start++) {
-    if ([0, 1, 2, 3, 4].every((i) => uniqueSet.has(start + i))) return "large_straight";
+    if ([0, 1, 2, 3, 4].every((i) => uniqueSet.has(start + i))) return 'large_straight';
   }
 
   // Small straight — 4 consecutive distinct values
   for (let start = 1; start <= 3; start++) {
-    if ([0, 1, 2, 3].every((i) => uniqueSet.has(start + i))) return "small_straight";
+    if ([0, 1, 2, 3].every((i) => uniqueSet.has(start + i))) return 'small_straight';
   }
 
   // Three of a kind
-  if (vals[0] >= 3) return "three_of_a_kind";
+  if (vals[0] >= 3) return 'three_of_a_kind';
 
   return null;
 }
 
 // ─── Ability lookup ───────────────────────────────────────────────────────────
 
-export function getAbility(
-  characterClass: string,
-  pattern: DicePattern,
-): AbilityDef | null {
+export function getAbility(characterClass: string, pattern: DicePattern): AbilityDef | null {
   return CLASS_ABILITY_CATALOG[characterClass]?.[pattern] ?? null;
 }
 
@@ -293,8 +290,8 @@ export function resolveAbility(
   const pattern = detectPattern(dice);
 
   // Stat bonus (same factors as regular combat)
-  const isWizard = character.class === "wizard";
-  const attackMode = isWizard ? "magic" : "attack";
+  const isWizard = character.class === 'wizard';
+  const attackMode = isWizard ? 'magic' : 'attack';
   const gearBonus = gearAttackBonus(character, attackMode);
   const statBonus = isWizard
     ? Math.floor(character.stats.wisdom * COMBAT.WISDOM_ATTACK_FACTOR)
@@ -326,7 +323,16 @@ export function resolveAbility(
     // Fallback — treat as fizzle if somehow class is unknown
     const playerDamage = Math.max(0, baseHit - monster.defense);
     const { monsterDamage, playerDefFailed } = rollMonsterAttack(character, monster, false);
-    return { ability: null, dice, pattern, playerDamage, monsterDamage, monsterStunned: false, playerDefFailed, flatPassiveHeal: 0 };
+    return {
+      ability: null,
+      dice,
+      pattern,
+      playerDamage,
+      monsterDamage,
+      monsterStunned: false,
+      playerDefFailed,
+      flatPassiveHeal: 0,
+    };
   }
 
   // ── Step 1: bake in ability-specific subclass mods ───────────────────────────

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useCharacterStore } from "@/store/characterStore";
-import { SUBCLASS_CATALOG } from "@/lib/gameLogic/passives";
-import type { Character, CharacterSubclass } from "@/types";
+import { useState } from 'react';
+import { useCharacterStore } from '@/store/characterStore';
+import { SUBCLASS_CATALOG } from '@/lib/gameLogic/passives';
+import type { Character, CharacterSubclass } from '@/types';
 
 interface SubclassModalProps {
   character: Character;
@@ -83,14 +83,14 @@ export function SubclassModal({ character }: SubclassModalProps) {
               </p>
               <ul className="space-y-0.5">
                 {sub.passives.map((p) => {
-                  const [name, ...rest] = p.split(" — ");
+                  const [name, ...rest] = p.split(' — ');
                   return (
                     <li key={p} className="text-xs text-gray-700 flex gap-1">
                       <span className="text-violet-400 shrink-0">•</span>
                       <span>
                         <span className="font-semibold">{name}</span>
                         {rest.length > 0 && (
-                          <span className="text-gray-500"> — {rest.join(" — ")}</span>
+                          <span className="text-gray-500"> — {rest.join(' — ')}</span>
                         )}
                       </span>
                     </li>

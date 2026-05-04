@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "FitQuest — Turn fitness into adventure",
-  description: "Level up your real-life stats, fight monsters, and earn rewards for healthy habits.",
+  title: 'FitQuest — Turn fitness into adventure',
+  description:
+    'Level up your real-life stats, fight monsters, and earn rewards for healthy habits.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

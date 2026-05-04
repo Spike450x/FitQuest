@@ -14,6 +14,7 @@ Review for:
 8. **Performance** — expensive unmemorized computations, large imports, N+1 reads?
 
 Classify findings as:
+
 - **Must Fix** — correctness or security issue
 - **Should Fix** — code quality or maintainability
 - **Consider** — improvement opportunity

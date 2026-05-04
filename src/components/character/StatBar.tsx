@@ -8,7 +8,15 @@ interface StatBarProps {
   suffix?: string;
 }
 
-export function StatBar({ label, value, max = 60, color, icon, showMax = true, suffix }: StatBarProps) {
+export function StatBar({
+  label,
+  value,
+  max = 60,
+  color,
+  icon,
+  showMax = true,
+  suffix,
+}: StatBarProps) {
   const pct = Math.min((value / max) * 100, 100);
 
   return (
@@ -17,9 +25,7 @@ export function StatBar({ label, value, max = 60, color, icon, showMax = true, s
         <span className="flex items-center gap-1.5 text-gray-700">
           <span>{icon}</span>
           <span className="font-medium">{label}</span>
-          {suffix && (
-            <span className="text-xs text-emerald-600 font-medium">({suffix})</span>
-          )}
+          {suffix && <span className="text-xs text-emerald-600 font-medium">({suffix})</span>}
         </span>
         <span className="text-gray-700 font-semibold text-sm tabular-nums">
           {value}

@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { CLASS_DEFINITIONS } from "@/lib/gameLogic/constants";
-import type { CharacterClass } from "@/types";
+import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
+import type { CharacterClass } from '@/types';
 
 interface ClassSelectorProps {
   selected: CharacterClass | null;
   onSelect: (c: CharacterClass) => void;
 }
 
-const CLASSES: CharacterClass[] = ["warrior", "wizard", "rogue"];
+const CLASSES: CharacterClass[] = ['warrior', 'wizard', 'rogue'];
 
 export function ClassSelector({ selected, onSelect }: ClassSelectorProps) {
   return (
@@ -26,8 +26,8 @@ export function ClassSelector({ selected, onSelect }: ClassSelectorProps) {
               text-left rounded-xl p-4 border-2 transition-all duration-150
               ${
                 isSelected
-                  ? "border-indigo-500 bg-indigo-50 shadow-sm"
-                  : "border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm"
+                  ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                  : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm'
               }
             `}
           >
@@ -39,10 +39,10 @@ export function ClassSelector({ selected, onSelect }: ClassSelectorProps) {
             <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-1">
               {(
                 [
-                  ["STR", def.startingStats.strength],
-                  ["STA", def.startingStats.stamina],
-                  ["HP", def.startingStats.health],
-                  ["WIS", def.startingStats.wisdom],
+                  ['STR', def.startingStats.strength],
+                  ['STA', def.startingStats.stamina],
+                  ['HP', def.startingStats.health],
+                  ['WIS', def.startingStats.wisdom],
                 ] as [string, number][]
               ).map(([label, val]) => (
                 <div key={label} className="flex justify-between text-xs">

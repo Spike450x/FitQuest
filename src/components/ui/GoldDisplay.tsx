@@ -1,13 +1,13 @@
 interface GoldDisplayProps {
   amount: number;
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export function GoldDisplay({ amount, size = "md" }: GoldDisplayProps) {
+export function GoldDisplay({ amount, size = 'md' }: GoldDisplayProps) {
   const sizeClasses = {
-    sm: "text-sm",
-    md: "text-base",
-    lg: "text-xl font-bold",
+    sm: 'text-sm',
+    md: 'text-base',
+    lg: 'text-xl font-bold',
   };
 
   return (

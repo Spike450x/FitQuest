@@ -83,7 +83,7 @@ export function weeklyExpiresAt(): number {
     23,
     59,
     59,
-    999
+    999,
   );
   return end.getTime();
 }
@@ -93,7 +93,7 @@ export function weeklyExpiresAt(): number {
 /** Human-readable "Xh Ym" countdown until a future Unix ms timestamp. */
 export function formatCountdown(expiresAt: number): string {
   const diff = expiresAt - Date.now();
-  if (diff <= 0) return "now";
+  if (diff <= 0) return 'now';
   const totalMinutes = Math.floor(diff / 60_000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;

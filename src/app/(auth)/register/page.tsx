@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from 'react';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Navigate only after onAuthStateChanged has fired and set the cookie
   useEffect(() => {
     if (!authLoading && user) {
-      router.push("/character-creation");
+      router.push('/character-creation');
     }
   }, [user, authLoading, router]);
 
@@ -28,11 +28,11 @@ export default function RegisterPage() {
     setError(null);
 
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError('Passwords do not match.');
       return;
     }
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError('Password must be at least 6 characters.');
       return;
     }
 
@@ -41,7 +41,7 @@ export default function RegisterPage() {
       await createUserWithEmailAndPassword(auth, email, password);
       // Navigation is handled by the useEffect above once auth state updates
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Registration failed";
+      const msg = err instanceof Error ? err.message : 'Registration failed';
       setError(friendlyAuthError(msg));
       setLoading(false);
     }
@@ -100,13 +100,16 @@ export default function RegisterPage() {
           disabled={loading}
           className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg transition-colors"
         >
-          {loading ? "Creating account..." : "Create Account"}
+          {loading ? 'Creating account...' : 'Create Account'}
         </button>
       </form>
 
       <p className="text-center text-gray-400 text-sm mt-6">
-        Already have an account?{" "}
-        <Link href="/login" className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors">
+        Already have an account?{' '}
+        <Link
+          href="/login"
+          className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+        >
           Sign in
         </Link>
       </p>
@@ -115,8 +118,8 @@ export default function RegisterPage() {
 }
 
 function friendlyAuthError(msg: string): string {
-  if (msg.includes("email-already-in-use")) return "An account with this email already exists.";
-  if (msg.includes("invalid-email")) return "Please enter a valid email address.";
-  if (msg.includes("weak-password")) return "Password is too weak. Use at least 6 characters.";
-  return "Something went wrong. Please try again.";
+  if (msg.includes('email-already-in-use')) return 'An account with this email already exists.';
+  if (msg.includes('invalid-email')) return 'Please enter a valid email address.';
+  if (msg.includes('weak-password')) return 'Password is too weak. Use at least 6 characters.';
+  return 'Something went wrong. Please try again.';
 }

@@ -12,6 +12,6 @@ updates:
           - minor
     ignore:
       # Major version bumps (e.g. next 14 → 15) need manual review — keep separate
-      - dependency-name: "*"
+      - dependency-name: '*'
         update-types:
           - version-update:semver-major

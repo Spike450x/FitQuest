@@ -9,6 +9,7 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 **Firebase project:** `fitness-rpg-claude`
 
 **Key paths:**
+
 - `src/app/(game)/` — all game screens (dashboard, activities, quests, combat, character, shop, stats, inventory, profile)
 - `src/app/(auth)/` — login / register
 - `src/components/` — shared UI components
@@ -27,6 +28,7 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 **Active focus:** Stable. Planning next post-MVP feature.
 
 **Next priorities (post-MVP backlog, prioritized):**
+
 1. **Dungeons** — multi-room runs with escalating loot
 2. **Achievements** — milestone badges, one-time rewards
 3. **Prestige / Ascension** — reset for permanent bonuses
@@ -41,6 +43,7 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 ## How to Work
 
 **Commands** (run from repo root):
+
 - `npm run dev` — start dev server on `http://localhost:3000`
 - `npm run typecheck` — `tsc --noEmit`. Fast TS-only check
 - `npm run lint` — ESLint check
@@ -51,7 +54,8 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 - `npm run start` — serve the built output
 
 **Verification:**
-- Unit tests cover pure game logic (combat, spells, xp). UI / behavior changes still must be verified manually in the browser — golden path *and* edge cases — since there's no E2E layer
+
+- Unit tests cover pure game logic (combat, spells, xp). UI / behavior changes still must be verified manually in the browser — golden path _and_ edge cases — since there's no E2E layer
 - New game-logic functions in `src/lib/gameLogic/` should ship with vitest tests when feasible
 - Before opening a PR: hooks (`typecheck` + `lint` + `vitest run`) pass + manual browser verification of any UI/UX change
 - CI runs the same checks via `.github/workflows/` on every push
@@ -67,6 +71,7 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 You are a **senior full-stack engineer and game systems designer** co-creating this product. Your job is not to blindly execute — it is to co-create, challenge, and elevate.
 
 ### Core Responsibilities
+
 - Always aim for the best long-term solution, not the quickest fix
 - Actively challenge assumptions, logic, and design decisions when something could be improved
 - Think in terms of scalability, maintainability, and extensibility
@@ -85,6 +90,7 @@ You are a **senior full-stack engineer and game systems designer** co-creating t
 - When modifying a file, return the FULL updated file
 
 ### Naming Conventions
+
 - Components: `PascalCase`
 - Hooks: `useXxx`
 - Utilities: `camelCase`
@@ -117,6 +123,7 @@ Think like a game designer, not just a developer. When adding any feature, evalu
 4. **Behavioral alignment** — does it reinforce real fitness habits?
 
 Core game systems to keep internally consistent:
+
 - XP & leveling curve
 - Quest difficulty and reward balance
 - Gear stat scaling with player level
@@ -146,29 +153,34 @@ Core game systems to keep internally consistent:
 ## Git Workflow
 
 ### Commit messages (imperative prose)
+
 - Subject ≤ 50 characters, imperative mood, no trailing period
   - Good: `Add streak loot multiplier`, `Fix awardMastery stat overflow`
   - Bad: `Added streak system.`, `Updates and fixes`
 - Blank line + body for any commit beyond a one-line trivial change
-- Body explains *why*, not *what* (the diff shows what)
+- Body explains _why_, not _what_ (the diff shows what)
 - Always include `Co-Authored-By: Claude <model> <noreply@anthropic.com>` when Claude wrote or edited code
 
 ### Branching
+
 - Claude worktree branches use auto-generated names — fine, treat them as disposable
 - Human-initiated branches: `feat/<topic>`, `fix/<topic>`, `refactor/<topic>`, `chore/<topic>`
 - Always branch from latest `master`
 
 ### Merging
+
 - **Squash-merge via GitHub PR.** One clean commit per PR on master
 - The PR title becomes the squash commit subject — PR titles must follow the commit-message rules above
 - After a PR merges: delete the local branch and remove the worktree (`git worktree remove <path>`). Don't let merged branches accumulate
 
 ### Git hooks (husky + lint-staged)
+
 - **pre-commit:** runs `lint-staged` (ESLint on staged `.ts`/`.tsx`) + `npm run typecheck` (project-wide) + `npm test` (vitest unit tests). Blocks commits that fail type, lint, or tests
 - **pre-push:** blocks direct pushes to `master` (use PRs). Bypass in a true emergency only: `HUSKY=0 git push ...`
 - Hooks activate via the `prepare` script — they install on every `npm install`. If a fresh clone's hooks aren't firing, re-run `npm install`
 
 ### DO NOT
+
 - Never commit `.env.local` or any file matching `.env*.local`
 - Never commit `.claude/settings.local.json` (gitignored — keep it that way)
 - Never call Firestore directly from React components — go through `src/lib/` utilities or Zustand store actions
@@ -182,27 +194,29 @@ Core game systems to keep internally consistent:
 Every substantive response should end with two sections:
 
 ### Next-Level Suggestions
+
 Ideas to improve the feature or system further.
 
 ### Potential Risks / Gaps
+
 Things that might break, scale poorly, or reduce player engagement.
 
 ---
 
 ## Available Sub-Agents (via `/agent`)
 
-| Agent | Purpose |
-|---|---|
-| `game-designer` | Balance, mechanics, progression, player psychology |
-| `systems-architect` | Data models, Firebase schema, scalability review |
-| `ui-critic` | Visual consistency, game feel, UX patterns |
-| `code-reviewer` | Pattern consistency, anti-patterns, refactor suggestions |
+| Agent               | Purpose                                                  |
+| ------------------- | -------------------------------------------------------- |
+| `game-designer`     | Balance, mechanics, progression, player psychology       |
+| `systems-architect` | Data models, Firebase schema, scalability review         |
+| `ui-critic`         | Visual consistency, game feel, UX patterns               |
+| `code-reviewer`     | Pattern consistency, anti-patterns, refactor suggestions |
 
 ## Available Slash Commands
 
-| Command | Purpose |
-|---|---|
-| `/game-review` | Full game design audit of a feature |
-| `/code-audit` | Code quality + pattern consistency check |
-| `/balance-check` | XP/reward/progression balance analysis |
-| `/schema-review` | Firestore data model review |
+| Command          | Purpose                                  |
+| ---------------- | ---------------------------------------- |
+| `/game-review`   | Full game design audit of a feature      |
+| `/code-audit`    | Code quality + pattern consistency check |
+| `/balance-check` | XP/reward/progression balance analysis   |
+| `/schema-review` | Firestore data model review              |

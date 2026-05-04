@@ -1,5 +1,5 @@
-import { ActivityLogForm } from "@/components/activities/ActivityLogForm";
-import { ActivitySidePanel } from "@/components/activities/ActivitySidePanel";
+import { ActivityLogForm } from '@/components/activities/ActivityLogForm';
+import { ActivitySidePanel } from '@/components/activities/ActivitySidePanel';
 
 export default function ActivitiesPage() {
   return (
@@ -17,7 +17,8 @@ export default function ActivitiesPage() {
         <div>
           <p className="text-sm font-medium text-gray-600">Apple Health sync — Post-MVP</p>
           <p className="text-xs text-gray-400 mt-0.5">
-            Explore live-syncing steps, sleep, and workouts directly from Apple Health so logging happens automatically.
+            Explore live-syncing steps, sleep, and workouts directly from Apple Health so logging
+            happens automatically.
           </p>
         </div>
       </div>

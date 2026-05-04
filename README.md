@@ -1,5 +1,7 @@
 # FitQuest — Fitness RPG
 
+[![CI](https://github.com/Spike450x/FitQuest/actions/workflows/ci.yml/badge.svg)](https://github.com/Spike450x/FitQuest/actions/workflows/ci.yml)
+
 A full-stack fitness RPG where your real-world workouts power a fantasy character. Log runs, track sleep, eat well — your stats grow, you level up, and you fight monsters.
 
 Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Firebase**, and **Zustand**.
@@ -36,14 +38,14 @@ Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Firebase**, and *
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 14 (App Router) |
-| Language | TypeScript 5 |
-| Styling | Tailwind CSS 3 |
-| Auth & Database | Firebase Auth + Firestore |
-| State Management | Zustand 4 |
-| Charts | Recharts |
+| Layer            | Technology                |
+| ---------------- | ------------------------- |
+| Framework        | Next.js 14 (App Router)   |
+| Language         | TypeScript 5              |
+| Styling          | Tailwind CSS 3            |
+| Auth & Database  | Firebase Auth + Firestore |
+| State Management | Zustand 4                 |
+| Charts           | Recharts                  |
 
 ---
 
@@ -51,25 +53,25 @@ Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Firebase**, and *
 
 All 5 MVP phases are complete. The app is fully playable end-to-end.
 
-| Phase | Feature | Status |
-|---|---|---|
-| 1 | Auth & Character Creation | ✅ Complete |
-| 2 | Activity Logging | ✅ Complete |
-| 3 | Combat System + Class Abilities | ✅ Complete |
-| 4 | Inventory & Shop | ✅ Complete |
-| 5 | Quests (Daily & Weekly) | ✅ Complete |
-| Bonus | Profile Analytics | ✅ Complete |
-| Bonus | Spell System (dice-based) | ✅ Complete |
-| Bonus | Magic Consumables + Combat Pack | ✅ Complete |
-| Bonus | Rest & Meditate combat actions | ✅ Complete |
-| Bonus | Streaks & Blessing system | ✅ Complete |
-| Bonus | Personal Records | ✅ Complete |
-| Bonus | Subclass System (6 subclasses) | ✅ Complete |
-| Future | Dungeons (multi-room runs) | 🔲 Not started |
-| Future | Achievement system | 🔲 Not started |
-| Future | Prestige / Ascension | 🔲 Not started |
-| Future | Apple Health integration | 🔲 Not started |
-| Future | Leaderboards | 🔲 Not started |
+| Phase  | Feature                         | Status         |
+| ------ | ------------------------------- | -------------- |
+| 1      | Auth & Character Creation       | ✅ Complete    |
+| 2      | Activity Logging                | ✅ Complete    |
+| 3      | Combat System + Class Abilities | ✅ Complete    |
+| 4      | Inventory & Shop                | ✅ Complete    |
+| 5      | Quests (Daily & Weekly)         | ✅ Complete    |
+| Bonus  | Profile Analytics               | ✅ Complete    |
+| Bonus  | Spell System (dice-based)       | ✅ Complete    |
+| Bonus  | Magic Consumables + Combat Pack | ✅ Complete    |
+| Bonus  | Rest & Meditate combat actions  | ✅ Complete    |
+| Bonus  | Streaks & Blessing system       | ✅ Complete    |
+| Bonus  | Personal Records                | ✅ Complete    |
+| Bonus  | Subclass System (6 subclasses)  | ✅ Complete    |
+| Future | Dungeons (multi-room runs)      | 🔲 Not started |
+| Future | Achievement system              | 🔲 Not started |
+| Future | Prestige / Ascension            | 🔲 Not started |
+| Future | Apple Health integration        | 🔲 Not started |
+| Future | Leaderboards                    | 🔲 Not started |
 
 ---
 
@@ -207,11 +209,11 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
 - Route protection via Next.js middleware (all game pages require login)
 - Character creation: choose a name and one of three classes
 
-| Class | Playstyle | Starting Stats Emphasis |
-|---|---|---|
-| ⚔️ Warrior | Tank — highest defense, absorbs damage | STR, DEF |
-| 🧙 Wizard | Glass cannon — low defense, high magic | WIS (scales fast) |
-| 🗡️ Rogue | Speed — agility-focused, high stamina | AGI, STA |
+| Class      | Playstyle                              | Starting Stats Emphasis |
+| ---------- | -------------------------------------- | ----------------------- |
+| ⚔️ Warrior | Tank — highest defense, absorbs damage | STR, DEF                |
+| 🧙 Wizard  | Glass cannon — low defense, high magic | WIS (scales fast)       |
+| 🗡️ Rogue   | Speed — agility-focused, high stamina  | AGI, STA                |
 
 Each class has unique stat multipliers applied to every XP gain, and a unique set of class abilities and spells.
 
@@ -221,14 +223,14 @@ Each class has unique stat multipliers applied to every XP gain, and a unique se
 
 Log 6 real-world fitness activities. Each one grants XP and raises specific stats based on class multipliers.
 
-| Activity | Unit | Primary Stats Gained | Resource Restored |
-|---|---|---|---|
-| 🏋️ Workout | per 30 min | STR, STA, AGI, DEF | — |
-| 🏃 Run | per mile | STR, STA, AGI, HP | — |
-| 👣 Steps | per 10,000 | STA, AGI, HP | — |
-| 😴 Sleep | per 8 hours | HP, DEF | +5 Stamina per hour |
-| 💧 Water | per 8 glasses | HP, WIS | +5 Magic per glass |
-| 🥗 Nutrition | per meal | WIS | +20 HP per meal |
+| Activity     | Unit          | Primary Stats Gained | Resource Restored   |
+| ------------ | ------------- | -------------------- | ------------------- |
+| 🏋️ Workout   | per 30 min    | STR, STA, AGI, DEF   | —                   |
+| 🏃 Run       | per mile      | STR, STA, AGI, HP    | —                   |
+| 👣 Steps     | per 10,000    | STA, AGI, HP         | —                   |
+| 😴 Sleep     | per 8 hours   | HP, DEF              | +5 Stamina per hour |
+| 💧 Water     | per 8 glasses | HP, WIS              | +5 Magic per glass  |
+| 🥗 Nutrition | per meal      | WIS                  | +20 HP per meal     |
 
 Activity logs are persisted to Firestore. A real-time preview shows XP and stat gains before you submit. Level-up banners trigger on submission.
 
@@ -240,13 +242,13 @@ Activity logs are persisted to Firestore. A real-time preview shows XP and stat 
 
 **Activity Streaks:** Log at least one activity every day to build a streak. Longer streaks unlock Blessing tiers that boost rare item drop rates in combat.
 
-| Tier | Days | Rare+ Loot Bonus |
-|---|---|---|
-| Focused | 3+ | +15% |
-| Dedicated | 7+ | +30% |
-| Relentless | 14+ | +50% |
-| Unstoppable | 21+ | +75% |
-| Blessed | 30+ | +100% |
+| Tier        | Days | Rare+ Loot Bonus |
+| ----------- | ---- | ---------------- |
+| Focused     | 3+   | +15%             |
+| Dedicated   | 7+   | +30%             |
+| Relentless  | 14+  | +50%             |
+| Unstoppable | 21+  | +75%             |
+| Blessed     | 30+  | +100%            |
 
 The bonus applies only to "rare", "epic", and "legendary" items in monster loot tables. Common and uncommon drop chances are unaffected.
 
@@ -260,18 +262,19 @@ Turn-based combat against a roster of 10 monsters. Each day a rotation of 4 mons
 
 **Combat actions each round:**
 
-| Action | Cost | Effect |
-|---|---|---|
-| ⚔️ Attack | Free | d10 + STR + gear bonus vs monster defense |
-| 🔮 Magic | Free | d10 + WIS + gear bonus vs monster defense |
-| 🎲 Roll Ability | 10 stamina | Roll 6d6, trigger poker-like class ability |
-| ✨ Cast Spell | Magic (varies) | Roll 2–4d6, meet requirement to trigger spell effect |
-| 🛌 Rest | Free turn | Roll d10 × 3 stamina restored; monster gets a free undefended attack |
-| 🧘 Meditate | Free turn | Roll d10 + WIS magic restored; monster gets a free undefended attack |
-| 🧪 Use Item | **Free action** | Use a packed consumable without spending your combat turn |
-| 🏃 Run Away | Free | Roll d10 + AGI vs monster d10; success = escape |
+| Action          | Cost            | Effect                                                               |
+| --------------- | --------------- | -------------------------------------------------------------------- |
+| ⚔️ Attack       | Free            | d10 + STR + gear bonus vs monster defense                            |
+| 🔮 Magic        | Free            | d10 + WIS + gear bonus vs monster defense                            |
+| 🎲 Roll Ability | 10 stamina      | Roll 6d6, trigger poker-like class ability                           |
+| ✨ Cast Spell   | Magic (varies)  | Roll 2–4d6, meet requirement to trigger spell effect                 |
+| 🛌 Rest         | Free turn       | Roll d10 × 3 stamina restored; monster gets a free undefended attack |
+| 🧘 Meditate     | Free turn       | Roll d10 + WIS magic restored; monster gets a free undefended attack |
+| 🧪 Use Item     | **Free action** | Use a packed consumable without spending your combat turn            |
+| 🏃 Run Away     | Free            | Roll d10 + AGI vs monster d10; success = escape                      |
 
 **Defense mechanics:**
+
 - Every incoming attack has a **25% chance to bypass all defense** (armor piercing)
 - Rest/Meditate free attacks bypass defense entirely — recovery carries real risk
 
@@ -320,14 +323,14 @@ Roll 6d6 during combat to trigger a class-specific ability. Costs 10 stamina. Th
 
 At level 10, the player permanently chooses one of two subclasses per class. Subclasses add passive abilities that modify combat every round.
 
-| Class | Subclass | Identity |
-|---|---|---|
-| Warrior | 🪓 Berserker | Damage scales with HP lost; ability cost halved |
-| Warrior | 🛡️ Paladin | Block attacks by divine will; heal every round |
-| Wizard | 🔮 Archmage | Spells hit harder, cost less, magic regens faster |
-| Wizard | 💀 Warlock | Drain life from every hit; spend HP when magic runs out |
-| Rogue | ☠️ Assassin | First ability hits 2×; execute enemies at low HP |
-| Rogue | 🏹 Ranger | Crit on high d10 rolls; always escapes safely |
+| Class   | Subclass     | Identity                                                |
+| ------- | ------------ | ------------------------------------------------------- |
+| Warrior | 🪓 Berserker | Damage scales with HP lost; ability cost halved         |
+| Warrior | 🛡️ Paladin   | Block attacks by divine will; heal every round          |
+| Wizard  | 🔮 Archmage  | Spells hit harder, cost less, magic regens faster       |
+| Wizard  | 💀 Warlock   | Drain life from every hit; spend HP when magic runs out |
+| Rogue   | ☠️ Assassin  | First ability hits 2×; execute enemies at low HP        |
+| Rogue   | 🏹 Ranger    | Crit on high d10 rolls; always escapes safely           |
 
 All subclassed Warriors share **Battle-Hardened** (+2 attack per 5 DEF) and **Iron Will** (−20% incoming damage below 30% HP).  
 All subclassed Rogues share **Hemorrhage** (lifesteal abilities drain an extra 15%) and **Ghost Step** (+AGI÷4 escape bonus).  
@@ -340,6 +343,7 @@ All Wizards share **Mana Barrier** (absorb up to 10 damage per round from magic 
 Spells are items with `type: "spell"`. They must be purchased or looted, then equipped in a loadout (up to 5 spells) before entering combat.
 
 **Spell catalog — 21 spells total:**
+
 - 6 generic spells (all classes)
 - 5 Warrior spells
 - 5 Wizard spells
@@ -347,6 +351,7 @@ Spells are items with `type: "spell"`. They must be purchased or looted, then eq
 - 3 epic spells are loot-only (one per class, dropped from hard monsters)
 
 **How casting works:**
+
 1. Click "✨ Cast Spell" during your turn → spell panel opens
 2. Pick a spell — magic cost is deducted and you roll the spell's dice
 3. If the dice meet the requirement → full effect applied
@@ -355,28 +360,29 @@ Spells are items with `type: "spell"`. They must be purchased or looted, then eq
 
 **Dice requirement types:**
 
-| Type | Example |
-|---|---|
-| `sum_gte` | Roll 3d6, total ≥ 10 |
-| `exact_value` | Roll 2d6, get at least one 6 |
-| `pair` | Roll 3d6, get any pair |
+| Type              | Example                       |
+| ----------------- | ----------------------------- |
+| `sum_gte`         | Roll 3d6, total ≥ 10          |
+| `exact_value`     | Roll 2d6, get at least one 6  |
+| `pair`            | Roll 3d6, get any pair        |
 | `three_of_a_kind` | Roll 4d6, get three of a kind |
-| `straight` | Roll 4d6, get a straight of 3 |
+| `straight`        | Roll 4d6, get a straight of 3 |
 
 **Spell effects (can combine):**
 
-| Effect | Description |
-|---|---|
-| `damage` | Extra damage to monster (vs defense, unless `bypassMonsterDef`) |
-| `heal` | HP restored to player |
-| `restoreStamina` | Stamina restored to player |
-| `stun` | Monster skips its counter-attack this round |
-| `defenseBoost` | Temporary defense bonus for this round |
-| `lifestealPct` | Fraction of damage dealt returned as HP |
+| Effect           | Description                                                     |
+| ---------------- | --------------------------------------------------------------- |
+| `damage`         | Extra damage to monster (vs defense, unless `bypassMonsterDef`) |
+| `heal`           | HP restored to player                                           |
+| `restoreStamina` | Stamina restored to player                                      |
+| `stun`           | Monster skips its counter-attack this round                     |
+| `defenseBoost`   | Temporary defense bonus for this round                          |
+| `lifestealPct`   | Fraction of damage dealt returned as HP                         |
 
 **Wisdom scaling:** Many spells scale with the player's WIS stat. Spell cards display the formula clearly — e.g., `20 base + 8 WIS = 28 heal`.
 
 **Magic resource:**
+
 - `maxMagic = 20 (base) + WIS × 3 + 10 (wizard bonus only)`
 - Persists to Firestore between battles
 - Restored to full on level-up
@@ -387,12 +393,12 @@ Spells are items with `type: "spell"`. They must be purchased or looted, then eq
 
 **Item catalog — 5 rarity tiers:**
 
-| Rarity | Color | Description |
-|---|---|---|
-| Common | Gray | Cheap early-game gear |
-| Uncommon | Green | Meaningful mid-game bonuses |
-| Rare | Blue | Late-game, strong bonuses |
-| Epic | Purple | High-end, very expensive |
+| Rarity    | Color  | Description                                  |
+| --------- | ------ | -------------------------------------------- |
+| Common    | Gray   | Cheap early-game gear                        |
+| Uncommon  | Green  | Meaningful mid-game bonuses                  |
+| Rare      | Blue   | Late-game, strong bonuses                    |
+| Epic      | Purple | High-end, very expensive                     |
 | Legendary | Orange | Best-in-slot; loot-only (never sold in shop) |
 
 **Item types:** Weapons (boost STR or WIS in combat), Armor (boost DEF), Accessories (mixed bonuses), Consumables (HP/stamina/magic restore), Spells.
@@ -409,11 +415,11 @@ Consumables must be packed into a **Combat Pack** before entering battle (up to 
 
 **Consumable types:**
 
-| Type | Items | Restore Amount |
-|---|---|---|
-| ❤️ HP Potions | Minor, Standard, Greater | 25 / 50 / 100 HP |
+| Type               | Items                    | Restore Amount       |
+| ------------------ | ------------------------ | -------------------- |
+| ❤️ HP Potions      | Minor, Standard, Greater | 25 / 50 / 100 HP     |
 | ⚡ Stamina Potions | Minor, Standard, Greater | 20 / 40 / 80 Stamina |
-| ✨ Magic Potions | Minor, Standard, Greater | 15 / 30 / 60 Magic |
+| ✨ Magic Potions   | Minor, Standard, Greater | 15 / 30 / 60 Magic   |
 
 **Using a consumable in combat is a free action** — it does not consume your turn.
 
@@ -434,6 +440,7 @@ Quest progress updates automatically as you log activities. Rewards (XP + gold) 
 ### Profile & Analytics
 
 A dedicated profile page with:
+
 - XP earned over time (line chart)
 - Activity breakdown by type (bar chart)
 - Streak history and personal records panel
@@ -447,16 +454,17 @@ A dedicated profile page with:
 
 ### Stats
 
-| Stat | Combat Role | Activity Source |
-|---|---|---|
-| Strength (STR) | Physical attack damage | Workouts, runs |
-| Stamina (STA) | Max HP pool, ability fuel | Runs, steps, sleep |
-| Agility (AGI) | Escape rolls | Runs, steps, workouts |
-| Health (HP) | Max HP pool | Runs, steps, sleep, water |
-| Wisdom (WIS) | Magic pool, spell scaling | Water, nutrition |
-| Defense (DEF) | Reduces incoming damage | Workouts, sleep |
+| Stat           | Combat Role               | Activity Source           |
+| -------------- | ------------------------- | ------------------------- |
+| Strength (STR) | Physical attack damage    | Workouts, runs            |
+| Stamina (STA)  | Max HP pool, ability fuel | Runs, steps, sleep        |
+| Agility (AGI)  | Escape rolls              | Runs, steps, workouts     |
+| Health (HP)    | Max HP pool               | Runs, steps, sleep, water |
+| Wisdom (WIS)   | Magic pool, spell scaling | Water, nutrition          |
+| Defense (DEF)  | Reduces incoming damage   | Workouts, sleep           |
 
 **Stat caps:**
+
 - Primary stats (STR, WIS, AGI): hard cap at **50**
 - Secondary stats (STA, HP, DEF): level-scaled cap of `level × 5 + 10`
 
@@ -492,18 +500,18 @@ Escape roll        = d10 + AGI vs monster d10
 
 10 monsters spanning levels 1–10:
 
-| Monster | Level | HP | Attack | Defense | XP | Gold |
-|---|---|---|---|---|---|---|
-| Giant Rat | 1 | 22 | 9 | 1 | 18 | 8 |
-| Goblin Scout | 1 | 30 | 8 | 2 | 20 | 10 |
-| Forest Goblin | 2 | 45 | 10 | 3 | 32 | 16 |
-| Orc Grunt | 3 | 60 | 13 | 5 | 50 | 25 |
-| Cave Spider | 4 | 50 | 15 | 3 | 65 | 33 |
-| Skeleton Warrior | 5 | 80 | 15 | 7 | 85 | 43 |
-| Dark Wolf | 6 | 90 | 18 | 5 | 105 | 53 |
-| Stone Troll | 7 | 120 | 20 | 9 | 135 | 68 |
-| Dark Mage | 8 | 80 | 25 | 4 | 160 | 80 |
-| Ancient Dragon | 10 | 220 | 32 | 16 | 320 | 160 |
+| Monster          | Level | HP  | Attack | Defense | XP  | Gold |
+| ---------------- | ----- | --- | ------ | ------- | --- | ---- |
+| Giant Rat        | 1     | 22  | 9      | 1       | 18  | 8    |
+| Goblin Scout     | 1     | 30  | 8      | 2       | 20  | 10   |
+| Forest Goblin    | 2     | 45  | 10     | 3       | 32  | 16   |
+| Orc Grunt        | 3     | 60  | 13     | 5       | 50  | 25   |
+| Cave Spider      | 4     | 50  | 15     | 3       | 65  | 33   |
+| Skeleton Warrior | 5     | 80  | 15     | 7       | 85  | 43   |
+| Dark Wolf        | 6     | 90  | 18     | 5       | 105 | 53   |
+| Stone Troll      | 7     | 120 | 20     | 9       | 135 | 68   |
+| Dark Mage        | 8     | 80  | 25     | 4       | 160 | 80   |
+| Ancient Dragon   | 10    | 220 | 32     | 16      | 320 | 160  |
 
 All monsters have loot tables. The Ancient Dragon drops legendary loot-only items at low chances.
 
@@ -574,18 +582,19 @@ src/
 ### Setup
 
 1. **Clone the repo**
+
    ```bash
-   git clone https://github.com/Spike450x/fitness-rpg-2.0.git
+   git clone https://github.com/Spike450x/FitQuest.git
    cd fitness-rpg-2.0
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
    This also activates **git hooks** via `husky` (runs automatically through the `prepare` script):
-
    - **pre-commit** — runs `lint-staged` (ESLint on staged `.ts`/`.tsx`) + `npm run typecheck` (project-wide `tsc --noEmit`) + `npm test` (vitest unit tests). Blocks commits with type, lint, or test failures.
    - **pre-push** — blocks direct pushes to `master`. Use a feature branch + PR. Bypass in a true emergency with `HUSKY=0 git push ...`.
 
@@ -594,6 +603,7 @@ src/
 3. **Configure Firebase**
 
    Copy `.env.local.example` to `.env.local` and fill in your Firebase project credentials:
+
    ```
    NEXT_PUBLIC_FIREBASE_API_KEY=
    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
@@ -602,6 +612,7 @@ src/
    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
    NEXT_PUBLIC_FIREBASE_APP_ID=
    ```
+
    Find these in: Firebase Console → Project Settings → Your Apps → SDK setup and configuration.
 
 4. **Run the dev server**
@@ -622,4 +633,4 @@ src/
 
 ---
 
-*Built iteratively as a solo side project. MVP playable end-to-end.*
+_Built iteratively as a solo side project. MVP playable end-to-end._
