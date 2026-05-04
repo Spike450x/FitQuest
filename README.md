@@ -585,7 +585,7 @@ src/
 
    ```bash
    git clone https://github.com/Spike450x/FitQuest.git
-   cd fitness-rpg-2.0
+   cd FitQuest
    ```
 
 2. **Install dependencies**
