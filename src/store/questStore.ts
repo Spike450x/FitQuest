@@ -17,6 +17,7 @@ const WEEKLY_QUEST_COUNT = 3;
 interface QuestStore {
   quests: ActiveQuest[];
   loading: boolean;
+  error: string | null;
   /**
    * Loads active (non-expired) quests for the user.
    * Automatically assigns 3 daily quests and 3 weekly quests (picked from the
@@ -39,9 +40,10 @@ interface QuestStore {
 export const useQuestStore = create<QuestStore>((set, get) => ({
   quests: [],
   loading: false,
+  error: null,
 
   fetchAndAssignQuests: async (uid) => {
-    set({ loading: true });
+    set({ loading: true, error: null });
     try {
       const now = Date.now();
 
@@ -98,8 +100,8 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       }
 
       set({ quests: [...existing, ...assigned], loading: false });
-    } catch {
-      set({ loading: false });
+    } catch (e) {
+      set({ error: (e as Error).message, loading: false });
     }
   },
 
@@ -156,5 +158,5 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
     return true;
   },
 
-  clear: () => set({ quests: [] }),
+  clear: () => set({ quests: [], error: null }),
 }));

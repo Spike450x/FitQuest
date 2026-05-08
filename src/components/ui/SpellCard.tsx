@@ -1,18 +1,8 @@
 'use client';
 
-import type { ItemDef, ItemRarity, SpellEffect } from '@/types';
+import type { ItemDef, SpellEffect } from '@/types';
 import { describeRequirement } from '@/lib/gameLogic/spells';
-import { RARITY_BADGE } from '@/lib/gameLogic/items';
-
-// ─── Rarity → card color scheme ───────────────────────────────────────────────
-
-const RARITY_CARD: Record<ItemRarity, { header: string; border: string; glow: string }> = {
-  common: { header: 'bg-gray-500', border: 'border-gray-300', glow: '' },
-  uncommon: { header: 'bg-green-600', border: 'border-green-300', glow: '' },
-  rare: { header: 'bg-blue-600', border: 'border-blue-300', glow: 'shadow-blue-100' },
-  epic: { header: 'bg-purple-600', border: 'border-purple-300', glow: 'shadow-purple-100' },
-  legendary: { header: 'bg-orange-500', border: 'border-orange-300', glow: 'shadow-orange-100' },
-};
+import { RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
 
 // ─── Effect → emoji ───────────────────────────────────────────────────────────
 

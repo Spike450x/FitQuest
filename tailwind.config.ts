@@ -9,10 +9,6 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // RPG dark theme palette
-        stone: {
-          950: '#0c0a09',
-        },
         gold: {
           DEFAULT: '#f59e0b',
           light: '#fcd34d',
@@ -20,9 +16,10 @@ const config: Config = {
         },
       },
       fontFamily: {
-        // Use system font — swap for a fantasy font later (e.g. MedievalSharp)
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-geist-mono)', 'monospace'],
+        // System font stack. Tier 3 plan replaces this with a fantasy display
+        // font for headings via next/font once that work begins.
+        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

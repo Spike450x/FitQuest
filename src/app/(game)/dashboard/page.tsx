@@ -7,11 +7,14 @@ import { useCharacter } from '@/hooks/useCharacter';
 import { useRecentActivity } from '@/hooks/useRecentActivity';
 import { XPBar } from '@/components/ui/XPBar';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { StatBar } from '@/components/character/StatBar';
 import { CLASS_DEFINITIONS, ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { getStreakTier } from '@/lib/gameLogic/streaks';
+import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
+import { getActivityIcon } from '@/lib/activityIcons';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { StatAllocModal } from '@/components/character/StatAllocModal';
 import { SubclassModal } from '@/components/character/SubclassModal';
@@ -33,21 +36,39 @@ const STAT_CONFIG = [
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { character, loading } = useCharacter();
+  const { character, loading, error: characterError, user } = useCharacter();
   const { logs, loading: logsLoading } = useRecentActivity(character?.uid);
-  const { quests, loading: questsLoading, fetchAndAssignQuests } = useQuestStore();
+  const {
+    quests,
+    loading: questsLoading,
+    error: questsError,
+    fetchAndAssignQuests,
+  } = useQuestStore();
 
   useEffect(() => {
-    if (!loading && !character) {
+    if (!loading && !character && !characterError) {
       router.replace('/character-creation');
     }
-  }, [character, loading, router]);
+  }, [character, loading, characterError, router]);
 
   useEffect(() => {
     if (character?.uid) fetchAndAssignQuests(character.uid);
   }, [character?.uid, fetchAndAssignQuests]);
 
-  if (loading || !character) return <LoadingSkeleton />;
+  if (loading) return <LoadingSkeleton />;
+
+  if (!character) {
+    if (characterError && user) {
+      return (
+        <ErrorBanner
+          title="Couldn't load your character."
+          message={characterError}
+          onRetry={() => useCharacterStore.getState().fetchCharacter(user.uid)}
+        />
+      );
+    }
+    return <LoadingSkeleton />;
+  }
 
   const classDef = CLASS_DEFINITIONS[character.class];
   const gearBonuses = totalGearBonuses(character.equippedGear);
@@ -65,6 +86,15 @@ export default function DashboardPage() {
 
       {/* Subclass picker — shown at level 10 before subclass is chosen */}
       {character.level >= 10 && !character.subclass && <SubclassModal character={character} />}
+
+      {/* Quest fetch error (non-fatal — character still rendered) */}
+      {questsError && (
+        <ErrorBanner
+          title="Couldn't load your quests."
+          message={questsError}
+          onRetry={() => fetchAndAssignQuests(character.uid)}
+        />
+      )}
 
       {/* Hero banner */}
       <div className="bg-gradient-to-br from-indigo-50 via-white to-violet-50 border border-indigo-100 rounded-xl p-6">
@@ -201,14 +231,6 @@ export default function DashboardPage() {
 
 // ─── Activity Feed Item ───────────────────────────────────────────────────────
 
-const ACTIVITY_ICONS: Record<string, string> = {
-  workout: '🏋️',
-  steps: '👟',
-  sleep: '😴',
-  water: '💧',
-  nutrition: '🥗',
-};
-
 function timeAgo(ms: number): string {
   const seconds = Math.floor((Date.now() - ms) / 1000);
   if (seconds < 60) return 'just now';
@@ -221,7 +243,7 @@ function timeAgo(ms: number): string {
 
 function ActivityFeedItem({ log }: { log: ActivityLog }) {
   const def = ACTIVITY_DEFINITIONS[log.type];
-  const icon = ACTIVITY_ICONS[log.type] ?? '📋';
+  const icon = getActivityIcon(log.type);
   const amount = (log.data as Record<string, number>).amount;
 
   return (

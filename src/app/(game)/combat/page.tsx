@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCharacter } from '@/hooks/useCharacter';
@@ -19,7 +20,7 @@ import {
   gearDefenseBonus,
 } from '@/lib/gameLogic/combat';
 import { getStreakLootMultiplier } from '@/lib/gameLogic/streaks';
-import { getItemById, RARITY_BADGE } from '@/lib/gameLogic/items';
+import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
 import { resolveAbility, getAbility } from '@/lib/gameLogic/abilities';
 import {
   resolveSpell,
@@ -39,6 +40,8 @@ import {
   canBloodPact,
 } from '@/lib/gameLogic/passives';
 import { SpellCard } from '@/components/ui/SpellCard';
+import { CombatEffects, useCombatBursts } from '@/components/combat/CombatEffects';
+import { toastReward, toastLoot } from '@/components/ui/Toaster';
 import { COMBAT } from '@/lib/gameLogic/constants';
 import type { MonsterDef, ItemDef, SpellDiceRequirement } from '@/types';
 import type { DicePattern, AbilityDef } from '@/lib/gameLogic/abilities';
@@ -206,6 +209,9 @@ export default function CombatPage() {
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [pendingAbility, setPendingAbility] = useState<PendingAbility | null>(null);
   const [pendingSpell, setPendingSpell] = useState<PendingSpell | null>(null);
+
+  // Combat-juice: floating damage numbers driven by the round log
+  const { bursts, expire } = useCombatBursts(fightState?.log ?? []);
 
   // Streak-based loot multiplier — applied to rare+ item drop chances on win
   const streakMultiplier = getStreakLootMultiplier(character?.streakData?.currentStreak ?? 0);
@@ -761,11 +767,26 @@ export default function CombatPage() {
   async function handleClaimRewards() {
     if (!pendingRewards) return;
     setClaiming(true);
-    await awardXpAndStats(pendingRewards.xpReward, {});
-    await awardGold(pendingRewards.goldReward);
-    await awardLoot(pendingRewards.uid, pendingRewards.droppedItems);
+    const { xpReward, goldReward, droppedItems, monster: defeated } = pendingRewards;
+    await awardXpAndStats(xpReward, {});
+    await awardGold(goldReward);
+    await awardLoot(pendingRewards.uid, droppedItems);
     setClaiming(false);
     setPendingRewards(null);
+
+    toastReward({
+      emoji: '⚔️',
+      title: `Defeated ${defeated.name}!`,
+      xp: xpReward,
+      gold: goldReward,
+    });
+    // Highlight epic/legendary drops with their own dedicated toasts
+    for (const itemId of droppedItems) {
+      const def = getItemById(itemId);
+      if (def && (def.rarity === 'epic' || def.rarity === 'legendary')) {
+        toastLoot(def.name, def.rarity);
+      }
+    }
   }
 
   async function handleBeginAgain() {
@@ -954,21 +975,25 @@ export default function CombatPage() {
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   Loot Added to Inventory
                 </p>
-                {droppedItems.map((itemId) => {
+                {droppedItems.map((itemId, idx) => {
                   const def = getItemById(itemId);
                   if (!def) return null;
+                  const card = RARITY_CARD[def.rarity];
                   return (
-                    <div
-                      key={itemId}
-                      className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-1.5"
+                    <motion.div
+                      key={`${itemId}-${idx}`}
+                      initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: idx * 0.18, duration: 0.4, ease: 'easeOut' }}
+                      className={`flex items-center justify-between rounded-lg px-3 py-2 border-2 ${card.border} ${card.glow ? `shadow-md ${card.glow}` : 'bg-gray-50'}`}
                     >
-                      <span className="text-xs font-medium text-gray-800">📦 {def.name}</span>
+                      <span className="text-xs font-semibold text-gray-800">📦 {def.name}</span>
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${RARITY_BADGE[def.rarity]}`}
                       >
                         {def.rarity}
                       </span>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
@@ -977,7 +1002,18 @@ export default function CombatPage() {
         )}
 
         {/* HP + Stamina + Magic bars */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3">
+        <motion.div
+          // Shake on monster damage taken — re-keyed on each hit so the animation re-plays
+          key={`hpblock-${log.length}-${lastEntry?.playerDamage ?? 0}-${lastEntry?.monsterDamage ?? 0}`}
+          animate={
+            (lastEntry?.playerDamage ?? 0) > 0 || (lastEntry?.monsterDamage ?? 0) > 0
+              ? { x: [0, -6, 6, -3, 3, 0] }
+              : {}
+          }
+          transition={{ duration: 0.3 }}
+          className="relative bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3 overflow-visible"
+        >
+          <CombatEffects bursts={bursts} onBurstExpired={expire} />
           <HpBar
             label={`You (${character.name})`}
             current={playerHp}
@@ -1019,7 +1055,7 @@ export default function CombatPage() {
             color="bg-gray-400"
             sub={`🛡️ ${monster.defense} DEF · ${Math.round(COMBAT.DEFENSE_FAIL_CHANCE * 100)}% bypass chance`}
           />
-        </div>
+        </motion.div>
 
         {/* Last roll summary */}
         {lastEntry && (

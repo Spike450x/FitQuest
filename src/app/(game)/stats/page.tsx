@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { useCharacter } from '@/hooks/useCharacter';
 import { getItemById } from '@/lib/gameLogic/items';
 import { ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
+import { ACTIVITY_ICONS } from '@/lib/activityIcons';
 import { getStreakTier, STREAK_TIERS } from '@/lib/gameLogic/streaks';
 import type { ActivityLog, ActiveQuest, InventoryItem, ActivityType, Character } from '@/types';
 import {
@@ -324,15 +325,6 @@ function StreakPanel({ character }: { character: Character }) {
 
 const ACTIVITY_ORDER: ActivityType[] = ['run', 'workout', 'steps', 'sleep', 'water', 'nutrition'];
 
-const ACTIVITY_ICONS_PR: Record<ActivityType, string> = {
-  run: '🏃',
-  workout: '🏋️',
-  steps: '👟',
-  sleep: '😴',
-  water: '💧',
-  nutrition: '🥗',
-};
-
 function PersonalRecordsPanel({ character }: { character: Character }) {
   const records = character.personalRecords ?? {};
   const hasAny = ACTIVITY_ORDER.some((t) => records[t]);
@@ -355,7 +347,7 @@ function PersonalRecordsPanel({ character }: { character: Character }) {
                   pr ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 opacity-50'
                 }`}
               >
-                <p className="text-2xl mb-1">{ACTIVITY_ICONS_PR[type]}</p>
+                <p className="text-2xl mb-1">{ACTIVITY_ICONS[type]}</p>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                   {def.label}
                 </p>

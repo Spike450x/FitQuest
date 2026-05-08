@@ -34,6 +34,19 @@ export const RARITY_TEXT: Record<ItemRarity, string> = {
   legendary: 'text-orange-500',
 };
 
+/**
+ * Saturated card-styling tokens (header bg, border, optional glow shadow).
+ * Used by playing-card-style components like SpellCard. Keeps rarity color
+ * choices in a single file alongside RARITY_BADGE / RARITY_TEXT.
+ */
+export const RARITY_CARD: Record<ItemRarity, { header: string; border: string; glow: string }> = {
+  common: { header: 'bg-gray-500', border: 'border-gray-300', glow: '' },
+  uncommon: { header: 'bg-green-600', border: 'border-green-300', glow: '' },
+  rare: { header: 'bg-blue-600', border: 'border-blue-300', glow: 'shadow-blue-100' },
+  epic: { header: 'bg-purple-600', border: 'border-purple-300', glow: 'shadow-purple-100' },
+  legendary: { header: 'bg-orange-500', border: 'border-orange-300', glow: 'shadow-orange-100' },
+};
+
 // ── Item catalog ─────────────────────────────────────────────────────────────
 
 export const ITEM_CATALOG: ItemDef[] = [

@@ -30,14 +30,19 @@
     ]
   },
   "dependencies": {
+    "canvas-confetti": "^1.9.4",
     "firebase": "^12.12.1",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.14.0",
     "next": "^14.2.3",
     "react": "^18",
     "react-dom": "^18",
     "recharts": "^3.8.1",
+    "sonner": "^2.0.7",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

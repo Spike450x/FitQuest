@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useQuestStore } from '@/store/questStore';
 import { getQuestDef } from '@/lib/gameLogic/quests';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { toast, toastReward } from '@/components/ui/Toaster';
 import type { ActiveQuest } from '@/types';
 
 function timeUntilExpiry(expiresAt: number): string {
@@ -171,7 +173,7 @@ function LoadingSkeleton() {
 
 export default function QuestsPage() {
   const { character } = useCharacter();
-  const { quests, loading, fetchAndAssignQuests, claimReward } = useQuestStore();
+  const { quests, loading, error, fetchAndAssignQuests, claimReward } = useQuestStore();
   const [claiming, setClaiming] = useState<string | null>(null);
 
   useEffect(() => {
@@ -185,9 +187,21 @@ export default function QuestsPage() {
 
   async function handleClaim(questId: string) {
     if (claiming) return;
+    const quest = quests.find((q) => q.id === questId);
+    const def = quest ? getQuestDef(quest.questDefId) : null;
     setClaiming(questId);
-    await claimReward(questId);
+    const ok = await claimReward(questId);
     setClaiming(null);
+    if (ok && def) {
+      toastReward({
+        emoji: '📜',
+        title: `${def.name} claimed!`,
+        xp: def.rewards.xp,
+        gold: def.rewards.gold,
+      });
+    } else if (!ok) {
+      toast.error('Could not claim that quest. Try again.');
+    }
   }
 
   return (
@@ -198,6 +212,14 @@ export default function QuestsPage() {
           Complete fitness goals to earn bonus XP and gold. Log activities to make progress.
         </p>
       </div>
+
+      {error && (
+        <ErrorBanner
+          title="Couldn't load your quests."
+          message={error}
+          onRetry={() => fetchAndAssignQuests(character.uid)}
+        />
+      )}
 
       {loading ? (
         <LoadingSkeleton />
