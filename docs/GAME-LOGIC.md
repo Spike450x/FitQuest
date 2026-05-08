@@ -4,7 +4,7 @@ Every exported symbol from `src/lib/gameLogic/*.ts` with a one-line description 
 
 For balance numbers (XP curves, stat caps, drop rates, formulas), see [`src/lib/gameLogic/constants.ts`](../src/lib/gameLogic/constants.ts) and the [Game Mechanics section of the README](../README.md#game-mechanics). For how stores call into these functions, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
-All functions are **pure and deterministic** except those that explicitly call `Math.random()` (`rollD10`, `rollSpellDice`, `rollLoot`, `rollRunAway`, `calculateRound`'s damage rolls, ability resolution randomness). The vitest suite at [`src/lib/gameLogic/__tests__/`](../src/lib/gameLogic/__tests__/) covers `xp`, `combat`, and `spells`.
+All functions are **pure and deterministic** except those that explicitly call `Math.random()` (`rollD10`, `rollSpellDice`, `rollLoot`, `rollRunAway`, `calculateRound`'s damage rolls, ability resolution randomness). The vitest suite at [`src/lib/gameLogic/__tests__/`](../src/lib/gameLogic/__tests__/) covers `xp`, `combat`, `spells`, `streaks`, `quests`, mastery milestone helpers in `constants`, and `activityCaps` (plus parity tests against the duplicated `functions/` copies).
 
 ---
 
@@ -30,6 +30,20 @@ The single source of truth for game numbers. Everything else imports from here.
 
 ---
 
+## `activityCaps.ts` — daily reward caps
+
+Tested in [`__tests__/activityCaps.test.ts`](../src/lib/gameLogic/__tests__/activityCaps.test.ts) and parity-tested against the `functions/` copy in [`__tests__/activityCaps-parity.test.ts`](../src/lib/gameLogic/__tests__/activityCaps-parity.test.ts).
+
+| Export                                                  | Kind     | Purpose                                                                                                                        |
+| ------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `ActivityType`                                          | type     | Union of the 6 activity types (`workout` \| `run` \| `steps` \| `sleep` \| `water` \| `nutrition`).                            |
+| `DAILY_ACTIVITY_CAPS`                                   | const    | Per-activity daily soft cap on the amount eligible for XP, stat gains, mastery, and quest progress. Excess still logs.         |
+| `eligibleAmountForRewards(type, alreadyLogged, amount)` | function | Returns the portion of `amount` still under the cap given today's prior total. Used by both client preview and Cloud Function. |
+
+**Why duplicated:** This module is also copied to `functions/src/gameLogic/activityCaps.ts` so the `logActivity` Cloud Function can apply the same cap without `@/` path-alias dependencies. The parity test asserts the two copies cannot drift.
+
+---
+
 ## `xp.ts` — leveling
 
 Tested in [`__tests__/xp.test.ts`](../src/lib/gameLogic/__tests__/xp.test.ts).
@@ -43,12 +57,12 @@ Tested in [`__tests__/xp.test.ts`](../src/lib/gameLogic/__tests__/xp.test.ts).
 
 ## `stats.ts` — stat application + resource math
 
-| Export                                    | Returns / Purpose                                                                                          |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `ResourceType`                            | `'hp' \| 'stamina' \| 'magic'`.                                                                            |
-| `ResourceRestore`                         | Result shape for `calculateResourceRestore`.                                                               |
-| `calculateResourceRestore(activity, ...)` | Maps an activity log to HP/stamina/magic restore amounts (e.g. sleep → stamina, water → magic, food → HP). |
-| `applyStatGains(stats, gains, statCap)`   | Applies per-stat gains and clamps each stat to its cap. Used by `awardXpAndStats` and `awardMastery`.      |
+| Export                                    | Returns / Purpose                                                                                                                            |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ResourceType`                            | `'hp' \| 'stamina' \| 'magic'`.                                                                                                              |
+| `ResourceRestore`                         | Result shape for `calculateResourceRestore`.                                                                                                 |
+| `calculateResourceRestore(activity, ...)` | Maps an activity log to HP/stamina/magic restore amounts (e.g. sleep → stamina, water → magic, food → HP).                                   |
+| `applyStatGains(stats, gains, statCap)`   | Applies per-stat gains and clamps each stat to its cap. Used by `awardXpAndStats` (mastery awards live in the `logActivity` Cloud Function). |
 
 ---
 
