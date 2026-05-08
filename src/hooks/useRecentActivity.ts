@@ -21,7 +21,16 @@ export function useRecentActivity(uid: string | null | undefined, count = 5) {
       q,
       (snap) => {
         const items = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }) as ActivityLog)
+          .map((d) => {
+            const data = d.data();
+            // rewardEligible was added after MVP; old docs lack the field.
+            // Default to true — they were written before caps existed and were always eligible.
+            return {
+              id: d.id,
+              ...data,
+              rewardEligible: (data.rewardEligible as boolean | undefined) ?? true,
+            } as ActivityLog;
+          })
           .sort((a, b) => b.loggedAt - a.loggedAt)
           .slice(0, count);
         setLogs(items);

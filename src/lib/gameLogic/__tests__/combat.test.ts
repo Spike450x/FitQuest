@@ -263,6 +263,33 @@ describe('rollLoot', () => {
   it('returns empty array for empty loot table', () => {
     expect(rollLoot([])).toEqual([]);
   });
+
+  it('legendary pity does nothing below threshold (10 dry kills)', () => {
+    // godslayer is legendary in items.ts. Base chance 0.05 → roll 0.06 misses.
+    vi.spyOn(Math, 'random').mockReturnValue(0.06);
+    const table = [{ itemId: 'godslayer', chance: 0.05 }];
+    expect(rollLoot(table, 1, 5)).toEqual([]);
+  });
+
+  it('legendary pity adds 2% per kill above threshold of 10', () => {
+    // 20 dry kills = 10 above threshold = +20% additive bonus
+    // Base 0.05 + 0.20 = 0.25 effective. Roll 0.24 should drop, 0.26 should not.
+    vi.spyOn(Math, 'random').mockReturnValueOnce(0.24);
+    const table = [{ itemId: 'godslayer', chance: 0.05 }];
+    expect(rollLoot(table, 1, 20)).toEqual(['godslayer']);
+
+    vi.restoreAllMocks();
+    vi.spyOn(Math, 'random').mockReturnValueOnce(0.26);
+    expect(rollLoot(table, 1, 20)).toEqual([]);
+  });
+
+  it('legendary pity does not affect non-legendary items', () => {
+    // dragonbone-blade is rare, not legendary — pity should not apply
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const table = [{ itemId: 'dragonbone-blade', chance: 0.1 }];
+    // Even with absurd dry streak, non-legendary chance stays at 0.1
+    expect(rollLoot(table, 1, 100)).toEqual([]);
+  });
 });
 
 // ── rollRunAway ───────────────────────────────────────────────────────────────

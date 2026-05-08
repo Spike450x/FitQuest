@@ -71,13 +71,30 @@ interface CharacterStore {
    */
   restoreMagic: (amount: number) => Promise<void>;
   /**
-   * Increment the mastery log count for a mastery activity (run/workout/steps).
-   * If the new count hits a milestone, awards +1 to the linked stat automatically.
-   * Returns true if a milestone was hit.
+   * Optimistically applies a server-confirmed mastery result to local state —
+   * no Firestore write. Call after the `logActivity` Cloud Function returns.
+   * Mirrors what the function wrote: masteryCounts[activityType] = newCount,
+   * and if milestoneHit, stats[linkedStat]++ (capped as usual).
    */
-  awardMastery: (activityType: MasteryActivityType) => Promise<boolean>;
+  applyMasteryLocal: (
+    activityType: MasteryActivityType,
+    newCount: number,
+    milestoneHit: boolean,
+  ) => void;
+  /**
+   * Optimistically applies a server-confirmed resource restore to local state —
+   * no Firestore write. Call after the `logActivity` Cloud Function returns with
+   * a `restored` result. `newValue` is the authoritative value from the function.
+   */
+  applyRestoreLocal: (resourceType: 'hp' | 'stamina' | 'magic', newValue: number) => void;
   /** Permanently records the chosen subclass. Can only be called once (level 10). */
   chooseSubclass: (subclass: CharacterSubclass) => Promise<void>;
+  /**
+   * Update the legendary dry-streak counter for a monster after combat resolves.
+   * Increments on a kill with no legendary drop; resets to 0 on a legendary
+   * drop. Drives the pity system in rollLoot().
+   */
+  updateMonsterPity: (monsterId: string, gotLegendary: boolean) => Promise<void>;
   clear: () => void;
 }
 
@@ -324,13 +341,9 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     set({ character: { ...character, currentMagic: newMagic } });
   },
 
-  awardMastery: async (activityType) => {
+  applyMasteryLocal: (activityType, newCount, milestoneHit) => {
     const { character } = get();
-    if (!character) return false;
-
-    const oldCount = character.masteryCounts?.[activityType] ?? 0;
-    const newCount = oldCount + 1;
-    const milestoneHit = isMasteryMilestone(newCount);
+    if (!character) return;
 
     const updates: Partial<Character> = {
       masteryCounts: { ...character.masteryCounts, [activityType]: newCount },
@@ -347,10 +360,19 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       };
     }
 
-    await updateDoc(doc(db, 'characters', character.uid), updates);
     set({ character: { ...character, ...updates } });
+  },
 
-    return milestoneHit;
+  applyRestoreLocal: (resourceType, newValue) => {
+    const { character } = get();
+    if (!character) return;
+    const field =
+      resourceType === 'hp'
+        ? 'currentHp'
+        : resourceType === 'stamina'
+          ? 'currentStamina'
+          : 'currentMagic';
+    set({ character: { ...character, [field]: newValue } });
   },
 
   chooseSubclass: async (subclass) => {
@@ -360,6 +382,22 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     if (character.level < 10 || character.subclass) return;
     await updateDoc(doc(db, 'characters', character.uid), { subclass });
     set({ character: { ...character, subclass } });
+  },
+
+  updateMonsterPity: async (monsterId, gotLegendary) => {
+    const { character } = get();
+    if (!character) return;
+    const current = character.legendaryDryStreak?.[monsterId] ?? 0;
+    const next = gotLegendary ? 0 : current + 1;
+    const newDryStreak = { ...character.legendaryDryStreak, [monsterId]: next };
+    // NOTE (R5): legendaryDryStreak accumulates one key per monster ever fought.
+    // At current catalog size (~10 monsters) this is fine. Revisit when the monster
+    // catalog exceeds ~50 entries (e.g. when Dungeons ships) — prune keys that no
+    // longer appear in MONSTER_CATALOG to keep the character document lean.
+    await updateDoc(doc(db, 'characters', character.uid), {
+      legendaryDryStreak: newDryStreak,
+    });
+    set({ character: { ...character, legendaryDryStreak: newDryStreak } });
   },
 
   clear: () => set({ character: null, error: null }),

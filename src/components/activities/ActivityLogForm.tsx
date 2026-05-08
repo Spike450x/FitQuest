@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
@@ -14,8 +14,45 @@ import {
 } from '@/lib/gameLogic/constants';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
 import { computeNewStreak, getStreakTier, todayUTC } from '@/lib/gameLogic/streaks';
-import { toast, toastPersonalRecord, toastStreakTier } from '@/components/ui/Toaster';
+import {
+  toast,
+  toastPersonalRecord,
+  toastStreakTier,
+  toastMasteryMilestone,
+} from '@/components/ui/Toaster';
 import type { ActivityType } from '@/types';
+
+// ─── logActivity callable types ──────────────────────────────────────────────
+// Mirrors the interface in functions/src/index.ts — keep in sync.
+
+interface LogActivityInput {
+  activityType: ActivityType;
+  amount: number;
+  unit: string;
+}
+
+interface LogActivityResult {
+  logId: string;
+  rewardEligible: boolean;
+  eligibleAmount: number;
+  justHitCap: boolean;
+  masteryHit: boolean;
+  linkedStatLabel?: string;
+  /** Authoritative count after this log — use instead of client estimate to avoid cross-device drift. */
+  newMasteryCount?: number;
+  /**
+   * Set for eligible restore activities (nutrition/sleep/water).
+   * amount: how much was actually restored (0 if already at max).
+   * newValue: authoritative new resource value for optimistic local update.
+   */
+  restored?: {
+    resourceType: 'hp' | 'stamina' | 'magic';
+    newValue: number;
+    amount: number;
+  };
+}
+
+const logActivityFn = httpsCallable<LogActivityInput, LogActivityResult>(functions, 'logActivity');
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -80,10 +117,8 @@ type LogResult = MasteryResult | RestoreResult;
 
 export function ActivityLogForm() {
   const { character } = useCharacter();
-  const restoreHp = useCharacterStore((s) => s.restoreHp);
-  const restoreStamina = useCharacterStore((s) => s.restoreStamina);
-  const restoreMagic = useCharacterStore((s) => s.restoreMagic);
-  const awardMastery = useCharacterStore((s) => s.awardMastery);
+  const applyMasteryLocal = useCharacterStore((s) => s.applyMasteryLocal);
+  const applyRestoreLocal = useCharacterStore((s) => s.applyRestoreLocal);
   const persistStreakAndRecord = useCharacterStore((s) => s.persistStreakAndRecord);
   const updateQuestProgress = useQuestStore((s) => s.updateQuestProgress);
 
@@ -103,7 +138,7 @@ export function ActivityLogForm() {
     e.preventDefault();
     if (!character || submitting || !amountValid) return;
 
-    // Snapshot the streak tier *before* persisting so we can detect a tier-up
+    // Snapshot the streak tier *before* persisting so we can detect a tier-up.
     const beforeStreak = character.streakData?.currentStreak ?? 0;
     const beforeTier = getStreakTier(beforeStreak);
     const projectedStreak = computeNewStreak(character.streakData, todayUTC()).currentStreak;
@@ -111,40 +146,52 @@ export function ActivityLogForm() {
     const tierUpgraded =
       afterTier.minDays > beforeTier.minDays && afterTier.label !== beforeTier.label;
 
+    // Snapshot PR state before any writes — used for the result card and toast.
+    const currentPr = character.personalRecords?.[activeTab];
+    const isNewRecord = !currentPr || parsedAmount > currentPr.value;
+
     setSubmitting(true);
     try {
+      // ── Call logActivity Cloud Function ───────────────────────────────────────
+      // The function owns the authoritative aggregate query + activityLog write +
+      // mastery milestone stat award. It returns `eligibleAmount` for us to use
+      // in quest-progress and restore calls below.
+      const { data: fnResult } = await logActivityFn({
+        activityType: activeTab,
+        amount: parsedAmount,
+        unit: def.unit,
+      });
+      const {
+        rewardEligible,
+        eligibleAmount,
+        justHitCap,
+        masteryHit,
+        linkedStatLabel,
+        newMasteryCount,
+      } = fnResult;
+      const capReached = !rewardEligible;
+
       // ── Mastery activities (run / workout / steps) ──────────────────────────
       if (MASTERY_ACTIVITIES.has(activeTab)) {
         const type = activeTab as MasteryActivityType;
         const config = MASTERY_CONFIG[type];
 
-        const milestoneHit = await awardMastery(type);
-        const newCount = (character.masteryCounts?.[type] ?? 0) + 1;
-
-        const currentPr = character.personalRecords?.[activeTab];
-        const isNewRecord = !currentPr || parsedAmount > currentPr.value;
-
-        await addDoc(collection(db, 'activityLogs'), {
-          uid: character.uid,
-          type: activeTab,
-          data: { amount: parsedAmount, unit: def.unit },
-          statGains: {},
-          xpGained: 0,
-          loggedAt: Date.now(),
-        });
-
-        await Promise.all([
-          updateQuestProgress(character.uid, activeTab, parsedAmount),
-          persistStreakAndRecord(activeTab, parsedAmount, def.unit),
-        ]);
+        // Prefer the server-authoritative count; fall back to client estimate only
+        // if the function somehow omits it (future-proofing against old deploys).
+        const newCount =
+          newMasteryCount ??
+          (rewardEligible
+            ? (character.masteryCounts?.[type] ?? 0) + 1
+            : (character.masteryCounts?.[type] ?? 0));
+        applyMasteryLocal(type, newCount, masteryHit);
 
         setResult({
           kind: 'mastery',
           activityType: type,
           activityLabel: def.label,
           newCount,
-          milestoneHit,
-          linkedStatLabel: config.linkedStatLabel,
+          milestoneHit: masteryHit,
+          linkedStatLabel: linkedStatLabel ?? config.linkedStatLabel,
           nextMilestone: nextMasteryMilestone(newCount),
           isNewRecord,
         });
@@ -152,64 +199,27 @@ export function ActivityLogForm() {
         // ── Restoration activities (nutrition / sleep / water) ──────────────────
       } else if (RESTORE_ACTIVITIES.has(activeTab)) {
         const type = activeTab as 'nutrition' | 'sleep' | 'water';
-        const restore = calculateResourceRestore(activeTab, parsedAmount)!;
+        // The function computed the capped restore amount server-side and already
+        // wrote the new value to Firestore. We just mirror it to local state.
+        const restored = fnResult.restored;
+        const actualRestored = restored?.amount ?? 0;
+        const alreadyFull = restored ? restored.amount === 0 : false;
 
-        const maxHp = playerMaxHp(character);
-        const maxStamina = playerMaxStamina(character);
-        const maxMagic = playerMaxMagic(character);
-
-        const currentVal =
-          restore.resourceType === 'hp'
-            ? (character.currentHp ?? maxHp)
-            : restore.resourceType === 'stamina'
-              ? (character.currentStamina ?? maxStamina)
-              : restore.resourceType === 'magic'
-                ? (character.currentMagic ?? maxMagic)
-                : 0;
-
-        const maxVal =
-          restore.resourceType === 'hp'
-            ? maxHp
-            : restore.resourceType === 'stamina'
-              ? maxStamina
-              : maxMagic;
-
-        const alreadyFull = currentVal >= maxVal;
-        const actualRestored = alreadyFull ? 0 : Math.min(restore.amount, maxVal - currentVal);
-
-        if (!alreadyFull) {
-          if (restore.resourceType === 'hp') await restoreHp(restore.amount);
-          if (restore.resourceType === 'stamina') await restoreStamina(restore.amount);
-          if (restore.resourceType === 'magic') await restoreMagic(restore.amount);
+        if (restored && restored.amount > 0) {
+          applyRestoreLocal(restored.resourceType, restored.newValue);
         }
-
-        await addDoc(collection(db, 'activityLogs'), {
-          uid: character.uid,
-          type: activeTab,
-          data: { amount: parsedAmount, unit: def.unit },
-          statGains: {},
-          xpGained: 0,
-          loggedAt: Date.now(),
-        });
-
-        await Promise.all([
-          updateQuestProgress(character.uid, activeTab, parsedAmount),
-          persistStreakAndRecord(activeTab, parsedAmount, def.unit),
-        ]);
 
         setResult({
           kind: 'restore',
           activityType: type,
           activityLabel: def.label,
-          resourceType: restore.resourceType,
+          resourceType: restored?.resourceType ?? 'hp',
           restored: actualRestored,
           alreadyFull,
         });
       }
 
-      // ── Celebrations (PR + streak tier-up) ───────────────────────────────
-      const currentPr = character.personalRecords?.[activeTab];
-      const isNewRecord = !currentPr || parsedAmount > currentPr.value;
+      // ── Celebrations (PR + streak tier-up + cap notice) ──────────────────────
       if (isNewRecord) {
         toastPersonalRecord(def.label, parsedAmount, def.unit);
       }
@@ -218,8 +228,40 @@ export function ActivityLogForm() {
       } else if (projectedStreak === 1 && beforeStreak === 0) {
         toast(`🔥 Streak started! Day 1`, { description: 'Log tomorrow to keep it going.' });
       }
+      if (capReached) {
+        toast(`📒 Daily reward cap reached`, {
+          description: `Logged for your records — rewards reset tomorrow.`,
+        });
+      } else if (justHitCap) {
+        toast(`✅ Daily ${def.label.toLowerCase()} cap reached`, {
+          description: `Future logs today will record but won't grant rewards.`,
+        });
+      }
+      if (masteryHit && linkedStatLabel) {
+        toastMasteryMilestone(linkedStatLabel, def.label);
+      }
 
       setAmount('');
+
+      // ── Quest progress + streak — fire-and-forget ─────────────────────────────
+      // These are secondary writes: the result card is already visible. A failure
+      // here doesn't roll back the activity log. Both stores reconcile with
+      // Firestore on the next mount (fetchAndAssignQuests / fetchCharacter), so
+      // the stale window is at most the current navigation session.
+      if (eligibleAmount > 0) {
+        updateQuestProgress(character.uid, activeTab, eligibleAmount).catch((e) =>
+          console.error('[ActivityLogForm] Quest progress sync failed:', e),
+        );
+      }
+      persistStreakAndRecord(activeTab, parsedAmount, def.unit).catch((e) =>
+        console.error('[ActivityLogForm] Streak sync failed:', e),
+      );
+    } catch (err) {
+      // logActivity function call failed — activity was NOT logged.
+      toast('Failed to log activity', {
+        description: 'Please check your connection and try again.',
+      });
+      console.error('[ActivityLogForm] logActivity failed:', err);
     } finally {
       setSubmitting(false);
     }

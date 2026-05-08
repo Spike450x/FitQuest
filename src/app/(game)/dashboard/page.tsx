@@ -110,7 +110,7 @@ export default function DashboardPage() {
             </p>
             {/* Streak badge */}
             {currentStreak > 0 && (
-              <div className="flex items-center gap-1.5 mt-2">
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                 <span className="text-base">🔥</span>
                 <span className={`text-sm font-semibold ${streakTier.color}`}>
                   Day {currentStreak}
@@ -121,7 +121,19 @@ export default function DashboardPage() {
                     +{Math.round((streakTier.lootDropMultiplier - 1) * 100)}% rare drops
                   </span>
                 )}
+                {(character.streakData?.shields ?? 0) > 0 && (
+                  <span
+                    title="If you miss a day, this shield protects your streak. Refills each week."
+                    className="text-xs font-medium text-sky-600 bg-sky-50 border border-sky-200 rounded-full px-2 py-0.5 cursor-default"
+                  >
+                    🛡️ Shield ready
+                  </span>
+                )}
               </div>
+            )}
+            {/* Shield hint when streak exists but no shield is held */}
+            {currentStreak > 0 && (character.streakData?.shields ?? 0) === 0 && (
+              <p className="text-xs text-gray-400 mt-1">🛡️ No shield — refills next week</p>
             )}
           </div>
           <GoldDisplay amount={character.gold} size="lg" />
@@ -313,6 +325,28 @@ function QuestProgressRow({ quest }: { quest: ActiveQuest }) {
   const pct = Math.min(100, Math.round((quest.progress / def.requirement.target) * 100));
   const isComplete = quest.completedAt !== null;
   const isClaimed = quest.claimedAt !== null;
+  const isMultiTarget = (def.extraTargets?.length ?? 0) > 0;
+
+  // For the compact dashboard widget, a multi-target quest shows the overall
+  // completion status: "N/M done" to keep the row from getting too tall.
+  const totalTargets = 1 + (def.extraTargets?.length ?? 0);
+  const doneTargets =
+    (quest.progress >= def.requirement.target ? 1 : 0) +
+    (def.extraTargets?.filter((et) => (quest.extraProgress?.[et.activityType] ?? 0) >= et.target)
+      .length ?? 0);
+
+  // Pick the least-progressed target for the main bar (shows the bottleneck)
+  const bottleneckPct = isMultiTarget
+    ? Math.min(
+        pct,
+        ...(def.extraTargets?.map((et) =>
+          Math.min(
+            100,
+            Math.round(((quest.extraProgress?.[et.activityType] ?? 0) / et.target) * 100),
+          ),
+        ) ?? []),
+      )
+    : pct;
 
   return (
     <li className="space-y-1">
@@ -327,6 +361,10 @@ function QuestProgressRow({ quest }: { quest: ActiveQuest }) {
           >
             Claim! →
           </Link>
+        ) : isMultiTarget ? (
+          <span className="text-xs text-gray-400 shrink-0">
+            {doneTargets}/{totalTargets} done
+          </span>
         ) : (
           <span className="text-xs text-gray-400 shrink-0">{pct}%</span>
         )}
@@ -336,12 +374,23 @@ function QuestProgressRow({ quest }: { quest: ActiveQuest }) {
           className={`h-1.5 rounded-full transition-all duration-500 ${
             isClaimed ? 'bg-emerald-400' : isComplete ? 'bg-amber-400' : 'bg-indigo-500'
           }`}
-          style={{ width: `${pct}%` }}
+          style={{ width: `${bottleneckPct}%` }}
         />
       </div>
       <span className="text-xs text-gray-400">
+        {isMultiTarget && (
+          <span className="font-medium capitalize">{def.requirement.activityType}: </span>
+        )}
         {quest.progress.toLocaleString()} / {def.requirement.target.toLocaleString()}{' '}
         {def.requirement.unit}
+        {def.extraTargets?.map((et) => (
+          <span key={et.activityType}>
+            {' · '}
+            <span className="font-medium capitalize">{et.activityType}: </span>
+            {(quest.extraProgress?.[et.activityType] ?? 0).toLocaleString()} /{' '}
+            {et.target.toLocaleString()} {et.unit}
+          </span>
+        ))}
       </span>
     </li>
   );

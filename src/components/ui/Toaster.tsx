@@ -71,3 +71,11 @@ export function toastStreakTier(tierLabel: string, currentStreak: number) {
     duration: 5000,
   });
 }
+
+/** Mastery milestone — permanent +1 stat for consistency on an activity. */
+export function toastMasteryMilestone(linkedStatLabel: string, activityLabel: string) {
+  toast.success(`⬆️ Mastery milestone: +1 ${linkedStatLabel}`, {
+    description: `Earned through consistent ${activityLabel.toLowerCase()} logs.`,
+    duration: 6000,
+  });
+}

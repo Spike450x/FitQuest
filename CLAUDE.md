@@ -22,11 +22,11 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 ---
 
-## Current Status (last updated 2026-05-03)
+## Current Status (last updated 2026-05-08)
 
-**Shipped:** MVP phases 1–5 + Spells (21-spell catalog, dice resolution) + Streaks/PRs (Blessing tiers, 1.5× PR XP) + Subclasses (6, level-10 unlock) + Profile analytics. Recent: type renames, Firestore rules hardening, `resetCharacter` / `awardMastery` correctness fixes (2026-05-03).
+**Shipped:** MVP phases 1–5 + Spells (21-spell catalog, dice resolution) + Streaks/PRs (Blessing tiers, 1.5× PR XP) + Subclasses (6, level-10 unlock) + Profile analytics + R1 streak boost transparency in victory modal + R4-StageB `logActivity` Cloud Function (server-side daily-cap enforcement, mastery writes) + R4-StageC restore migration (HP/Stamina/Magic capped at formula-derived max server-side) + CI Firestore rules auto-deploy. Recent: type renames, Firestore rules hardening, `resetCharacter` correctness fixes, `awardMastery` removed (owned by Cloud Function).
 
-**Active focus:** Stable. Planning next post-MVP feature.
+**Active focus:** Dungeons — multi-room runs with escalating loot.
 
 **Next priorities (post-MVP backlog, prioritized):**
 

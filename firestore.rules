@@ -73,7 +73,10 @@ service cloud.firestore {
     // up to 1.5×). Decreases are always allowed (level-up rollover, gold spend,
     // resetCharacter, future prestige).
     function isValidCharacterDelta(newData, oldData) {
-      return (newData.xp    - oldData.xp)    <= 5000
+      // XP cap tightened from 5000 → 600 after activity-cap audit.
+      // Largest single legit gain: top quest at level 50 (~350 XP) × streak ×1.25 ≈ 440 XP.
+      // 600 gives comfortable headroom while closing the sustained-drip fraud window.
+      return (newData.xp    - oldData.xp)    <= 600
           && (newData.gold  - oldData.gold)  <= 2000
           && (newData.level - oldData.level) <= 5;
     }
@@ -154,13 +157,20 @@ service cloud.firestore {
     }
 
     function isValidActivityLog(data) {
-      return data.uid      is string
-          && data.id       is string
+      // rewardEligible = false means the log was over-cap; the rule then
+      // requires xpGained == 0 and statGains empty. This prevents a client
+      // from marking a log ineligible while still crediting rewards, and
+      // prevents a forged client from omitting the field to skip the check.
+      return data.uid             is string
+          && data.id              is string
           && isValidActivityType(data.type)
-          && data.xpGained is int && data.xpGained >= 0 && data.xpGained <= 500
-          && data.loggedAt is int && isRecentTimestamp(data.loggedAt)
-          && data.data      is map
-          && data.statGains is map;
+          && data.xpGained        is int && data.xpGained >= 0 && data.xpGained <= 500
+          && data.loggedAt        is int && isRecentTimestamp(data.loggedAt)
+          && data.data            is map
+          && data.statGains       is map
+          && data.rewardEligible  is bool
+          // Enforce: ineligible logs must carry zero rewards
+          && (data.rewardEligible == true || (data.xpGained == 0 && data.statGains.size() == 0));
     }
 
     match /activityLogs/{docId} {
@@ -236,6 +246,9 @@ service cloud.firestore {
           // (a single legit activity log can move progress by that much). 100,000
           // gives ~2× headroom for future quests while blocking "set progress to MAX_INT".
           && (data.progress - resource.data.progress) <= 100000
+          // extraProgress: optional map for multi-target quests; no value can
+          // decrease (write-once per activity type after assignment).
+          && (!('extraProgress' in data) || data.extraProgress is map)
           // completedAt: null → int only; can never go backwards or be changed once set
           && (data.completedAt == null
               || (resource.data.completedAt == null
