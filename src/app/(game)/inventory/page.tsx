@@ -7,6 +7,9 @@ import { useInventoryStore } from '@/store/inventoryStore';
 import { getItemById, RARITY_BADGE } from '@/lib/gameLogic/items';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
 import { SpellCard } from '@/components/ui/SpellCard';
+import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { toast } from '@/components/ui/Toaster';
+import { useInventoryNewMarkers } from '@/hooks/useInventoryNewMarkers';
 import { COMBAT } from '@/lib/gameLogic/constants';
 import type { ItemType } from '@/types';
 
@@ -30,6 +33,7 @@ export default function InventoryPage() {
   const {
     items,
     loading,
+    error: storeError,
     fetchInventory,
     equipItem,
     unequipItem,
@@ -48,6 +52,18 @@ export default function InventoryPage() {
     if (character?.uid) fetchInventory(character.uid);
   }, [character?.uid, fetchInventory]);
 
+  const { isNew, markAllSeen } = useInventoryNewMarkers(character?.uid, items);
+
+  // Once items have loaded for this visit, clear the NEW markers so they don't
+  // re-appear on the next page open. The list is already rendered with the
+  // pre-clear snapshot, so this fires on unmount.
+  useEffect(() => {
+    if (!loading && items.length > 0) {
+      const t = setTimeout(markAllSeen, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [loading, items.length, markAllSeen]);
+
   if (!character) return null;
 
   // "all" tab hides spells to avoid clutter — they have their own tab
@@ -60,25 +76,30 @@ export default function InventoryPage() {
 
   async function handleEquip(inventoryItemId: string) {
     if (!character || acting) return;
+    const def = getItemById(items.find((i) => i.id === inventoryItemId)?.itemDefId ?? '');
     setActing(inventoryItemId);
     await equipItem(inventoryItemId, character.uid);
     setActing(null);
+    if (def) toast.success(`Equipped ${def.name}`);
   }
 
   async function handleUnequip(inventoryItemId: string) {
     if (!character || acting) return;
+    const def = getItemById(items.find((i) => i.id === inventoryItemId)?.itemDefId ?? '');
     setActing(inventoryItemId);
     await unequipItem(inventoryItemId, character.uid);
     setActing(null);
+    if (def) toast(`Unequipped ${def.name}`);
   }
 
   async function handleUse(inventoryItemId: string) {
     if (!character || acting) return;
+    const def = getItemById(items.find((i) => i.id === inventoryItemId)?.itemDefId ?? '');
     setActing(inventoryItemId);
     const maxHp = playerMaxHp(character);
     const maxStamina = playerMaxStamina(character);
     const maxMagic = playerMaxMagic(character);
-    await consumeItem(
+    const result = await consumeItem(
       inventoryItemId,
       character.currentHp ?? maxHp,
       maxHp,
@@ -88,38 +109,63 @@ export default function InventoryPage() {
       maxMagic,
     );
     setActing(null);
+    if (def) {
+      const parts: string[] = [];
+      if (result.hpGained > 0) parts.push(`+${result.hpGained} HP`);
+      if (result.staminaGained > 0) parts.push(`+${result.staminaGained} Stamina`);
+      if (result.magicGained > 0) parts.push(`+${result.magicGained} Magic`);
+      toast.success(`Used ${def.name}`, {
+        description: parts.length ? parts.join(' · ') : 'No effect — already topped up.',
+      });
+    }
   }
 
   async function handleEquipSpell(inventoryItemId: string) {
     if (!character || acting) return;
+    const def = getItemById(items.find((i) => i.id === inventoryItemId)?.itemDefId ?? '');
     setActing(inventoryItemId);
     setSpellError(null);
     const result = await equipSpell(inventoryItemId);
-    if (!result.ok && result.reason) setSpellError(result.reason);
+    if (!result.ok && result.reason) {
+      setSpellError(result.reason);
+      toast.error(result.reason);
+    } else if (result.ok && def) {
+      toast.success(`Spell equipped: ${def.name}`);
+    }
     setActing(null);
   }
 
   async function handleUnequipSpell(inventoryItemId: string) {
     if (!character || acting) return;
+    const def = getItemById(items.find((i) => i.id === inventoryItemId)?.itemDefId ?? '');
     setActing(inventoryItemId);
     await unequipSpell(inventoryItemId);
     setActing(null);
+    if (def) toast(`Spell unequipped: ${def.name}`);
   }
 
   async function handleEquipConsumable(inventoryItemId: string) {
     if (!character || acting) return;
+    const def = getItemById(items.find((i) => i.id === inventoryItemId)?.itemDefId ?? '');
     setActing(inventoryItemId);
     setConsumableError(null);
     const result = await equipConsumable(inventoryItemId);
-    if (!result.ok && result.reason) setConsumableError(result.reason);
+    if (!result.ok && result.reason) {
+      setConsumableError(result.reason);
+      toast.error(result.reason);
+    } else if (result.ok && def) {
+      toast.success(`Added to combat pack: ${def.name}`);
+    }
     setActing(null);
   }
 
   async function handleUnequipConsumable(inventoryItemId: string) {
     if (!character || acting) return;
+    const def = getItemById(items.find((i) => i.id === inventoryItemId)?.itemDefId ?? '');
     setActing(inventoryItemId);
     await unequipConsumable(inventoryItemId);
     setActing(null);
+    if (def) toast(`Removed from pack: ${def.name}`);
   }
 
   // ── Derived state ──────────────────────────────────────────────────────────
@@ -146,6 +192,14 @@ export default function InventoryPage() {
           Equip gear for stat bonuses. Load up to 5 spells before combat.
         </p>
       </div>
+
+      {storeError && (
+        <ErrorBanner
+          title="Couldn't load your inventory."
+          message={storeError}
+          onRetry={() => fetchInventory(character.uid)}
+        />
+      )}
 
       {/* Loadout row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -376,6 +430,7 @@ export default function InventoryPage() {
             if (!def?.spellMechanics) return null;
             const isEquipped = invItem.equipped;
             const isActing = acting === invItem.id;
+            const isNewItem = isNew(invItem.id);
             const actionLabel = isEquipped
               ? isActing
                 ? 'Removing…'
@@ -385,18 +440,24 @@ export default function InventoryPage() {
                 : `Add to Loadout (${equippedSpells.length}/${COMBAT.MAX_EQUIPPED_SPELLS})`;
 
             return (
-              <SpellCard
-                key={invItem.id}
-                def={def}
-                wisdomValue={character.stats.wisdom}
-                isEquipped={isEquipped}
-                disabled={!!acting}
-                acting={isActing}
-                actionLabel={actionLabel}
-                onAction={() =>
-                  isEquipped ? handleUnequipSpell(invItem.id) : handleEquipSpell(invItem.id)
-                }
-              />
+              <div key={invItem.id} className="relative">
+                {isNewItem && (
+                  <span className="absolute -top-2 -right-2 z-10 text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-400 text-white shadow animate-pulse">
+                    NEW
+                  </span>
+                )}
+                <SpellCard
+                  def={def}
+                  wisdomValue={character.stats.wisdom}
+                  isEquipped={isEquipped}
+                  disabled={!!acting}
+                  acting={isActing}
+                  actionLabel={actionLabel}
+                  onAction={() =>
+                    isEquipped ? handleUnequipSpell(invItem.id) : handleEquipSpell(invItem.id)
+                  }
+                />
+              </div>
             );
           })}
         </div>
@@ -425,6 +486,11 @@ export default function InventoryPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-gray-900 text-sm">{def.name}</h3>
+                      {isNew(invItem.id) && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-400 text-white animate-pulse">
+                          NEW
+                        </span>
+                      )}
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-medium ${RARITY_BADGE[def.rarity]}`}
                       >

@@ -8,6 +8,7 @@ import { auth } from '@/lib/firebase';
 import { useCharacter } from '@/hooks/useCharacter';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { XPBar } from '@/components/ui/XPBar';
+import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
 import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
 
 const NAV_ITEMS = [
@@ -34,6 +35,9 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
+      {/* Global level-up celebration — fires whenever character.level increases */}
+      <LevelUpCelebration />
+
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <header className="border-b border-gray-200 bg-white/90 backdrop-blur sticky top-0 z-20 h-14">
         <div className="h-full px-4 flex items-center justify-between gap-4">
@@ -85,6 +89,8 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
               <Link
                 href="/profile"
                 title="Profile"
+                aria-label={`Profile (${character.name})`}
+                aria-current={pathname === '/profile' ? 'page' : undefined}
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors border ${
                   pathname === '/profile'
                     ? 'bg-indigo-600 text-white border-indigo-600'
@@ -95,6 +101,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
               </Link>
             )}
             <button
+              type="button"
               onClick={handleSignOut}
               className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
             >
@@ -118,8 +125,11 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         >
           {/* Collapse toggle */}
           <button
+            type="button"
             onClick={() => setCollapsed((v) => !v)}
             title={collapsed ? 'Expand menu' : 'Collapse menu'}
+            aria-label={collapsed ? 'Expand menu' : 'Collapse menu'}
+            aria-expanded={!collapsed}
             className="flex items-center justify-center h-9 border-b border-gray-100 hover:bg-gray-50 transition-colors text-gray-400 hover:text-gray-600 shrink-0"
           >
             <svg
@@ -135,7 +145,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
           </button>
 
           {/* Nav links */}
-          <nav className="flex-1 py-2 px-1.5 space-y-0.5">
+          <nav className="flex-1 py-2 px-1.5 space-y-0.5" aria-label="Primary">
             {NAV_ITEMS.map(({ href, label, icon }) => {
               const active = pathname === href;
               return (
@@ -143,6 +153,8 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
                   key={href}
                   href={href}
                   title={collapsed ? label : undefined}
+                  aria-label={collapsed ? label : undefined}
+                  aria-current={active ? 'page' : undefined}
                   className={`
                     flex items-center gap-2.5 rounded-lg text-sm transition-colors
                     ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'}
@@ -153,7 +165,9 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
                     }
                   `}
                 >
-                  <span className="text-base leading-none shrink-0">{icon}</span>
+                  <span className="text-base leading-none shrink-0" aria-hidden="true">
+                    {icon}
+                  </span>
                   {!collapsed && <span className="truncate">{label}</span>}
                 </Link>
               );
@@ -162,25 +176,36 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         </aside>
 
         {/* ── Main content ──────────────────────────────────────────────────── */}
-        <main className="flex-1 min-w-0 py-6 px-4 sm:px-6">{children}</main>
+        <main id="main-content" className="flex-1 min-w-0 py-6 px-4 sm:px-6">
+          {children}
+        </main>
       </div>
 
       {/* ── Mobile bottom nav ─────────────────────────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t border-gray-200 z-10">
+      <nav
+        className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t border-gray-200 z-10"
+        aria-label="Primary"
+      >
         <ul className="flex justify-around">
-          {NAV_ITEMS.slice(0, 5).map(({ href, label, icon }) => (
-            <li key={href}>
-              <Link
-                href={href}
-                className={`flex flex-col items-center py-2 px-3 text-xs transition-colors ${
-                  pathname === href ? 'text-indigo-600' : 'text-gray-400'
-                }`}
-              >
-                <span className="text-lg">{icon}</span>
-                {label}
-              </Link>
-            </li>
-          ))}
+          {NAV_ITEMS.slice(0, 5).map(({ href, label, icon }) => {
+            const active = pathname === href;
+            return (
+              <li key={href}>
+                <Link
+                  href={href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex flex-col items-center py-2 px-3 text-xs transition-colors ${
+                    active ? 'text-indigo-600' : 'text-gray-400'
+                  }`}
+                >
+                  <span className="text-lg" aria-hidden="true">
+                    {icon}
+                  </span>
+                  {label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
     </div>

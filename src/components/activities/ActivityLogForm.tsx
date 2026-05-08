@@ -13,6 +13,8 @@ import {
   type MasteryActivityType,
 } from '@/lib/gameLogic/constants';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
+import { computeNewStreak, getStreakTier, todayUTC } from '@/lib/gameLogic/streaks';
+import { toast, toastPersonalRecord, toastStreakTier } from '@/components/ui/Toaster';
 import type { ActivityType } from '@/types';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
@@ -100,6 +102,14 @@ export function ActivityLogForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!character || submitting || !amountValid) return;
+
+    // Snapshot the streak tier *before* persisting so we can detect a tier-up
+    const beforeStreak = character.streakData?.currentStreak ?? 0;
+    const beforeTier = getStreakTier(beforeStreak);
+    const projectedStreak = computeNewStreak(character.streakData, todayUTC()).currentStreak;
+    const afterTier = getStreakTier(projectedStreak);
+    const tierUpgraded =
+      afterTier.minDays > beforeTier.minDays && afterTier.label !== beforeTier.label;
 
     setSubmitting(true);
     try {
@@ -195,6 +205,18 @@ export function ActivityLogForm() {
           restored: actualRestored,
           alreadyFull,
         });
+      }
+
+      // ── Celebrations (PR + streak tier-up) ───────────────────────────────
+      const currentPr = character.personalRecords?.[activeTab];
+      const isNewRecord = !currentPr || parsedAmount > currentPr.value;
+      if (isNewRecord) {
+        toastPersonalRecord(def.label, parsedAmount, def.unit);
+      }
+      if (tierUpgraded && afterTier.label) {
+        toastStreakTier(afterTier.label, projectedStreak);
+      } else if (projectedStreak === 1 && beforeStreak === 0) {
+        toast(`🔥 Streak started! Day 1`, { description: 'Log tomorrow to keep it going.' });
       }
 
       setAmount('');
