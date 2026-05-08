@@ -130,14 +130,17 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
   │  │  createCharacter         buyItem             Quests         │   │
   │  │  awardXpAndStats         awardLoot           updateQuest    │   │
   │  │  awardGold               equipItem           Progress       │   │
-  │  │  setHpLocal              unequipItem         claimReward    │   │
-  │  │  updateCurrentHp         useConsumable                      │   │
-  │  │  restoreHp/Stamina/Magic equipSpell/                        │   │
-  │  │  allocateStatPoint        Consumable                        │   │
+  │  │  setHpLocal/Stamina/     unequipItem         claimReward    │   │
+  │  │   MagicLocal             consumeItem                        │   │
+  │  │  updateCurrentHp/        equipSpell/                        │   │
+  │  │   Stamina/Magic           Consumable                        │   │
+  │  │  allocateStatPoint                                          │   │
   │  │  resetCharacter                                             │   │
   │  │  persistStreakAndRecord                                     │   │
-  │  │  awardMastery                                               │   │
+  │  │  applyMasteryLocal                                          │   │
+  │  │  applyRestoreLocal                                          │   │
   │  │  chooseSubclass                                             │   │
+  │  │  updateMonsterPity                                          │   │
   │  └─────────────────────────────────────────────────────────────┘   │
   │                                   │                                 │
   │  ┌─────────────────────────────────────────────────────────────┐   │
@@ -188,7 +191,8 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
   │                          └─ equipped, acquiredAt                    │
   │                                                                     │
   │                          activityLogs/{docId}                       │
-  │                          └─ uid, type, data, statGains, xpGained    │
+  │                          ├─ uid, type, data, statGains, xpGained    │
+  │                          └─ loggedAt, rewardEligible                │
   │                                                                     │
   │                          activeQuests/{docId}                       │
   │                          ├─ uid, questDefId, progress               │
@@ -197,10 +201,14 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
 
   KEY DATA FLOWS
   ─────────────
-  Activity Log  →  awardMastery() + persistStreakAndRecord()
-                →  restoreHp/Stamina/Magic() [nutrition/sleep/water]
-                →  updateQuestProgress() → quest completedAt set
-                →  activityLogs Firestore write
+  Activity Log  →  logActivity Cloud Function (authoritative writes)
+                     ├─ server-side daily-cap aggregate query
+                     ├─ activityLogs Firestore write (with rewardEligible)
+                     ├─ mastery: masteryCounts++ + stat++ at milestone
+                     └─ restore: HP/Stamina/Magic capped at formula max
+                →  applyMasteryLocal/applyRestoreLocal (mirror to Zustand)
+                →  updateQuestProgress() + persistStreakAndRecord()
+                     [client-side, fire-and-forget]
 
   Combat Round  →  calculateRound() | resolveAbility() | resolveSpell()
                 →  applyOutgoingPassives() → applyIncomingPassives()
