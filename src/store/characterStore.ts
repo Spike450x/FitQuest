@@ -34,11 +34,6 @@ interface CharacterStore {
   setStaminaLocal: (stamina: number) => void;
   /** Persists current stamina to Firestore. Call at end of combat. */
   updateCurrentStamina: (stamina: number) => Promise<void>;
-  /**
-   * Restore stamina by the given amount (capped at max).
-   * Persists immediately — called after activities like sleep, water, nutrition.
-   */
-  restoreStamina: (amount: number) => Promise<void>;
   /** Instantly updates magic in local state only — no Firestore write. */
   setMagicLocal: (magic: number) => void;
   /** Persists current magic to Firestore. Call at end of combat. */
@@ -60,16 +55,6 @@ interface CharacterStore {
     value: number,
     unit: string,
   ) => Promise<boolean>;
-  /**
-   * Restore HP by the given amount (capped at max).
-   * Persists immediately — called after nutrition logging.
-   */
-  restoreHp: (amount: number) => Promise<void>;
-  /**
-   * Restore magic by the given amount (capped at max).
-   * Persists immediately — called after water logging.
-   */
-  restoreMagic: (amount: number) => Promise<void>;
   /**
    * Optimistically applies a server-confirmed mastery result to local state —
    * no Firestore write. Call after the `logActivity` Cloud Function returns.
@@ -228,17 +213,6 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     set({ character: { ...character, currentStamina: stamina } });
   },
 
-  restoreStamina: async (amount) => {
-    const { character } = get();
-    if (!character || amount <= 0) return;
-    const max = playerMaxStamina(character);
-    const current = character.currentStamina ?? max;
-    const newStamina = Math.min(current + amount, max);
-    if (newStamina === current) return; // already full
-    await updateDoc(doc(db, 'characters', character.uid), { currentStamina: newStamina });
-    set({ character: { ...character, currentStamina: newStamina } });
-  },
-
   setMagicLocal: (magic) => {
     const { character } = get();
     if (!character) return;
@@ -317,28 +291,6 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     set({ character: { ...character, ...updates } });
 
     return isNewRecord;
-  },
-
-  restoreHp: async (amount) => {
-    const { character } = get();
-    if (!character || amount <= 0) return;
-    const max = playerMaxHp(character);
-    const current = character.currentHp ?? max;
-    const newHp = Math.min(current + amount, max);
-    if (newHp === current) return; // already full
-    await updateDoc(doc(db, 'characters', character.uid), { currentHp: newHp });
-    set({ character: { ...character, currentHp: newHp } });
-  },
-
-  restoreMagic: async (amount) => {
-    const { character } = get();
-    if (!character || amount <= 0) return;
-    const max = playerMaxMagic(character);
-    const current = character.currentMagic ?? max;
-    const newMagic = Math.min(current + amount, max);
-    if (newMagic === current) return; // already full
-    await updateDoc(doc(db, 'characters', character.uid), { currentMagic: newMagic });
-    set({ character: { ...character, currentMagic: newMagic } });
   },
 
   applyMasteryLocal: (activityType, newCount, milestoneHit) => {
