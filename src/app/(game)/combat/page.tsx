@@ -18,8 +18,9 @@ import {
   rollLoot,
   gearAttackBonus,
   gearDefenseBonus,
+  LEGENDARY_PITY_THRESHOLD,
 } from '@/lib/gameLogic/combat';
-import { getStreakLootMultiplier } from '@/lib/gameLogic/streaks';
+import { getStreakLootMultiplier, getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
 import { resolveAbility, getAbility } from '@/lib/gameLogic/abilities';
 import {
@@ -151,6 +152,8 @@ interface PendingAbility {
 
 interface PendingRewards {
   xpReward: number;
+  /** Streak multiplier applied to xpReward at kill-time (1.0 = no boost). */
+  streakMultiplier: number;
   goldReward: number;
   droppedItems: string[];
   monster: MonsterDef;
@@ -189,6 +192,7 @@ export default function CombatPage() {
   const setMagicLocal = useCharacterStore((s) => s.setMagicLocal);
   const updateCurrentMagic = useCharacterStore((s) => s.updateCurrentMagic);
   const resetCharacter = useCharacterStore((s) => s.resetCharacter);
+  const updateMonsterPity = useCharacterStore((s) => s.updateMonsterPity);
   const inventoryItems = useInventoryStore((s) => s.items);
   const fetchInventory = useInventoryStore((s) => s.fetchInventory);
   const awardLoot = useInventoryStore((s) => s.awardLoot);
@@ -216,6 +220,11 @@ export default function CombatPage() {
   // Streak-based loot multiplier — applied to rare+ item drop chances on win
   const streakMultiplier = getStreakLootMultiplier(character?.streakData?.currentStreak ?? 0);
 
+  /** Pity counter for the active monster — drives the legendary soft-boost in rollLoot. */
+  function getPityFor(monsterId: string): number {
+    return character?.legendaryDryStreak?.[monsterId] ?? 0;
+  }
+
   useEffect(() => {
     if (character?.uid) fetchInventory(character.uid);
   }, [character?.uid, fetchInventory]);
@@ -233,6 +242,16 @@ export default function CombatPage() {
     .filter((i) => i.equipped)
     .map((i) => ({ invItem: i, def: getItemById(i.itemDefId) }))
     .filter((x) => x.def?.type === 'spell' && x.def.spellMechanics !== undefined);
+
+  /** Captures the streak multiplier at call-time and returns both the multiplier value
+   *  and a boost function. Call once per kill so every consumer (modal, toast, award)
+   *  sees the same number — snapshotting here prevents mid-victory-screen streak ticks
+   *  from changing the displayed reward. */
+  function getStreakBoost(): { multiplier: number; boost: (rawXp: number) => number } {
+    const streak = character?.streakData?.currentStreak ?? 0;
+    const multiplier = getStreakXpMultiplier(streak);
+    return { multiplier, boost: (rawXp) => Math.round(rawXp * multiplier) };
+  }
 
   function enterFight(monster: MonsterDef) {
     const startHp = character!.currentHp ?? maxHp;
@@ -386,7 +405,7 @@ export default function CombatPage() {
         : magicAfterBarrier;
 
     const droppedItems = killedMonster
-      ? rollLoot(snapshot.monster.lootTable, streakMultiplier)
+      ? rollLoot(snapshot.monster.lootTable, streakMultiplier, getPityFor(snapshot.monster.id))
       : snapshot.droppedItems;
 
     const entry: RoundEntry = {
@@ -440,8 +459,10 @@ export default function CombatPage() {
           await updateCurrentStamina(snapshot.playerStamina);
           await updateCurrentMagic(finalPlayerMagic);
           if (outcome === 'win') {
+            const { multiplier: streakMult, boost: streakBoost } = getStreakBoost();
             setPendingRewards({
-              xpReward: snapshot.monster.xpReward,
+              xpReward: streakBoost(snapshot.monster.xpReward),
+              streakMultiplier: streakMult,
               goldReward: snapshot.monster.goldReward,
               droppedItems,
               monster: snapshot.monster,
@@ -539,7 +560,7 @@ export default function CombatPage() {
     );
 
     const droppedItems = killedMonster
-      ? rollLoot(fightState.monster.lootTable, streakMultiplier)
+      ? rollLoot(fightState.monster.lootTable, streakMultiplier, getPityFor(fightState.monster.id))
       : fightState.droppedItems;
 
     const snapshot = fightState;
@@ -601,8 +622,10 @@ export default function CombatPage() {
           await updateCurrentStamina(newStamina);
           await updateCurrentMagic(finalPlayerMagic);
           if (outcome === 'win') {
+            const { multiplier: streakMult, boost: streakBoost } = getStreakBoost();
             setPendingRewards({
-              xpReward: snapshot.monster.xpReward,
+              xpReward: streakBoost(snapshot.monster.xpReward),
+              streakMultiplier: streakMult,
               goldReward: snapshot.monster.goldReward,
               droppedItems,
               monster: snapshot.monster,
@@ -691,7 +714,7 @@ export default function CombatPage() {
         : magicAfterBarrier;
 
     const droppedItems = killedMonster
-      ? rollLoot(snapshot.monster.lootTable, streakMultiplier)
+      ? rollLoot(snapshot.monster.lootTable, streakMultiplier, getPityFor(snapshot.monster.id))
       : snapshot.droppedItems;
 
     const totalSpellHeal = resolution.healAmount + spellSoulDrain;
@@ -748,8 +771,10 @@ export default function CombatPage() {
           await updateCurrentStamina(newStamina);
           await updateCurrentMagic(finalPlayerMagic);
           if (outcome === 'win') {
+            const { multiplier: streakMult, boost: streakBoost } = getStreakBoost();
             setPendingRewards({
-              xpReward: snapshot.monster.xpReward,
+              xpReward: streakBoost(snapshot.monster.xpReward),
+              streakMultiplier: streakMult,
               goldReward: snapshot.monster.goldReward,
               droppedItems,
               monster: snapshot.monster,
@@ -767,10 +792,18 @@ export default function CombatPage() {
   async function handleClaimRewards() {
     if (!pendingRewards) return;
     setClaiming(true);
+    // xpReward is already streak-boosted (captured at kill-time via getStreakBoost) so
+    // the modal, toast, and awardXpAndStats all use the same pre-computed value.
     const { xpReward, goldReward, droppedItems, monster: defeated } = pendingRewards;
+    // Pity bookkeeping: did this kill yield a legendary from this monster's table?
+    const gotLegendary = droppedItems.some((id) => {
+      const def = getItemById(id);
+      return def?.rarity === 'legendary';
+    });
     await awardXpAndStats(xpReward, {});
     await awardGold(goldReward);
     await awardLoot(pendingRewards.uid, droppedItems);
+    await updateMonsterPity(defeated.id, gotLegendary);
     setClaiming(false);
     setPendingRewards(null);
 
@@ -1055,6 +1088,23 @@ export default function CombatPage() {
             color="bg-gray-400"
             sub={`🛡️ ${monster.defense} DEF · ${Math.round(COMBAT.DEFENSE_FAIL_CHANCE * 100)}% bypass chance`}
           />
+          {/* Pity tracker — shown once a hunt has begun */}
+          {getPityFor(monster.id) > 0 &&
+            (() => {
+              const pity = getPityFor(monster.id);
+              const active = pity >= LEGENDARY_PITY_THRESHOLD;
+              const boostPct = active
+                ? Math.min(Math.round((pity - LEGENDARY_PITY_THRESHOLD) * 0.02 * 100), 85)
+                : 0;
+              return (
+                <p
+                  className={`text-xs font-medium ${active ? 'text-orange-600' : 'text-gray-400'}`}
+                >
+                  {active ? '🔥' : '🎯'} Hunting · {pity} kill{pity !== 1 ? 's' : ''}
+                  {active && ` · +${boostPct}% legendary`}
+                </p>
+              );
+            })()}
         </motion.div>
 
         {/* Last roll summary */}
@@ -1403,6 +1453,7 @@ export default function CombatPage() {
             key={monster.id}
             monster={monster}
             playerLevel={character.level}
+            dryStreak={getPityFor(monster.id)}
             onFight={enterFight}
           />
         ))}
@@ -2901,10 +2952,12 @@ function AbilityReference({ characterClass }: { characterClass: string }) {
 function MonsterCard({
   monster,
   playerLevel,
+  dryStreak = 0,
   onFight,
 }: {
   monster: MonsterDef;
   playerLevel: number;
+  dryStreak?: number;
   onFight: (m: MonsterDef) => void;
 }) {
   const emoji = MONSTER_EMOJI[monster.id] ?? '👾';
@@ -2912,6 +2965,13 @@ function MonsterCard({
   const diffLabel = levelDiff <= -2 ? 'Easy' : levelDiff <= 1 ? 'Fair' : 'Hard';
   const diffColor =
     levelDiff <= -2 ? 'text-emerald-500' : levelDiff <= 1 ? 'text-amber-500' : 'text-red-500';
+  const pityActive = dryStreak >= LEGENDARY_PITY_THRESHOLD;
+  const pityBoostPct = pityActive
+    ? Math.min(
+        Math.round((dryStreak - LEGENDARY_PITY_THRESHOLD) * 0.02 * 100),
+        Math.round((0.95 - 0.1) * 100), // visual cap based on a 10% base chance
+      )
+    : 0;
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3">
@@ -2937,6 +2997,31 @@ function MonsterCard({
         <span>⚔️ {monster.attack} ATK</span>
         <span>🛡️ {monster.defense} DEF</span>
       </div>
+      {/* Hunting / pity badge — only shown when the player has fought this monster before */}
+      {dryStreak > 0 && (
+        <div
+          className={`flex items-center gap-1.5 text-xs font-medium rounded-lg px-2.5 py-1.5 border ${
+            pityActive
+              ? 'bg-orange-50 border-orange-200 text-orange-700'
+              : 'bg-slate-50 border-slate-200 text-slate-600'
+          }`}
+          title={
+            pityActive
+              ? `Legendary drop chance is boosted +${pityBoostPct}% after ${dryStreak} dry kills`
+              : `${LEGENDARY_PITY_THRESHOLD - dryStreak} more kills until legendary pity kicks in`
+          }
+        >
+          <span>{pityActive ? '🔥' : '🎯'}</span>
+          <span>
+            Hunting · {dryStreak} kill{dryStreak !== 1 ? 's' : ''}
+          </span>
+          {pityActive && (
+            <span className="ml-auto font-semibold text-orange-600">
+              +{pityBoostPct}% legendary
+            </span>
+          )}
+        </div>
+      )}
       <button
         onClick={() => onFight(monster)}
         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
@@ -2977,6 +3062,11 @@ function BattleResultsModal({
           <div className="flex-1 bg-indigo-50 rounded-xl p-3 text-center">
             <p className="text-2xl font-bold text-indigo-600">+{pending.xpReward}</p>
             <p className="text-xs text-gray-400 mt-0.5">XP</p>
+            {pending.streakMultiplier > 1.0 && (
+              <p className="text-xs text-emerald-600 font-medium mt-1">
+                🔥 ×{pending.streakMultiplier.toFixed(2)} streak
+              </p>
+            )}
           </div>
           <div className="flex-1 bg-amber-50 rounded-xl p-3 text-center">
             <p className="text-2xl font-bold text-amber-500">+{pending.goldReward}</p>

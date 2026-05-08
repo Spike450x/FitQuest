@@ -18,7 +18,9 @@
     "test:coverage": "vitest run --coverage",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "validate:indexes": "node scripts/validate-firestore-indexes.mjs",
+    "deploy:prod": "node scripts/validate-firestore-indexes.mjs && npx firebase deploy --only firestore:indexes,firestore:rules && npx firebase deploy --only functions"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
@@ -52,6 +54,7 @@
     "eslint": "^8",
     "eslint-config-next": "^14.2.3",
     "eslint-config-prettier": "^10.1.8",
+    "firebase-tools": "^13.35.1",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
     "postcss": "^8",

@@ -99,6 +99,7 @@ interface ActivityLog {
   statGains: Partial<Stats>;
   xpGained: number; // ≥ 0
   loggedAt: number; // unix ms — server-window-validated
+  rewardEligible: boolean; // set by logActivity Cloud Function after daily-cap check
 }
 ```
 
@@ -187,11 +188,25 @@ A claim grants gold + XP. Without the `resource.data.completedAt != null` constr
 
 ## Indexes
 
-`firestore.indexes.json` does not exist in the repo — only Firestore's default single-field indexes are in use. The store deliberately avoids compound queries:
+Indexes are declared in [`firestore.indexes.json`](../firestore.indexes.json) at the repo root and deployed with:
 
-> See [`src/store/questStore.ts:48`](../src/store/questStore.ts) — querying `activeQuests` filters by `uid` only and applies the `expiresAt` filter client-side, to skip a composite index requirement.
+```bash
+firebase deploy --only firestore:indexes
+```
 
-If a future feature needs a composite query (e.g. `activityLogs` filtered by `uid` + `type` + `loggedAt`), add it here as `firestore.indexes.json` and deploy with `firebase deploy --only firestore:indexes`.
+`firebase.json` points to this file via `"firestore": { "indexes": "firestore.indexes.json" }`. The `deploy:prod` npm script enforces deploy ordering — indexes and rules first, then functions — so the composite index always exists before the Cloud Function queries it.
+
+### Active composite indexes
+
+| Collection     | Fields (in order)                     | Purpose                                                                                                    |
+| -------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `activityLogs` | `uid ASC`, `type ASC`, `loggedAt ASC` | 3-field query in `logActivity` Cloud Function — aggregate today's logged amount for daily-cap enforcement. |
+
+The `questStore` deliberately avoids composite queries for `activeQuests` — it filters by `uid` only and applies the `expiresAt` check client-side. No index needed there.
+
+### Drift protection
+
+`scripts/validate-firestore-indexes.mjs` validates the schema of `firestore.indexes.json` (required shape, valid `order`/`arrayConfig` values) and runs in CI before any deploy step. A failing validation blocks the CI run before any code is type-checked, linted, or tested.
 
 ---
 

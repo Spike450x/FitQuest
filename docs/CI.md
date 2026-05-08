@@ -20,7 +20,7 @@ The local hooks fail fast (seconds) so the cloud run is rarely the first time a 
 
 ## GitHub Actions — `.github/workflows/ci.yml`
 
-Single workflow named `CI`. One job, `Typecheck, Lint, Test`, runs on Ubuntu with Node 20.
+Single workflow named `CI`. One job, `Typecheck, Lint, Test`, runs on Ubuntu with Node 20. On pushes to `master` (after all checks pass), it also deploys the Firestore security rules to the live project.
 
 ### Triggers
 
@@ -45,16 +45,35 @@ permissions:
 
 ### Steps
 
-| #   | Step         | Command                | Catches                                                                                                                                                           |
-| --- | ------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Checkout     | `actions/checkout@…`   | n/a — fetches the repo. SHA-pinned (see below).                                                                                                                   |
-| 2   | Setup Node   | `actions/setup-node@…` | Pins Node 20 + npm cache.                                                                                                                                         |
-| 3   | Install      | `npm ci`               | Lockfile drift / missing dependencies.                                                                                                                            |
-| 4   | Format check | `npm run format:check` | Prettier diff noise — files that aren't formatted to the shared baseline.                                                                                         |
-| 5   | Typecheck    | `npm run typecheck`    | TypeScript errors across the whole project (`tsc --noEmit`).                                                                                                      |
-| 6   | Lint         | `npm run lint`         | ESLint errors and `next/core-web-vitals` rule violations.                                                                                                         |
-| 7   | Test         | `npm test`             | Vitest unit suite (game-logic regressions in `src/lib/gameLogic/`).                                                                                               |
-| 8   | Build        | `npm run build:ci`     | Next.js build issues that typecheck doesn't surface (e.g. RSC boundaries). Uses dummy Firebase env from `.env.ci` so the build doesn't connect to real Firestore. |
+| #   | Step                       | Command / condition                                             | Catches / purpose                                                                                                                                                 |
+| --- | -------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Checkout                   | `actions/checkout@…`                                            | n/a — fetches the repo. SHA-pinned (see below).                                                                                                                   |
+| 2   | Setup Node                 | `actions/setup-node@…`                                          | Pins Node 20 + npm cache.                                                                                                                                         |
+| 3   | Install                    | `npm ci`                                                        | Lockfile drift / missing dependencies.                                                                                                                            |
+| 4   | Validate Firestore indexes | `node scripts/validate-firestore-indexes.mjs`                   | Schema drift in `firestore.indexes.json` before deploy.                                                                                                           |
+| 5   | Typecheck Cloud Functions  | `cd functions && npm ci && npx tsc --noEmit`                    | TypeScript errors in `functions/src/`.                                                                                                                            |
+| 6   | Format check               | `npm run format:check`                                          | Prettier diff noise — files that aren't formatted to the shared baseline.                                                                                         |
+| 7   | Typecheck                  | `npm run typecheck`                                             | TypeScript errors across the whole project (`tsc --noEmit`).                                                                                                      |
+| 8   | Lint                       | `npm run lint`                                                  | ESLint errors and `next/core-web-vitals` rule violations.                                                                                                         |
+| 9   | Test                       | `npm test`                                                      | Vitest unit suite (game-logic regressions in `src/lib/gameLogic/`).                                                                                               |
+| 10  | Build                      | `npm run build:ci`                                              | Next.js build issues that typecheck doesn't surface (e.g. RSC boundaries). Uses dummy Firebase env from `.env.ci` so the build doesn't connect to real Firestore. |
+| 11  | Deploy Firestore rules     | `npx firebase deploy --only firestore:rules` (master push only) | Auto-deploys `firestore.rules` to `fitness-rpg-claude` after all checks pass. Skipped on PRs.                                                                     |
+
+### Firestore rules auto-deploy (step 11)
+
+Step 11 deploys `firestore.rules` automatically after a successful master-push run. It is skipped on PR builds — PRs only validate, they never deploy.
+
+**Authentication:** the step uses a long-lived Firebase CI token stored as the `FIREBASE_TOKEN` GitHub Actions secret. This is a one-time maintainer setup:
+
+```bash
+npx firebase-tools login:ci   # opens browser → outputs a CI token
+```
+
+Copy the token → GitHub repo **Settings → Secrets and variables → Actions → New repository secret** → name `FIREBASE_TOKEN`.
+
+`firebase-tools` is listed as a devDependency in `package.json` so `npm ci` (step 3) installs it, and `npx firebase` resolves it from `node_modules/.bin/` without a global install.
+
+**What it deploys:** only `firestore:rules` — indexes and functions are _not_ auto-deployed. Indexes and functions require manual ordering via `npm run deploy:prod` because the composite index must exist before the function is deployed.
 
 ### Action pinning
 
@@ -143,6 +162,9 @@ These are _separate_ from the version-bump config above and are toggled in **Set
 | Direct push to `master`                                    | pre-push (local) + branch protection (GitHub) |
 | Compromised third-party action                             | SHA pinning + `permissions: contents: read`   |
 | New CVE in a dependency                                    | Dependabot security updates                   |
+| Stale `firestore.rules` (merged but not deployed)          | Auto-deploy step on master push               |
+| `firestore.indexes.json` schema drift                      | Validate Firestore indexes step (CI)          |
+| Cloud Function type error                                  | Typecheck Cloud Functions step (CI)           |
 
 ---
 

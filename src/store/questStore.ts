@@ -1,13 +1,19 @@
 import { create } from 'zustand';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { DAILY_QUEST_POOL, WEEKLY_QUEST_POOL, getQuestDef } from '@/lib/gameLogic/quests';
+import {
+  DAILY_QUEST_POOL,
+  WEEKLY_QUEST_POOL,
+  getQuestDef,
+  scaleQuestRewards,
+} from '@/lib/gameLogic/quests';
 import {
   getDailyPick,
   getWeeklyPick,
   dailyExpiresAt,
   weeklyExpiresAt,
 } from '@/lib/gameLogic/rotation';
+import { getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
 import { useCharacterStore } from './characterStore';
 import type { ActiveQuest, ActivityType } from '@/types';
 
@@ -109,29 +115,73 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
     const { quests } = get();
     const now = Date.now();
 
-    // Find quests that match the activity type and are not yet complete/expired
-    const targets = quests.filter((q) => {
+    // A quest is eligible for progress if it's incomplete, unexpired, and has
+    // at least one target (primary or extra) matching the logged activity type.
+    const eligible = quests.filter((q) => {
       if (q.completedAt !== null) return false;
       if (q.expiresAt <= now) return false;
       const def = getQuestDef(q.questDefId);
-      return def?.requirement.activityType === activityType;
+      if (!def) return false;
+      return (
+        def.requirement.activityType === activityType ||
+        def.extraTargets?.some((t) => t.activityType === activityType)
+      );
     });
 
-    if (targets.length === 0) return;
+    if (eligible.length === 0) return;
 
     const dbUpdates: Promise<void>[] = [];
     const nextQuests = quests.map((q) => {
-      if (!targets.find((t) => t.id === q.id)) return q;
+      if (!eligible.find((e) => e.id === q.id)) return q;
 
       const def = getQuestDef(q.questDefId)!;
-      const newProgress = Math.min(q.progress + amount, def.requirement.target);
-      const completedAt = newProgress >= def.requirement.target ? now : null;
 
-      dbUpdates.push(
-        updateDoc(doc(db, 'activeQuests', q.id), { progress: newProgress, completedAt }),
-      );
+      // ── Primary target ───────────────────────────────────────────────────────
+      const newProgress =
+        def.requirement.activityType === activityType
+          ? Math.min(q.progress + amount, def.requirement.target)
+          : q.progress;
 
-      return { ...q, progress: newProgress, completedAt };
+      // ── Extra targets ────────────────────────────────────────────────────────
+      let newExtraProgress = q.extraProgress ? { ...q.extraProgress } : undefined;
+      if (def.extraTargets) {
+        // Dev guard (R6): duplicate activityType across extraTargets would cause key
+        // collision — progress for the second target overwrites the first at the same key.
+        // The quest pool test catches this at definition time; this assertion catches it
+        // at runtime during development so a bad definition is immediately visible.
+        if (process.env.NODE_ENV !== 'production') {
+          const seen = new Set<string>();
+          for (const et of def.extraTargets) {
+            if (seen.has(et.activityType)) {
+              console.error(
+                `[questStore] Quest "${def.id}" has duplicate extraTarget activityType "${et.activityType}". Progress tracking will be incorrect.`,
+              );
+            }
+            seen.add(et.activityType);
+          }
+        }
+        newExtraProgress = newExtraProgress ?? {};
+        for (const et of def.extraTargets) {
+          if (et.activityType === activityType) {
+            const prev = newExtraProgress[activityType] ?? 0;
+            newExtraProgress[activityType] = Math.min(prev + amount, et.target);
+          }
+        }
+      }
+
+      // ── Completion check — ALL targets must be met ───────────────────────────
+      const primaryMet = newProgress >= def.requirement.target;
+      const extrasMet =
+        !def.extraTargets ||
+        def.extraTargets.every((et) => (newExtraProgress?.[et.activityType] ?? 0) >= et.target);
+      const completedAt = primaryMet && extrasMet ? now : null;
+
+      const dbPayload: Record<string, unknown> = { progress: newProgress, completedAt };
+      if (newExtraProgress !== undefined) dbPayload.extraProgress = newExtraProgress;
+
+      dbUpdates.push(updateDoc(doc(db, 'activeQuests', q.id), dbPayload));
+
+      return { ...q, progress: newProgress, extraProgress: newExtraProgress, completedAt };
     });
 
     await Promise.all(dbUpdates);
@@ -147,9 +197,20 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
     const now = Date.now();
     await updateDoc(doc(db, 'activeQuests', questId), { claimedAt: now });
 
-    // Award rewards through character store
-    const { awardXpAndStats, awardGold } = useCharacterStore.getState();
-    await Promise.all([awardXpAndStats(quest.rewards.xp, {}), awardGold(quest.rewards.gold)]);
+    // ── Reward scaling ────────────────────────────────────────────────────────
+    // Two multipliers stack:
+    //   1. Level scaler — daily/weekly quest base values were balanced for ~lv 1–5;
+    //      the sqrt curve keeps quests relevant past level 10.
+    //   2. Streak XP bonus — gentle reward for consistency (caps at ×1.25).
+    // Gold is only level-scaled; streak rewards live in loot rates, not currency.
+    const { awardXpAndStats, awardGold, character } = useCharacterStore.getState();
+    const level = character?.level ?? 1;
+    const streak = character?.streakData?.currentStreak ?? 0;
+
+    const scaled = scaleQuestRewards(quest.rewards, level);
+    const xpToAward = Math.round(scaled.xp * getStreakXpMultiplier(streak));
+
+    await Promise.all([awardXpAndStats(xpToAward, {}), awardGold(scaled.gold)]);
 
     set((state) => ({
       quests: state.quests.map((q) => (q.id === questId ? { ...q, claimedAt: now } : q)),

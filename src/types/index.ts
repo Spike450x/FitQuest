@@ -43,10 +43,21 @@ export interface Character {
   subclass?: CharacterSubclass; // chosen at level 10; undefined = not yet chosen
   /** Log counts for mastery activities — incremented on each log, milestones grant +1 stat. */
   masteryCounts?: Partial<Record<'run' | 'workout' | 'steps', number>>;
+  /**
+   * Per-monster legendary dry streak — kills since the last legendary drop from
+   * that monster. Drives the pity system in rollLoot(): once it climbs past
+   * LEGENDARY_PITY_THRESHOLD, every additional kill gets a soft boost to its
+   * legendary chance. Resets to 0 on a legendary drop.
+   */
+  legendaryDryStreak?: Record<string, number>;
   streakData?: {
     currentStreak: number;
     longestStreak: number;
     lastLogDate: string; // "YYYY-MM-DD" UTC
+    /** Grace-day shields available; consumed instead of resetting on a single missed day. */
+    shields?: number;
+    /** Last shield refill date ("YYYY-MM-DD" UTC) — refills weekly. */
+    shieldsRefilledOn?: string;
   };
   personalRecords?: Partial<
     Record<
@@ -72,6 +83,14 @@ export interface ActivityLog {
   statGains: Partial<Stats>;
   xpGained: number;
   loggedAt: number;
+  /**
+   * True when the logged amount was within the daily cap and XP / stat rewards
+   * were actually granted. False when the log was over-cap (recorded for
+   * streak/PR purposes only). The Firestore rule enforces that a false value
+   * can never be paired with xpGained > 0 or non-empty statGains, preventing
+   * a client from skipping the cap check and forging reward-bearing logs.
+   */
+  rewardEligible: boolean;
 }
 
 // ─── Items ───────────────────────────────────────────────────────────────────
@@ -158,16 +177,26 @@ export interface QuestReward {
   itemId?: string;
 }
 
+/** A single activity requirement within a quest. */
+export interface QuestTarget {
+  activityType: ActivityType;
+  target: number;
+  unit: string;
+}
+
 export interface QuestDef {
   id: string;
   name: string;
   description: string;
   type: QuestType;
-  requirement: {
-    activityType: ActivityType;
-    target: number;
-    unit: string;
-  };
+  /** Primary requirement. Progress is tracked in `ActiveQuest.progress`. */
+  requirement: QuestTarget;
+  /**
+   * Additional targets for multi-activity quests. Progress for each target is
+   * tracked in `ActiveQuest.extraProgress` keyed by `activityType`. A quest is
+   * complete only when ALL targets (primary + extra) have been reached.
+   */
+  extraTargets?: QuestTarget[];
   rewards: QuestReward;
 }
 
@@ -175,7 +204,13 @@ export interface ActiveQuest {
   id: string;
   uid: string;
   questDefId: string;
+  /** Progress toward `QuestDef.requirement`. */
   progress: number;
+  /**
+   * Progress toward each entry in `QuestDef.extraTargets`, keyed by
+   * `activityType`. Only present on multi-target quests.
+   */
+  extraProgress?: Record<string, number>;
   completedAt: number | null;
   claimedAt: number | null;
   expiresAt: number;

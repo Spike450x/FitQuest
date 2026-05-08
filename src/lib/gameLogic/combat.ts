@@ -152,25 +152,48 @@ export function calculateRound(
 }
 
 /**
+ * Number of dry kills before pity bonus starts ramping legendary chance.
+ * Below this, pure RNG; above, every additional kill adds LEGENDARY_PITY_STEP.
+ */
+export const LEGENDARY_PITY_THRESHOLD = 10;
+/** Additive bonus (per kill above threshold) to a legendary's drop probability. */
+export const LEGENDARY_PITY_STEP = 0.02;
+
+/**
  * Roll the loot table for a defeated monster.
  * Each entry is an independent Bernoulli trial — items can each drop (or not)
  * regardless of what else drops. Returns the item IDs that were awarded.
  *
  * streakMultiplier — from the player's active Blessing (streak tier).
  * Applied exclusively to items of rarity "rare", "epic", or "legendary";
- * common and uncommon item chances are unchanged. Effective chance is capped
- * at 0.95 so there is always some RNG even at max streak.
+ * common and uncommon item chances are unchanged.
+ *
+ * legendaryDryStreak — kills against this monster since the last legendary
+ * drop. Each kill above LEGENDARY_PITY_THRESHOLD adds LEGENDARY_PITY_STEP
+ * (additive) to legendary item chances only. Effective chance is still capped
+ * at 0.95 so there is always some RNG even at max streak/pity.
  */
 export function rollLoot(
   lootTable: Array<{ itemId: string; chance: number }>,
   streakMultiplier = 1.0,
+  legendaryDryStreak = 0,
 ): string[] {
   const RARE_PLUS = new Set(['rare', 'epic', 'legendary']);
+  const pityBonus =
+    legendaryDryStreak > LEGENDARY_PITY_THRESHOLD
+      ? (legendaryDryStreak - LEGENDARY_PITY_THRESHOLD) * LEGENDARY_PITY_STEP
+      : 0;
+
   return lootTable
     .filter(({ itemId, chance }) => {
       const item = getItemById(itemId);
-      const isRarePlus = item ? RARE_PLUS.has(item.rarity) : false;
-      const effectiveChance = isRarePlus ? Math.min(chance * streakMultiplier, 0.95) : chance;
+      if (!item) return Math.random() < chance;
+
+      const isRarePlus = RARE_PLUS.has(item.rarity);
+      const isLegendary = item.rarity === 'legendary';
+      const baseBoosted = isRarePlus ? chance * streakMultiplier : chance;
+      const withPity = isLegendary ? baseBoosted + pityBonus : baseBoosted;
+      const effectiveChance = Math.min(withPity, 0.95);
       return Math.random() < effectiveChance;
     })
     .map(({ itemId }) => itemId);

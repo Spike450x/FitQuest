@@ -17,6 +17,8 @@ graph TD
     D --> E["Pure Game Logic<br/>(src/lib/gameLogic/**)"]
     D --> F["Firebase SDK<br/>(src/lib/firebase.ts)"]
     F --> G[("Firestore + Auth<br/>fitness-rpg-claude")]
+    F --> CF["Cloud Functions<br/>(functions/)"]
+    CF --> G
     H["Middleware<br/>(src/middleware.ts)"] -. route guard .-> A
 ```
 
@@ -31,20 +33,20 @@ graph TD
 
 ## Folder map (`src/`)
 
-| Path                      | Role                                                                                                  |
-| ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `app/(auth)/`             | Public auth routes — login, register.                                                                 |
-| `app/(game)/`             | All authenticated game pages. Behind both middleware and Firestore-rule gates.                        |
-| `app/character-creation/` | One-time class-selection flow on first login.                                                         |
-| `app/layout.tsx`          | Root layout, global providers, font setup.                                                            |
-| `app/page.tsx`            | Landing redirect.                                                                                     |
-| `components/`             | Shared UI building blocks (forms, cards, modals, bars).                                               |
-| `hooks/`                  | Reusable client hooks (`useAuth`, `useCharacter`, `useRecentActivity`).                               |
-| `lib/firebase.ts`         | Firebase SDK init. Reads env vars; exports `app`, `auth`, `db`. The only Firebase wiring in the repo. |
-| `lib/gameLogic/`          | Pure deterministic logic — combat, spells, XP, streaks, items, monsters, quests. Unit-tested.         |
-| `store/`                  | Zustand stores (`characterStore`, `inventoryStore`, `questStore`).                                    |
-| `types/index.ts`          | Single source of truth for TypeScript types. Imported by every other layer.                           |
-| `middleware.ts`           | Next.js middleware — checks the Firebase `__session` cookie and redirects.                            |
+| Path                      | Role                                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `app/(auth)/`             | Public auth routes — login, register.                                                                              |
+| `app/(game)/`             | All authenticated game pages. Behind both middleware and Firestore-rule gates.                                     |
+| `app/character-creation/` | One-time class-selection flow on first login.                                                                      |
+| `app/layout.tsx`          | Root layout, global providers, font setup.                                                                         |
+| `app/page.tsx`            | Landing redirect.                                                                                                  |
+| `components/`             | Shared UI building blocks (forms, cards, modals, bars).                                                            |
+| `hooks/`                  | Reusable client hooks (`useAuth`, `useCharacter`, `useRecentActivity`).                                            |
+| `lib/firebase.ts`         | Firebase SDK init. Reads env vars; exports `app`, `auth`, `db`, `functions`. The only Firebase wiring in the repo. |
+| `lib/gameLogic/`          | Pure deterministic logic — combat, spells, XP, streaks, items, monsters, quests. Unit-tested.                      |
+| `store/`                  | Zustand stores (`characterStore`, `inventoryStore`, `questStore`).                                                 |
+| `types/index.ts`          | Single source of truth for TypeScript types. Imported by every other layer.                                        |
+| `middleware.ts`           | Next.js middleware — checks the Firebase `__session` cookie and redirects.                                         |
 
 ---
 
@@ -108,35 +110,43 @@ Three Zustand stores, each owning one domain. Each store exposes typed actions; 
 
 ## Data flow — logging an activity
 
-End-to-end walkthrough of what happens when the player submits an activity. This is the canonical write path; combat and quest claims follow the same UI → store → lib → Firestore shape.
+End-to-end walkthrough of what happens when the player submits an activity. The `logActivity` Cloud Function owns the authoritative write path; the client handles display and secondary writes.
 
 ```mermaid
 sequenceDiagram
     participant UI as ActivityLogForm
+    participant CF as logActivity (Cloud Function)
     participant CS as characterStore
     participant QS as questStore
     participant Lib as lib/gameLogic/*
     participant FS as Firestore
 
-    UI->>Lib: applyXp(), applyStatGains() (preview)
-    UI->>UI: Render preview (XP, stats, level-up)
-    UI->>CS: awardXpAndStats(xp, statGains)
-    CS->>Lib: applyXp(level, xp, gained)
-    CS->>Lib: applyStatGains(stats, gains, statCap)
-    CS->>FS: updateDoc(characters/{uid}, {level, xp, stats, ...})
-    UI->>CS: persistStreakAndRecord(activity, value, unit)
+    UI->>UI: Render preview (restore amount / mastery progress)
+    UI->>CF: httpsCallable logActivity({activityType, amount, unit})
+    CF->>FS: getDocs(activityLogs, uid+type+loggedAt≥today) — server-side cap query
+    CF->>CF: eligibleAmountForRewards() — authoritative cap enforcement
+    CF->>FS: batch.set(activityLogs/{id}, {id, uid, type, data, rewardEligible, ...})
+    CF->>FS: batch.update(characters/{uid}, {masteryCounts.X}) [mastery only, if eligible]
+    CF->>FS: batch.update(characters/{uid}, {stats.Y++}) [mastery milestone only]
+    CF-->>UI: {rewardEligible, eligibleAmount, masteryHit, newMasteryCount, ...}
+    UI->>CS: applyMasteryLocal(type, newCount, milestoneHit) — local state only, no write
+    UI->>CS: restoreHp/restoreStamina/restoreMagic [sleep/water/nutrition, if eligible]
+    CS->>FS: updateDoc(characters/{uid}, {currentHp/Stamina/Magic})
+    UI->>UI: setResult() — show result card immediately
+    UI-->>QS: updateQuestProgress() [fire-and-forget]
+    QS->>FS: updateDoc(activeQuests/{id}, {progress, completedAt?})
+    UI-->>CS: persistStreakAndRecord() [fire-and-forget]
     CS->>Lib: computeNewStreak(streakData, todayUTC())
     CS->>FS: updateDoc(characters/{uid}, {streakData, personalRecords})
-    UI->>CS: awardMastery(activity)  [run/workout/steps only]
-    CS->>FS: updateDoc(characters/{uid}, {masteryCounts, stats})
-    UI->>CS: restoreHp/restoreStamina/restoreMagic  [sleep/water/nutrition]
-    CS->>FS: updateDoc(characters/{uid}, {currentHp/Stamina/Magic})
-    UI->>QS: updateQuestProgress(uid, activity, amount)
-    QS->>FS: updateDoc(activeQuests/{id}, {progress, completedAt?})
-    UI->>FS: addDoc(activityLogs, {uid, type, data, statGains, xpGained, loggedAt})
 ```
 
-The character-doc updates are not transactional with the activity log write — if the activity log fails, the character may still be updated. This is acceptable for the MVP (writes are idempotent on retry); a future hardening pass could wrap the sequence in a Firestore batch.
+**Key properties of this design:**
+
+- **Atomic server writes.** The `activityLog` doc, mastery count, and any milestone stat increment are committed in a single Firestore batch by the Cloud Function — they either all land or none do.
+- **Cap is non-bypassable.** The aggregate query runs server-side; a forged client can't skip it.
+- **Result card is immediate.** `setResult()` fires as soon as the function responds. Quest-progress and streak writes are fire-and-forget — a Firestore hiccup there doesn't block the player from seeing their reward.
+- **Local state stays consistent.** `applyMasteryLocal` mirrors the function's write to the Zustand store with zero extra Firestore reads. Both use `Math.min(stat + 1, statCap(linkedStat, level))`.
+- **Restore writes are server-side (R4-StageC).** The function computes the formula-derived max (`playerMaxHp/Stamina/Magic`) using a minimal gear-stat lookup in `functions/src/gameLogic/combat.ts` and writes `currentHp/Stamina/Magic` atomically with the activity log. The client receives `restored.newValue` and mirrors it to Zustand via `applyRestoreLocal` — no client Firestore write occurs.
 
 ---
 

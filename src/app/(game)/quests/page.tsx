@@ -18,6 +18,48 @@ function timeUntilExpiry(expiresAt: number): string {
   return `${minutes}m remaining`;
 }
 
+// ─── Progress Bar ─────────────────────────────────────────────────────────────
+
+function ProgressBar({
+  label,
+  current,
+  target,
+  unit,
+  pct,
+  variant,
+}: {
+  label?: string;
+  current: number;
+  target: number;
+  unit: string;
+  pct: number;
+  variant: 'active' | 'complete' | 'claimed';
+}) {
+  const barColor =
+    variant === 'claimed'
+      ? 'bg-emerald-400'
+      : variant === 'complete'
+        ? 'bg-amber-400'
+        : 'bg-indigo-500';
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs text-gray-500">
+        <span className="capitalize">
+          {label && <span className="font-medium text-gray-600 mr-1">{label}:</span>}
+          {current.toLocaleString()} / {target.toLocaleString()} {unit}
+        </span>
+        <span>{pct}%</span>
+      </div>
+      <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+        <div
+          className={`h-2 rounded-full transition-all duration-500 ${barColor}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ─── Quest Card ───────────────────────────────────────────────────────────────
 
 function QuestCard({
@@ -36,6 +78,7 @@ function QuestCard({
   const isComplete = quest.completedAt !== null;
   const isClaimed = quest.claimedAt !== null;
   const isClaiming = claiming === quest.id;
+  const isMultiTarget = (def.extraTargets?.length ?? 0) > 0;
 
   return (
     <div
@@ -76,23 +119,34 @@ function QuestCard({
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="space-y-1">
-        <div className="flex justify-between text-xs text-gray-500">
-          <span>
-            {quest.progress.toLocaleString()} / {def.requirement.target.toLocaleString()}{' '}
-            {def.requirement.unit}
-          </span>
-          <span>{pct}%</span>
-        </div>
-        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-          <div
-            className={`h-2 rounded-full transition-all duration-500 ${
-              isClaimed ? 'bg-emerald-400' : isComplete ? 'bg-amber-400' : 'bg-indigo-500'
-            }`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+      {/* Progress bar(s) */}
+      <div className="space-y-2">
+        {/* Primary target */}
+        <ProgressBar
+          label={isMultiTarget ? `${def.requirement.activityType}` : undefined}
+          current={quest.progress}
+          target={def.requirement.target}
+          unit={def.requirement.unit}
+          pct={pct}
+          variant={isClaimed ? 'claimed' : isComplete ? 'complete' : 'active'}
+        />
+        {/* Extra targets */}
+        {def.extraTargets?.map((et) => {
+          const extraCurrent = quest.extraProgress?.[et.activityType] ?? 0;
+          const extraPct = Math.min(100, Math.round((extraCurrent / et.target) * 100));
+          const extraDone = extraCurrent >= et.target;
+          return (
+            <ProgressBar
+              key={et.activityType}
+              label={et.activityType}
+              current={extraCurrent}
+              target={et.target}
+              unit={et.unit}
+              pct={extraPct}
+              variant={isClaimed ? 'claimed' : extraDone ? 'complete' : 'active'}
+            />
+          );
+        })}
       </div>
 
       {/* Claim button */}

@@ -170,17 +170,18 @@ Internal helpers (`getDaySeed`, `getWeekSeed`, `seededShuffle` — Numerical Rec
 
 ## `streaks.ts` — daily streaks + personal records
 
-| Export                             | Kind      | Purpose                                                                              |
-| ---------------------------------- | --------- | ------------------------------------------------------------------------------------ |
-| `StreakData`                       | interface | `{ currentStreak, longestStreak, lastLogDate }`. Stored on the character doc.        |
-| `PersonalRecord`                   | interface | `{ value, loggedAt, unit }` per activity type.                                       |
-| `PersonalRecords`                  | type      | `Partial<Record<ActivityType, PersonalRecord>>`.                                     |
-| `StreakTier`                       | interface | A Blessing-tier definition (name, day threshold, loot multiplier).                   |
-| `STREAK_TIERS`                     | const     | The 6 Blessing tiers (Focused → Blessed). Multiplier applies to **rare+** loot only. |
-| `todayUTC()`                       | function  | `'YYYY-MM-DD'` for today in UTC. Used for `lastLogDate`.                             |
-| `computeNewStreak(current, today)` | function  | Streak transition: same day → no change, consecutive day → +1, gap → reset to 1.     |
-| `getStreakTier(streak)`            | function  | Highest tier reached at the given streak length.                                     |
-| `getStreakLootMultiplier(streak)`  | function  | Convenience accessor for the tier's loot multiplier.                                 |
+| Export                             | Kind      | Purpose                                                                                                                |
+| ---------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `StreakData`                       | interface | `{ currentStreak, longestStreak, lastLogDate }`. Stored on the character doc.                                          |
+| `PersonalRecord`                   | interface | `{ value, loggedAt, unit }` per activity type.                                                                         |
+| `PersonalRecords`                  | type      | `Partial<Record<ActivityType, PersonalRecord>>`.                                                                       |
+| `StreakTier`                       | interface | A Blessing-tier definition (name, day threshold, loot multiplier).                                                     |
+| `STREAK_TIERS`                     | const     | The 6 Blessing tiers (Focused → Blessed). Multiplier applies to **rare+** loot only.                                   |
+| `todayUTC()`                       | function  | `'YYYY-MM-DD'` for today in UTC. Used for `lastLogDate`.                                                               |
+| `computeNewStreak(current, today)` | function  | Streak transition: same day → no change, consecutive day → +1, gap → reset to 1.                                       |
+| `getStreakTier(streak)`            | function  | Highest tier reached at the given streak length.                                                                       |
+| `getStreakLootMultiplier(streak)`  | function  | Convenience accessor for the tier's loot multiplier.                                                                   |
+| `getStreakXpMultiplier(streak)`    | function  | XP multiplier for the current streak length (≥ 1.0). Snapshotted at kill-time for the `BattleResultsModal` annotation. |
 
 ---
 
