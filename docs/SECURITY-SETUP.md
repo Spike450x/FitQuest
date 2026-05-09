@@ -98,6 +98,23 @@ Lets researchers report security issues through GitHub's built-in workflow rathe
 
 This works in tandem with `SECURITY.md` at the repository root — once both are enabled, a **Report a vulnerability** button appears on the repository's main page.
 
+## 8. Dependency Vulnerability Response Workflow
+
+When Dependabot opens an alert (or `npm audit` surfaces one):
+
+1. **Audit both manifests.** This repo has two: `package.json` (root) and `functions/package.json` (Cloud Functions). Run `npm audit` in the root and `cd functions && npm audit`.
+2. **Triage by attack surface.**
+   - Runtime deps (`next`, `firebase`, `react`, `framer-motion`, anything that ships to the browser or runs in the Cloud Function): prefer a real version bump.
+   - Dev-only chains (`firebase-tools`, `eslint-config-next`, build tooling): prefer `npm overrides` over a major version bump of the parent dep — overrides are surgical and avoid revalidating the deploy/CI surface.
+3. **Override pattern** — the root `package.json` and `functions/package.json` both have an `overrides` block. Add or update entries there to pin a transitive dep to a patched version. Note: if the override target is also a direct dep (e.g. `postcss`), the direct-dep semver range must be compatible with the override, or `npm install` fails with `EOVERRIDE`.
+4. **Verify.** After fix:
+   - `npm audit` (root) shows 0 vulnerabilities
+   - `cd functions && npm audit` shows 0 vulnerabilities
+   - `npm run typecheck` + `npm run lint` + `npm test` + `npm run build` all pass
+   - `cd functions && npm run build` passes
+   - `npm run validate:indexes` passes (sanity that the firebase-tools chain still works)
+5. **Document.** Append an entry to [`docs/CHANGELOG.md`](CHANGELOG.md) listing the GHSA IDs that were closed, and add a row to the Remediations Log below.
+
 ---
 
 ## Verification
@@ -117,15 +134,16 @@ Re-run this checklist any time the repository changes ownership or moves between
 
 Chronological log of hardening work that has actually shipped — pair each row with [`docs/CHANGELOG.md`](CHANGELOG.md) for the surrounding context. Newest first.
 
-| Date       | Change                                                                                                                                                                                                                               | Source                                                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| 2026-05-03 | CI third-party actions pinned to commit SHAs; `permissions: contents: read` added to `ci.yml`.                                                                                                                                       | [#15](https://github.com/Spike450x/FitQuest/pull/15) `a81e8ad`                                             |
-| 2026-05-03 | `.gitattributes` added for LF line-ending normalization across the repo.                                                                                                                                                             | [#14](https://github.com/Spike450x/FitQuest/pull/14) `68964e4`                                             |
-| 2026-05-03 | `SECURITY.md` published (vulnerability reporting policy + safe harbor) and this hardening checklist.                                                                                                                                 | [#13](https://github.com/Spike450x/FitQuest/pull/13) `abd984e`                                             |
-| 2026-05-03 | Firestore rules: field-level validation, `level` 1–100 cap, immutable `uid`/`class`/`createdAt`/`itemDefId`/`acquiredAt`, 10-min `loggedAt` window (blocks backdated streak gaming), write-once `completedAt`/`claimedAt` on quests. | [`docs/CHANGELOG.md`](CHANGELOG.md#2026-05-03--type-renames--correctness-fixes--firestore-rules-hardening) |
-| 2026-05-03 | Firebase admin / service-account file patterns (`*-firebase-adminsdk-*.json`, `*service-account*.json`) added to `.gitignore`.                                                                                                       | [`docs/CHANGELOG.md`](CHANGELOG.md#2026-05-03--workflow--instructions-hardening)                           |
-| 2026-05-03 | Husky `pre-push` hook blocks direct pushes to `master`; husky `pre-commit` runs lint-staged + typecheck + vitest.                                                                                                                    | [#10](https://github.com/Spike450x/FitQuest/pull/10) `c065b1a`                                             |
-| 2026-05-03 | Branch protection on `master` enabled requiring the `Typecheck, Lint, Test` check (GitHub-side).                                                                                                                                     | [`docs/CHANGELOG.md`](CHANGELOG.md#2026-05-03--prettier-ci-build-repo-polish)                              |
+| Date       | Change                                                                                                                                                                                                                                                                                                                                    | Source                                                                                                     |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 2026-05-08 | Dependency hygiene: bumped `next` 14 → 15.5.18 (closes 5 GHSAs on Next.js); added `overrides` blocks to root + `functions/` `package.json` pinning `tar`, `glob`, `@tootallnate/once`, `postcss` to patched versions (closes 9 transitive GHSAs in the firebase-tools and firebase-admin dev chains). Both `npm audit` outputs now clean. | [#26](https://github.com/Spike450x/FitQuest/pull/26) + this PR                                             |
+| 2026-05-03 | CI third-party actions pinned to commit SHAs; `permissions: contents: read` added to `ci.yml`.                                                                                                                                                                                                                                            | [#15](https://github.com/Spike450x/FitQuest/pull/15) `a81e8ad`                                             |
+| 2026-05-03 | `.gitattributes` added for LF line-ending normalization across the repo.                                                                                                                                                                                                                                                                  | [#14](https://github.com/Spike450x/FitQuest/pull/14) `68964e4`                                             |
+| 2026-05-03 | `SECURITY.md` published (vulnerability reporting policy + safe harbor) and this hardening checklist.                                                                                                                                                                                                                                      | [#13](https://github.com/Spike450x/FitQuest/pull/13) `abd984e`                                             |
+| 2026-05-03 | Firestore rules: field-level validation, `level` 1–100 cap, immutable `uid`/`class`/`createdAt`/`itemDefId`/`acquiredAt`, 10-min `loggedAt` window (blocks backdated streak gaming), write-once `completedAt`/`claimedAt` on quests.                                                                                                      | [`docs/CHANGELOG.md`](CHANGELOG.md#2026-05-03--type-renames--correctness-fixes--firestore-rules-hardening) |
+| 2026-05-03 | Firebase admin / service-account file patterns (`*-firebase-adminsdk-*.json`, `*service-account*.json`) added to `.gitignore`.                                                                                                                                                                                                            | [`docs/CHANGELOG.md`](CHANGELOG.md#2026-05-03--workflow--instructions-hardening)                           |
+| 2026-05-03 | Husky `pre-push` hook blocks direct pushes to `master`; husky `pre-commit` runs lint-staged + typecheck + vitest.                                                                                                                                                                                                                         | [#10](https://github.com/Spike450x/FitQuest/pull/10) `c065b1a`                                             |
+| 2026-05-03 | Branch protection on `master` enabled requiring the `Typecheck, Lint, Test` check (GitHub-side).                                                                                                                                                                                                                                          | [`docs/CHANGELOG.md`](CHANGELOG.md#2026-05-03--prettier-ci-build-repo-polish)                              |
 
 ### Outstanding hardening (not yet shipped)
 
