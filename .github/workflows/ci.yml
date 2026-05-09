@@ -36,6 +36,17 @@ jobs:
       - name: Typecheck Cloud Functions
         run: cd functions && npm ci --prefer-offline && npx tsc --noEmit
 
+      # Non-blocking audit so a freshly-published advisory surfaces in PR
+      # checks without immediately blocking the merge. If a high-severity
+      # vuln appears, follow the workflow in docs/SECURITY-SETUP.md § 8.
+      - name: Audit dependencies (root, non-blocking)
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+      - name: Audit dependencies (functions, non-blocking)
+        continue-on-error: true
+        run: cd functions && npm audit --audit-level=high
+
       - name: Format check
         run: npm run format:check
 
