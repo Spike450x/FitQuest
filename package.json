@@ -23,7 +23,7 @@
     "deploy:prod": "node scripts/validate-firestore-indexes.mjs && npx firebase deploy --only firestore:indexes,firestore:rules && npx firebase deploy --only functions"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
+    "*.{ts,tsx,js,jsx,mjs,cjs}": [
       "prettier --write",
       "eslint --max-warnings=0 --no-warn-ignored"
     ],
