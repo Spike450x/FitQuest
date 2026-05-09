@@ -16,6 +16,22 @@ updates:
         update-types:
           - version-update:semver-major
 
+  # Cloud Functions package has its own lockfile; group its bumps separately
+  # so a firebase-admin patch doesn't share a PR with a next.js minor.
+  - package-ecosystem: npm
+    directory: /functions
+    schedule:
+      interval: weekly
+    groups:
+      patch-and-minor:
+        update-types:
+          - patch
+          - minor
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - version-update:semver-major
+
   # Keep SHA-pinned GitHub Actions in .github/workflows/ up to date.
   # Dependabot reads the trailing `# vX.Y.Z` tag comments to know what to bump to.
   - package-ecosystem: github-actions

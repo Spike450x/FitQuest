@@ -133,12 +133,16 @@ Branch protection on the GitHub side still rejects this — the local hook is la
 
 ## Dependabot — `.github/dependabot.yml`
 
-Two ecosystems, both on a weekly schedule.
+Three ecosystems, all on a weekly schedule.
 
 ### `npm` (root)
 
 - **Patch + minor bumps** are batched into a **single weekly PR** under the `patch-and-minor` group. Safe to merge once CI passes.
 - **Major bumps** (e.g. `next 14 → 15`) are explicitly excluded from the group and arrive as separate PRs. They get manual review — breaking-change reads, manual smoke tests, possible code changes.
+
+### `npm` (`functions/`)
+
+The Cloud Functions package has its own `package-lock.json`, so it gets its own grouped weekly PR (same patch+minor / no-major rules). Keeps `firebase-admin` patches from sharing a PR with `next.js` minors.
 
 ### `github-actions`
 
@@ -147,6 +151,20 @@ Bumps the SHA pins in `.github/workflows/*.yml` weekly. Dependabot reads the `# 
 ### Dependabot **security** updates
 
 These are _separate_ from the version-bump config above and are toggled in **Settings → Code security**. They auto-open PRs for known CVEs as soon as a patched version is published, regardless of the weekly schedule. See [SECURITY-SETUP.md](SECURITY-SETUP.md#3-dependabot-security-updates).
+
+### Dependabot auto-merge
+
+`.github/workflows/dependabot-auto-merge.yml` runs on every PR opened by `dependabot[bot]`. It:
+
+1. Reads the PR's update-type via `dependabot/fetch-metadata`.
+2. If the bump is **NOT** `version-update:semver-major`, calls `gh pr merge --auto --squash`.
+3. GitHub queues the PR with auto-merge enabled. Once required status checks (`Typecheck, Lint, Test`) land green, GitHub squash-merges automatically.
+
+**Major bumps fall through:** the dependabot config already filters majors out of the grouped PR (they arrive as separate PRs), and the auto-merge gate skips them belt-and-suspenders style. Majors stay manual.
+
+**Prerequisite:** repo Settings → General → Pull Requests → **Allow auto-merge** must be enabled, and branch protection on `master` must require at least one status check (it does — `Typecheck, Lint, Test`).
+
+**Why "auto-merge" instead of "merge immediately":** merging immediately would bypass the CI gate. Auto-merge waits for the gate to pass first, then merges — same safety as a human clicking the button after CI greens.
 
 ---
 
