@@ -8,6 +8,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  runTransaction,
 } from 'firebase/firestore';
 import { useCharacterStore } from './characterStore';
 import { db } from '@/lib/firebase';
@@ -23,9 +24,8 @@ interface InventoryStore {
 
   fetchInventory: (uid: string) => Promise<void>;
   /**
-   * Buy an item: deducts gold from the character doc, adds an InventoryItem doc.
-   * Returns true on success, false if not enough gold.
-   * Caller is responsible for deducting gold via characterStore.awardGold(-price).
+   * Buy an item: atomically deducts gold and adds an InventoryItem doc in a
+   * single Firestore transaction. Returns true on success, false on failure.
    */
   buyItem: (uid: string, itemDefId: string) => Promise<boolean>;
   /**
@@ -89,17 +89,36 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   },
 
   buyItem: async (uid, itemDefId) => {
+    const def = getItemById(itemDefId);
+    if (!def) return false;
+
+    const invRef = doc(collection(db, 'inventory'));
+    const charRef = doc(db, 'characters', uid);
+    const acquiredAt = Date.now();
+
     try {
-      const newItem: Omit<InventoryItem, 'id'> & { uid: string } = {
-        uid,
+      await runTransaction(db, async (tx) => {
+        const charSnap = await tx.get(charRef);
+        if (!charSnap.exists()) throw new Error('Character not found');
+        const currentGold = (charSnap.data().gold as number) ?? 0;
+        if (currentGold < def.price) throw new Error('Not enough gold');
+        tx.set(invRef, { uid, itemDefId, quantity: 1, equipped: false, acquiredAt });
+        tx.update(charRef, { gold: currentGold - def.price });
+      });
+
+      const newItem: InventoryItem = {
+        id: invRef.id,
         itemDefId,
         quantity: 1,
         equipped: false,
-        acquiredAt: Date.now(),
+        acquiredAt,
       };
-      const docRef = await addDoc(collection(db, 'inventory'), newItem);
-      const item: InventoryItem = { id: docRef.id, ...newItem };
-      set((state) => ({ items: [...state.items, item] }));
+      set((state) => ({ items: [...state.items, newItem] }));
+      useCharacterStore.setState((state) => ({
+        character: state.character
+          ? { ...state.character, gold: state.character.gold - def.price }
+          : null,
+      }));
       return true;
     } catch (e) {
       set({ error: (e as Error).message });

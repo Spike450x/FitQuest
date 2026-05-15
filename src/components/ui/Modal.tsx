@@ -44,13 +44,22 @@ export function Modal({
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open || !onClose) return;
+    if (!open) return;
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose?.();
     }
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
+
+  // Move focus into the dialog on open so keyboard users aren't stranded behind the backdrop.
+  useEffect(() => {
+    if (!open || !dialogRef.current) return;
+    const focusable = dialogRef.current.querySelector<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.focus();
+  }, [open]);
 
   // Lock body scroll while open
   useEffect(() => {
@@ -72,13 +81,11 @@ export function Modal({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
-          <button
-            type="button"
-            aria-label="Close modal backdrop"
-            tabIndex={-1}
+          <div
+            role="presentation"
+            aria-hidden="true"
             onClick={onClose}
-            disabled={!onClose}
-            className="absolute inset-0 w-full h-full bg-black/50 backdrop-blur-sm cursor-default"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
           />
           <motion.div
             ref={dialogRef}

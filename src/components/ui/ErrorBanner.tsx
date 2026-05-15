@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
+
 interface ErrorBannerProps {
   /** Short user-facing summary. Defaults to a generic load-failure message. */
   title?: string;
@@ -31,13 +33,9 @@ export function ErrorBanner({
           {message && <p className="text-red-600 text-xs mt-1 break-words">{message}</p>}
         </div>
         {onRetry && (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-          >
+          <Button variant="danger" size="sm" onClick={onRetry} className="flex-shrink-0">
             Retry
-          </button>
+          </Button>
         )}
       </div>
     </div>

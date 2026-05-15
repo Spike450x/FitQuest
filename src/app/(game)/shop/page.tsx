@@ -1,24 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCharacter } from '@/hooks/useCharacter';
-import { useCharacterStore } from '@/store/characterStore';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { ITEM_CATALOG, RARITY_BADGE, RARITY_TEXT } from '@/lib/gameLogic/items';
-import { getDailyPick, dailyExpiresAt, formatCountdown } from '@/lib/gameLogic/rotation';
+import { getDailyPick, rotationExpiresAt, formatCountdown } from '@/lib/gameLogic/rotation';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { SpellCard } from '@/components/ui/SpellCard';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { toast } from '@/components/ui/Toaster';
+import { useTodayKey } from '@/hooks/useTodayKey';
 import type { ItemDef, ItemType } from '@/types';
 
 // Gear + consumables rotate daily (8 items); spells have their own fixed pool.
 const GEAR_SHOP_COUNT = 8;
+// Stable pools — item catalog never changes at runtime, safe at module level.
 const PURCHASABLE_GEAR = ITEM_CATALOG.filter((i) => !i.lootOnly && i.type !== 'spell');
 const PURCHASABLE_SPELLS = ITEM_CATALOG.filter((i) => !i.lootOnly && i.type === 'spell');
-const DAILY_GEAR = getDailyPick(PURCHASABLE_GEAR, GEAR_SHOP_COUNT);
-// All non-lootOnly spells are always available (not daily-rotated)
-const DAILY_ITEMS = [...DAILY_GEAR, ...PURCHASABLE_SPELLS];
 
 const TYPE_TABS: { type: ItemType | 'all'; label: string; icon: string }[] = [
   { type: 'all', label: 'All', icon: '🏪' },
@@ -31,7 +29,6 @@ const TYPE_TABS: { type: ItemType | 'all'; label: string; icon: string }[] = [
 
 export default function ShopPage() {
   const { character } = useCharacter();
-  const awardGold = useCharacterStore((s) => s.awardGold);
   const {
     items,
     loading: inventoryLoading,
@@ -44,6 +41,12 @@ export default function ShopPage() {
   const [buying, setBuying] = useState<string | null>(null);
   const [justBought, setJustBought] = useState<string | null>(null);
 
+  const todayKey = useTodayKey();
+  const dailyItems = useMemo(
+    () => [...getDailyPick(PURCHASABLE_GEAR, GEAR_SHOP_COUNT, todayKey), ...PURCHASABLE_SPELLS],
+    [todayKey],
+  );
+
   useEffect(() => {
     if (character?.uid) fetchInventory(character.uid);
   }, [character?.uid, fetchInventory]);
@@ -52,7 +55,7 @@ export default function ShopPage() {
 
   const ownedDefIds = new Set(items.map((i) => i.itemDefId));
 
-  const filtered = DAILY_ITEMS.filter((item) => activeTab === 'all' || item.type === activeTab);
+  const filtered = dailyItems.filter((item) => activeTab === 'all' || item.type === activeTab);
 
   async function handleBuy(item: ItemDef) {
     if (!character || buying) return;
@@ -61,7 +64,6 @@ export default function ShopPage() {
     setBuying(item.id);
     const ok = await buyItem(character.uid, item.id);
     if (ok) {
-      await awardGold(-item.price);
       setJustBought(item.id);
       setTimeout(() => setJustBought(null), 2000);
       toast.success(`Purchased ${item.name}`, {
@@ -91,7 +93,7 @@ export default function ShopPage() {
           🔄 {GEAR_SHOP_COUNT} gear/consumables today — spells always available
         </p>
         <p className="text-xs text-amber-600 font-semibold">
-          Resets in {formatCountdown(dailyExpiresAt())}
+          Resets in {formatCountdown(rotationExpiresAt())} (midnight UTC)
         </p>
       </div>
 

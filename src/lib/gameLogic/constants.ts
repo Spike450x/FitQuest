@@ -1,4 +1,4 @@
-import type { CharacterClass, Stats } from '@/types';
+import type { CharacterClass, Stats, ActivityType } from '@/types';
 
 // ─── Class Definitions ────────────────────────────────────────────────────────
 
@@ -92,6 +92,9 @@ export const RESTORE = {
 // Open-ended: milestones fire at log 5, then every 10 forever (5, 15, 25, …).
 
 export type MasteryActivityType = 'run' | 'workout' | 'steps';
+
+export const MASTERY_ACTIVITIES = new Set<ActivityType>(['run', 'workout', 'steps']);
+export const RESTORE_ACTIVITIES = new Set<ActivityType>(['nutrition', 'sleep', 'water']);
 
 export const MASTERY_CONFIG: Record<
   MasteryActivityType,

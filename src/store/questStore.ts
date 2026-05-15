@@ -28,8 +28,10 @@ interface QuestStore {
    * Loads active (non-expired) quests for the user.
    * Automatically assigns 3 daily quests and 3 weekly quests (picked from the
    * 5-quest weekly pool) if the current set has fully expired or is empty.
+   * Pass `dateKey` ('YYYY-MM-DD' UTC) to make the daily pick deterministic
+   * without reading the internal clock — useful when re-triggering at midnight.
    */
-  fetchAndAssignQuests: (uid: string) => Promise<void>;
+  fetchAndAssignQuests: (uid: string, dateKey?: string) => Promise<void>;
   /**
    * Called after each activity log submission.
    * Advances progress on any matching, incomplete, non-expired quests.
@@ -48,7 +50,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
   loading: false,
   error: null,
 
-  fetchAndAssignQuests: async (uid) => {
+  fetchAndAssignQuests: async (uid, dateKey) => {
     set({ loading: true, error: null });
     try {
       const now = Date.now();
@@ -67,7 +69,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       // Uses a day-seeded deterministic pick so the same 3 quests appear for everyone today.
       const hasDailies = existing.some((q) => getQuestDef(q.questDefId)?.type === 'daily');
       if (!hasDailies) {
-        const picked = getDailyPick(DAILY_QUEST_POOL, DAILY_QUEST_COUNT);
+        const picked = getDailyPick(DAILY_QUEST_POOL, DAILY_QUEST_COUNT, dateKey);
         const expiry = dailyExpiresAt();
         for (const def of picked) {
           const questData = {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useInventoryStore } from '@/store/inventoryStore';
@@ -63,6 +63,23 @@ export default function InventoryPage() {
       return () => clearTimeout(t);
     }
   }, [loading, items.length, markAllSeen]);
+
+  // ── Derived state ──────────────────────────────────────────────────────────
+  const { equippedGearItems, equippedSpells, equippedConsumables } = useMemo(() => {
+    type WithDef = { invItem: (typeof items)[number]; def: ReturnType<typeof getItemById> };
+    const gear: WithDef[] = [];
+    const spells: WithDef[] = [];
+    const consumables: WithDef[] = [];
+    for (const invItem of items) {
+      if (!invItem.equipped) continue;
+      const def = getItemById(invItem.itemDefId);
+      if (!def) continue;
+      if (def.type === 'spell') spells.push({ invItem, def });
+      else if (def.type === 'consumable') consumables.push({ invItem, def });
+      else gear.push({ invItem, def });
+    }
+    return { equippedGearItems: gear, equippedSpells: spells, equippedConsumables: consumables };
+  }, [items]);
 
   if (!character) return null;
 
@@ -167,22 +184,6 @@ export default function InventoryPage() {
     setActing(null);
     if (def) toast(`Removed from pack: ${def.name}`);
   }
-
-  // ── Derived state ──────────────────────────────────────────────────────────
-  const equippedGearItems = items
-    .filter((i) => i.equipped)
-    .map((i) => ({ invItem: i, def: getItemById(i.itemDefId) }))
-    .filter((x) => x.def && x.def.type !== 'spell' && x.def.type !== 'consumable');
-
-  const equippedSpells = items
-    .filter((i) => i.equipped)
-    .map((i) => ({ invItem: i, def: getItemById(i.itemDefId) }))
-    .filter((x) => x.def?.type === 'spell');
-
-  const equippedConsumables = items
-    .filter((i) => i.equipped)
-    .map((i) => ({ invItem: i, def: getItemById(i.itemDefId) }))
-    .filter((x) => x.def?.type === 'consumable');
 
   return (
     <div className="space-y-4">

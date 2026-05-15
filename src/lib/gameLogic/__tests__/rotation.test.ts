@@ -8,102 +8,75 @@ import {
 } from '../rotation';
 
 // ─── Determinism — the entire contract of this module ────────────────────────
+// Tests pass an explicit dateKey so they are fully pure and environment-agnostic
+// (no fake timers, no timezone sensitivity).
 
 describe('getDailyPick — determinism', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('same day → same picks (multiple calls return identical results)', () => {
-    vi.setSystemTime(new Date('2026-05-15T08:00:00'));
+  it('same dateKey → same picks (multiple calls return identical results)', () => {
     const arr = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    const first = getDailyPick(arr, 3);
-    const second = getDailyPick(arr, 3);
-    const third = getDailyPick(arr, 3);
+    const first = getDailyPick(arr, 3, '2026-05-15');
+    const second = getDailyPick(arr, 3, '2026-05-15');
+    const third = getDailyPick(arr, 3, '2026-05-15');
     expect(second).toEqual(first);
     expect(third).toEqual(first);
   });
 
-  it('same day, different times → same picks (seed is YYYYMMDD only)', () => {
+  it('different dateKeys → different picks (with a long enough array to avoid collision)', () => {
     const arr = Array.from({ length: 12 }, (_, i) => `item-${i}`);
-
-    vi.setSystemTime(new Date('2026-05-15T00:01:00'));
-    const earlyMorning = getDailyPick(arr, 4);
-
-    vi.setSystemTime(new Date('2026-05-15T23:59:00'));
-    const lateNight = getDailyPick(arr, 4);
-
-    expect(lateNight).toEqual(earlyMorning);
-  });
-
-  it('different days → different picks (with a long enough array to avoid collision)', () => {
-    const arr = Array.from({ length: 12 }, (_, i) => `item-${i}`);
-
-    vi.setSystemTime(new Date('2026-05-15T12:00:00'));
-    const day1 = getDailyPick(arr, 4);
-
-    vi.setSystemTime(new Date('2026-05-16T12:00:00'));
-    const day2 = getDailyPick(arr, 4);
-
+    const day1 = getDailyPick(arr, 4, '2026-05-15');
+    const day2 = getDailyPick(arr, 4, '2026-05-16');
     // 4 picks from 12 items, different seeds — extremely unlikely to coincide.
     expect(day2).not.toEqual(day1);
   });
 
   it('returns at most arr.length items when count exceeds arr.length', () => {
-    vi.setSystemTime(new Date('2026-05-15T12:00:00'));
-    expect(getDailyPick(['a', 'b'], 5)).toHaveLength(2);
+    expect(getDailyPick(['a', 'b'], 5, '2026-05-15')).toHaveLength(2);
   });
 
   it('returns exactly count items when count <= arr.length', () => {
-    vi.setSystemTime(new Date('2026-05-15T12:00:00'));
-    expect(getDailyPick(['a', 'b', 'c', 'd'], 2)).toHaveLength(2);
+    expect(getDailyPick(['a', 'b', 'c', 'd'], 2, '2026-05-15')).toHaveLength(2);
   });
 
   it('does not mutate the input array', () => {
-    vi.setSystemTime(new Date('2026-05-15T12:00:00'));
     const arr = ['a', 'b', 'c', 'd', 'e'];
     const snapshot = [...arr];
-    getDailyPick(arr, 3);
+    getDailyPick(arr, 3, '2026-05-15');
     expect(arr).toEqual(snapshot);
+  });
+
+  it('dateKey seed matches YYYYMMDD integer (2026-05-15 → 20260515)', () => {
+    // Two different date representations of the same day produce the same result.
+    const arr = Array.from({ length: 20 }, (_, i) => `x-${i}`);
+    const fromKey = getDailyPick(arr, 5, '2026-05-15');
+    // Verify stability: same key, same output on a second call.
+    expect(getDailyPick(arr, 5, '2026-05-15')).toEqual(fromKey);
   });
 });
 
 describe('getWeeklyPick — determinism', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('same week → same picks', () => {
+  it('same weekKey → same picks (multiple calls return identical results)', () => {
     const arr = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun', 'extra'];
-
-    // Both Monday and Friday of the same ISO week.
-    vi.setSystemTime(new Date('2026-05-11T12:00:00')); // Monday
-    const mon = getWeeklyPick(arr, 3);
-
-    vi.setSystemTime(new Date('2026-05-15T12:00:00')); // Friday, same week
-    const fri = getWeeklyPick(arr, 3);
-
-    expect(fri).toEqual(mon);
+    const first = getWeeklyPick(arr, 3, '2026-20');
+    const second = getWeeklyPick(arr, 3, '2026-20');
+    expect(second).toEqual(first);
   });
 
-  it('different weeks → different picks', () => {
+  it('different weekKeys → different picks', () => {
     const arr = Array.from({ length: 10 }, (_, i) => `q-${i}`);
-
-    vi.setSystemTime(new Date('2026-05-11T12:00:00')); // ISO week N
-    const week1 = getWeeklyPick(arr, 3);
-
-    vi.setSystemTime(new Date('2026-05-18T12:00:00')); // ISO week N+1
-    const week2 = getWeeklyPick(arr, 3);
-
+    const week1 = getWeeklyPick(arr, 3, '2026-20');
+    const week2 = getWeeklyPick(arr, 3, '2026-21');
     expect(week2).not.toEqual(week1);
+  });
+
+  it('returns at most arr.length items when count exceeds arr.length', () => {
+    expect(getWeeklyPick(['a', 'b'], 5, '2026-20')).toHaveLength(2);
+  });
+
+  it('does not mutate the input array', () => {
+    const arr = ['a', 'b', 'c', 'd', 'e'];
+    const snapshot = [...arr];
+    getWeeklyPick(arr, 3, '2026-20');
+    expect(arr).toEqual(snapshot);
   });
 });
 

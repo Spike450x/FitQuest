@@ -8,6 +8,14 @@
         { "fieldPath": "type", "order": "ASCENDING" },
         { "fieldPath": "loggedAt", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "activityLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "loggedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

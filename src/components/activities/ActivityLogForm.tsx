@@ -8,6 +8,8 @@ import { useQuestStore } from '@/store/questStore';
 import { calculateResourceRestore } from '@/lib/gameLogic/stats';
 import {
   ACTIVITY_DEFINITIONS,
+  MASTERY_ACTIVITIES,
+  RESTORE_ACTIVITIES,
   MASTERY_CONFIG,
   nextMasteryMilestone,
   type MasteryActivityType,
@@ -20,44 +22,10 @@ import {
   toastStreakTier,
   toastMasteryMilestone,
 } from '@/components/ui/Toaster';
+import type { LogActivityInput, LogActivityResult } from '@/types/cloudFunctions';
 import type { ActivityType } from '@/types';
 
-// ─── logActivity callable types ──────────────────────────────────────────────
-// Mirrors the interface in functions/src/index.ts — keep in sync.
-
-interface LogActivityInput {
-  activityType: ActivityType;
-  amount: number;
-  unit: string;
-}
-
-interface LogActivityResult {
-  logId: string;
-  rewardEligible: boolean;
-  eligibleAmount: number;
-  justHitCap: boolean;
-  masteryHit: boolean;
-  linkedStatLabel?: string;
-  /** Authoritative count after this log — use instead of client estimate to avoid cross-device drift. */
-  newMasteryCount?: number;
-  /**
-   * Set for eligible restore activities (nutrition/sleep/water).
-   * amount: how much was actually restored (0 if already at max).
-   * newValue: authoritative new resource value for optimistic local update.
-   */
-  restored?: {
-    resourceType: 'hp' | 'stamina' | 'magic';
-    newValue: number;
-    amount: number;
-  };
-}
-
 const logActivityFn = httpsCallable<LogActivityInput, LogActivityResult>(functions, 'logActivity');
-
-// ─── Config ──────────────────────────────────────────────────────────────────
-
-const MASTERY_ACTIVITIES = new Set<ActivityType>(['run', 'workout', 'steps']);
-const RESTORE_ACTIVITIES = new Set<ActivityType>(['nutrition', 'sleep', 'water']);
 
 const TABS: { type: ActivityType; icon: string; label: string }[] = [
   { type: 'workout', icon: '🏋️', label: 'Workout' },

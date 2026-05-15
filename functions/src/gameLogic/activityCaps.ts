@@ -21,6 +21,22 @@ export const DAILY_ACTIVITY_CAPS: Record<ActivityType, number> = {
 };
 
 /**
+ * Hard ceiling on activity `amount` accepted by the logActivity function.
+ * Values above this are rejected outright (invalid-argument error).
+ * These are physically impossible amounts, not daily caps — they exist to
+ * reject obviously bogus inputs before any Firestore reads occur.
+ * Keep in sync with INPUT_CONFIG.max in ActivityLogForm.tsx.
+ */
+export const ACTIVITY_AMOUNT_MAX: Record<ActivityType, number> = {
+  workout: 300, // minutes
+  run: 50, // miles
+  steps: 50000, // steps
+  sleep: 12, // hours
+  water: 20, // glasses
+  nutrition: 10, // meals
+};
+
+/**
  * Returns the portion of `amount` still eligible for rewards given
  * `alreadyLoggedToday`. Capped at the per-activity daily limit.
  */
@@ -30,7 +46,6 @@ export function eligibleAmountForRewards(
   amount: number,
 ): number {
   const cap = DAILY_ACTIVITY_CAPS[activityType];
-  if (cap === undefined) return amount;
   const remaining = Math.max(0, cap - alreadyLoggedToday);
   return Math.min(amount, remaining);
 }
