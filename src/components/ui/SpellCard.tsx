@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import type { ItemDef, SpellEffect } from '@/types';
 import { describeRequirement } from '@/lib/gameLogic/spells';
 import { RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
@@ -57,7 +58,7 @@ function buildEffectTags(effect: SpellEffect, wisdom?: number): EffectTag[] {
         ? `${base} + ${wisdom} WIS = ${base + wisdom} stamina`
         : `${base} + WIS stamina`
       : `${base} stamina`;
-    tags.push({ label: `⚡ ${label}`, color: 'bg-amber-50 text-amber-700' });
+    tags.push({ label: `💛 ${label}`, color: 'bg-amber-50 text-amber-700' });
   }
 
   if (effect.defenseBoost) {
@@ -110,7 +111,7 @@ interface SpellCardProps {
   className?: string;
 }
 
-export function SpellCard({
+export const SpellCard = memo(function SpellCard({
   def,
   wisdomValue,
   isEquipped,
@@ -121,11 +122,16 @@ export function SpellCard({
   onAction,
   className = '',
 }: SpellCardProps) {
-  if (!def.spellMechanics) return null;
   const sm = def.spellMechanics;
+  const effectTags = useMemo(
+    () => (sm ? buildEffectTags(sm.effect, wisdomValue) : []),
+    [sm, wisdomValue],
+  );
+
+  if (!sm) return null;
+
   const scheme = RARITY_CARD[def.rarity];
   const emoji = getSpellEmoji(sm.effect);
-  const effectTags = buildEffectTags(sm.effect, wisdomValue);
   const costColor = affordable === false ? 'text-red-300' : 'text-white/80';
 
   return (
@@ -223,4 +229,4 @@ export function SpellCard({
       )}
     </div>
   );
-}
+});

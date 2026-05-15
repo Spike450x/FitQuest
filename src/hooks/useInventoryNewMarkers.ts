@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 /**
  * Tracks which inventory items the current user has not yet seen since their
@@ -37,7 +37,7 @@ export function useInventoryNewMarkers(
     return set;
   }, [items, lastSeen]);
 
-  function markAllSeen() {
+  const markAllSeen = useCallback(() => {
     if (!storageKey) return;
     const now = Date.now();
     try {
@@ -46,7 +46,7 @@ export function useInventoryNewMarkers(
       // ignore quota / privacy mode errors
     }
     setLastSeen(now);
-  }
+  }, [storageKey]);
 
   return {
     isNew: (id: string) => newIds.has(id),

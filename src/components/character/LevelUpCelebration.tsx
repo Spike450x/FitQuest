@@ -31,13 +31,14 @@ export function LevelUpCelebration() {
     }
     if (character.level > previousLevel.current) {
       setShowLevel(character.level);
-      // Fire confetti once when the modal opens
-      confetti({
-        particleCount: 120,
-        spread: 70,
-        origin: { y: 0.4 },
-        colors: ['#fbbf24', '#a78bfa', '#34d399', '#60a5fa'],
-      });
+      if (document.visibilityState === 'visible') {
+        confetti({
+          particleCount: 120,
+          spread: 70,
+          origin: { y: 0.4 },
+          colors: ['#fbbf24', '#a78bfa', '#34d399', '#60a5fa'],
+        });
+      }
     }
     previousLevel.current = character.level;
   }, [character]);

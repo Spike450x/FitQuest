@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,7 @@ import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { MONSTER_CATALOG } from '@/lib/gameLogic/monsters';
-import { getDailyPick, dailyExpiresAt, formatCountdown } from '@/lib/gameLogic/rotation';
+import { getDailyPick, rotationExpiresAt, formatCountdown } from '@/lib/gameLogic/rotation';
 import {
   playerMaxHp,
   playerMaxStamina,
@@ -41,7 +41,9 @@ import {
   canBloodPact,
 } from '@/lib/gameLogic/passives';
 import { SpellCard } from '@/components/ui/SpellCard';
-import { CombatEffects, useCombatBursts } from '@/components/combat/CombatEffects';
+import { CombatEffects } from '@/components/combat/CombatEffects';
+import { useCombatBursts } from '@/hooks/useCombatBursts';
+import { useTodayKey } from '@/hooks/useTodayKey';
 import { toastReward, toastLoot } from '@/components/ui/Toaster';
 import { COMBAT } from '@/lib/gameLogic/constants';
 import type { MonsterDef, ItemDef, SpellDiceRequirement } from '@/types';
@@ -176,13 +178,16 @@ const MONSTER_EMOJI: Record<string, string> = {
 };
 
 // 4 monsters rotate daily — same lineup for all players on the same day.
-const DAILY_MONSTERS = getDailyPick(MONSTER_CATALOG, 4);
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CombatPage() {
   const router = useRouter();
   const { character } = useCharacter();
+
+  const todayKey = useTodayKey();
+  const dailyMonsters = useMemo(() => getDailyPick(MONSTER_CATALOG, 4, todayKey), [todayKey]);
+
   const awardXpAndStats = useCharacterStore((s) => s.awardXpAndStats);
   const awardGold = useCharacterStore((s) => s.awardGold);
   const setHpLocal = useCharacterStore((s) => s.setHpLocal);
@@ -1443,12 +1448,14 @@ export default function CombatPage() {
         </div>
         <div className="text-right shrink-0">
           <p className="text-xs text-gray-500 font-medium">Today&apos;s Encounters</p>
-          <p className="text-xs text-gray-400">Resets in {formatCountdown(dailyExpiresAt())}</p>
+          <p className="text-xs text-gray-400">
+            Resets in {formatCountdown(rotationExpiresAt())} (UTC)
+          </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {DAILY_MONSTERS.map((monster) => (
+        {dailyMonsters.map((monster) => (
           <MonsterCard
             key={monster.id}
             monster={monster}

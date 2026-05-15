@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useCharacter } from '@/hooks/useCharacter';
+import { fetchActivityLogs, fetchActiveQuests, fetchInventoryItems } from '@/lib/fetchPlayerData';
 import { getItemById } from '@/lib/gameLogic/items';
 import { ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { ACTIVITY_ICONS } from '@/lib/activityIcons';
@@ -32,15 +31,6 @@ const ACTIVITY_COLORS: Record<ActivityType, string> = {
   sleep: '#8b5cf6',
   water: '#3b82f6',
   nutrition: '#22c55e',
-};
-
-const ACTIVITY_LABELS: Record<ActivityType, string> = {
-  workout: 'Workout',
-  run: 'Run',
-  steps: 'Steps',
-  sleep: 'Sleep',
-  water: 'Water',
-  nutrition: 'Nutrition',
 };
 
 type Range = '7d' | '30d' | 'all';
@@ -110,16 +100,12 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
     async function load() {
       setLoading(true);
       try {
-        const [logsSnap, questsSnap, invSnap] = await Promise.all([
-          getDocs(query(collection(db, 'activityLogs'), where('uid', '==', uid))),
-          getDocs(query(collection(db, 'activeQuests'), where('uid', '==', uid))),
-          getDocs(query(collection(db, 'inventory'), where('uid', '==', uid))),
+        const [logs, quests, inventory] = await Promise.all([
+          fetchActivityLogs(uid),
+          fetchActiveQuests(uid),
+          fetchInventoryItems(uid),
         ]);
-        setRaw({
-          logs: logsSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as ActivityLog),
-          quests: questsSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as ActiveQuest),
-          inventory: invSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as InventoryItem),
-        });
+        setRaw({ logs, quests, inventory });
       } finally {
         setLoading(false);
       }
@@ -197,7 +183,7 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
     const breakdownData = Object.entries(byType)
       .sort((a, b) => b[1].xp - a[1].xp)
       .map(([type, v]) => ({
-        type: ACTIVITY_LABELS[type as ActivityType] ?? type,
+        type: ACTIVITY_DEFINITIONS[type as ActivityType]?.label ?? type,
         color: ACTIVITY_COLORS[type as ActivityType] ?? '#6b7280',
         logs: v.count,
         xp: v.xp,
@@ -456,6 +442,8 @@ function ActivityBreakdown({
     );
   }
 
+  const maxXp = Math.max(...data.map((d) => d.xp), 1);
+
   return (
     <ChartCard title="Activity Breakdown">
       <div className="space-y-3">
@@ -475,7 +463,7 @@ function ActivityBreakdown({
                     className="h-1.5 rounded-full"
                     style={{
                       backgroundColor: color,
-                      width: `${Math.min(100, (xp / Math.max(...data.map((d) => d.xp), 1)) * 100)}%`,
+                      width: `${Math.min(100, (xp / maxXp) * 100)}%`,
                     }}
                   />
                 </div>
@@ -564,7 +552,7 @@ function ActivityFrequencyChart({ data }: { data: Record<string, number | string
             />
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-              formatter={(v) => ACTIVITY_LABELS[v as ActivityType] ?? v}
+              formatter={(v) => ACTIVITY_DEFINITIONS[v as ActivityType]?.label ?? String(v)}
             />
             {activityTypes.map((type) => (
               <Bar

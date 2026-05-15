@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import {
   type ActivityType,
   DAILY_ACTIVITY_CAPS,
+  ACTIVITY_AMOUNT_MAX,
   eligibleAmountForRewards,
 } from './gameLogic/activityCaps';
 import {
@@ -85,32 +86,21 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
   if (typeof amount !== 'number' || amount <= 0 || !isFinite(amount)) {
     throw new HttpsError('invalid-argument', 'amount must be a positive finite number.');
   }
-  const AMOUNT_MAX: Record<ActivityType, number> = {
-    workout: 300, // minutes
-    run: 50, // miles
-    steps: 50000, // steps
-    sleep: 12, // hours
-    water: 20, // glasses
-    nutrition: 10, // meals
-  };
-  if (amount > AMOUNT_MAX[activityType]) {
+  if (amount > ACTIVITY_AMOUNT_MAX[activityType]) {
     throw new HttpsError(
       'invalid-argument',
-      `amount ${amount} exceeds maximum ${AMOUNT_MAX[activityType]} for ${activityType}.`,
+      `amount ${amount} exceeds maximum ${ACTIVITY_AMOUNT_MAX[activityType]} for ${activityType}.`,
     );
   }
-  if (typeof unit !== 'string' || unit.length === 0) {
-    throw new HttpsError('invalid-argument', 'unit must be a non-empty string.');
+  if (typeof unit !== 'string' || unit.length === 0 || unit.length > 50) {
+    throw new HttpsError('invalid-argument', 'unit must be a non-empty string (max 50 chars).');
   }
 
   // ── 1. Compute today's already-logged total (server-side, non-bypassable) ──
   // Uses a composite index on (uid, type, loggedAt) — defined in
   // firestore.indexes.json. Deploy the index before deploying this function.
-  const startOfDayMs = Date.UTC(
-    new Date().getUTCFullYear(),
-    new Date().getUTCMonth(),
-    new Date().getUTCDate(),
-  );
+  const now = new Date();
+  const startOfDayMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
 
   const todaySnap = await db
     .collection('activityLogs')
@@ -154,8 +144,8 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
 
   // ── 3. Fetch character document (mastery + restore both need it) ────────────
   const needsChar =
-    (rewardEligible && MASTERY_ACTIVITIES.has(activityType)) ||
-    (rewardEligible && RESTORE_ACTIVITIES.has(activityType));
+    rewardEligible &&
+    (MASTERY_ACTIVITIES.has(activityType) || RESTORE_ACTIVITIES.has(activityType));
 
   const charRef = db.collection('characters').doc(uid);
   let charData: FirebaseFirestore.DocumentData | undefined;

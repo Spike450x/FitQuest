@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCharacter } from '@/hooks/useCharacter';
@@ -14,6 +14,7 @@ import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { getStreakTier } from '@/lib/gameLogic/streaks';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
+import { useTodayKey } from '@/hooks/useTodayKey';
 import { getActivityIcon } from '@/lib/activityIcons';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { StatAllocModal } from '@/components/character/StatAllocModal';
@@ -38,6 +39,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const { character, loading, error: characterError, user } = useCharacter();
   const { logs, loading: logsLoading } = useRecentActivity(character?.uid);
+  const todayKey = useTodayKey();
+  const fetchCharacter = useCharacterStore((s) => s.fetchCharacter);
   const {
     quests,
     loading: questsLoading,
@@ -52,8 +55,14 @@ export default function DashboardPage() {
   }, [character, loading, characterError, router]);
 
   useEffect(() => {
-    if (character?.uid) fetchAndAssignQuests(character.uid);
-  }, [character?.uid, fetchAndAssignQuests]);
+    if (character?.uid) fetchAndAssignQuests(character.uid, todayKey);
+  }, [character?.uid, fetchAndAssignQuests, todayKey]);
+
+  const gearBonuses = useMemo(
+    () => (character ? totalGearBonuses(character.equippedGear) : {}),
+    [character],
+  );
+  const maxStamina = useMemo(() => (character ? playerMaxStamina(character) : 0), [character]);
 
   if (loading) return <LoadingSkeleton />;
 
@@ -63,7 +72,7 @@ export default function DashboardPage() {
         <ErrorBanner
           title="Couldn't load your character."
           message={characterError}
-          onRetry={() => useCharacterStore.getState().fetchCharacter(user.uid)}
+          onRetry={() => fetchCharacter(user.uid)}
         />
       );
     }
@@ -71,8 +80,6 @@ export default function DashboardPage() {
   }
 
   const classDef = CLASS_DEFINITIONS[character.class];
-  const gearBonuses = totalGearBonuses(character.equippedGear);
-  const maxStamina = playerMaxStamina(character);
   const currentStamina = character.currentStamina ?? maxStamina;
   const dailyQuests = quests.filter((q) => getQuestDef(q.questDefId)?.type === 'daily');
   const currentStreak = character.streakData?.currentStreak ?? 0;

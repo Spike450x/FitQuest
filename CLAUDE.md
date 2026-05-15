@@ -22,9 +22,9 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 ---
 
-## Current Status (last updated 2026-05-08)
+## Current Status (last updated 2026-05-15)
 
-**Shipped:** MVP phases 1–5 + Spells (21-spell catalog, dice resolution) + Streaks/PRs (Blessing tiers, 1.5× PR XP) + Subclasses (6, level-10 unlock) + Profile analytics + R1 streak boost transparency in victory modal + R4-StageB `logActivity` Cloud Function (server-side daily-cap enforcement, mastery writes) + R4-StageC restore migration (HP/Stamina/Magic capped at formula-derived max server-side) + CI Firestore rules auto-deploy. Recent: type renames, Firestore rules hardening, `resetCharacter` correctness fixes, `awardMastery` removed (owned by Cloud Function).
+**Shipped:** MVP phases 1–5 + Spells (21-spell catalog, dice resolution) + Streaks/PRs (Blessing tiers, 1.5× PR XP) + Subclasses (6, level-10 unlock) + Profile analytics + R1 streak boost transparency in victory modal + R4-StageB `logActivity` Cloud Function (server-side daily-cap enforcement, mastery writes) + R4-StageC restore migration (HP/Stamina/Magic capped at formula-derived max server-side) + CI Firestore rules auto-deploy. Recent: full code-audit pass (Must Fix → Should Fix → Consider → Risks/Gaps) — Firestore architecture contract restored (`fetchPlayerData` lib layer), atomic shop purchases via `runTransaction`, Modal focus trap, `getDailyPick`/`getWeeklyPick` made pure via explicit date/week keys (UTC-aligned), quest staleness fixed via `useTodayKey` re-trigger, `rotationExpiresAt()` for accurate UTC-midnight countdowns, `SpellCard` memoized, `(uid, loggedAt DESC)` Firestore index deployed.
 
 **Active focus:** Dungeons — multi-room runs with escalating loot.
 
