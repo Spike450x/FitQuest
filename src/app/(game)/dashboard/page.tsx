@@ -72,7 +72,7 @@ export default function DashboardPage() {
         <ErrorBanner
           title="Couldn't load your character."
           message={characterError}
-          onRetry={() => fetchCharacter(user.uid)}
+          onRetry={() => fetchCharacter(user.uid, true)}
         />
       );
     }
