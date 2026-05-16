@@ -43,6 +43,22 @@ function getWeekSeed(): number {
   return thursday.getUTCFullYear() * 100 + week;
 }
 
+/**
+ * Derive the ISO week key ('YYYY-WW') from a UTC date key ('YYYY-MM-DD').
+ * Useful when you have a `dateKey` from `useTodayKey` and need the matching
+ * `weekKey` to pass to `getWeeklyPick` without reading the clock.
+ */
+export function deriveWeekKey(dateKey: string): string {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  const dayUTC = d.getUTCDay() === 0 ? 7 : d.getUTCDay();
+  const thursdayMs = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + (4 - dayUTC));
+  const thursday = new Date(thursdayMs);
+  const yearStartMs = Date.UTC(thursday.getUTCFullYear(), 0, 1);
+  const week = Math.ceil(((thursdayMs - yearStartMs) / 86_400_000 + 1) / 7);
+  return `${thursday.getUTCFullYear()}-${String(week).padStart(2, '0')}`;
+}
+
 // ─── Shuffle ──────────────────────────────────────────────────────────────────
 
 /**

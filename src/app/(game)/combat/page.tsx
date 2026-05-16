@@ -847,22 +847,25 @@ export default function CombatPage() {
       fightState.playerMagic,
       maxMagic,
     );
+    // Compute final values before setFightState so both the local-state setter
+    // and the store setter use the same numbers (avoids stale-closure mismatch).
+    const newHp =
+      hpGained > 0 ? Math.min(fightState.playerHp + hpGained, maxHp) : fightState.playerHp;
+    const newStamina =
+      staminaGained > 0
+        ? Math.min(fightState.playerStamina + staminaGained, maxStamina)
+        : fightState.playerStamina;
+    const newMagic =
+      magicGained > 0
+        ? Math.min(fightState.playerMagic + magicGained, maxMagic)
+        : fightState.playerMagic;
     setFightState((prev) => {
       if (!prev) return prev;
-      return {
-        ...prev,
-        playerHp: hpGained > 0 ? Math.min(prev.playerHp + hpGained, maxHp) : prev.playerHp,
-        playerStamina:
-          staminaGained > 0
-            ? Math.min(prev.playerStamina + staminaGained, maxStamina)
-            : prev.playerStamina,
-        playerMagic:
-          magicGained > 0 ? Math.min(prev.playerMagic + magicGained, maxMagic) : prev.playerMagic,
-      };
+      return { ...prev, playerHp: newHp, playerStamina: newStamina, playerMagic: newMagic };
     });
-    if (hpGained > 0) setHpLocal(fightState.playerHp + hpGained);
-    if (staminaGained > 0) setStaminaLocal(fightState.playerStamina + staminaGained);
-    if (magicGained > 0) setMagicLocal(fightState.playerMagic + magicGained);
+    if (hpGained > 0) setHpLocal(newHp);
+    if (staminaGained > 0) setStaminaLocal(newStamina);
+    if (magicGained > 0) setMagicLocal(newMagic);
     setUsingItem(null);
   }
 

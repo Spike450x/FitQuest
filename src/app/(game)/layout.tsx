@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { logOut } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { XPBar } from '@/components/ui/XPBar';
@@ -29,7 +28,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   const [collapsed, setCollapsed] = useState(true);
 
   async function handleSignOut() {
-    await signOut(auth);
+    await logOut();
     router.push('/login');
   }
 

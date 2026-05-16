@@ -12,6 +12,7 @@ import {
   getWeeklyPick,
   dailyExpiresAt,
   weeklyExpiresAt,
+  deriveWeekKey,
 } from '@/lib/gameLogic/rotation';
 import { getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
 import { useCharacterStore } from './characterStore';
@@ -39,11 +40,14 @@ interface QuestStore {
   updateQuestProgress: (uid: string, activityType: ActivityType, amount: number) => Promise<void>;
   /**
    * Awards XP + gold for a completed, unclaimed quest.
-   * Returns true on success, false if the quest is not claimable.
+   * Returns the actual scaled amounts awarded on success (use for toast display),
+   * or false if the quest is not claimable.
    */
-  claimReward: (questId: string) => Promise<boolean>;
+  claimReward: (questId: string) => Promise<{ xpAwarded: number; goldAwarded: number } | false>;
   clear: () => void;
 }
+
+let fetching = false; // module-level guard — prevents concurrent double-assignment
 
 export const useQuestStore = create<QuestStore>((set, get) => ({
   quests: [],
@@ -51,6 +55,8 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
   error: null,
 
   fetchAndAssignQuests: async (uid, dateKey) => {
+    if (fetching) return;
+    fetching = true;
     set({ loading: true, error: null });
     try {
       const now = Date.now();
@@ -63,53 +69,81 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
         .map((d) => ({ id: d.id, ...d.data() }) as ActiveQuest)
         .filter((q) => q.expiresAt > now);
 
-      const assigned: ActiveQuest[] = [];
+      const weekKey = dateKey ? deriveWeekKey(dateKey) : undefined;
 
-      // Assign daily quests if none are active for today
+      // Assign daily quests if none are active for today.
       // Uses a day-seeded deterministic pick so the same 3 quests appear for everyone today.
       const hasDailies = existing.some((q) => getQuestDef(q.questDefId)?.type === 'daily');
+      const dailyAssigned: ActiveQuest[] = [];
       if (!hasDailies) {
         const picked = getDailyPick(DAILY_QUEST_POOL, DAILY_QUEST_COUNT, dateKey);
         const expiry = dailyExpiresAt();
-        for (const def of picked) {
-          const questData = {
+        const refs = await Promise.all(
+          picked.map((def) =>
+            addDoc(collection(db, 'activeQuests'), {
+              uid,
+              questDefId: def.id,
+              progress: 0,
+              completedAt: null,
+              claimedAt: null,
+              expiresAt: expiry,
+              rewards: def.rewards,
+            }),
+          ),
+        );
+        refs.forEach((ref, i) =>
+          dailyAssigned.push({
+            id: ref.id,
             uid,
-            questDefId: def.id,
+            questDefId: picked[i].id,
             progress: 0,
             completedAt: null,
             claimedAt: null,
             expiresAt: expiry,
-            rewards: def.rewards,
-          };
-          const ref = await addDoc(collection(db, 'activeQuests'), questData);
-          assigned.push({ id: ref.id, ...questData });
-        }
+            rewards: picked[i].rewards,
+          }),
+        );
       }
 
-      // Assign weekly quests if none are active for this week
+      // Assign weekly quests if none are active for this week.
       // Uses a week-seeded deterministic pick so the same 3 quests appear all week.
       const hasWeeklies = existing.some((q) => getQuestDef(q.questDefId)?.type === 'weekly');
+      const weeklyAssigned: ActiveQuest[] = [];
       if (!hasWeeklies) {
-        const picked = getWeeklyPick(WEEKLY_QUEST_POOL, WEEKLY_QUEST_COUNT);
+        const picked = getWeeklyPick(WEEKLY_QUEST_POOL, WEEKLY_QUEST_COUNT, weekKey);
         const expiry = weeklyExpiresAt();
-        for (const def of picked) {
-          const questData = {
+        const refs = await Promise.all(
+          picked.map((def) =>
+            addDoc(collection(db, 'activeQuests'), {
+              uid,
+              questDefId: def.id,
+              progress: 0,
+              completedAt: null,
+              claimedAt: null,
+              expiresAt: expiry,
+              rewards: def.rewards,
+            }),
+          ),
+        );
+        refs.forEach((ref, i) =>
+          weeklyAssigned.push({
+            id: ref.id,
             uid,
-            questDefId: def.id,
+            questDefId: picked[i].id,
             progress: 0,
             completedAt: null,
             claimedAt: null,
             expiresAt: expiry,
-            rewards: def.rewards,
-          };
-          const ref = await addDoc(collection(db, 'activeQuests'), questData);
-          assigned.push({ id: ref.id, ...questData });
-        }
+            rewards: picked[i].rewards,
+          }),
+        );
       }
 
-      set({ quests: [...existing, ...assigned], loading: false });
+      set({ quests: [...existing, ...dailyAssigned, ...weeklyAssigned], loading: false });
     } catch (e) {
       set({ error: (e as Error).message, loading: false });
+    } finally {
+      fetching = false;
     }
   },
 
@@ -218,7 +252,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       quests: state.quests.map((q) => (q.id === questId ? { ...q, claimedAt: now } : q)),
     }));
 
-    return true;
+    return { xpAwarded: xpToAward, goldAwarded: scaled.gold };
   },
 
   clear: () => set({ quests: [], error: null }),
