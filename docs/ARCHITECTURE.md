@@ -24,7 +24,7 @@ graph TD
 
 **Rules of the layout:**
 
-- **UI never calls Firebase directly.** All reads/writes route through a Zustand store action, which uses helpers from `src/lib/`.
+- **UI never calls Firebase directly.** All reads/writes route through a Zustand store action or lib wrapper. Firestore → `src/lib/fetchPlayerData.ts`, Auth → `src/lib/auth.ts`, Cloud Functions → `src/lib/functions.ts`. No component or hook imports the Firebase SDK directly (except `useAuth`, which owns the auth-state subscription, and is the only sanctioned exception).
 - **Game logic is pure and side-effect-free.** `src/lib/gameLogic/` contains deterministic functions that take inputs and return outputs — no I/O, no globals. This is what the vitest suite covers.
 - **Zustand is the in-memory source of truth during a session.** Firestore is the persistence layer. Store actions reconcile the two.
 - **Auth gating is enforced in two places.** Client-side via `src/middleware.ts` (redirects), server-side via Firestore rules (the only authoritative gate).
@@ -33,22 +33,24 @@ graph TD
 
 ## Folder map (`src/`)
 
-| Path                      | Role                                                                                                                                                                               |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app/(auth)/`             | Public auth routes — login, register.                                                                                                                                              |
-| `app/(game)/`             | All authenticated game pages. Behind both middleware and Firestore-rule gates.                                                                                                     |
-| `app/character-creation/` | One-time class-selection flow on first login.                                                                                                                                      |
-| `app/layout.tsx`          | Root layout, global providers, font setup.                                                                                                                                         |
-| `app/page.tsx`            | Landing redirect.                                                                                                                                                                  |
-| `components/`             | Shared UI building blocks (forms, cards, modals, bars).                                                                                                                            |
-| `hooks/`                  | Reusable client hooks (`useAuth`, `useCharacter`, `useRecentActivity`, `useCombatBursts`, `useInventoryNewMarkers`, `useTodayKey`). All hooks live here — none in component files. |
-| `lib/firebase.ts`         | Firebase SDK init. Reads env vars; exports `app`, `auth`, `db`, `functions`. The only Firebase wiring in the repo.                                                                 |
-| `lib/gameLogic/`          | Pure deterministic logic — combat, spells, XP, streaks, items, monsters, quests. Unit-tested.                                                                                      |
-| `store/`                  | Zustand stores (`characterStore`, `inventoryStore`, `questStore`).                                                                                                                 |
-| `types/index.ts`          | Single source of truth for TypeScript types. Imported by every other layer.                                                                                                        |
-| `types/cloudFunctions.ts` | Canonical `LogActivityInput` / `LogActivityResult` types shared between `ActivityLogForm` and `functions/`.                                                                        |
-| `lib/fetchPlayerData.ts`  | Thin Firestore fetch helpers (`fetchActivityLogs`, `fetchActiveQuests`, `fetchInventoryItems`). Use instead of raw `getDocs` in components.                                        |
-| `middleware.ts`           | Next.js middleware — checks the Firebase `__session` cookie and redirects.                                                                                                         |
+| Path                      | Role                                                                                                                                                                                                            |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/(auth)/`             | Public auth routes — login, register.                                                                                                                                                                           |
+| `app/(game)/`             | All authenticated game pages. Behind both middleware and Firestore-rule gates.                                                                                                                                  |
+| `app/character-creation/` | One-time class-selection flow on first login.                                                                                                                                                                   |
+| `app/layout.tsx`          | Root layout, global providers, font setup.                                                                                                                                                                      |
+| `app/page.tsx`            | Landing redirect.                                                                                                                                                                                               |
+| `components/`             | Shared UI building blocks (forms, cards, modals, bars).                                                                                                                                                         |
+| `hooks/`                  | Reusable client hooks (`useAuth`, `useCharacter`, `useRecentActivity`, `useCombatBursts`, `useInventoryNewMarkers`, `useTodayKey`). All hooks live here — none in component files.                              |
+| `lib/firebase.ts`         | Firebase SDK init. Reads env vars; exports `app`, `auth`, `db`, `functions`. The only Firebase wiring in the repo.                                                                                              |
+| `lib/gameLogic/`          | Pure deterministic logic — combat, spells, XP, streaks, items, monsters, quests. Unit-tested.                                                                                                                   |
+| `store/`                  | Zustand stores (`characterStore`, `inventoryStore`, `questStore`).                                                                                                                                              |
+| `types/index.ts`          | Single source of truth for TypeScript types. Imported by every other layer.                                                                                                                                     |
+| `types/cloudFunctions.ts` | Canonical `LogActivityInput` / `LogActivityResult` types shared between `ActivityLogForm` and `functions/`.                                                                                                     |
+| `lib/fetchPlayerData.ts`  | Firestore fetch helpers with field-normalizing functions (`normalizeActiveQuest`, `normalizeInventoryItem`). Applies safe defaults for fields added post-MVP so raw `as` casts never silently hold `undefined`. |
+| `lib/functions.ts`        | Cloud Functions callable wrappers (`logActivityFn`). Components import from here — never instantiate `httpsCallable` directly.                                                                                  |
+| `lib/auth.ts`             | Firebase Auth wrappers (`signIn`, `signUp`, `logOut`). Auth pages import from here — never import Firebase Auth SDK directly.                                                                                   |
+| `middleware.ts`           | Next.js middleware — checks the Firebase `__session` cookie and redirects.                                                                                                                                      |
 
 ---
 

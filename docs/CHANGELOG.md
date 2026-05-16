@@ -14,6 +14,15 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-16 — Full code-audit sweep to 10/10 (final gaps)
+
+- `src/lib/functions.ts`: extracted `logActivityFn` callable — `ActivityLogForm` no longer holds a Firebase SDK import directly, completing the architecture contract across all three Firebase surfaces (Firestore, Auth, Cloud Functions).
+- `fetchPlayerData.ts`: replaced raw `as` casts with `normalizeActiveQuest` / `normalizeInventoryItem` / `normalizeActivityLog` helpers that apply safe field defaults (e.g. `progress ?? 0`, `completedAt ?? null`, `quantity ?? 1`). These normalizers are re-used in `inventoryStore` and `questStore`, eliminating silent `undefined`-as-typed-value bugs in old docs.
+- `stats/page.tsx`: store-first reads — quests and inventory are read from the Zustand store snapshot via `getState()` on the stats page, falling back to Firestore only when the stores haven't been populated. Eliminates 2 of 3 Firestore reads on most visits.
+- `inventoryStore.awardLoot`: split consumable (sequential, stacking-safe) and equipment (parallel `Promise.all`) paths. Equipment drops now write in one round-trip regardless of count — meaningful for future Dungeons multi-floor loot.
+- Auth forms: `id`/`htmlFor` label association + `autoComplete` attributes on login and register pages.
+- `characterStore`: 30 s TTL on `fetchCharacter` with `force` bypass; `StatAllocModal` two-click confirmation guard.
+
 ## 2026-05-15 — Weekly rotation purity, UTC boundary fixes, quest staleness
 
 - `getWeeklyPick` now accepts an optional `weekKey` ('YYYY-WW') — same pure/testable pattern as `getDailyPick`. `getWeekSeed()` fallback switched from local to UTC for consistency.

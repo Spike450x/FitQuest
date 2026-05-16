@@ -16,6 +16,7 @@ import {
 } from '@/lib/gameLogic/rotation';
 import { getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
 import { useCharacterStore } from './characterStore';
+import { normalizeActiveQuest } from '@/lib/fetchPlayerData';
 import type { ActiveQuest, ActivityType } from '@/types';
 
 const DAILY_QUEST_COUNT = 3;
@@ -66,7 +67,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       const q = query(collection(db, 'activeQuests'), where('uid', '==', uid));
       const snap = await getDocs(q);
       const existing = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }) as ActiveQuest)
+        .map((d) => normalizeActiveQuest(d.id, d.data()))
         .filter((q) => q.expiresAt > now);
 
       const weekKey = dateKey ? deriveWeekKey(dateKey) : undefined;

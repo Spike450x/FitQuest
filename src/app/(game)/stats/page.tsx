@@ -3,6 +3,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useCharacter } from '@/hooks/useCharacter';
 import { fetchActivityLogs, fetchActiveQuests, fetchInventoryItems } from '@/lib/fetchPlayerData';
+import { useQuestStore } from '@/store/questStore';
+import { useInventoryStore } from '@/store/inventoryStore';
 import { getItemById } from '@/lib/gameLogic/items';
 import { ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { ACTIVITY_ICONS } from '@/lib/activityIcons';
@@ -100,10 +102,17 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
     async function load() {
       setLoading(true);
       try {
+        // Activity logs live only in Firestore — always fetch.
+        // Quests and inventory are already loaded by other pages in a normal
+        // session; read from the Zustand store snapshot and skip the round-trip.
+        // Fall back to Firestore only if the store hasn't been populated yet.
+        const { quests: cachedQuests } = useQuestStore.getState();
+        const { items: cachedItems } = useInventoryStore.getState();
+
         const [logs, quests, inventory] = await Promise.all([
           fetchActivityLogs(uid),
-          fetchActiveQuests(uid),
-          fetchInventoryItems(uid),
+          cachedQuests.length > 0 ? Promise.resolve(cachedQuests) : fetchActiveQuests(uid),
+          cachedItems.length > 0 ? Promise.resolve(cachedItems) : fetchInventoryItems(uid),
         ]);
         setRaw({ logs, quests, inventory });
       } finally {

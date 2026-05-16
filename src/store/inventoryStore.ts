@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { useCharacterStore } from './characterStore';
 import { db } from '@/lib/firebase';
+import { normalizeInventoryItem } from '@/lib/fetchPlayerData';
 import { getItemById } from '@/lib/gameLogic/items';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
 import { COMBAT } from '@/lib/gameLogic/constants';
@@ -81,7 +82,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     try {
       const q = query(collection(db, 'inventory'), where('uid', '==', uid));
       const snap = await getDocs(q);
-      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as InventoryItem);
+      const items = snap.docs.map((d) => normalizeInventoryItem(d.id, d.data()));
       set({ items, loading: false });
     } catch (e) {
       set({ error: (e as Error).message, loading: false });
@@ -127,51 +128,60 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   },
 
   awardLoot: async (uid, itemIds) => {
-    // Items are processed one at a time (not batched) so each consumable stack write
-    // is visible to the next iteration before it checks for an existing doc.
-    for (const itemDefId of itemIds) {
-      const def = getItemById(itemDefId);
+    const consumableIds: string[] = [];
+    const equipmentIds: string[] = [];
+    for (const id of itemIds) {
+      const def = getItemById(id);
       if (!def) continue;
-
-      // Re-read state each iteration: earlier loop iterations may have added new docs
-      // that we need to find when stacking the same consumable dropped twice.
-      const currentItems = get().items;
-
       if (def.type === 'consumable') {
-        // Stack with an existing consumable doc for this item, or create new
-        const existing = currentItems.find((i) => i.itemDefId === itemDefId);
-        if (existing) {
-          const newQty = existing.quantity + 1;
-          await updateDoc(doc(db, 'inventory', existing.id), { quantity: newQty });
-          set((state) => ({
-            items: state.items.map((i) => (i.id === existing.id ? { ...i, quantity: newQty } : i)),
-          }));
-        } else {
-          const newItem: Omit<InventoryItem, 'id'> & { uid: string } = {
-            uid,
-            itemDefId,
-            quantity: 1,
-            equipped: false,
-            acquiredAt: Date.now(),
-          };
-          const docRef = await addDoc(collection(db, 'inventory'), newItem);
-          set((state) => ({ items: [...state.items, { id: docRef.id, ...newItem }] }));
-        }
+        consumableIds.push(id);
       } else {
-        // Equipment: skip if already owned
-        const alreadyOwned = currentItems.some((i) => i.itemDefId === itemDefId);
-        if (alreadyOwned) continue;
-        const newItem: Omit<InventoryItem, 'id'> & { uid: string } = {
-          uid,
-          itemDefId,
-          quantity: 1,
-          equipped: false,
-          acquiredAt: Date.now(),
-        };
+        equipmentIds.push(id);
+      }
+    }
+
+    // Consumables must be processed sequentially: each stack-write must be
+    // visible to the next iteration so duplicate drops stack correctly.
+    for (const itemDefId of consumableIds) {
+      const existing = get().items.find((i) => i.itemDefId === itemDefId);
+      if (existing) {
+        const newQty = existing.quantity + 1;
+        await updateDoc(doc(db, 'inventory', existing.id), { quantity: newQty });
+        set((state) => ({
+          items: state.items.map((i) => (i.id === existing.id ? { ...i, quantity: newQty } : i)),
+        }));
+      } else {
+        const newItem = { uid, itemDefId, quantity: 1, equipped: false, acquiredAt: Date.now() };
         const docRef = await addDoc(collection(db, 'inventory'), newItem);
         set((state) => ({ items: [...state.items, { id: docRef.id, ...newItem }] }));
       }
     }
+
+    // Equipment can be written in parallel — each item is independent.
+    const ownedIds = new Set(get().items.map((i) => i.itemDefId));
+    const newEquipment = equipmentIds.filter((id) => !ownedIds.has(id));
+    if (newEquipment.length === 0) return;
+
+    const acquiredAt = Date.now();
+    const results = await Promise.all(
+      newEquipment.map((itemDefId) =>
+        addDoc(collection(db, 'inventory'), {
+          uid,
+          itemDefId,
+          quantity: 1,
+          equipped: false,
+          acquiredAt,
+        }),
+      ),
+    );
+    const addedItems: InventoryItem[] = results.map((docRef, i) => ({
+      id: docRef.id,
+      itemDefId: newEquipment[i],
+      quantity: 1,
+      equipped: false,
+      acquiredAt,
+    }));
+    set((state) => ({ items: [...state.items, ...addedItems] }));
   },
 
   equipItem: async (inventoryItemId, uid) => {
