@@ -42,6 +42,7 @@ export function Modal({
   className = '',
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -52,13 +53,18 @@ export function Modal({
     return () => document.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
 
-  // Move focus into the dialog on open so keyboard users aren't stranded behind the backdrop.
+  // Move focus into the dialog on open; restore to the trigger element on close.
   useEffect(() => {
-    if (!open || !dialogRef.current) return;
-    const focusable = dialogRef.current.querySelector<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-    focusable?.focus();
+    if (open) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      const focusable = dialogRef.current?.querySelector<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      focusable?.focus();
+    } else {
+      previousFocusRef.current?.focus();
+      previousFocusRef.current = null;
+    }
   }, [open]);
 
   // Lock body scroll while open

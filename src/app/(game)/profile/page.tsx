@@ -2,16 +2,15 @@
 
 import { useState } from 'react';
 import {
-  updateProfile,
   updateEmail,
   updatePassword,
   EmailAuthProvider,
   reauthenticateWithCredential,
+  type User,
 } from 'firebase/auth';
-import { updateDoc, doc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
+import type { Character } from '@/types';
 
 export default function ProfilePage() {
   const { character, user } = useCharacter();
@@ -36,8 +35,8 @@ export default function ProfilePage() {
 
 // ── Change Name ───────────────────────────────────────────────────────────────
 
-function ChangeNameForm({ character }: { character: import('@/types').Character }) {
-  const fetchCharacter = useCharacterStore((s) => s.fetchCharacter);
+function ChangeNameForm({ character }: { character: Character }) {
+  const updateName = useCharacterStore((s) => s.updateName);
   const [name, setName] = useState(character.name);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -50,11 +49,7 @@ function ChangeNameForm({ character }: { character: import('@/types').Character 
     setSaving(true);
     setError('');
     try {
-      await updateDoc(doc(db, 'characters', character.uid), { name: trimmed });
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { displayName: trimmed });
-      }
-      await fetchCharacter(character.uid);
+      await updateName(character.uid, trimmed);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
@@ -89,7 +84,7 @@ function ChangeNameForm({ character }: { character: import('@/types').Character 
 
 // ── Change Email ──────────────────────────────────────────────────────────────
 
-function ChangeEmailForm({ user }: { user: import('firebase/auth').User }) {
+function ChangeEmailForm({ user }: { user: User }) {
   const [email, setEmail] = useState(user.email ?? '');
   const [password, setPassword] = useState('');
   const [saving, setSaving] = useState(false);
@@ -151,7 +146,7 @@ function ChangeEmailForm({ user }: { user: import('firebase/auth').User }) {
 
 // ── Change Password ───────────────────────────────────────────────────────────
 
-function ChangePasswordForm({ user }: { user: import('firebase/auth').User }) {
+function ChangePasswordForm({ user }: { user: User }) {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');

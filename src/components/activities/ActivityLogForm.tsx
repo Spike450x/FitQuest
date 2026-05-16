@@ -23,7 +23,7 @@ import {
   toastMasteryMilestone,
 } from '@/components/ui/Toaster';
 import type { LogActivityInput, LogActivityResult } from '@/types/cloudFunctions';
-import type { ActivityType } from '@/types';
+import type { ActivityType, Character } from '@/types';
 
 const logActivityFn = httpsCallable<LogActivityInput, LogActivityResult>(functions, 'logActivity');
 
@@ -310,7 +310,7 @@ function ActivityPreview({
 }: {
   activityType: ActivityType;
   amount: number;
-  character: import('@/types').Character;
+  character: Character;
 }) {
   if (MASTERY_ACTIVITIES.has(activityType)) {
     const type = activityType as MasteryActivityType;
