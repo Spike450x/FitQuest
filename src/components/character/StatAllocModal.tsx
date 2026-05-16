@@ -50,12 +50,18 @@ interface StatAllocModalProps {
 export function StatAllocModal({ character }: StatAllocModalProps) {
   const allocateStatPoint = useCharacterStore((s) => s.allocateStatPoint);
   const [allocating, setAllocating] = useState<AllocStat | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<AllocStat | null>(null);
 
   const pending = character.pendingStatPoints ?? 0;
   if (pending <= 0) return null;
 
   async function handleAlloc(stat: AllocStat) {
     if (allocating) return;
+    if (pendingConfirm !== stat) {
+      setPendingConfirm(stat);
+      return;
+    }
+    setPendingConfirm(null);
     setAllocating(stat);
     await allocateStatPoint(stat);
     setAllocating(null);
@@ -75,24 +81,47 @@ export function StatAllocModal({ character }: StatAllocModalProps) {
       <p className="text-sm text-amber-700 mb-4">
         Choose a stat to increase. You have <span className="font-bold">{pending}</span> unspent{' '}
         {pending === 1 ? 'point' : 'points'}.
+        {pendingConfirm && (
+          <span className="block mt-1 text-amber-800 font-semibold">
+            Tap again to confirm.{' '}
+            <button
+              className="underline font-normal text-amber-600"
+              onClick={() => setPendingConfirm(null)}
+            >
+              Cancel
+            </button>
+          </span>
+        )}
       </p>
 
       <div className="grid grid-cols-2 gap-2">
-        {ALLOC_OPTIONS.map(({ stat, label, icon, color, description }) => (
-          <button
-            key={stat}
-            onClick={() => handleAlloc(stat)}
-            disabled={!!allocating}
-            className={`flex flex-col items-start gap-0.5 border-2 rounded-xl px-4 py-3 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${color}`}
-          >
-            <span className="font-bold text-sm flex items-center gap-1.5">
-              {icon} {label}
-              <span className="font-normal opacity-70 ml-0.5">({character.stats[stat] ?? 0})</span>
-            </span>
-            <span className="text-xs opacity-70">{description}</span>
-            {allocating === stat && <span className="text-xs font-semibold mt-0.5">Saving…</span>}
-          </button>
-        ))}
+        {ALLOC_OPTIONS.map(({ stat, label, icon, color, description }) => {
+          const isConfirming = pendingConfirm === stat;
+          return (
+            <button
+              key={stat}
+              onClick={() => handleAlloc(stat)}
+              disabled={!!allocating}
+              className={`flex flex-col items-start gap-0.5 border-2 rounded-xl px-4 py-3 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                isConfirming
+                  ? 'border-amber-500 bg-amber-100 ring-2 ring-amber-400 text-amber-900'
+                  : color
+              }`}
+            >
+              <span className="font-bold text-sm flex items-center gap-1.5">
+                {icon} {label}
+                <span className="font-normal opacity-70 ml-0.5">
+                  ({character.stats[stat] ?? 0})
+                </span>
+              </span>
+              <span className="text-xs opacity-70">{description}</span>
+              {allocating === stat && <span className="text-xs font-semibold mt-0.5">Saving…</span>}
+              {isConfirming && !allocating && (
+                <span className="text-xs font-bold mt-0.5 text-amber-700">Confirm +1?</span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

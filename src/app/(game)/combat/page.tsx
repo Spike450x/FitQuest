@@ -234,19 +234,31 @@ export default function CombatPage() {
     if (character?.uid) fetchInventory(character.uid);
   }, [character?.uid, fetchInventory]);
 
-  if (!character) return null;
+  const maxHp = useMemo(() => (character ? playerMaxHp(character) : 0), [character]);
+  const maxStamina = useMemo(() => (character ? playerMaxStamina(character) : 0), [character]);
+  const maxMagic = useMemo(() => (character ? playerMaxMagic(character) : 0), [character]);
+  const consumables = useMemo(
+    () =>
+      character
+        ? inventoryItems.filter((i) => {
+            const def = getItemById(i.itemDefId);
+            return def?.type === 'consumable' && i.equipped;
+          })
+        : [],
+    [character, inventoryItems],
+  );
+  const equippedSpells = useMemo(
+    () =>
+      character
+        ? inventoryItems
+            .filter((i) => i.equipped)
+            .map((i) => ({ invItem: i, def: getItemById(i.itemDefId) }))
+            .filter((x) => x.def?.type === 'spell' && x.def.spellMechanics !== undefined)
+        : [],
+    [character, inventoryItems],
+  );
 
-  const maxHp = playerMaxHp(character);
-  const maxStamina = playerMaxStamina(character);
-  const maxMagic = playerMaxMagic(character);
-  const consumables = inventoryItems.filter((i) => {
-    const def = getItemById(i.itemDefId);
-    return def?.type === 'consumable' && i.equipped;
-  });
-  const equippedSpells = inventoryItems
-    .filter((i) => i.equipped)
-    .map((i) => ({ invItem: i, def: getItemById(i.itemDefId) }))
-    .filter((x) => x.def?.type === 'spell' && x.def.spellMechanics !== undefined);
+  if (!character) return null;
 
   /** Captures the streak multiplier at call-time and returns both the multiplier value
    *  and a boost function. Call once per kill so every consumer (modal, toast, award)
@@ -829,9 +841,12 @@ export default function CombatPage() {
 
   async function handleBeginAgain() {
     setResetting(true);
-    await resetCharacter();
-    setResetting(false);
-    router.push('/dashboard');
+    try {
+      await resetCharacter();
+      router.push('/dashboard');
+    } catch {
+      setResetting(false);
+    }
   }
 
   async function handleUseItem(inventoryItemId: string) {
