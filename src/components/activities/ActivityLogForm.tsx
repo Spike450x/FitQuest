@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
+import { logActivityFn } from '@/lib/functions';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
@@ -22,10 +21,7 @@ import {
   toastStreakTier,
   toastMasteryMilestone,
 } from '@/components/ui/Toaster';
-import type { LogActivityInput, LogActivityResult } from '@/types/cloudFunctions';
 import type { ActivityType, Character } from '@/types';
-
-const logActivityFn = httpsCallable<LogActivityInput, LogActivityResult>(functions, 'logActivity');
 
 const TABS: { type: ActivityType; icon: string; label: string }[] = [
   { type: 'workout', icon: '🏋️', label: 'Workout' },
