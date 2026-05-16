@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { updateProfile } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
 import {
   CLASS_DEFINITIONS,
   xpToNextLevel,
@@ -80,6 +81,8 @@ interface CharacterStore {
    * drop. Drives the pity system in rollLoot().
    */
   updateMonsterPity: (monsterId: string, gotLegendary: boolean) => Promise<void>;
+  /** Updates the character's display name in Firestore and Firebase Auth, then syncs local state. */
+  updateName: (uid: string, name: string) => Promise<void>;
   clear: () => void;
 }
 
@@ -350,6 +353,14 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       legendaryDryStreak: newDryStreak,
     });
     set({ character: { ...character, legendaryDryStreak: newDryStreak } });
+  },
+
+  updateName: async (uid, name) => {
+    await updateDoc(doc(db, 'characters', uid), { name });
+    if (auth.currentUser) await updateProfile(auth.currentUser, { displayName: name });
+    set((state) => ({
+      character: state.character ? { ...state.character, name } : null,
+    }));
   },
 
   clear: () => set({ character: null, error: null }),

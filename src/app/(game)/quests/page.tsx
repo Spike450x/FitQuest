@@ -244,16 +244,16 @@ export default function QuestsPage() {
     const quest = quests.find((q) => q.id === questId);
     const def = quest ? getQuestDef(quest.questDefId) : null;
     setClaiming(questId);
-    const ok = await claimReward(questId);
+    const result = await claimReward(questId);
     setClaiming(null);
-    if (ok && def) {
+    if (result && def) {
       toastReward({
         emoji: '📜',
         title: `${def.name} claimed!`,
-        xp: def.rewards.xp,
-        gold: def.rewards.gold,
+        xp: result.xpAwarded,
+        gold: result.goldAwarded,
       });
-    } else if (!ok) {
+    } else if (!result) {
       toast.error('Could not claim that quest. Try again.');
     }
   }

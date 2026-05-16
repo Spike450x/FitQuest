@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { signUp } from '@/lib/auth';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,7 +37,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      await signUp(email, password);
       // Navigation is handled by the useEffect above once auth state updates
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Registration failed';

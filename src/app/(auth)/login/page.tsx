@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { signIn } from '@/lib/auth';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,7 +26,7 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signIn(email, password);
       // Navigation is handled by the useEffect above once auth state updates
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Login failed';
