@@ -25,7 +25,12 @@ interface CharacterStore {
   lastFetchedAt: number | null;
 
   // Actions
-  fetchCharacter: (uid: string) => Promise<void>;
+  /**
+   * Load character from Firestore. Skips the read if the same uid was fetched
+   * within the last 30 s unless `force` is true. Pass `force: true` after a
+   * Cloud Function write that may have updated the character document.
+   */
+  fetchCharacter: (uid: string, force?: boolean) => Promise<void>;
   createCharacter: (uid: string, name: string, characterClass: CharacterClass) => Promise<void>;
   awardXpAndStats: (xpGained: number, statGains: Partial<Stats>) => Promise<number>;
   awardGold: (amount: number) => Promise<void>;
@@ -96,9 +101,10 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
   error: null,
   lastFetchedAt: null,
 
-  fetchCharacter: async (uid) => {
+  fetchCharacter: async (uid, force = false) => {
     const { character, lastFetchedAt } = get();
     if (
+      !force &&
       character?.uid === uid &&
       lastFetchedAt !== null &&
       Date.now() - lastFetchedAt < FETCH_TTL_MS

@@ -4,7 +4,15 @@ import type { ActivityLog, ActiveQuest, InventoryItem } from '@/types';
 
 export async function fetchActivityLogs(uid: string): Promise<ActivityLog[]> {
   const snap = await getDocs(query(collection(db, 'activityLogs'), where('uid', '==', uid)));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ActivityLog);
+  return snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      ...data,
+      // rewardEligible was added after MVP; old docs lack the field.
+      rewardEligible: (data.rewardEligible as boolean | undefined) ?? true,
+    } as ActivityLog;
+  });
 }
 
 export async function fetchActiveQuests(uid: string): Promise<ActiveQuest[]> {
