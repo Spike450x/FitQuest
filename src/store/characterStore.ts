@@ -21,6 +21,8 @@ interface CharacterStore {
   character: Character | null;
   loading: boolean;
   error: string | null;
+  /** Unix ms timestamp of the last successful fetchCharacter call. Used to debounce redundant re-fetches. */
+  lastFetchedAt: number | null;
 
   // Actions
   fetchCharacter: (uid: string) => Promise<void>;
@@ -86,12 +88,23 @@ interface CharacterStore {
   clear: () => void;
 }
 
+const FETCH_TTL_MS = 30_000;
+
 export const useCharacterStore = create<CharacterStore>((set, get) => ({
   character: null,
   loading: false,
   error: null,
+  lastFetchedAt: null,
 
   fetchCharacter: async (uid) => {
+    const { character, lastFetchedAt } = get();
+    if (
+      character?.uid === uid &&
+      lastFetchedAt !== null &&
+      Date.now() - lastFetchedAt < FETCH_TTL_MS
+    ) {
+      return;
+    }
     set({ loading: true, error: null });
     try {
       const snap = await getDoc(doc(db, 'characters', uid));
@@ -103,9 +116,9 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
           data.stats = { ...data.stats, agility: startingAgility };
           await updateDoc(doc(db, 'characters', uid), { 'stats.agility': startingAgility });
         }
-        set({ character: data, loading: false });
+        set({ character: data, loading: false, lastFetchedAt: Date.now() });
       } else {
-        set({ character: null, loading: false });
+        set({ character: null, loading: false, lastFetchedAt: null });
       }
     } catch (e) {
       set({ error: (e as Error).message, loading: false });
@@ -363,5 +376,5 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     }));
   },
 
-  clear: () => set({ character: null, error: null }),
+  clear: () => set({ character: null, error: null, lastFetchedAt: null }),
 }));
