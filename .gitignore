@@ -34,6 +34,9 @@ serviceAccount*.json
 # Claude Code — machine-specific settings (permissions, hooks, hardcoded paths)
 .claude/settings.local.json
 
+# Claude Code — IDE launch config (machine-specific dev server settings)
+.claude/launch.json
+
 # Claude Code — git worktrees managed by Claude (parallel branch checkouts)
 .claude/worktrees/
 

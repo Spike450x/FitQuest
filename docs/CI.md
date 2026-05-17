@@ -45,19 +45,20 @@ permissions:
 
 ### Steps
 
-| #   | Step                       | Command / condition                                             | Catches / purpose                                                                                                                                                 |
-| --- | -------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Checkout                   | `actions/checkout@…`                                            | n/a — fetches the repo. SHA-pinned (see below).                                                                                                                   |
-| 2   | Setup Node                 | `actions/setup-node@…`                                          | Pins Node 20 + npm cache.                                                                                                                                         |
-| 3   | Install                    | `npm ci`                                                        | Lockfile drift / missing dependencies.                                                                                                                            |
-| 4   | Validate Firestore indexes | `node scripts/validate-firestore-indexes.mjs`                   | Schema drift in `firestore.indexes.json` before deploy.                                                                                                           |
-| 5   | Typecheck Cloud Functions  | `cd functions && npm ci && npx tsc --noEmit`                    | TypeScript errors in `functions/src/`.                                                                                                                            |
-| 6   | Format check               | `npm run format:check`                                          | Prettier diff noise — files that aren't formatted to the shared baseline.                                                                                         |
-| 7   | Typecheck                  | `npm run typecheck`                                             | TypeScript errors across the whole project (`tsc --noEmit`).                                                                                                      |
-| 8   | Lint                       | `npm run lint`                                                  | ESLint errors and `next/core-web-vitals` rule violations.                                                                                                         |
-| 9   | Test                       | `npm test`                                                      | Vitest unit suite (game-logic regressions in `src/lib/gameLogic/`).                                                                                               |
-| 10  | Build                      | `npm run build:ci`                                              | Next.js build issues that typecheck doesn't surface (e.g. RSC boundaries). Uses dummy Firebase env from `.env.ci` so the build doesn't connect to real Firestore. |
-| 11  | Deploy Firestore rules     | `npx firebase deploy --only firestore:rules` (master push only) | Auto-deploys `firestore.rules` to `fitness-rpg-claude` after all checks pass. Skipped on PRs.                                                                     |
+| #   | Step                       | Command / condition                                             | Catches / purpose                                                                                                                                                                                                                                           |
+| --- | -------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Checkout                   | `actions/checkout@…`                                            | n/a — fetches the repo. SHA-pinned (see below).                                                                                                                                                                                                             |
+| 2   | Setup Node                 | `actions/setup-node@…`                                          | Pins Node 20 + npm cache.                                                                                                                                                                                                                                   |
+| 3   | Install                    | `npm ci`                                                        | Lockfile drift / missing dependencies.                                                                                                                                                                                                                      |
+| 4   | Validate Firestore indexes | `node scripts/validate-firestore-indexes.mjs`                   | Schema drift in `firestore.indexes.json` before deploy.                                                                                                                                                                                                     |
+| 5   | Typecheck Cloud Functions  | `cd functions && npm ci && npx tsc --noEmit`                    | TypeScript errors in `functions/src/`.                                                                                                                                                                                                                      |
+| 6   | Format check               | `npm run format:check`                                          | Prettier diff noise — files that aren't formatted to the shared baseline.                                                                                                                                                                                   |
+| 7   | Typecheck                  | `npm run typecheck`                                             | TypeScript errors across the whole project (`tsc --noEmit`).                                                                                                                                                                                                |
+| 8   | Lint                       | `npm run lint`                                                  | ESLint errors and `next/core-web-vitals` rule violations.                                                                                                                                                                                                   |
+| 9   | Test                       | `npm test`                                                      | Vitest unit suite (game-logic regressions in `src/lib/gameLogic/`).                                                                                                                                                                                         |
+| 10  | Test Firestore rules       | `firebase emulators:exec … "npm run test:rules"`                | Starts the Firestore emulator (`demo-fitness-rpg` demo project — no real Firebase connection) and runs `tests/rules/`. Covers auth ownership, immutable fields, delta caps, the ±2-min timestamp anti-backdating window, and the two-step quest-claim gate. |
+| 11  | Build                      | `npm run build:ci`                                              | Next.js build issues that typecheck doesn't surface (e.g. RSC boundaries). Uses dummy Firebase env from `.env.ci` so the build doesn't connect to real Firestore.                                                                                           |
+| 12  | Deploy Firestore rules     | `npx firebase deploy --only firestore:rules` (master push only) | Auto-deploys `firestore.rules` to `fitness-rpg-claude` after all checks pass. Skipped on PRs.                                                                                                                                                               |
 
 ### Firestore rules auto-deploy (step 11)
 
@@ -170,19 +171,20 @@ These are _separate_ from the version-bump config above and are toggled in **Set
 
 ## Mapping checks to regression classes
 
-| Regression                                                 | Caught by                                     |
-| ---------------------------------------------------------- | --------------------------------------------- |
-| Renamed type leaves stale call sites                       | Typecheck (local + CI)                        |
-| `console.log` left in committed code                       | Lint (local + CI)                             |
-| Game-logic regression (e.g. wrong XP curve, broken combat) | Test (local + CI)                             |
-| Whitespace/style drift                                     | Format check (CI) + lint-staged (local)       |
-| RSC / app-router-only build error                          | Build (CI only)                               |
-| Direct push to `master`                                    | pre-push (local) + branch protection (GitHub) |
-| Compromised third-party action                             | SHA pinning + `permissions: contents: read`   |
-| New CVE in a dependency                                    | Dependabot security updates                   |
-| Stale `firestore.rules` (merged but not deployed)          | Auto-deploy step on master push               |
-| `firestore.indexes.json` schema drift                      | Validate Firestore indexes step (CI)          |
-| Cloud Function type error                                  | Typecheck Cloud Functions step (CI)           |
+| Regression                                                                     | Caught by                                     |
+| ------------------------------------------------------------------------------ | --------------------------------------------- |
+| Renamed type leaves stale call sites                                           | Typecheck (local + CI)                        |
+| `console.log` left in committed code                                           | Lint (local + CI)                             |
+| Game-logic regression (e.g. wrong XP curve, broken combat)                     | Test (local + CI)                             |
+| Whitespace/style drift                                                         | Format check (CI) + lint-staged (local)       |
+| RSC / app-router-only build error                                              | Build (CI only)                               |
+| Direct push to `master`                                                        | pre-push (local) + branch protection (GitHub) |
+| Compromised third-party action                                                 | SHA pinning + `permissions: contents: read`   |
+| New CVE in a dependency                                                        | Dependabot security updates                   |
+| Stale `firestore.rules` (merged but not deployed)                              | Auto-deploy step on master push               |
+| `firestore.indexes.json` schema drift                                          | Validate Firestore indexes step (CI)          |
+| Cloud Function type error                                                      | Typecheck Cloud Functions step (CI)           |
+| Forged claim, backdated timestamp, or field mutation bypassing Firestore rules | Test Firestore rules step (CI)                |
 
 ---
 
