@@ -326,4 +326,23 @@ The following were left intentionally TBD and should be resolved during implemen
 
 ---
 
+## Future Considerations
+
+### Next-Level Suggestions
+
+- **Commander Vex dialogue** deserves extra investment — he's the hardest NPC and players who complete his challenge will remember the interaction. Consider 5–6 lines per trigger instead of the minimum 3, and give him more distinct language than other NPCs.
+- **Champion stable UI** — the Champions page doesn't exist yet. When it's built, the pip-dot cooldown pattern should extend there too, showing injured state and real-world recovery timers outside of combat so players can plan their team composition.
+- **Seeded month hash** — when implementing, reuse the ISO week key pattern from `streaks.ts` as a model. `YYYY-MM` hashing is nearly identical to `YYYY-Www` hashing already in the codebase — minimizes new logic and keeps the pattern consistent.
+- **NPC roster expansion** — 6 NPCs is a solid start but the rotation will feel thin after a few months. Plan to add new NPCs over time, particularly ones covering underrepresented fitness themes (e.g. flexibility/stretching, mental wellness, consistency over intensity). NPC creation is a content task but should be tracked as a roadmap milestone.
+
+### Potential Risks / Gaps
+
+- **Champion HP between dungeon rooms** — the `ChampionDoc` schema tracks `currentHp` but there is no defined rule yet for whether HP carries over between rooms in a multi-room dungeon or resets at each room. This must be explicitly decided during the Dungeons implementation to avoid inconsistent behavior.
+- **NPC gating must be server-enforced** — the gating table (level / reputation thresholds) must be enforced server-side via Firestore Security Rules or a Cloud Function, not just client-side display logic. A client could otherwise manipulate requests to surface gated NPCs early.
+- **5-variant minimum is a launch blocker** — the content work to expand each NPC's challenge pool from 3 to 5 variants must be tracked as a hard dependency of the Monthly NPCs feature, not an afterthought. If this is missed, the seeded rotation cannot cycle correctly.
+- **Champion AI cooldown state in multi-champion parties** — four champions with independent cooldown trackers running in parallel with the player's turn creates meaningful UI complexity. The combat screen will need careful layout work to show all pip states simultaneously without cluttering the fight view.
+- **Monetization footnotes must not ship as features** — both the streak recovery and champion XP boost have premium currency flags. Ensure these are never partially implemented (e.g. a disabled button labeled "Premium") until a full monetization strategy is ready — half-shipped monetization erodes trust.
+
+---
+
 _This document supplements the main roadmap. When these features are implemented, update the relevant sections of the roadmap doc to reference the implementation spec._

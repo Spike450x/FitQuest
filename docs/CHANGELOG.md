@@ -14,6 +14,13 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-17 — Post-MVP feature roadmap design docs
+
+- Created `docs/superpowers/specs/2026-05-17-future-features-roadmap-design.md` — full design for Guilds, Pets, Dungeons, Raids, Champions, Wanted Board/Reputation, Monthly NPCs, and Territory/Map (long-horizon), ordered by dependency chain.
+- Created `docs/superpowers/specs/2026-05-17-champions-reputation-streaks-design.md` — supplemental design covering Champion AI behavior (hybrid control, 7 archetypes with cooldowns), full 10-hero roster, 6-NPC roster with dynamic challenge pools, reputation dual-layer economy, raid streak makeup mechanics, cooldown pip-dot visualization, Mage burst UX, NPC gating table, Champion Firestore subcollection schema, and seeded monthly NPC challenge rotation.
+
+---
+
 ## 2026-05-16 — Full code-audit sweep to 10/10 (final gaps)
 
 - `src/lib/functions.ts`: extracted `logActivityFn` callable — `ActivityLogForm` no longer holds a Firebase SDK import directly, completing the architecture contract across all three Firebase surfaces (Firestore, Auth, Cloud Functions).
