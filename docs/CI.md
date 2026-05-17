@@ -86,6 +86,12 @@ All third-party actions are pinned to a **commit SHA** with a trailing `# vX.Y.Z
 
 Tags can be moved; commits cannot. Pinning to a SHA defends against an attacker compromising a tag and pushing a malicious workflow into our run. Dependabot reads the trailing tag comment to know what version to bump us to (see Dependabot section below).
 
+### CodeQL (`.github/workflows/codeql.yml`)
+
+A separate `CodeQL` workflow runs the `security-extended` query suite (JavaScript/TypeScript) on every PR and push to `master`, plus a weekly scheduled scan. It uses `codeql-action@v4` (Node 24-compatible) with SHA-pinned `actions/checkout`.
+
+The workflow uses an **advanced configuration** (custom `.yml`) rather than GitHub's default setup — this enables the `security-extended` query set and a weekly scheduled scan, neither of which the default UI exposes. **Do not re-enable the default setup in repo Settings → Code security** — enabling both simultaneously causes a SARIF conflict that fails the check.
+
 ### Adding a new required check
 
 When a new workflow lands (e.g. CodeQL, rules tests):
@@ -113,6 +119,27 @@ npx lint-staged && npm run typecheck && npm test
 - **`npm test`** — `vitest run` across `src/lib/gameLogic/__tests__/`. Pure-logic regression check. Fast (~2s) so it can run on every commit.
 
 A failed pre-commit blocks the commit — the staged changes stay staged so you can fix and re-commit.
+
+### Running Firestore rules tests locally
+
+The rules test suite (`tests/rules/`) requires a Firebase Firestore emulator. The pre-commit hook does **not** run these — they are CI-only by default because the emulator adds ~10 s cold-start overhead.
+
+**Prerequisites:** Java must be on `PATH` (the emulator JVM dependency). Node 18+ is sufficient; the emulator binary is downloaded on first run into `~/.cache/firebase/emulators/`.
+
+```bash
+# One-shot run (same command CI uses):
+npx firebase emulators:exec --only firestore --project demo-fitness-rpg "npm run test:rules"
+
+# Watch mode while iterating on rules or tests:
+npx firebase emulators:exec --only firestore --project demo-fitness-rpg \
+  "npx vitest --config vitest.rules.config.ts"
+```
+
+`demo-fitness-rpg` is a Firebase demo project ID — the emulator intercepts all Firestore calls locally; no real Firebase connection is made and no credentials are required.
+
+The suite covers: auth ownership, immutable fields, delta caps, the ±2-min timestamp anti-backdating window, and the two-step quest-claim gate.
+
+---
 
 ### `pre-push`
 
