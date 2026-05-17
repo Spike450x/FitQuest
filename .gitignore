@@ -37,6 +37,9 @@ serviceAccount*.json
 # Claude Code — git worktrees managed by Claude (parallel branch checkouts)
 .claude/worktrees/
 
+# superpowers brainstorm sessions (local mockup files)
+.superpowers/
+
 # vercel
 .vercel
 

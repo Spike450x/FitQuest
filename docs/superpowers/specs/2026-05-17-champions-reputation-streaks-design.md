@@ -220,6 +220,97 @@ Each NPC has a fixed **identity, personality, and activity theme**. Their specif
 
 ---
 
+## Section 6: Champion Cooldown Visualization
+
+Each champion card in the combat UI displays **pip dots** for cooldown state:
+
+- **Auto-behavior pips** — one pip per cooldown round (e.g. Knight = 1 pip, Mage = 3 pips). Filled = rounds remaining. Empty = ready.
+- **Command ability pips** — separate pip row in a distinct color (purple vs. blue for auto) so both cooldowns are independently trackable at a glance
+- **Injured state** — the entire champion card grays out and shows a clock icon with the real-world recovery time remaining (e.g. "Recovering — 18h left")
+- **Ready state** — all pips empty, card at full opacity, subtle green indicator
+
+Pip count per archetype (auto / command):
+
+| Archetype | Auto Pips | Command Pips |
+| --------- | --------- | ------------ |
+| Knight    | 1         | 3            |
+| Cleric    | 2         | 4            |
+| Ranger    | 2         | 3            |
+| Mage      | 3         | 5            |
+| Berserker | 1         | 4            |
+| Paladin   | 2         | 4            |
+| Assassin  | 3         | 3            |
+
+---
+
+## Section 7: Mage Burst Confirmation UX
+
+When the player taps the command button for Vael's burst, an **inline warning banner** appears above the confirm/cancel buttons before any action is committed:
+
+- Red left border
+- Bold red label: "⚠ COSTS YOUR ACTION"
+- One plain-English line: "Vael unleashes a devastating burst — but you must hold back to direct her. You won't attack this round."
+- **Confirm Burst** button (green) and **Cancel** button (gray) below
+
+No modal, no extra screen. The warning lives inline in the existing command UI. This pattern applies **only to the Mage burst** — all other command abilities have no player-action cost and require no warning.
+
+---
+
+## Section 8: NPC Challenge Balance & Gating
+
+Each NPC has a gate reflecting challenge difficulty. Players who don't meet the gate don't see that NPC in their monthly rotation. The three ungated NPCs ensure every player always has at least one Monthly NPC available.
+
+| NPC                  | Gate       | Threshold                            |
+| -------------------- | ---------- | ------------------------------------ |
+| Brother Merek        | None       | Available from day 1                 |
+| The Sleepless Sage   | None       | Available from day 1                 |
+| Kira Swiftfoot       | None       | Available from day 1                 |
+| Aldric the Ironbound | Level      | Level 8                              |
+| Sera of the Dawnrun  | Reputation | Known (500 lifetime)                 |
+| Commander Vex        | Both       | Level 20 + Renowned (4,000 lifetime) |
+
+Commander Vex requiring both gates means he only appears for established, active players who've genuinely earned the encounter.
+
+---
+
+## Section 9: Champion Firestore Schema
+
+Champion state lives in a subcollection under the character document: `characters/{uid}/champions/{championId}`.
+
+Each champion document shape:
+
+```ts
+interface ChampionDoc {
+  id: string; // roster key, e.g. "gorath"
+  level: number;
+  xp: number;
+  currentHp: number;
+  maxHp: number;
+  injuredUntil: number | null; // unix ms; null = healthy
+  deployCount: number; // total dungeon/raid runs participated in
+  acquiredAt: number; // unix ms
+}
+```
+
+- `injuredUntil` drives recovery — `null` = healthy, future timestamp = injured
+- Gold-accelerated recovery sets `injuredUntil` to `null` early via a Firestore write
+- The `Character` type in `src/types/index.ts` does **not** change — champion state is self-contained in the subcollection and read separately (Champions page, dungeon entry check)
+
+---
+
+## Section 10: NPC Challenge Pool — Seeded Rotation
+
+NPC challenge variants are selected using a **month seed** derived from `YYYY-MM` (e.g. `"2026-05"`). The seed is hashed to an integer and used to pick deterministically from each NPC's challenge pool.
+
+- Every player worldwide sees the same NPC challenge variant in a given month
+- Consecutive months always produce different seeds — no back-to-back repeats by design
+- The function must be **pure and testable**: accepts a `monthKey` string parameter, never reads the clock internally — mirrors the existing `getDailyPick` / `getWeeklyPick` pattern in `rotation.ts`
+- **Minimum pool size: 5 variants per NPC** — at 5 variants a full cycle takes 5 months before any variant could theoretically repeat
+
+> **Content reminder: NPC pool expansion needed.** The current roster has 3 challenge variants per NPC. Each NPC needs at least 2 more variants written before launch. Additionally, the overall NPC roster should grow beyond the current 6 characters — plan to add more NPCs covering underrepresented activity types and difficulty tiers over time. NPC creation is a content task, not an engineering task, but it must be scoped into the Monthly NPCs implementation milestone.
+
+---
+
 ## Open Questions for Implementation
 
 The following were left intentionally TBD and should be resolved during implementation planning:
@@ -230,6 +321,8 @@ The following were left intentionally TBD and should be resolved during implemen
 - Champion ability damage/heal values (need balancing against existing monster stat ranges)
 - Dialogue line counts per trigger (minimum 3 lines per trigger to avoid repetition is a reasonable starting target)
 - Whether champion dialogue is stored in Firestore or as a local asset file
+- Exact level thresholds for unlocking champion stable slots (currently TBD, max 10)
+- Seeded month hash function implementation (follow `rotation.ts` pattern)
 
 ---
 
