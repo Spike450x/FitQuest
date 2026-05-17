@@ -55,7 +55,7 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 - `npm run start` — serve the built output
 - `npm run test:rules` — Firestore security-rules tests (requires Firebase emulator). Run via: `npx firebase emulators:exec --only firestore --project demo-fitness-rpg "npm run test:rules"`. **Java 11+ must be on `PATH`** — the emulator is a JVM process. Not needed for any other dev command.
 
-**Runtime:** CI runs on Node 24. Node 18/20 still work locally but are not tested in CI — prefer Node 24 to match.
+**Runtime:** CI runs on Node 24. Node 20/22 still work locally but are not tested in CI — prefer Node 24 to match.
 
 **Verification:**
 
@@ -66,7 +66,7 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 **Firebase:** live project `fitness-rpg-claude`. No emulator setup; dev hits live Firestore. Be intentional about test data — it's real.
 
-**Cloud Functions runtime:** `functions/package.json` pins `"node": "20"` — Firebase Cloud Functions does not yet support Node 24 in production. This intentionally lags behind the CI runtime (Node 24). Do not bump the functions engine version without first confirming Firebase support.
+**Cloud Functions runtime:** `functions/package.json` pins `"node": "22"` — Firebase Cloud Functions does not yet support Node 24 in production (Node 22 is the current max). This intentionally lags behind the CI runtime (Node 24). Do not bump the functions engine version without first confirming Firebase support.
 
 **Changelog:** when a meaningful change ships on `master`, append an entry to [docs/CHANGELOG.md](docs/CHANGELOG.md). Skip trivial (typos, comment-only). Keep newest-first.
 
