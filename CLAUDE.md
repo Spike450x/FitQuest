@@ -66,6 +66,8 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 **Firebase:** live project `fitness-rpg-claude`. No emulator setup; dev hits live Firestore. Be intentional about test data — it's real.
 
+**Cloud Functions runtime:** `functions/package.json` pins `"node": "20"` — Firebase Cloud Functions does not yet support Node 24 in production. This intentionally lags behind the CI runtime (Node 24). Do not bump the functions engine version without first confirming Firebase support.
+
 **Changelog:** when a meaningful change ships on `master`, append an entry to [docs/CHANGELOG.md](docs/CHANGELOG.md). Skip trivial (typos, comment-only). Keep newest-first.
 
 ---
