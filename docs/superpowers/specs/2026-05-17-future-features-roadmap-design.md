@@ -6,6 +6,8 @@
 
 This document captures the agreed design for six major feature areas plus one long-horizon concept. Features are ordered by dependency — the Reputation economy and Champions must be understood before Dungeons and Raids make full sense. Guilds, Pets, and Monthly NPCs are parallel systems with no hard prerequisites beyond character level.
 
+**Supplemental design doc:** [2026-05-17-champions-reputation-streaks-design.md](./2026-05-17-champions-reputation-streaks-design.md) — fills in Champion AI behavior, the full champion and NPC rosters, reputation earn rates and rank system, and raid streak makeup mechanics.
+
 ---
 
 ## Interconnection Map
