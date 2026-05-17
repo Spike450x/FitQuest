@@ -53,6 +53,9 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 - `npm run test:coverage` — coverage report via `@vitest/coverage-v8`
 - `npm run build` — production build. Catches everything above + build-time issues
 - `npm run start` — serve the built output
+- `npm run test:rules` — Firestore security-rules tests (requires Firebase emulator). Run via: `npx firebase emulators:exec --only firestore --project demo-fitness-rpg "npm run test:rules"`. **Java 11+ must be on `PATH`** — the emulator is a JVM process. Not needed for any other dev command.
+
+**Runtime:** CI runs on Node 24. Node 18/20 still work locally but are not tested in CI — prefer Node 24 to match.
 
 **Verification:**
 
