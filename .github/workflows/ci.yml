@@ -59,6 +59,13 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Test Firestore security rules
+        run: >
+          npx firebase emulators:exec
+          --only firestore
+          --project demo-fitness-rpg
+          "npm run test:rules"
+
       - name: Build
         run: npm run build:ci
 
