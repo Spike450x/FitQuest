@@ -22,6 +22,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+firebase-debug.log
+firebase-debug.*.log
 
 # local env files — never commit these
 .env*.local
@@ -49,3 +51,6 @@ serviceAccount*.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Firebase Cloud Functions — compiled output (built by predeploy hook)
+functions/lib/
