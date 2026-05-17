@@ -54,16 +54,18 @@ Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Firebase**, and *
 
 This README covers feature breakdowns and game mechanics. Deeper engineering references live under [`docs/`](docs/):
 
-| Doc                                              | Covers                                                                 |
-| ------------------------------------------------ | ---------------------------------------------------------------------- |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     | Layered architecture, folder map, route reference, data-flow diagrams. |
-| [docs/FIRESTORE.md](docs/FIRESTORE.md)           | Collections, schemas, validation rules, the security model.            |
-| [docs/CI.md](docs/CI.md)                         | GitHub Actions, husky hooks, Dependabot, action SHA-pinning policy.    |
-| [docs/GAME-LOGIC.md](docs/GAME-LOGIC.md)         | Reference for every export under `src/lib/gameLogic/`.                 |
-| [docs/SECURITY-SETUP.md](docs/SECURITY-SETUP.md) | GitHub-side hardening checklist + log of shipped remediations.         |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md)           | Newest-first feature log.                                              |
-| [SECURITY.md](SECURITY.md)                       | Vulnerability reporting policy.                                        |
-| [CLAUDE.md](CLAUDE.md)                           | Development partner guide (commands, workflow, conventions).           |
+| Doc                                                | Covers                                                                 |
+| -------------------------------------------------- | ---------------------------------------------------------------------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)       | Layered architecture, folder map, route reference, data-flow diagrams. |
+| [docs/FIRESTORE.md](docs/FIRESTORE.md)             | Collections, schemas, validation rules, the security model.            |
+| [docs/CI.md](docs/CI.md)                           | GitHub Actions, husky hooks, Dependabot, action SHA-pinning policy.    |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)           | Firebase deploy process, environment setup, CI deploy step.            |
+| [docs/GAME-LOGIC.md](docs/GAME-LOGIC.md)           | Reference for every export under `src/lib/gameLogic/`.                 |
+| [docs/SECURITY-SETUP.md](docs/SECURITY-SETUP.md)   | GitHub-side hardening checklist + log of shipped remediations.         |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md)             | Newest-first feature log.                                              |
+| [docs/superpowers/specs/](docs/superpowers/specs/) | Post-MVP feature design specs (roadmap, champions, reputation, etc.).  |
+| [SECURITY.md](SECURITY.md)                         | Vulnerability reporting policy.                                        |
+| [CLAUDE.md](CLAUDE.md)                             | Development partner guide (commands, workflow, conventions).           |
 
 ---
 
@@ -86,6 +88,11 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
 | Bonus  | Personal Records                | ✅ Complete    |
 | Bonus  | Subclass System (6 subclasses)  | ✅ Complete    |
 | Future | Dungeons (multi-room runs)      | 🔲 Not started |
+| Future | Champions & Raids               | 🔲 Not started |
+| Future | Guilds                          | 🔲 Not started |
+| Future | Pets                            | 🔲 Not started |
+| Future | Wanted Board & Reputation       | 🔲 Not started |
+| Future | Monthly NPCs                    | 🔲 Not started |
 | Future | Achievement system              | 🔲 Not started |
 | Future | Prestige / Ascension            | 🔲 Not started |
 | Future | Apple Health integration        | 🔲 Not started |
@@ -651,11 +658,19 @@ src/
 
 ## Roadmap
 
-- **Dungeons** — multi-room dungeon runs with sequential monster encounters and persistent state between rooms
+Full post-MVP feature designs are documented in [`docs/superpowers/specs/`](docs/superpowers/specs/).
+
+- **Dungeons** — weekly seeded procedural dungeon runs, 3–7 rooms, stat checks + riddles + activity gates, unique loot tables, legendary daily lockout
+- **Champions & Raids** — purchasable NPC heroes with hybrid AI (auto + player commands, per-archetype cooldowns); bi-weekly raids requiring 2+ champions and a 5-day activity streak
+- **Guilds** — stat-focused factions unlocked at level 15, tiered buffs (passive stat → XP multiplier → exclusive gear), guild rank via daily activity + milestone quests
+- **Pets** — milestone and event unlocks (including birthday pet), passive and active abilities by rarity tier, up to 3 simultaneous active pets
+- **Wanted Board & Reputation** — random objectives that trigger fight-or-loot encounters; dual-layer reputation economy (spendable balance + lifetime rank) with 5 rank tiers
+- **Monthly NPCs** — rotating characters with dynamic challenge pools and dynamic rewards, gated by level/reputation, expire permanently if missed
 - **Achievement system** — one-time milestone badges for combat kills, streak lengths, level milestones, etc.
 - **Prestige / Ascension** — reset to level 1 with permanent carry-over bonuses for replayability
 - **Apple Health integration** — auto-import workouts, steps, and sleep directly from HealthKit
 - **Leaderboards** — compare XP, level, and kill counts with other players via Firestore
+- **Territory / Map** _(long-horizon)_ — GPS-based territory claiming, contested land triggers async PvP using the existing combat system
 
 ---
 

@@ -1,0 +1,44 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: '0 8 * * 1' # Weekly Monday 08:00 UTC
+
+# security-events: write is required to upload SARIF results to the Security tab.
+# Dependabot will pin the github/codeql-action SHAs below on first detection.
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # security-extended adds ~40 extra queries beyond the default suite:
+          # injection, path-traversal, prototype pollution, auth bypass patterns.
+          queries: security-extended
+
+      # No autobuild step needed: CodeQL analyzes JS/TS source directly
+      # without a compilation step.
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:javascript-typescript'

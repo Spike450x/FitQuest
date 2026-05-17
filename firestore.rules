@@ -249,11 +249,14 @@ service cloud.firestore {
           // extraProgress: optional map for multi-target quests; no value can
           // decrease (write-once per activity type after assignment).
           && (!('extraProgress' in data) || data.extraProgress is map)
-          // completedAt: null → int only; can never go backwards or be changed once set
-          && (data.completedAt == null
-              || (resource.data.completedAt == null
-                  && data.completedAt is int
-                  && data.completedAt > 0))
+          // completedAt: write-once (null → timestamp); once set it must remain unchanged.
+          // Two cases:
+          //   - already set: incoming value must equal the stored value (no unsetting, no change)
+          //   - not yet set: incoming value can be null (no-op) or a valid positive timestamp
+          && (
+              (resource.data.completedAt != null && data.completedAt == resource.data.completedAt)
+              || (resource.data.completedAt == null && (data.completedAt == null || (data.completedAt is int && data.completedAt > 0)))
+             )
           // claimedAt: null → int only; requires the existing doc to already be completed
           // (resource.data.completedAt, not data.completedAt, to prevent a single write
           // that fabricates both completion and claim simultaneously)

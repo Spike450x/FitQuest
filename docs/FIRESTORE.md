@@ -108,7 +108,7 @@ interface ActivityLog {
 - `uid == request.auth.uid`.
 - `type` ∈ the activity type list.
 - `xpGained ≥ 0`.
-- `loggedAt` falls within `[request.time − 10m, request.time + 2m]`.
+- `loggedAt` falls within `[request.time − 2m, request.time + 2m]`.
 
 ### Validation — update
 
@@ -116,7 +116,7 @@ interface ActivityLog {
 
 ### Why the timestamp window
 
-The 10-minute past window blocks **streak gaming** — without it, a player could backdate a single log to "fill in" a missed day and keep their streak alive. The 2-minute future tolerance handles client-clock drift.
+The ±2-minute symmetric window (2 min past, 2 min future) blocks **streak gaming** — without it, a player could backdate a log to fill in a missed day and keep their streak alive. The window also handles client-clock drift in both directions. Note: the docs previously stated a 10-minute past window; the live rule (`isRecentTimestamp` in `firestore.rules`) uses 2 minutes in both directions.
 
 ---
 
@@ -212,13 +212,13 @@ The `questStore` deliberately avoids composite queries for `activeQuests` — it
 
 ## Deploying rules
 
-Rules live in `firestore.rules` at the repo root. Deploy with the Firebase CLI:
+Rules live in `firestore.rules` at the repo root. The CI pipeline **auto-deploys rules on every push to `master`** (step 11 in [`CI.md`](CI.md)). Manual deploy when needed:
 
 ```bash
-firebase deploy --only firestore:rules
+npx firebase deploy --only firestore:rules --project fitness-rpg-claude
 ```
 
-There is no automated rules deploy in CI today — every rule change is a manual deploy by the maintainer after the PR merges. A future addition to [CI.md](CI.md) can wire a rules-only deploy step on `master` push.
+Prefer `npm run deploy:prod` for full deploys — it runs the index validation script first and deploys in the correct order (indexes/rules before functions).
 
 ---
 
