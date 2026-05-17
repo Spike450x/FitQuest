@@ -609,7 +609,8 @@ src/
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 24+ (CI runs on Node 24; Node 18/20 still work locally but are not tested in CI)
+- Java 11+ on `PATH` — required only if you want to run the Firestore emulator (`npm run test:rules`) locally. Not needed for normal development.
 - A Firebase project with **Authentication** (Email/Password) and **Firestore** enabled
 
 ### Setup
