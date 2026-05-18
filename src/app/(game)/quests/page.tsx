@@ -227,7 +227,11 @@ function LoadingSkeleton() {
 
 export default function QuestsPage() {
   const { character } = useCharacter();
-  const { quests, loading, error, fetchAndAssignQuests, claimReward } = useQuestStore();
+  const quests = useQuestStore((s) => s.quests);
+  const loading = useQuestStore((s) => s.loading);
+  const error = useQuestStore((s) => s.error);
+  const fetchAndAssignQuests = useQuestStore((s) => s.fetchAndAssignQuests);
+  const claimReward = useQuestStore((s) => s.claimReward);
   const [claiming, setClaiming] = useState<string | null>(null);
 
   useEffect(() => {

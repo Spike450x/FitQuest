@@ -41,12 +41,10 @@ export default function DashboardPage() {
   const { logs, loading: logsLoading } = useRecentActivity(character?.uid);
   const todayKey = useTodayKey();
   const fetchCharacter = useCharacterStore((s) => s.fetchCharacter);
-  const {
-    quests,
-    loading: questsLoading,
-    error: questsError,
-    fetchAndAssignQuests,
-  } = useQuestStore();
+  const quests = useQuestStore((s) => s.quests);
+  const questsLoading = useQuestStore((s) => s.loading);
+  const questsError = useQuestStore((s) => s.error);
+  const fetchAndAssignQuests = useQuestStore((s) => s.fetchAndAssignQuests);
 
   useEffect(() => {
     if (!loading && !character && !characterError) {

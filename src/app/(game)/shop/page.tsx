@@ -29,13 +29,11 @@ const TYPE_TABS: { type: ItemType | 'all'; label: string; icon: string }[] = [
 
 export default function ShopPage() {
   const { character } = useCharacter();
-  const {
-    items,
-    loading: inventoryLoading,
-    error: inventoryError,
-    fetchInventory,
-    buyItem,
-  } = useInventoryStore();
+  const items = useInventoryStore((s) => s.items);
+  const inventoryLoading = useInventoryStore((s) => s.loading);
+  const inventoryError = useInventoryStore((s) => s.error);
+  const fetchInventory = useInventoryStore((s) => s.fetchInventory);
+  const buyItem = useInventoryStore((s) => s.buyItem);
 
   const [activeTab, setActiveTab] = useState<ItemType | 'all'>('all');
   const [buying, setBuying] = useState<string | null>(null);
