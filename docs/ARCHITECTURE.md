@@ -24,7 +24,7 @@ graph TD
 
 **Rules of the layout:**
 
-- **UI never calls Firebase directly.** All reads/writes route through a Zustand store action or lib wrapper. Firestore → `src/lib/fetchPlayerData.ts`, Auth → `src/lib/auth.ts`, Cloud Functions → `src/lib/functions.ts`. No component or hook imports the Firebase SDK directly (except `useAuth`, which owns the auth-state subscription, and is the only sanctioned exception).
+- **UI never calls Firebase directly.** All reads/writes route through a Zustand store action or lib wrapper. Firestore reads → `src/lib/fetchPlayerData.ts`; Firestore domain writes → `src/lib/{characterData,activityData,questData,inventoryData,combatData}.ts`; Auth → `src/lib/auth.ts`; Cloud Functions → `src/lib/functions.ts`. No component or hook imports the Firebase SDK directly (except `useAuth`, which owns the auth-state subscription, and is the only sanctioned exception).
 - **Game logic is pure and side-effect-free.** `src/lib/gameLogic/` contains deterministic functions that take inputs and return outputs — no I/O, no globals. This is what the vitest suite covers.
 - **Zustand is the in-memory source of truth during a session.** Firestore is the persistence layer. Store actions reconcile the two.
 - **Auth gating is enforced in two places.** Client-side via `src/middleware.ts` (redirects), server-side via Firestore rules (the only authoritative gate).
@@ -48,6 +48,12 @@ graph TD
 | `types/index.ts`          | Single source of truth for TypeScript types. Imported by every other layer.                                                                                                                                     |
 | `types/cloudFunctions.ts` | Canonical `LogActivityInput` / `LogActivityResult` types shared between `ActivityLogForm` and `functions/`.                                                                                                     |
 | `lib/fetchPlayerData.ts`  | Firestore fetch helpers with field-normalizing functions (`normalizeActiveQuest`, `normalizeInventoryItem`). Applies safe defaults for fields added post-MVP so raw `as` casts never silently hold `undefined`. |
+| `lib/characterData.ts`    | Firestore write helpers for the `characters/{uid}` document (XP, gold, HP/Stamina/Magic, streak, stats, gear).                                                                                                  |
+| `lib/activityData.ts`     | Firestore helpers for `activityLogs/{uid}` reads (recent activity feed, per-day aggregates).                                                                                                                    |
+| `lib/questData.ts`        | Firestore write helpers for `activeQuests/{id}` (progress updates, claim writes).                                                                                                                               |
+| `lib/inventoryData.ts`    | Firestore write helpers for `inventory/{id}` documents (equip/unequip, parallel gear writes).                                                                                                                   |
+| `lib/combatData.ts`       | Firestore write helpers for `combatLogs/{id}` documents (per-day combat XP tracking).                                                                                                                           |
+| `lib/errors.ts`           | Shared error types / helpers used across lib wrappers for consistent error propagation.                                                                                                                         |
 | `lib/functions.ts`        | Cloud Functions callable wrappers (`logActivityFn`). Components import from here — never instantiate `httpsCallable` directly.                                                                                  |
 | `lib/auth.ts`             | Firebase Auth wrappers (`signIn`, `signUp`, `logOut`). Auth pages import from here — never import Firebase Auth SDK directly.                                                                                   |
 | `middleware.ts`           | Next.js middleware — checks the Firebase `__session` cookie and redirects.                                                                                                                                      |
@@ -67,17 +73,17 @@ graph TD
 
 All routes are gated by middleware redirect to `/login` if the auth cookie is missing.
 
-| Route         | Purpose                                                                           |
-| ------------- | --------------------------------------------------------------------------------- |
-| `/dashboard`  | Main hub — character summary, XP bar, quick actions, recent activity feed.        |
-| `/activities` | Log workouts, runs, sleep, etc. Shows preview of XP/stat gains before submission. |
-| `/character`  | Stat allocation, level-up flow, subclass selection at level 10.                   |
-| `/combat`     | Turn-based battle screen — attack, magic, ability rolls, spells, items, escape.   |
-| `/inventory`  | Owned items, gear slots, spell loadout, combat pack of consumables.               |
-| `/shop`       | Daily-rotating gear, plus permanent consumable and spell tabs.                    |
-| `/quests`     | Active daily and weekly quests with progress bars and claim buttons.              |
-| `/profile`    | Analytics — XP-over-time, activity breakdown, account settings.                   |
-| `/stats`      | Stat detail view.                                                                 |
+| Route         | Purpose                                                                                                                                                                                                                 |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/dashboard`  | Main hub — character summary, XP bar, quick actions, recent activity feed.                                                                                                                                              |
+| `/activities` | Log workouts, runs, sleep, etc. Shows preview of XP/stat gains before submission.                                                                                                                                       |
+| `/character`  | Stat allocation, level-up flow, subclass selection at level 10.                                                                                                                                                         |
+| `/combat`     | Turn-based battle screen — attack, magic, ability rolls, spells, items, escape.                                                                                                                                         |
+| `/inventory`  | Owned items, gear slots, spell loadout, combat pack of consumables.                                                                                                                                                     |
+| `/shop`       | Daily-rotating gear, plus permanent consumable and spell tabs.                                                                                                                                                          |
+| `/quests`     | Active daily and weekly quests with progress bars and claim buttons.                                                                                                                                                    |
+| `/profile`    | Account settings and profile management.                                                                                                                                                                                |
+| `/stats`      | Full analytics dashboard — XP chart (quest XP vs combat XP as stacked bars), activity breakdown, personal records, streak panel, and overview cards (quests completed, activities, gold earned, total XP, battles won). |
 
 ### Standalone — `src/app/character-creation/`
 
