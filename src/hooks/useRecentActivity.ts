@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { subscribeToRecentActivity } from '@/lib/fetchPlayerData';
+import { subscribeToRecentActivity } from '@/lib/activityData';
 import type { ActivityLog } from '@/types';
 
 export function useRecentActivity(uid: string | null | undefined, count = 5) {
