@@ -5,6 +5,12 @@ import type { ActivityLog, ActiveQuest, InventoryItem } from '@/types';
 // ─── Field normalizers ────────────────────────────────────────────────────────
 // Apply safe defaults for fields added after initial schema — prevents
 // undefined from being silently cast as a typed value.
+//
+// CONTRACT: whenever a new optional field is added to an existing collection's
+// TypeScript interface, add a corresponding safe default here. Every document
+// written before the field existed will be missing it — the cast in the fetch
+// helpers below would silently carry undefined without this guard. See the
+// "Adding a post-MVP schema field" guide in docs/FIRESTORE.md.
 
 export function normalizeActivityLog(id: string, data: Record<string, unknown>): ActivityLog {
   return {

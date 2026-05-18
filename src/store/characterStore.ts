@@ -9,7 +9,6 @@ import {
   statCap,
   maxStatForLevel,
   MASTERY_CONFIG,
-  isMasteryMilestone,
   type MasteryActivityType,
 } from '@/lib/gameLogic/constants';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
