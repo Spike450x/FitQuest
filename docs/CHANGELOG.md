@@ -14,6 +14,14 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-17 — Quest XP/gold accuracy, stats page improvements
+
+- `questStore.claimReward`: compute scaled XP + gold before writing to Firestore and stamp `rewardedXp` / `rewardedGold` on the `activeQuest` doc. Stats page now reads these for accurate display (previously showed base definition values, undercounting for higher-level + streaking players).
+- Stats page: added Battles Won overview card; error state (was silently swallowing Firestore failures leaving infinite loading); "Showing most recent 500 activity logs" note in all-time view.
+- Firestore rules: `rewardedXp` / `rewardedGold` only writable during the `claimedAt` null→int transition, preventing post-claim forgery.
+- CI: deploy step now includes `firestore:indexes` alongside `firestore:rules` on master push.
+- Tests: added 13 unit tests for `normalizeActiveQuest` and `normalizeInventoryItem` normalizers.
+
 ## 2026-05-17 — Code-audit follow-up fixes
 
 - Added try/catch/finally to `handleClaimRewards` in combat page; missing error boundary left the claim button permanently disabled on any write failure.
