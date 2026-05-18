@@ -79,3 +79,15 @@ jobs:
           --project fitness-rpg-claude
           --token "$FIREBASE_TOKEN"
           --non-interactive
+
+      - name: Deploy Cloud Functions
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: >
+          npx firebase deploy
+          --only functions
+          --project fitness-rpg-claude
+          --token "$FIREBASE_TOKEN"
+          --non-interactive
+          --force
