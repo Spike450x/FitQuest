@@ -148,6 +148,30 @@ Chronological log of hardening work that has actually shipped — pair each row 
 | 2026-05-03 | Husky `pre-push` hook blocks direct pushes to `master`; husky `pre-commit` runs lint-staged + typecheck + vitest.                                                                                                                                                                                                                         | [#10](https://github.com/Spike450x/FitQuest/pull/10) `c065b1a`                                             |
 | 2026-05-03 | Branch protection on `master` enabled requiring the `Typecheck, Lint, Test` check (GitHub-side).                                                                                                                                                                                                                                          | [`docs/CHANGELOG.md`](CHANGELOG.md#2026-05-03--prettier-ci-build-repo-polish)                              |
 
+---
+
+## `FIREBASE_TOKEN` Rotation
+
+The `FIREBASE_TOKEN` secret is a long-lived Firebase CI token used by the CI auto-deploy steps (Firestore rules and Cloud Functions). It does not expire automatically, but should be rotated if:
+
+- A team member with Firebase access leaves
+- The token is accidentally exposed (e.g., printed in CI logs)
+- As a periodic security hygiene measure
+
+**To rotate:**
+
+1. Generate a new token locally:
+   ```bash
+   npx firebase-tools login:ci   # opens browser → outputs a new CI token
+   ```
+2. Update the secret: **Settings → Secrets and variables → Actions → `FIREBASE_TOKEN` → Update**.
+3. Revoke the old token in the [Firebase Console](https://console.firebase.google.com/) under **Project settings → Service accounts** if applicable, or via `firebase logout --token <old-token>`.
+4. Trigger a master push (or re-run the last CI workflow) to confirm both deploy steps succeed with the new token.
+
+**Failure signature:** if the token is expired or invalid, steps 12 and 13 (`Deploy Firestore rules` and `Deploy Cloud Functions`) will both fail on master push with a Firebase authentication error. No other CI steps are affected.
+
+---
+
 ### Outstanding hardening (not yet shipped)
 
 For each item below, when it ships, add a row to the Remediations Log above.
