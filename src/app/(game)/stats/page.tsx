@@ -140,6 +140,12 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
 
     // XP sources post-R4: quest claims and combat victories.
     // Activity logs carry xpGained=0 after the Cloud Function migration.
+    //
+    // Quest XP uses q.rewards.xp (the base definition value) because the
+    // actually-awarded XP (post-level-scaling + streak multiplier) is not
+    // persisted on the activeQuest doc. This means quest XP is under-counted
+    // for higher-level players with streaks. Fix: stamp rewardedXp on the doc
+    // inside questStore.claimReward and read that field here instead.
     const questXpByDay: Record<string, number> = {};
     for (const q of claimed) {
       if (!q.claimedAt) continue;
