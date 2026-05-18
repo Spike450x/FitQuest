@@ -71,13 +71,13 @@ jobs:
       - name: Build
         run: npm run build:ci
 
-      - name: Deploy Firestore rules
+      - name: Deploy Firestore rules and indexes
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: >
           npx firebase deploy
-          --only firestore:rules
+          --only firestore:rules,firestore:indexes
           --project fitness-rpg-claude
           --token "$FIREBASE_TOKEN"
           --non-interactive
@@ -105,4 +105,4 @@ jobs:
           --project fitness-rpg-claude
           --token "$FIREBASE_TOKEN"
           --non-interactive
-          --force
+          --force # suppresses Artifact Registry cleanup-policy prompt in CI

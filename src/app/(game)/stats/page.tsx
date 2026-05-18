@@ -97,10 +97,12 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
   const [range, setRange] = useState<Range>('30d');
   const [raw, setRaw] = useState<RawStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
+      setError(null);
       try {
         // Activity logs live only in Firestore — always fetch.
         // Quests and inventory are already loaded by other pages in a normal
@@ -116,6 +118,8 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
           fetchRecentCombatLogs(uid, 200),
         ]);
         setRaw({ logs, quests, inventory, combatLogs });
+      } catch {
+        setError('Failed to load stats. Please refresh to try again.');
       } finally {
         setLoading(false);
       }
@@ -131,7 +135,10 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
     const claimed = raw.quests.filter((q) => q.claimedAt !== null && (q.claimedAt ?? 0) >= cutoff);
     const purchases = raw.inventory.filter((i) => i.acquiredAt >= cutoff);
 
-    const goldFromQuests = claimed.reduce((s, q) => s + (q.rewards?.gold ?? 0), 0);
+    const goldFromQuests = claimed.reduce(
+      (s, q) => s + (q.rewardedGold ?? q.rewards?.gold ?? 0),
+      0,
+    );
     const goldSpent = purchases.reduce((s, i) => {
       const def = getItemById(i.itemDefId);
       return s + (def?.price ?? 0);
@@ -140,17 +147,14 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
 
     // XP sources post-R4: quest claims and combat victories.
     // Activity logs carry xpGained=0 after the Cloud Function migration.
-    //
-    // Quest XP uses q.rewards.xp (the base definition value) because the
-    // actually-awarded XP (post-level-scaling + streak multiplier) is not
-    // persisted on the activeQuest doc. This means quest XP is under-counted
-    // for higher-level players with streaks. Fix: stamp rewardedXp on the doc
-    // inside questStore.claimReward and read that field here instead.
+    // rewardedXp is the actual XP awarded at claim time (post-level-scaling + streak
+    // multiplier); falls back to base rewards.xp for quests claimed before this field
+    // was introduced.
     const questXpByDay: Record<string, number> = {};
     for (const q of claimed) {
       if (!q.claimedAt) continue;
       const label = dayLabel(q.claimedAt);
-      questXpByDay[label] = (questXpByDay[label] ?? 0) + (q.rewards?.xp ?? 0);
+      questXpByDay[label] = (questXpByDay[label] ?? 0) + (q.rewardedXp ?? q.rewards?.xp ?? 0);
     }
 
     const combatXpByDay: Record<string, number> = {};
@@ -162,6 +166,7 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
     const totalQuestXp = Object.values(questXpByDay).reduce((s, v) => s + v, 0);
     const totalCombatXp = Object.values(combatXpByDay).reduce((s, v) => s + v, 0);
     const totalXp = totalQuestXp + totalCombatXp;
+    const battlesWon = raw.combatLogs.filter((cl) => cl.loggedAt >= cutoff).length;
 
     const byType: Record<string, { count: number; amount: number }> = {};
     for (const l of logs) {
@@ -231,6 +236,7 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
       goldFromQuests,
       goldSpent,
       questsCompleted,
+      battlesWon,
       xpChartData,
       actChartData,
       questChartData,
@@ -263,10 +269,19 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
         ))}
       </div>
 
-      {loading || !stats ? (
+      {error ? (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+          {error}
+        </div>
+      ) : loading || !stats ? (
         <StatsLoading />
       ) : (
         <>
+          {range === 'all' && raw && raw.logs.length >= 500 && (
+            <p className="text-xs text-gray-400 text-right">
+              Showing most recent 500 activity logs
+            </p>
+          )}
           <OverviewCards stats={stats} />
           <StreakPanel character={character} />
           <PersonalRecordsPanel character={character} />
@@ -407,6 +422,7 @@ function OverviewCards({
     goldFromQuests: number;
     goldSpent: number;
     questsCompleted: number;
+    battlesWon: number;
   };
 }) {
   const cards = [
@@ -438,10 +454,17 @@ function OverviewCards({
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
     },
+    {
+      label: 'Battles Won',
+      value: stats.battlesWon.toLocaleString(),
+      icon: '⚔️',
+      color: 'text-red-600',
+      bg: 'bg-red-50',
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
       {cards.map(({ label, value, icon, color, bg }) => (
         <div
           key={label}

@@ -264,7 +264,16 @@ service cloud.firestore {
               || (resource.data.claimedAt   == null
                   && data.claimedAt         is int
                   && data.claimedAt         > 0
-                  && resource.data.completedAt != null));
+                  && resource.data.completedAt != null))
+          // rewardedXp / rewardedGold: only permitted during the claimedAt transition
+          // (resource not yet claimed + incoming claimedAt is a valid timestamp).
+          // Bounds: 100,000 is generous headroom above the highest legitimate quest XP/gold.
+          && (!('rewardedXp' in data)
+              || (data.rewardedXp is int && data.rewardedXp >= 0 && data.rewardedXp <= 100000
+                  && resource.data.claimedAt == null && data.claimedAt is int && data.claimedAt > 0))
+          && (!('rewardedGold' in data)
+              || (data.rewardedGold is int && data.rewardedGold >= 0 && data.rewardedGold <= 100000
+                  && resource.data.claimedAt == null && data.claimedAt is int && data.claimedAt > 0));
     }
 
     match /activeQuests/{docId} {

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { fetchActiveQuests } from '@/lib/fetchPlayerData';
+import { addActiveQuestDoc, updateActiveQuestDoc } from '@/lib/questData';
 import {
   DAILY_QUEST_POOL,
   WEEKLY_QUEST_POOL,
@@ -16,7 +16,6 @@ import {
 } from '@/lib/gameLogic/rotation';
 import { getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
 import { useCharacterStore } from './characterStore';
-import { normalizeActiveQuest } from '@/lib/fetchPlayerData';
 import type { ActiveQuest, ActivityType } from '@/types';
 
 const DAILY_QUEST_COUNT = 3;
@@ -64,11 +63,8 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
 
       // Query by uid only — a compound (uid + expiresAt) query would require a
       // Firestore composite index. Filter the expiry check client-side instead.
-      const q = query(collection(db, 'activeQuests'), where('uid', '==', uid));
-      const snap = await getDocs(q);
-      const existing = snap.docs
-        .map((d) => normalizeActiveQuest(d.id, d.data()))
-        .filter((q) => q.expiresAt > now);
+      const all = await fetchActiveQuests(uid);
+      const existing = all.filter((q) => q.expiresAt > now);
 
       const weekKey = dateKey ? deriveWeekKey(dateKey) : undefined;
 
@@ -79,9 +75,9 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       if (!hasDailies) {
         const picked = getDailyPick(DAILY_QUEST_POOL, DAILY_QUEST_COUNT, dateKey);
         const expiry = dailyExpiresAt();
-        const refs = await Promise.all(
+        const newIds = await Promise.all(
           picked.map((def) =>
-            addDoc(collection(db, 'activeQuests'), {
+            addActiveQuestDoc({
               uid,
               questDefId: def.id,
               progress: 0,
@@ -92,9 +88,9 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
             }),
           ),
         );
-        refs.forEach((ref, i) =>
+        newIds.forEach((id, i) =>
           dailyAssigned.push({
-            id: ref.id,
+            id,
             uid,
             questDefId: picked[i].id,
             progress: 0,
@@ -113,9 +109,9 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       if (!hasWeeklies) {
         const picked = getWeeklyPick(WEEKLY_QUEST_POOL, WEEKLY_QUEST_COUNT, weekKey);
         const expiry = weeklyExpiresAt();
-        const refs = await Promise.all(
+        const newIds = await Promise.all(
           picked.map((def) =>
-            addDoc(collection(db, 'activeQuests'), {
+            addActiveQuestDoc({
               uid,
               questDefId: def.id,
               progress: 0,
@@ -126,9 +122,9 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
             }),
           ),
         );
-        refs.forEach((ref, i) =>
+        newIds.forEach((id, i) =>
           weeklyAssigned.push({
-            id: ref.id,
+            id,
             uid,
             questDefId: picked[i].id,
             progress: 0,
@@ -216,7 +212,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       const dbPayload: Record<string, unknown> = { progress: newProgress, completedAt };
       if (newExtraProgress !== undefined) dbPayload.extraProgress = newExtraProgress;
 
-      dbUpdates.push(updateDoc(doc(db, 'activeQuests', q.id), dbPayload));
+      dbUpdates.push(updateActiveQuestDoc(q.id, dbPayload));
 
       return { ...q, progress: newProgress, extraProgress: newExtraProgress, completedAt };
     });
@@ -231,30 +227,42 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
 
     if (!quest || quest.completedAt === null || quest.claimedAt !== null) return false;
 
-    const now = Date.now();
-    await updateDoc(doc(db, 'activeQuests', questId), { claimedAt: now });
-
     // ── Reward scaling ────────────────────────────────────────────────────────
     // Two multipliers stack:
     //   1. Level scaler — daily/weekly quest base values were balanced for ~lv 1–5;
     //      the sqrt curve keeps quests relevant past level 10.
     //   2. Streak XP bonus — gentle reward for consistency (caps at ×1.25).
     // Gold is only level-scaled; streak rewards live in loot rates, not currency.
+    // Compute before the write so we can stamp the actual awarded values on the
+    // doc (rewardedXp / rewardedGold) — stats page reads these for accurate display.
     const { awardXpAndStats, awardGold, character } = useCharacterStore.getState();
     const level = character?.level ?? 1;
     const streak = character?.streakData?.currentStreak ?? 0;
-
     const scaled = scaleQuestRewards(quest.rewards, level);
     const xpToAward = Math.round(scaled.xp * getStreakXpMultiplier(streak));
+
+    const now = Date.now();
+    await updateActiveQuestDoc(questId, {
+      claimedAt: now,
+      rewardedXp: xpToAward,
+      rewardedGold: scaled.gold,
+    });
 
     await Promise.all([awardXpAndStats(xpToAward, {}), awardGold(scaled.gold)]);
 
     set((state) => ({
-      quests: state.quests.map((q) => (q.id === questId ? { ...q, claimedAt: now } : q)),
+      quests: state.quests.map((q) =>
+        q.id === questId
+          ? { ...q, claimedAt: now, rewardedXp: xpToAward, rewardedGold: scaled.gold }
+          : q,
+      ),
     }));
 
     return { xpAwarded: xpToAward, goldAwarded: scaled.gold };
   },
 
-  clear: () => set({ quests: [], error: null }),
+  clear: () => {
+    fetching = false;
+    set({ quests: [], loading: false, error: null });
+  },
 }));
