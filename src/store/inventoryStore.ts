@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { captureError } from '@/lib/errors';
 import { useCharacterStore } from './characterStore';
 import {
   fetchInventoryDocs,
@@ -78,6 +79,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       const items = await fetchInventoryDocs(uid);
       set({ items, loading: false });
     } catch (e) {
+      captureError('inventoryStore.fetchInventory', e);
       set({ error: (e as Error).message, loading: false });
     }
   },
@@ -104,6 +106,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       }));
       return true;
     } catch (e) {
+      captureError('inventoryStore.buyItem', e);
       set({ error: (e as Error).message });
       return false;
     }
