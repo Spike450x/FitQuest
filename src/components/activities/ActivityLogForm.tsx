@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { logActivityFn } from '@/lib/functions';
+import { captureError } from '@/lib/errors';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
@@ -114,6 +115,8 @@ export function ActivityLogForm() {
     const currentPr = character.personalRecords?.[activeTab];
     const isNewRecord = !currentPr || parsedAmount > currentPr.value;
 
+    // Generate idempotency key before the try block so retries reuse the same key.
+    const idempotencyKey = crypto.randomUUID();
     setSubmitting(true);
     try {
       // ── Call logActivity Cloud Function ───────────────────────────────────────
@@ -124,6 +127,7 @@ export function ActivityLogForm() {
         activityType: activeTab,
         amount: parsedAmount,
         unit: def.unit,
+        idempotencyKey,
       });
       const {
         rewardEligible,
@@ -214,18 +218,18 @@ export function ActivityLogForm() {
       // the stale window is at most the current navigation session.
       if (eligibleAmount > 0) {
         updateQuestProgress(character.uid, activeTab, eligibleAmount).catch((e) =>
-          console.error('[ActivityLogForm] Quest progress sync failed:', e),
+          captureError('ActivityLogForm:questProgress', e),
         );
       }
       persistStreakAndRecord(activeTab, parsedAmount, def.unit).catch((e) =>
-        console.error('[ActivityLogForm] Streak sync failed:', e),
+        captureError('ActivityLogForm:streak', e),
       );
     } catch (err) {
       // logActivity function call failed — activity was NOT logged.
       toast('Failed to log activity', {
         description: 'Please check your connection and try again.',
       });
-      console.error('[ActivityLogForm] logActivity failed:', err);
+      captureError('ActivityLogForm:logActivity', err);
     } finally {
       setSubmitting(false);
     }

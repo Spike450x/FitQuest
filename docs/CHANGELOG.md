@@ -14,6 +14,35 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-17 — Close all 10/10 gaps: security, functions tests, E2E
+
+- Firestore rules: added `legendaryDryStreak` validation to `isValidCharacterOptionals` (was unvalidated despite being written on every loot roll).
+- Added `tests/rules/combatLogs.rules.test.ts`: 11 emulator tests covering read auth, owner create, cross-user deny, timestamp recency, field bounds, and immutability.
+- Added `functions/src/__tests__/constants.test.ts`: 11 vitest unit tests for `isMasteryMilestone` and `statCap`; added vitest to functions devDependencies; CI now runs functions tests on every push.
+- Added Playwright E2E smoke suite (`tests/e2e/smoke.test.ts`): 14 tests covering unauthenticated redirects for all protected routes, login page structure, a11y attributes, and register page navigation. Runs in CI with placeholder Firebase config via `webServer` integration.
+
+## 2026-05-17 — Quest XP/gold accuracy, stats page improvements
+
+- `questStore.claimReward`: compute scaled XP + gold before writing to Firestore and stamp `rewardedXp` / `rewardedGold` on the `activeQuest` doc. Stats page now reads these for accurate display (previously showed base definition values, undercounting for higher-level + streaking players).
+- Stats page: added Battles Won overview card; error state (was silently swallowing Firestore failures leaving infinite loading); "Showing most recent 500 activity logs" note in all-time view.
+- Firestore rules: `rewardedXp` / `rewardedGold` only writable during the `claimedAt` null→int transition, preventing post-claim forgery.
+- CI: deploy step now includes `firestore:indexes` alongside `firestore:rules` on master push.
+- Tests: added 13 unit tests for `normalizeActiveQuest` and `normalizeInventoryItem` normalizers.
+
+## 2026-05-17 — Code-audit follow-up fixes
+
+- Added try/catch/finally to `handleClaimRewards` in combat page; missing error boundary left the claim button permanently disabled on any write failure.
+- Fixed Activity Breakdown: sort and bar width now use log count instead of `xpGained` (always 0 post-R4).
+- Added `isRecentTimestamp` validation to `combatLogs` Firestore security rule (consistent with `activityLogs`).
+
+## 2026-05-17 — XP chart enrichment and codebase fixes
+
+- Replaced single-line XP chart with stacked BarChart (Quest XP indigo, Combat XP orange); introduced `combatLogs` Firestore collection written at claim-rewards time so combat XP is tracked per-day.
+- Fixed post-R4 stats page showing 0 XP: overview card and chart now source XP from quest claims + combat logs instead of `activityLogs.xpGained`.
+- Fixed TOCTOU race in `logActivity` Cloud Function: mastery count increment now runs in a `runTransaction` instead of a batch update, preventing two concurrent logs from both awarding the same milestone stat.
+- Added `orderBy('loggedAt', 'desc'), limit(500)` to `fetchActivityLogs` to prevent unbounded Firestore reads.
+- Added `src/lib/combatData.ts` (new lib wrapper for combatLogs), `src/lib/__tests__/fetchPlayerData.test.ts` (5 unit tests for `normalizeActivityLog`), Firestore security rule and composite index for `combatLogs`.
+
 ## 2026-05-17 — Post-MVP feature roadmap design docs
 
 - Created `docs/superpowers/specs/2026-05-17-future-features-roadmap-design.md` — full design for Guilds, Pets, Dungeons, Raids, Champions, Wanted Board/Reputation, Monthly NPCs, and Territory/Map (long-horizon), ordered by dependency chain.

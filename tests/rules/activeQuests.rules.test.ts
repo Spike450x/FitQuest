@@ -183,3 +183,64 @@ describe('activeQuests — update (two-step claim enforcement)', () => {
     await assertFails(ctx.firestore().collection('activeQuests').doc('q1').update({ progress: 5 }));
   });
 });
+
+describe('activeQuests — rewardedXp / rewardedGold scoping', () => {
+  const uid = 'user1';
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      // Quest that is completed but not yet claimed — valid target for a claim write
+      await ctx
+        .firestore()
+        .collection('activeQuests')
+        .doc('q1')
+        .set({ ...validQuest(uid), completedAt: Date.now() });
+    });
+  });
+
+  it('allows stamping rewardedXp and rewardedGold during the claimedAt transition', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertSucceeds(
+      ctx.firestore().collection('activeQuests').doc('q1').update({
+        claimedAt: Date.now(),
+        rewardedXp: 120,
+        rewardedGold: 40,
+      }),
+    );
+  });
+
+  it('denies rewardedXp on a plain progress update (no claimedAt transition)', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx.firestore().collection('activeQuests').doc('q1').update({
+        progress: 5,
+        rewardedXp: 120,
+      }),
+    );
+  });
+
+  it('denies rewardedXp with an out-of-bounds value (> 100 000)', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx.firestore().collection('activeQuests').doc('q1').update({
+        claimedAt: Date.now(),
+        rewardedXp: 999999,
+        rewardedGold: 40,
+      }),
+    );
+  });
+
+  it('denies rewardedXp when the quest is already claimed (double-claim)', async () => {
+    // Pre-set claimedAt so the quest is already claimed
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.firestore().collection('activeQuests').doc('q1').update({ claimedAt: Date.now() });
+    });
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx.firestore().collection('activeQuests').doc('q1').update({
+        claimedAt: Date.now(),
+        rewardedXp: 120,
+      }),
+    );
+  });
+});

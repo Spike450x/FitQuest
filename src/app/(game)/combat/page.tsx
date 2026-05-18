@@ -44,7 +44,8 @@ import { SpellCard } from '@/components/ui/SpellCard';
 import { CombatEffects } from '@/components/combat/CombatEffects';
 import { useCombatBursts } from '@/hooks/useCombatBursts';
 import { useTodayKey } from '@/hooks/useTodayKey';
-import { toastReward, toastLoot } from '@/components/ui/Toaster';
+import { toast, toastReward, toastLoot } from '@/components/ui/Toaster';
+import { addCombatLogDoc } from '@/lib/combatData';
 import { COMBAT } from '@/lib/gameLogic/constants';
 import type { MonsterDef, ItemDef, SpellDiceRequirement } from '@/types';
 import type { DicePattern, AbilityDef } from '@/lib/gameLogic/abilities';
@@ -817,25 +818,35 @@ export default function CombatPage() {
       const def = getItemById(id);
       return def?.rarity === 'legendary';
     });
-    await awardXpAndStats(xpReward, {});
-    await awardGold(goldReward);
-    await awardLoot(pendingRewards.uid, droppedItems);
-    await updateMonsterPity(defeated.id, gotLegendary);
-    setClaiming(false);
-    setPendingRewards(null);
-
-    toastReward({
-      emoji: '⚔️',
-      title: `Defeated ${defeated.name}!`,
-      xp: xpReward,
-      gold: goldReward,
-    });
-    // Highlight epic/legendary drops with their own dedicated toasts
-    for (const itemId of droppedItems) {
-      const def = getItemById(itemId);
-      if (def && (def.rarity === 'epic' || def.rarity === 'legendary')) {
-        toastLoot(def.name, def.rarity);
+    try {
+      await awardXpAndStats(xpReward, {});
+      await awardGold(goldReward);
+      await awardLoot(pendingRewards.uid, droppedItems);
+      await updateMonsterPity(defeated.id, gotLegendary);
+      await addCombatLogDoc(pendingRewards.uid, {
+        monsterId: defeated.id,
+        monsterName: defeated.name,
+        xp: xpReward,
+        gold: goldReward,
+      });
+      setPendingRewards(null);
+      toastReward({
+        emoji: '⚔️',
+        title: `Defeated ${defeated.name}!`,
+        xp: xpReward,
+        gold: goldReward,
+      });
+      // Highlight epic/legendary drops with their own dedicated toasts
+      for (const itemId of droppedItems) {
+        const def = getItemById(itemId);
+        if (def && (def.rarity === 'epic' || def.rarity === 'legendary')) {
+          toastLoot(def.name, def.rarity);
+        }
       }
+    } catch {
+      toast.error('Failed to claim rewards — please try again.');
+    } finally {
+      setClaiming(false);
     }
   }
 

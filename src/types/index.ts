@@ -215,6 +215,17 @@ export interface ActiveQuest {
   claimedAt: number | null;
   expiresAt: number;
   rewards: QuestReward;
+  /**
+   * The XP actually awarded at claim time (post-level-scaling + streak multiplier).
+   * Stamped by `questStore.claimReward`. Absent on quests claimed before this field
+   * was introduced — fall back to `rewards.xp` (base definition value) in that case.
+   */
+  rewardedXp?: number;
+  /**
+   * The gold actually awarded at claim time (post-level-scaling).
+   * Same provenance as `rewardedXp`.
+   */
+  rewardedGold?: number;
 }
 
 // ─── Combat ──────────────────────────────────────────────────────────────────

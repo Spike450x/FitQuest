@@ -38,6 +38,9 @@ jobs:
       - name: Typecheck Cloud Functions
         run: cd functions && npm ci --prefer-offline && npx tsc --noEmit
 
+      - name: Test Cloud Functions (pure-logic unit tests)
+        run: cd functions && npm test
+
       # Non-blocking audit so a freshly-published advisory surfaces in PR
       # checks without immediately blocking the merge. If a high-severity
       # vuln appears, follow the workflow in docs/SECURITY-SETUP.md § 8.
@@ -71,13 +74,26 @@ jobs:
       - name: Build
         run: npm run build:ci
 
-      - name: Deploy Firestore rules
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E smoke tests
+        run: npx playwright test
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: e2e-placeholder
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: demo.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: demo-fitness-rpg
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: demo.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+          NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:e2etest'
+
+      - name: Deploy Firestore rules and indexes
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: >
           npx firebase deploy
-          --only firestore:rules
+          --only firestore:rules,firestore:indexes
           --project fitness-rpg-claude
           --token "$FIREBASE_TOKEN"
           --non-interactive
@@ -105,4 +121,4 @@ jobs:
           --project fitness-rpg-claude
           --token "$FIREBASE_TOKEN"
           --non-interactive
-          --force
+          --force # suppresses Artifact Registry cleanup-policy prompt in CI

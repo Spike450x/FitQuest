@@ -1,13 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  updateEmail,
-  updatePassword,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  type User,
-} from 'firebase/auth';
+import { type User } from 'firebase/auth';
+import { updateUserEmail, updateUserPassword } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
 import type { Character } from '@/types';
@@ -88,7 +83,7 @@ function ChangeEmailForm({ user }: { user: User }) {
   const [email, setEmail] = useState(user.email ?? '');
   const [password, setPassword] = useState('');
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   async function handleSave(e: React.FormEvent) {
@@ -97,13 +92,11 @@ function ChangeEmailForm({ user }: { user: User }) {
     if (!trimmed || !password || trimmed === user.email) return;
     setSaving(true);
     setError('');
+    setPendingEmail(null);
     try {
-      const credential = EmailAuthProvider.credential(user.email!, password);
-      await reauthenticateWithCredential(user, credential);
-      await updateEmail(user, trimmed);
-      setSaved(true);
+      await updateUserEmail(user, password, trimmed);
+      setPendingEmail(trimmed);
       setPassword('');
-      setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       const code = (e as { code?: string }).code;
       if (code === 'auth/wrong-password') setError('Incorrect current password.');
@@ -116,30 +109,49 @@ function ChangeEmailForm({ user }: { user: User }) {
 
   return (
     <SettingsCard title="Email Address" description="Changing email requires your current password">
-      <form onSubmit={handleSave} className="space-y-3">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="New email address"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Current password to confirm"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        {error && <p className="text-xs text-red-500">{error}</p>}
-        <button
-          type="submit"
-          disabled={saving || !email.trim() || !password || email.trim() === user.email}
-          className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-        >
-          {saving ? 'Updating…' : saved ? '✓ Updated' : 'Update Email'}
-        </button>
-      </form>
+      {pendingEmail ? (
+        <div className="space-y-3">
+          <div className="rounded-lg bg-indigo-50 border border-indigo-200 px-4 py-3 text-sm text-indigo-800">
+            <p className="font-semibold">Check your inbox</p>
+            <p className="mt-0.5 text-indigo-700">
+              A verification link was sent to <span className="font-medium">{pendingEmail}</span>.
+              Your email won&apos;t change until you click it.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPendingEmail(null)}
+            className="text-xs text-gray-500 hover:text-gray-700 underline"
+          >
+            Change a different address
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSave} className="space-y-3">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="New email address"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Current password to confirm"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <button
+            type="submit"
+            disabled={saving || !email.trim() || !password || email.trim() === user.email}
+            className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            {saving ? 'Sending…' : 'Update Email'}
+          </button>
+        </form>
+      )}
     </SettingsCard>
   );
 }
@@ -167,9 +179,7 @@ function ChangePasswordForm({ user }: { user: User }) {
     setSaving(true);
     setError('');
     try {
-      const credential = EmailAuthProvider.credential(user.email!, current);
-      await reauthenticateWithCredential(user, credential);
-      await updatePassword(user, next);
+      await updateUserPassword(user, current, next);
       setSaved(true);
       setCurrent('');
       setNext('');

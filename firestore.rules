@@ -86,13 +86,18 @@ service cloud.firestore {
       // HP max: BASE_HP(50) + stamina(50)*2 + health(600)*1 + gear ≈ 800; 2000 is generous.
       // Stamina max: BASE_STAMINA(20) + stamina(50)*5 + gear ≈ 300; 500 is generous.
       // Magic max: BASE_MAGIC(20) + wisdom(50)*3 + wizard_bonus(10) + gear ≈ 200; 250 is generous.
-      return (!('currentHp'         in data) || (data.currentHp         is int && data.currentHp         >= 0 && data.currentHp         <= 2000))
-          && (!('currentStamina'    in data) || (data.currentStamina    is int && data.currentStamina    >= 0 && data.currentStamina    <= 500))
-          && (!('currentMagic'      in data) || (data.currentMagic      is int && data.currentMagic      >= 0 && data.currentMagic      <= 250))
-          && (!('pendingStatPoints' in data) || (data.pendingStatPoints  is int && data.pendingStatPoints >= 0 && data.pendingStatPoints <= 100))
-          && (!('masteryCounts'     in data) || data.masteryCounts  is map)
-          && (!('streakData'        in data) || data.streakData     is map)
-          && (!('personalRecords'   in data) || data.personalRecords is map);
+      return (!('currentHp'           in data) || (data.currentHp         is int && data.currentHp         >= 0 && data.currentHp         <= 2000))
+          && (!('currentStamina'      in data) || (data.currentStamina    is int && data.currentStamina    >= 0 && data.currentStamina    <= 500))
+          && (!('currentMagic'        in data) || (data.currentMagic      is int && data.currentMagic      >= 0 && data.currentMagic      <= 250))
+          && (!('pendingStatPoints'   in data) || (data.pendingStatPoints  is int && data.pendingStatPoints >= 0 && data.pendingStatPoints <= 100))
+          && (!('masteryCounts'       in data) || data.masteryCounts       is map)
+          && (!('streakData'          in data) || data.streakData          is map)
+          && (!('personalRecords'     in data) || data.personalRecords     is map)
+          // legendaryDryStreak: per-monster kill-count map for the legendary pity system.
+          // Validated as a map only — individual values are kill counters with no meaningful
+          // ceiling (a player who never gets a legendary would accumulate counts indefinitely,
+          // which is legitimate game state).
+          && (!('legendaryDryStreak'  in data) || data.legendaryDryStreak  is map);
     }
 
     // Subclass rules (update path only — resource.data is the existing document):
@@ -264,7 +269,16 @@ service cloud.firestore {
               || (resource.data.claimedAt   == null
                   && data.claimedAt         is int
                   && data.claimedAt         > 0
-                  && resource.data.completedAt != null));
+                  && resource.data.completedAt != null))
+          // rewardedXp / rewardedGold: only permitted during the claimedAt transition
+          // (resource not yet claimed + incoming claimedAt is a valid timestamp).
+          // Bounds: 100,000 is generous headroom above the highest legitimate quest XP/gold.
+          && (!('rewardedXp' in data)
+              || (data.rewardedXp is int && data.rewardedXp >= 0 && data.rewardedXp <= 100000
+                  && resource.data.claimedAt == null && data.claimedAt is int && data.claimedAt > 0))
+          && (!('rewardedGold' in data)
+              || (data.rewardedGold is int && data.rewardedGold >= 0 && data.rewardedGold <= 100000
+                  && resource.data.claimedAt == null && data.claimedAt is int && data.claimedAt > 0));
     }
 
     match /activeQuests/{docId} {
@@ -275,6 +289,27 @@ service cloud.firestore {
       allow update:       if isSignedIn()
           && resource.data.uid == request.auth.uid
           && isValidActiveQuestUpdate(request.resource.data);
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // COMBAT LOGS — /combatLogs/{docId}
+    //
+    // Written client-side at claim-rewards time. Immutable once created.
+    // xp and gold ceilings are generous multiples of the highest legitimate
+    // combat reward (boss max ~320 XP × 1.5× streak ≈ 480 XP).
+    // ══════════════════════════════════════════════════════════════════════════
+
+    match /combatLogs/{docId} {
+      allow read:          if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create:        if isSignedIn()
+          && request.resource.data.uid         == request.auth.uid
+          && request.resource.data.monsterId   is string && request.resource.data.monsterId.size() > 0
+          && request.resource.data.monsterName is string && request.resource.data.monsterName.size() > 0
+          && request.resource.data.xp          is int && request.resource.data.xp  >= 0 && request.resource.data.xp  <= 10000
+          && request.resource.data.gold        is int && request.resource.data.gold >= 0 && request.resource.data.gold <= 10000
+          && request.resource.data.loggedAt    is int && isRecentTimestamp(request.resource.data.loggedAt);
+      allow update, delete: if false;
     }
 
   }
