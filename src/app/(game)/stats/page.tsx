@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useCharacter } from '@/hooks/useCharacter';
 import { fetchActivityLogs, fetchActiveQuests, fetchInventoryItems } from '@/lib/fetchPlayerData';
+import { fetchRecentCombatLogs, type CombatLog } from '@/lib/combatData';
 import { useQuestStore } from '@/store/questStore';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { getItemById } from '@/lib/gameLogic/items';
@@ -11,8 +12,6 @@ import { ACTIVITY_ICONS } from '@/lib/activityIcons';
 import { getStreakTier, STREAK_TIERS } from '@/lib/gameLogic/streaks';
 import type { ActivityLog, ActiveQuest, InventoryItem, ActivityType, Character } from '@/types';
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   XAxis,
@@ -91,6 +90,7 @@ interface RawStats {
   logs: ActivityLog[];
   quests: ActiveQuest[];
   inventory: InventoryItem[];
+  combatLogs: CombatLog[];
 }
 
 function StatsContent({ character, uid }: { character: Character; uid: string }) {
@@ -109,12 +109,13 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
         const { quests: cachedQuests } = useQuestStore.getState();
         const { items: cachedItems } = useInventoryStore.getState();
 
-        const [logs, quests, inventory] = await Promise.all([
+        const [logs, quests, inventory, combatLogs] = await Promise.all([
           fetchActivityLogs(uid),
           cachedQuests.length > 0 ? Promise.resolve(cachedQuests) : fetchActiveQuests(uid),
           cachedItems.length > 0 ? Promise.resolve(cachedItems) : fetchInventoryItems(uid),
+          fetchRecentCombatLogs(uid, 200),
         ]);
-        setRaw({ logs, quests, inventory });
+        setRaw({ logs, quests, inventory, combatLogs });
       } finally {
         setLoading(false);
       }
@@ -130,7 +131,6 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
     const claimed = raw.quests.filter((q) => q.claimedAt !== null && (q.claimedAt ?? 0) >= cutoff);
     const purchases = raw.inventory.filter((i) => i.acquiredAt >= cutoff);
 
-    const totalXp = logs.reduce((s, l) => s + (l.xpGained ?? 0), 0);
     const goldFromQuests = claimed.reduce((s, q) => s + (q.rewards?.gold ?? 0), 0);
     const goldSpent = purchases.reduce((s, i) => {
       const def = getItemById(i.itemDefId);
@@ -138,18 +138,30 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
     }, 0);
     const questsCompleted = claimed.length;
 
-    const xpByDay: Record<string, number> = {};
-    for (const l of logs) {
-      const label = dayLabel(l.loggedAt);
-      xpByDay[label] = (xpByDay[label] ?? 0) + (l.xpGained ?? 0);
+    // XP sources post-R4: quest claims and combat victories.
+    // Activity logs carry xpGained=0 after the Cloud Function migration.
+    const questXpByDay: Record<string, number> = {};
+    for (const q of claimed) {
+      if (!q.claimedAt) continue;
+      const label = dayLabel(q.claimedAt);
+      questXpByDay[label] = (questXpByDay[label] ?? 0) + (q.rewards?.xp ?? 0);
     }
 
-    const byType: Record<string, { count: number; xp: number; amount: number }> = {};
+    const combatXpByDay: Record<string, number> = {};
+    for (const c of raw.combatLogs.filter((cl) => cl.loggedAt >= cutoff)) {
+      const label = dayLabel(c.loggedAt);
+      combatXpByDay[label] = (combatXpByDay[label] ?? 0) + c.xp;
+    }
+
+    const totalQuestXp = Object.values(questXpByDay).reduce((s, v) => s + v, 0);
+    const totalCombatXp = Object.values(combatXpByDay).reduce((s, v) => s + v, 0);
+    const totalXp = totalQuestXp + totalCombatXp;
+
+    const byType: Record<string, { count: number; amount: number }> = {};
     for (const l of logs) {
       const t = l.type;
-      if (!byType[t]) byType[t] = { count: 0, xp: 0, amount: 0 };
+      if (!byType[t]) byType[t] = { count: 0, amount: 0 };
       byType[t].count++;
-      byType[t].xp += l.xpGained ?? 0;
       byType[t].amount += (l.data as { amount?: number }).amount ?? 0;
     }
 
@@ -171,10 +183,19 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
     const allDays =
       buckets ??
       Array.from(
-        new Set([...Object.keys(xpByDay), ...Object.keys(actByDay), ...Object.keys(questsByDay)]),
+        new Set([
+          ...Object.keys(questXpByDay),
+          ...Object.keys(combatXpByDay),
+          ...Object.keys(actByDay),
+          ...Object.keys(questsByDay),
+        ]),
       ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
-    const xpChartData = allDays.map((d) => ({ date: d, xp: xpByDay[d] ?? 0 }));
+    const xpChartData = allDays.map((d) => ({
+      date: d,
+      questXp: questXpByDay[d] ?? 0,
+      combatXp: combatXpByDay[d] ?? 0,
+    }));
 
     const actChartData = allDays.map((d) => {
       const row: Record<string, number | string> = { date: d };
@@ -190,12 +211,11 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
     }));
 
     const breakdownData = Object.entries(byType)
-      .sort((a, b) => b[1].xp - a[1].xp)
+      .sort((a, b) => b[1].count - a[1].count)
       .map(([type, v]) => ({
         type: ACTIVITY_DEFINITIONS[type as ActivityType]?.label ?? type,
         color: ACTIVITY_COLORS[type as ActivityType] ?? '#6b7280',
         logs: v.count,
-        xp: v.xp,
         amount: Math.round(v.amount * 10) / 10,
         unit: ACTIVITY_DEFINITIONS[type as keyof typeof ACTIVITY_DEFINITIONS]?.unit ?? '',
       }));
@@ -439,7 +459,7 @@ function OverviewCards({
 function ActivityBreakdown({
   data,
 }: {
-  data: { type: string; color: string; logs: number; xp: number; amount: number; unit: string }[];
+  data: { type: string; color: string; logs: number; amount: number; unit: string }[];
 }) {
   if (data.length === 0) {
     return (
@@ -451,12 +471,12 @@ function ActivityBreakdown({
     );
   }
 
-  const maxXp = Math.max(...data.map((d) => d.xp), 1);
+  const maxLogs = Math.max(...data.map((d) => d.logs), 1);
 
   return (
     <ChartCard title="Activity Breakdown">
       <div className="space-y-3">
-        {data.map(({ type, color, logs, xp, amount, unit }) => (
+        {data.map(({ type, color, logs, amount, unit }) => (
           <div key={type} className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
             <div className="flex-1">
@@ -466,19 +486,14 @@ function ActivityBreakdown({
                   {amount} {unit} · {logs} {logs === 1 ? 'log' : 'logs'}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="h-1.5 rounded-full"
-                    style={{
-                      backgroundColor: color,
-                      width: `${Math.min(100, (xp / maxXp) * 100)}%`,
-                    }}
-                  />
-                </div>
-                <span className="text-xs font-semibold text-indigo-600 w-16 text-right">
-                  +{xp} XP
-                </span>
+              <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="h-1.5 rounded-full"
+                  style={{
+                    backgroundColor: color,
+                    width: `${Math.min(100, (logs / maxLogs) * 100)}%`,
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -490,15 +505,15 @@ function ActivityBreakdown({
 
 // ── XP Over Time ──────────────────────────────────────────────────────────────
 
-function XpChart({ data }: { data: { date: string; xp: number }[] }) {
-  const hasData = data.some((d) => d.xp > 0);
+function XpChart({ data }: { data: { date: string; questXp: number; combatXp: number }[] }) {
+  const hasData = data.some((d) => d.questXp > 0 || d.combatXp > 0);
   return (
     <ChartCard title="XP Earned Per Day">
       {!hasData ? (
         <p className="text-sm text-gray-400 text-center py-6">No XP earned in this period.</p>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis
               dataKey="date"
@@ -510,17 +525,21 @@ function XpChart({ data }: { data: { date: string; xp: number }[] }) {
             <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
             <Tooltip
               contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}
-              formatter={(v) => [`${v} XP`, 'XP Earned']}
+              formatter={(v, name) => [`${v} XP`, name === 'questXp' ? 'Quest XP' : 'Combat XP']}
             />
-            <Line
-              type="monotone"
-              dataKey="xp"
-              stroke="#6366f1"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, fill: '#6366f1' }}
+            <Legend
+              wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+              formatter={(v) => (v === 'questXp' ? 'Quest XP' : 'Combat XP')}
             />
-          </LineChart>
+            <Bar dataKey="questXp" stackId="a" fill="#6366f1" name="questXp" />
+            <Bar
+              dataKey="combatXp"
+              stackId="a"
+              fill="#f97316"
+              name="combatXp"
+              radius={[2, 2, 0, 0]}
+            />
+          </BarChart>
         </ResponsiveContainer>
       )}
     </ChartCard>
