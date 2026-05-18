@@ -68,6 +68,8 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 **Cloud Functions runtime:** `functions/package.json` pins `"node": "22"` — Firebase Cloud Functions does not yet support Node 24 in production (Node 22 is the current max). This intentionally lags behind the CI runtime (Node 24). Do not bump the functions engine version without first confirming Firebase support.
 
+**EBADENGINE warning:** running `npm install` inside `functions/` on Node 24 prints `npm warn EBADENGINE … required: { node: '22' }`. This is expected — the engine pin is for the Firebase production runtime, not the local development environment. The warning is harmless and can be ignored.
+
 **Changelog:** when a meaningful change ships on `master`, append an entry to [docs/CHANGELOG.md](docs/CHANGELOG.md). Skip trivial (typos, comment-only). Keep newest-first.
 
 ---
