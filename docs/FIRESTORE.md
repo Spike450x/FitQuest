@@ -164,8 +164,12 @@ interface ActiveQuest {
   claimedAt: number | null; // write-once, gated on completedAt
   expiresAt: number; // unix ms — immutable
   rewards: QuestReward; // immutable
+  rewardedXp?: number; // XP actually awarded at claim time (level-scaled + streak multiplier)
+  rewardedGold?: number; // gold actually awarded at claim time (level-scaled)
 }
 ```
+
+`rewardedXp` and `rewardedGold` are absent on quests claimed before this field was introduced — fall back to `rewards.xp`/`rewards.gold` (base definition values) in those cases.
 
 ### Validation — create
 
@@ -179,10 +183,44 @@ interface ActiveQuest {
 - `progress` stays `≥ 0`.
 - `completedAt`: `null` → `int > 0` allowed exactly once. Cannot be unset, cannot be re-set.
 - `claimedAt`: `null` → `int > 0` allowed exactly once **and** the existing document must already have `completedAt` set. The check uses `resource.data.completedAt` (the stored value), not `request.resource.data.completedAt` (the proposed value) — this prevents a single forged write from setting both `completedAt` and `claimedAt` simultaneously.
+- `rewardedXp` / `rewardedGold`: only writable **during the `claimedAt` null → int transition** (i.e. the same write that sets `claimedAt`). Cannot be set before the claim or updated after. Capped at 100,000 each. This prevents post-claim forgery of the awarded amounts.
 
 ### Why the two-step claim
 
 A claim grants gold + XP. Without the `resource.data.completedAt != null` constraint, an attacker who can write to the doc could fabricate "completed and claimed" in one call. The two-step gate forces them to first write `completedAt` (which is checked against the immutable `progress` and `rewards`), then write `claimedAt` (which checks the stored completedAt, not the in-flight one).
+
+---
+
+## `combatLogs/{auto-id}`
+
+One document per completed combat encounter. Used by the stats page to aggregate battles won and combat XP earned. Document ID is auto-generated; `uid` carries ownership.
+
+```ts
+interface CombatLog {
+  id: string;
+  uid: string;
+  monsterId: string; // non-empty — references MONSTER_CATALOG
+  monsterName: string;
+  xp: number; // 0–10,000
+  gold: number; // 0–10,000
+  loggedAt: number; // unix ms — server-window-validated
+}
+```
+
+### Validation — create
+
+- `uid == request.auth.uid`.
+- `monsterId` non-empty string.
+- `xp` and `gold` each between 0 and 10,000.
+- `loggedAt` falls within `[request.time − 2m, request.time + 2m]` (same anti-backdating window as activity logs).
+
+### Validation — update / delete
+
+**Always denied.** Combat logs are append-only. The stats page reads them in aggregate; individual corrections are not supported.
+
+### Why the 10,000 cap
+
+The highest single-combat XP reward in the game (Ancient Dragon, level 100 gear) is around 3,000 XP. The 10,000 ceiling is a generous anti-cheat wall that cannot be hit through normal play.
 
 ---
 
@@ -198,9 +236,11 @@ firebase deploy --only firestore:indexes
 
 ### Active composite indexes
 
-| Collection     | Fields (in order)                     | Purpose                                                                                                    |
-| -------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `activityLogs` | `uid ASC`, `type ASC`, `loggedAt ASC` | 3-field query in `logActivity` Cloud Function — aggregate today's logged amount for daily-cap enforcement. |
+| Collection     | Fields (in order)                     | Purpose                                                                                                      |
+| -------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `activityLogs` | `uid ASC`, `type ASC`, `loggedAt ASC` | 3-field query in `logActivity` Cloud Function — aggregate today's logged amount for daily-cap enforcement.   |
+| `activityLogs` | `uid ASC`, `loggedAt DESC`            | Stats page — fetch the player's most recent activity logs for the XP-over-time chart and activity breakdown. |
+| `combatLogs`   | `uid ASC`, `loggedAt DESC`            | Stats page — fetch the player's most recent combat logs for battles-won count and combat XP stacked bars.    |
 
 The `questStore` deliberately avoids composite queries for `activeQuests` — it filters by `uid` only and applies the `expiresAt` check client-side. No index needed there.
 
@@ -210,15 +250,24 @@ The `questStore` deliberately avoids composite queries for `activeQuests` — it
 
 ---
 
-## Deploying rules
+## Deploying rules and indexes
 
-Rules live in `firestore.rules` at the repo root. The CI pipeline **auto-deploys rules on every push to `master`** (step 11 in [`CI.md`](CI.md)). Manual deploy when needed:
+Rules (`firestore.rules`) and indexes (`firestore.indexes.json`) are **auto-deployed together on every push to `master`** (step 15 in [`CI.md`](CI.md)). The combined deploy ensures indexes are always in sync with the rules that depend on them. Manual deploy when needed:
 
 ```bash
-npx firebase deploy --only firestore:rules --project fitness-rpg-claude
+npx firebase deploy --only firestore:rules,firestore:indexes --project fitness-rpg-claude
 ```
 
 Prefer `npm run deploy:prod` for full deploys — it runs the index validation script first and deploys in the correct order (indexes/rules before functions).
+
+### Adding a post-MVP schema field
+
+When adding a new optional field to an existing Firestore document:
+
+1. Add the field to the TypeScript interface in `src/types/index.ts` (mark it optional with `?`).
+2. Add a safe default in the relevant normalizer in `src/lib/fetchPlayerData.ts` (`normalizeActiveQuest`, `normalizeInventoryItem`, or a new one for a new collection). This prevents raw `as` casts from silently carrying `undefined` on docs written before the field existed.
+3. Add the field to the `firestore.rules` validator if it has write constraints (immutability, value ranges, state-transition scoping).
+4. Update this doc with the field in the collection's interface block and any new validation rules.
 
 ---
 

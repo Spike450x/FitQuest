@@ -102,4 +102,18 @@ History: introduced after the firebase 12.12 → 12.13 bump (PR #28) where the s
 
 ## Automation
 
-The Claude Preview MCP can drive these steps via `preview_fill` + `preview_click` + `preview_console_logs` + `preview_eval(window.location = '/dashboard')`. See the agent transcripts under `.claude/projects/...` for an example trace.
+**Steps 1–4 are now covered by the Playwright E2E smoke suite** (`tests/e2e/smoke.test.ts`) running in CI on every PR and master push. The suite asserts:
+
+- All nine protected routes redirect to `/login` (Step 3 equivalent).
+- `/login` renders the heading, email/password inputs, submit button, and correct a11y attributes (Steps 1–2 equivalent).
+- `/register` renders the heading and link back to login (Step 4 equivalent).
+
+Run it locally with `npx playwright test` (or `npm run test:e2e`). On first run you may need `npx playwright install chromium`.
+
+**This manual checklist remains valuable for:**
+
+- The optional authenticated flow (Step 5 and below) — the E2E suite deliberately avoids real Firebase calls.
+- Checking DevTools Console output for hydration errors or SDK warnings — Playwright doesn't inspect the console by default in these tests.
+- Post-bump verification when the change is in Firebase Auth, Next.js internals, or middleware (belt-and-suspenders on top of CI).
+
+The Claude Preview MCP can also drive these steps via `preview_fill` + `preview_click` + `preview_console_logs` + `preview_eval(window.location = '/dashboard')`. See the agent transcripts under `.claude/projects/...` for an example trace.
