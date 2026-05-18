@@ -1,18 +1,13 @@
 import { create } from 'zustand';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  runTransaction,
-} from 'firebase/firestore';
 import { useCharacterStore } from './characterStore';
-import { db } from '@/lib/firebase';
-import { normalizeInventoryItem } from '@/lib/fetchPlayerData';
+import {
+  fetchInventoryDocs,
+  addInventoryDoc,
+  updateInventoryDoc,
+  deleteInventoryDoc,
+  runBuyItemTransaction,
+} from '@/lib/inventoryData';
+import { updateCharacterDoc } from '@/lib/characterData';
 import { getItemById } from '@/lib/gameLogic/items';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
 import { COMBAT } from '@/lib/gameLogic/constants';
@@ -80,9 +75,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   fetchInventory: async (uid) => {
     set({ loading: true, error: null });
     try {
-      const q = query(collection(db, 'inventory'), where('uid', '==', uid));
-      const snap = await getDocs(q);
-      const items = snap.docs.map((d) => normalizeInventoryItem(d.id, d.data()));
+      const items = await fetchInventoryDocs(uid);
       set({ items, loading: false });
     } catch (e) {
       set({ error: (e as Error).message, loading: false });
@@ -93,22 +86,11 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     const def = getItemById(itemDefId);
     if (!def) return false;
 
-    const invRef = doc(collection(db, 'inventory'));
-    const charRef = doc(db, 'characters', uid);
     const acquiredAt = Date.now();
-
     try {
-      await runTransaction(db, async (tx) => {
-        const charSnap = await tx.get(charRef);
-        if (!charSnap.exists()) throw new Error('Character not found');
-        const currentGold = (charSnap.data().gold as number) ?? 0;
-        if (currentGold < def.price) throw new Error('Not enough gold');
-        tx.set(invRef, { uid, itemDefId, quantity: 1, equipped: false, acquiredAt });
-        tx.update(charRef, { gold: currentGold - def.price });
-      });
-
+      const newDocId = await runBuyItemTransaction(uid, itemDefId, def.price, acquiredAt);
       const newItem: InventoryItem = {
-        id: invRef.id,
+        id: newDocId,
         itemDefId,
         quantity: 1,
         equipped: false,
@@ -146,14 +128,14 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       const existing = get().items.find((i) => i.itemDefId === itemDefId);
       if (existing) {
         const newQty = existing.quantity + 1;
-        await updateDoc(doc(db, 'inventory', existing.id), { quantity: newQty });
+        await updateInventoryDoc(existing.id, { quantity: newQty });
         set((state) => ({
           items: state.items.map((i) => (i.id === existing.id ? { ...i, quantity: newQty } : i)),
         }));
       } else {
-        const newItem = { uid, itemDefId, quantity: 1, equipped: false, acquiredAt: Date.now() };
-        const docRef = await addDoc(collection(db, 'inventory'), newItem);
-        set((state) => ({ items: [...state.items, { id: docRef.id, ...newItem }] }));
+        const data = { uid, itemDefId, quantity: 1, equipped: false, acquiredAt: Date.now() };
+        const newId = await addInventoryDoc(data);
+        set((state) => ({ items: [...state.items, { id: newId, ...data }] }));
       }
     }
 
@@ -163,19 +145,13 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     if (newEquipment.length === 0) return;
 
     const acquiredAt = Date.now();
-    const results = await Promise.all(
+    const newIds = await Promise.all(
       newEquipment.map((itemDefId) =>
-        addDoc(collection(db, 'inventory'), {
-          uid,
-          itemDefId,
-          quantity: 1,
-          equipped: false,
-          acquiredAt,
-        }),
+        addInventoryDoc({ uid, itemDefId, quantity: 1, equipped: false, acquiredAt }),
       ),
     );
-    const addedItems: InventoryItem[] = results.map((docRef, i) => ({
-      id: docRef.id,
+    const addedItems: InventoryItem[] = newIds.map((id, i) => ({
+      id,
       itemDefId: newEquipment[i],
       quantity: 1,
       equipped: false,
@@ -234,10 +210,10 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
 
     await Promise.all([
       currentlyEquipped
-        ? updateDoc(doc(db, 'inventory', currentlyEquipped.id), { equipped: false })
+        ? updateInventoryDoc(currentlyEquipped.id, { equipped: false })
         : Promise.resolve(),
-      updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: true }),
-      updateDoc(doc(db, 'characters', uid), charUpdate),
+      updateInventoryDoc(inventoryItemId, { equipped: true }),
+      updateCharacterDoc(uid, charUpdate),
     ]);
 
     useCharacterStore.setState((state) => ({
@@ -298,8 +274,8 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     }
 
     await Promise.all([
-      updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: false }),
-      updateDoc(doc(db, 'characters', uid), charUpdate),
+      updateInventoryDoc(inventoryItemId, { equipped: false }),
+      updateCharacterDoc(uid, charUpdate),
     ]);
 
     useCharacterStore.setState((state) => ({
@@ -361,12 +337,12 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     // Consume one from the stack; delete the doc only when quantity reaches 0
     if (invItem.quantity > 1) {
       const newQty = invItem.quantity - 1;
-      await updateDoc(doc(db, 'inventory', inventoryItemId), { quantity: newQty });
+      await updateInventoryDoc(inventoryItemId, { quantity: newQty });
       set((state) => ({
         items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, quantity: newQty } : i)),
       }));
     } else {
-      await deleteDoc(doc(db, 'inventory', inventoryItemId));
+      await deleteInventoryDoc(inventoryItemId);
       set((state) => ({ items: state.items.filter((i) => i.id !== inventoryItemId) }));
     }
 
@@ -394,7 +370,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       };
     }
 
-    await updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: true });
+    await updateInventoryDoc(inventoryItemId, { equipped: true });
     set((state) => ({
       items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, equipped: true } : i)),
     }));
@@ -406,7 +382,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     const target = items.find((i) => i.id === inventoryItemId);
     if (!target || !target.equipped) return;
 
-    await updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: false });
+    await updateInventoryDoc(inventoryItemId, { equipped: false });
     set((state) => ({
       items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, equipped: false } : i)),
     }));
@@ -434,7 +410,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       };
     }
 
-    await updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: true });
+    await updateInventoryDoc(inventoryItemId, { equipped: true });
     set((state) => ({
       items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, equipped: true } : i)),
     }));
@@ -446,11 +422,11 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     const target = items.find((i) => i.id === inventoryItemId);
     if (!target || !target.equipped) return;
 
-    await updateDoc(doc(db, 'inventory', inventoryItemId), { equipped: false });
+    await updateInventoryDoc(inventoryItemId, { equipped: false });
     set((state) => ({
       items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, equipped: false } : i)),
     }));
   },
 
-  clear: () => set({ items: [], error: null }),
+  clear: () => set({ items: [], loading: false, error: null }),
 }));

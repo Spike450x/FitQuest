@@ -7,6 +7,12 @@ export interface LogActivityInput {
   activityType: ActivityType;
   amount: number;
   unit: string;
+  /**
+   * Client-generated UUID used as the Firestore document ID for the activity log.
+   * Ensures that network retries don't create duplicate log entries — Firestore
+   * `set` on an existing doc ID is idempotent.
+   */
+  idempotencyKey: string;
 }
 
 export interface LogActivityResult {

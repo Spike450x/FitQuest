@@ -6,7 +6,7 @@ import type { ActivityLog, ActiveQuest, InventoryItem } from '@/types';
 // Apply safe defaults for fields added after initial schema — prevents
 // undefined from being silently cast as a typed value.
 
-function normalizeActivityLog(id: string, data: Record<string, unknown>): ActivityLog {
+export function normalizeActivityLog(id: string, data: Record<string, unknown>): ActivityLog {
   return {
     ...data,
     id,
@@ -38,7 +38,14 @@ function normalizeInventoryItem(id: string, data: Record<string, unknown>): Inve
 // ─── Fetch helpers ────────────────────────────────────────────────────────────
 
 export async function fetchActivityLogs(uid: string): Promise<ActivityLog[]> {
-  const snap = await getDocs(query(collection(db, 'activityLogs'), where('uid', '==', uid)));
+  const snap = await getDocs(
+    query(
+      collection(db, 'activityLogs'),
+      where('uid', '==', uid),
+      orderBy('loggedAt', 'desc'),
+      limit(500),
+    ),
+  );
   return snap.docs.map((d) => normalizeActivityLog(d.id, d.data()));
 }
 

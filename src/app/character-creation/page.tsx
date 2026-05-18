@@ -10,7 +10,9 @@ import type { CharacterClass } from '@/types';
 export default function CharacterCreationPage() {
   const router = useRouter();
   const { user, character, loading: charLoading } = useCharacter();
-  const { createCharacter, loading, error } = useCharacterStore();
+  const createCharacter = useCharacterStore((s) => s.createCharacter);
+  const loading = useCharacterStore((s) => s.loading);
+  const error = useCharacterStore((s) => s.error);
 
   // Redirect to dashboard if a character already exists
   useEffect(() => {

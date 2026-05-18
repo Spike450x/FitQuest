@@ -26,6 +26,8 @@ interface LogActivityInput {
   activityType: ActivityType;
   amount: number;
   unit: string;
+  /** Client-generated UUID — used as the activity log doc ID to make retries idempotent. */
+  idempotencyKey: string;
 }
 
 interface LogActivityResult {
@@ -74,7 +76,7 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
     throw new HttpsError('unauthenticated', 'Must be signed in.');
   }
 
-  const { activityType, amount, unit } = request.data;
+  const { activityType, amount, unit, idempotencyKey } = request.data;
   const uid = request.auth.uid; // authoritative — never from request.data
 
   // Input validation — mirrors INPUT_CONFIG.max in ActivityLogForm.tsx.
@@ -94,6 +96,13 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
   }
   if (typeof unit !== 'string' || unit.length === 0 || unit.length > 50) {
     throw new HttpsError('invalid-argument', 'unit must be a non-empty string (max 50 chars).');
+  }
+  if (
+    typeof idempotencyKey !== 'string' ||
+    idempotencyKey.length < 8 ||
+    idempotencyKey.length > 128
+  ) {
+    throw new HttpsError('invalid-argument', 'idempotencyKey must be a string (8–128 chars).');
   }
 
   // ── 1. Compute today's already-logged total (server-side, non-bypassable) ──
@@ -120,7 +129,10 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
   const justHitCap = rewardEligible && alreadyLoggedToday + eligibleAmount >= cap;
 
   // ── 2. Write activity log document ─────────────────────────────────────────
-  const logRef = db.collection('activityLogs').doc();
+  // Namespace the doc ID with the server-authoritative uid so a client cannot
+  // target another user's document by guessing or replaying a known key.
+  // Firestore `set` on an existing ID is a no-op write, so retries are safe.
+  const logRef = db.collection('activityLogs').doc(`${uid}_${idempotencyKey}`);
   const batch = db.batch();
 
   batch.set(logRef, {
@@ -142,10 +154,8 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
     masteryHit: false,
   };
 
-  // ── 3. Fetch character document (mastery + restore both need it) ────────────
-  const needsChar =
-    rewardEligible &&
-    (MASTERY_ACTIVITIES.has(activityType) || RESTORE_ACTIVITIES.has(activityType));
+  // ── 3. Fetch character document (restore only — mastery reads inside transaction) ──
+  const needsChar = rewardEligible && RESTORE_ACTIVITIES.has(activityType);
 
   const charRef = db.collection('characters').doc(uid);
   let charData: FirebaseFirestore.DocumentData | undefined;
@@ -158,37 +168,7 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
     charData = charSnap.data();
   }
 
-  // ── 4. Mastery milestone stat award ────────────────────────────────────────
-  // Only for mastery activities (run / workout / steps) when reward-eligible.
-  // The mastery count and optional stat increment are written atomically
-  // with the activity log in the same batch commit.
-  if (rewardEligible && MASTERY_ACTIVITIES.has(activityType) && charData) {
-    const type = activityType as MasteryActivityType;
-    const config = MASTERY_CONFIG[type];
-    const oldCount = (charData.masteryCounts?.[type] as number | undefined) ?? 0;
-    const newCount = oldCount + 1;
-    const milestoneHit = isMasteryMilestone(newCount);
-
-    const charUpdates: Record<string, unknown> = {
-      [`masteryCounts.${type}`]: newCount,
-    };
-
-    if (milestoneHit) {
-      const level = (charData.level as number | undefined) ?? 1;
-      const currentStat = (charData.stats?.[config.linkedStat] as number | undefined) ?? 0;
-      charUpdates[`stats.${config.linkedStat}`] = Math.min(
-        currentStat + 1,
-        statCap(config.linkedStat, level),
-      );
-      result.masteryHit = true;
-      result.linkedStatLabel = config.linkedStatLabel;
-    }
-
-    result.newMasteryCount = newCount;
-    batch.update(charRef, charUpdates);
-  }
-
-  // ── 5. Resource restore (nutrition / sleep / water) ────────────────────────
+  // ── 4. Resource restore (nutrition / sleep / water) ────────────────────────
   // Capped at the formula-derived max (not the Firestore rule ceiling) so a
   // player at max HP can't accumulate extra HP by logging nutrition over and over.
   if (rewardEligible && RESTORE_ACTIVITIES.has(activityType) && charData) {
@@ -231,5 +211,45 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
   }
 
   await batch.commit();
+
+  // ── 4b. Mastery milestone stat award (transaction — prevents TOCTOU race) ──
+  // Read-increment-check inside a single transaction so two concurrent eligible
+  // logs cannot both see the same oldCount and both award the same milestone.
+  // Runs after the batch so the activity log is persisted even if contention
+  // causes retries here; idempotency key prevents duplicate logs on client retry.
+  if (rewardEligible && MASTERY_ACTIVITIES.has(activityType)) {
+    const type = activityType as MasteryActivityType;
+    const config = MASTERY_CONFIG[type];
+
+    await db.runTransaction(async (txn) => {
+      const charSnap = await txn.get(charRef);
+      if (!charSnap.exists) {
+        throw new HttpsError('not-found', 'Character document not found.');
+      }
+      const freshData = charSnap.data()!;
+      const oldCount = (freshData.masteryCounts?.[type] as number | undefined) ?? 0;
+      const newCount = oldCount + 1;
+
+      const charUpdates: Record<string, unknown> = {
+        [`masteryCounts.${type}`]: newCount,
+      };
+
+      const milestoneHit = isMasteryMilestone(newCount);
+      if (milestoneHit) {
+        const level = (freshData.level as number | undefined) ?? 1;
+        const currentStat = (freshData.stats?.[config.linkedStat] as number | undefined) ?? 0;
+        charUpdates[`stats.${config.linkedStat}`] = Math.min(
+          currentStat + 1,
+          statCap(config.linkedStat, level),
+        );
+        result.masteryHit = true;
+        result.linkedStatLabel = config.linkedStatLabel;
+      }
+
+      result.newMasteryCount = newCount;
+      txn.update(charRef, charUpdates);
+    });
+  }
+
   return result;
 });

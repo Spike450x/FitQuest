@@ -14,6 +14,8 @@ const AUTH_PATHS = [
   '/quests',
   '/inventory',
   '/shop',
+  '/stats',
+  '/profile',
 ];
 
 export function middleware(request: NextRequest) {
