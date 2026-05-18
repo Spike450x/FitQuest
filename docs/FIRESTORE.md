@@ -1,6 +1,6 @@
 # FitQuest — Firestore Data Layer
 
-Reference for the four Firestore collections, their TypeScript shapes, and the authoritative validation rules in [`firestore.rules`](../firestore.rules). Pair with [ARCHITECTURE.md](ARCHITECTURE.md) for how the app talks to these collections.
+Reference for the five Firestore collections, their TypeScript shapes, and the authoritative validation rules in [`firestore.rules`](../firestore.rules). Pair with [ARCHITECTURE.md](ARCHITECTURE.md) for how the app talks to these collections.
 
 The live project is `fitness-rpg-claude`. There is no emulator setup — dev and CI use real Firestore (CI uses dummy creds via `.env.ci` and never connects in `build:ci`).
 
@@ -50,6 +50,7 @@ interface Character {
   personalRecords?: Partial<
     Record<ActivityType, { value: number; loggedAt: number; unit: string }>
   >;
+  legendaryDryStreak?: Record<string, number>; // kills-since-last-legendary per monster — pity system
 }
 
 interface Stats {
@@ -73,6 +74,7 @@ interface Stats {
 
 - `uid`, `class`, `createdAt` are **immutable** — write must equal the existing value.
 - All fields revalidated against the same ranges (so a buggy client cannot push `level: 200` or `gold: 1e9`).
+- `legendaryDryStreak` must be a map if present (`is map` validated in `isValidCharacterOptionals`).
 - Subclass rules (`subclassIsValid`):
   - Absent → OK (not chosen yet).
   - Same as before → OK (already locked in).

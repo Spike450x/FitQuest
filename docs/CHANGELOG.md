@@ -14,6 +14,15 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-18 — Documentation sweep and remaining gap fixes
+
+- `docs/CI.md`: added steps 5b (functions unit tests), 13-14 (Playwright install + E2E), corrected auto-deploy to combined `firestore:rules,indexes`, expanded regression table.
+- `docs/ARCHITECTURE.md`: all six new `src/lib/` domain wrappers in folder map; `/stats` route description updated to reflect full analytics dashboard.
+- `docs/FIRESTORE.md`: added `combatLogs` collection section; `rewardedXp`/`rewardedGold` and `legendaryDryStreak` in Character/ActiveQuest schemas; all three composite indexes; "Adding a post-MVP schema field" guide. Collection count corrected four→five.
+- `docs/SMOKE-TEST.md`: noted Playwright E2E now automates steps 1-4 in CI.
+- `CLAUDE.md`: bumped status date and expanded Shipped list.
+- Fixed unused `isMasteryMilestone` import in `characterStore.ts`; added `.markdownlint.json` with `siblings_only` to suppress valid cross-section duplicate headings.
+
 ## 2026-05-17 — Close all 10/10 gaps: security, functions tests, E2E
 
 - Firestore rules: added `legendaryDryStreak` validation to `isValidCharacterOptionals` (was unvalidated despite being written on every loot roll).
