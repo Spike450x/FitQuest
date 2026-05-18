@@ -1,7 +1,13 @@
 import { COMBAT } from './constants';
 import { getItemById } from './items';
 import type { Character, EquippedGear, MonsterDef, Stats } from '@/types';
-import { getEscapeBonus, hasSureEscape } from './passives';
+import {
+  getEscapeBonus,
+  hasSureEscape,
+  applyIncomingPassives,
+  getPerRoundPassives,
+} from './passives';
+import type { PassiveContext } from './passives';
 
 /**
  * Total magic pool available to the player.
@@ -239,4 +245,90 @@ export function rollRunAway(
   }
 
   return { playerRoll, agilityBonus, monsterRoll, escaped, monsterDamage, playerDefFailed };
+}
+
+// ─── resolveRoundOutcome ──────────────────────────────────────────────────────
+
+export interface RoundOutcomeInput {
+  /** Monster HP after player damage is applied. */
+  newMonsterHp: number;
+  /** Player HP after lifesteal/heals but before incoming monster damage. */
+  preIncomingPlayerHp: number;
+  /** Player magic after spell cost but before Mana Barrier drain. */
+  playerMagicBeforeBarrier: number;
+  /** Raw monster counter-attack damage before passives. Pass 0 if monster is dead. */
+  rawMonsterDamage: number;
+  passiveCtx: PassiveContext;
+  snapshot: { monster: MonsterDef; droppedItems: string[] };
+  character: Character;
+  maxHp: number;
+  maxMagic: number;
+  streakMultiplier: number;
+  getPityFor: (monsterId: string) => number;
+}
+
+export interface RoundOutcomeResult {
+  killedMonster: boolean;
+  incoming: ReturnType<typeof applyIncomingPassives>;
+  perRound: ReturnType<typeof getPerRoundPassives>;
+  finalPlayerHp: number;
+  finalPlayerMagic: number;
+  outcome: 'win' | 'loss' | null;
+  droppedItems: string[];
+}
+
+/**
+ * Shared post-damage pipeline for all three combat action handlers
+ * (attack/magic, ability, spell). Computes incoming passives, per-round
+ * passives, final HP/magic, round outcome, and loot — in one place.
+ */
+export function resolveRoundOutcome(input: RoundOutcomeInput): RoundOutcomeResult {
+  const {
+    newMonsterHp,
+    preIncomingPlayerHp,
+    playerMagicBeforeBarrier,
+    rawMonsterDamage,
+    passiveCtx,
+    snapshot,
+    character,
+    maxHp,
+    maxMagic,
+    streakMultiplier,
+    getPityFor,
+  } = input;
+
+  const killedMonster = newMonsterHp === 0;
+
+  const incoming = killedMonster
+    ? { damage: 0, magicDrained: 0, divineAegisBlocked: false, ironWillActive: false }
+    : applyIncomingPassives(character, rawMonsterDamage, passiveCtx);
+
+  const perRound = getPerRoundPassives(character);
+
+  const newPlayerHpRaw = Math.max(0, preIncomingPlayerHp - incoming.damage);
+  const outcome: 'win' | 'loss' | null =
+    newPlayerHpRaw === 0 ? 'loss' : killedMonster ? 'win' : null;
+
+  const finalPlayerHp =
+    outcome === null ? Math.min(newPlayerHpRaw + perRound.hpRestore, maxHp) : newPlayerHpRaw;
+
+  const magicAfterBarrier = Math.max(0, playerMagicBeforeBarrier - incoming.magicDrained);
+  const finalPlayerMagic =
+    outcome === null
+      ? Math.min(magicAfterBarrier + perRound.magicRestore, maxMagic)
+      : magicAfterBarrier;
+
+  const droppedItems = killedMonster
+    ? rollLoot(snapshot.monster.lootTable, streakMultiplier, getPityFor(snapshot.monster.id))
+    : snapshot.droppedItems;
+
+  return {
+    killedMonster,
+    incoming,
+    perRound,
+    finalPlayerHp,
+    finalPlayerMagic,
+    outcome,
+    droppedItems,
+  };
 }

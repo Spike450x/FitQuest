@@ -15,10 +15,10 @@ import {
   playerMaxMagic,
   calculateRound,
   rollRunAway,
-  rollLoot,
   gearAttackBonus,
   gearDefenseBonus,
   LEGENDARY_PITY_THRESHOLD,
+  resolveRoundOutcome,
 } from '@/lib/gameLogic/combat';
 import { getStreakLootMultiplier, getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
@@ -31,10 +31,8 @@ import {
 import {
   getSubclassDef,
   applyOutgoingPassives,
-  applyIncomingPassives,
   resolveLifesteal,
   getAbilityStaminaCost,
-  getPerRoundPassives,
   getMomentumRestore,
   checkExecute,
   getEffectiveSpellCost,
@@ -395,36 +393,32 @@ export default function CombatPage() {
     const { soulDrainHeal: attackSoulDrain } = resolveLifesteal(character, 0, playerDamage);
 
     const newMonsterHp = Math.max(0, snapshot.monsterHp - playerDamage);
-    const killedMonster = newMonsterHp === 0;
 
-    // ── Incoming passives (Iron Will, Divine Aegis, Mana Barrier) ─────────────
-    const rawMonsterDamage = killedMonster ? 0 : baseMonsterDamage;
-    const incoming = killedMonster
-      ? { damage: 0, magicDrained: 0, divineAegisBlocked: false, ironWillActive: false }
-      : applyIncomingPassives(character, rawMonsterDamage, passiveCtx);
-    const actualMonsterDamage = incoming.damage;
-
-    // ── Per-round passive resources (Wisdom Flow, Sacred Vow) ─────────────────
-    const perRound = getPerRoundPassives(character);
-
-    // ── Final HP / magic calc ──────────────────────────────────────────────────
+    // ── Post-damage pipeline (incoming passives, per-round passives, outcome) ──
     const healedHp = Math.min(snapshot.playerHp + attackSoulDrain, maxHp);
-    const newPlayerHpRaw = Math.max(0, healedHp - actualMonsterDamage);
-    const outcome: 'win' | 'loss' | null =
-      newPlayerHpRaw === 0 ? 'loss' : killedMonster ? 'win' : null;
-
-    // Per-round passives apply only when player survives
-    const finalPlayerHp =
-      outcome === null ? Math.min(newPlayerHpRaw + perRound.hpRestore, maxHp) : newPlayerHpRaw;
-    const magicAfterBarrier = Math.max(0, snapshot.playerMagic - incoming.magicDrained);
-    const finalPlayerMagic =
-      outcome === null
-        ? Math.min(magicAfterBarrier + perRound.magicRestore, maxMagic)
-        : magicAfterBarrier;
-
-    const droppedItems = killedMonster
-      ? rollLoot(snapshot.monster.lootTable, streakMultiplier, getPityFor(snapshot.monster.id))
-      : snapshot.droppedItems;
+    const roundResult = resolveRoundOutcome({
+      newMonsterHp,
+      preIncomingPlayerHp: healedHp,
+      playerMagicBeforeBarrier: snapshot.playerMagic,
+      rawMonsterDamage: baseMonsterDamage,
+      passiveCtx,
+      snapshot,
+      character,
+      maxHp,
+      maxMagic,
+      streakMultiplier,
+      getPityFor,
+    });
+    const {
+      killedMonster,
+      incoming,
+      perRound,
+      finalPlayerHp,
+      finalPlayerMagic,
+      outcome,
+      droppedItems,
+    } = roundResult;
+    const actualMonsterDamage = incoming.damage;
 
     const entry: RoundEntry = {
       round: snapshot.log.length + 1,
@@ -546,29 +540,24 @@ export default function CombatPage() {
 
     const killedMonster = newMonsterHp === 0;
 
-    // ── Incoming passives (Iron Will, Divine Aegis, Mana Barrier) ─────────────
-    const rawMonsterDamage = killedMonster ? 0 : resolution.monsterDamage;
-    const incoming = killedMonster
-      ? { damage: 0, magicDrained: 0, divineAegisBlocked: false, ironWillActive: false }
-      : applyIncomingPassives(character, rawMonsterDamage, abilityCtx);
-    const actualMonsterDamage = incoming.damage;
-
-    // ── Per-round passives (Wisdom Flow, Scholarly, Sacred Vow) ───────────────
-    const perRound = getPerRoundPassives(character);
-
-    // ── Final HP / magic calc ──────────────────────────────────────────────────
+    // ── Post-damage pipeline (incoming passives, per-round passives, outcome) ──
     const healedHp = Math.min(fightState.playerHp + totalHeal, maxHp);
-    const newPlayerHpRaw = Math.max(0, healedHp - actualMonsterDamage);
-    const outcome: 'win' | 'loss' | null =
-      newPlayerHpRaw === 0 ? 'loss' : killedMonster ? 'win' : null;
-
-    const finalPlayerHp =
-      outcome === null ? Math.min(newPlayerHpRaw + perRound.hpRestore, maxHp) : newPlayerHpRaw;
-    const magicAfterBarrier = Math.max(0, fightState.playerMagic - incoming.magicDrained);
-    const finalPlayerMagic =
-      outcome === null
-        ? Math.min(magicAfterBarrier + perRound.magicRestore, maxMagic)
-        : magicAfterBarrier;
+    const roundResult = resolveRoundOutcome({
+      newMonsterHp,
+      preIncomingPlayerHp: healedHp,
+      playerMagicBeforeBarrier: fightState.playerMagic,
+      rawMonsterDamage: resolution.monsterDamage,
+      passiveCtx: abilityCtx,
+      snapshot: fightState,
+      character,
+      maxHp,
+      maxMagic,
+      streakMultiplier,
+      getPityFor,
+    });
+    const { incoming, perRound, finalPlayerHp, finalPlayerMagic, outcome, droppedItems } =
+      roundResult;
+    const actualMonsterDamage = incoming.damage;
 
     // ── Warrior Momentum — restore stamina on ability kill ────────────────────
     const momentumRestore = getMomentumRestore(character, killedMonster);
@@ -576,10 +565,6 @@ export default function CombatPage() {
       Math.max(0, fightState.playerStamina - actualStaminaCost) + momentumRestore,
       maxStamina,
     );
-
-    const droppedItems = killedMonster
-      ? rollLoot(fightState.monster.lootTable, streakMultiplier, getPityFor(fightState.monster.id))
-      : fightState.droppedItems;
 
     const snapshot = fightState;
     const uid = character.uid;
@@ -697,43 +682,34 @@ export default function CombatPage() {
     const newMonsterHp = Math.max(0, snapshot.monsterHp - resolution.playerDamage);
     const killedMonster = newMonsterHp === 0;
 
-    // ── Incoming passives (Iron Will, Divine Aegis, Mana Barrier) ─────────────
+    // ── Post-damage pipeline (incoming passives, per-round passives, outcome) ──
     const spellCtx = {
       currentHpPct: snapshot.playerHp / maxHp,
       currentMagic: newMagic,
       isFirstAbility: snapshot.isFirstAbility,
       executeUsed: snapshot.executeUsed,
     };
-    const rawMonsterDamage = killedMonster ? 0 : resolution.monsterDamage;
-    const incoming = killedMonster
-      ? { damage: 0, magicDrained: 0, divineAegisBlocked: false, ironWillActive: false }
-      : applyIncomingPassives(character, rawMonsterDamage, spellCtx);
-    const actualMonsterDamage = incoming.damage;
-
-    // ── Per-round passives ─────────────────────────────────────────────────────
-    const perRound = getPerRoundPassives(character);
-
     const healedHp = Math.min(
       snapshot.playerHp + resolution.healAmount + spellSoulDrain - bloodPactHpCost,
       maxHp,
     );
-    const newPlayerHpRaw = Math.max(0, healedHp - actualMonsterDamage);
+    const roundResult = resolveRoundOutcome({
+      newMonsterHp,
+      preIncomingPlayerHp: healedHp,
+      playerMagicBeforeBarrier: newMagic,
+      rawMonsterDamage: resolution.monsterDamage,
+      passiveCtx: spellCtx,
+      snapshot,
+      character,
+      maxHp,
+      maxMagic,
+      streakMultiplier,
+      getPityFor,
+    });
+    const { incoming, perRound, finalPlayerHp, finalPlayerMagic, outcome, droppedItems } =
+      roundResult;
+    const actualMonsterDamage = incoming.damage;
     const newStamina = Math.min(snapshot.playerStamina + resolution.staminaRestored, maxStamina);
-    const magicAfterBarrier = Math.max(0, newMagic - incoming.magicDrained);
-
-    const outcome: 'win' | 'loss' | null =
-      newPlayerHpRaw === 0 ? 'loss' : killedMonster ? 'win' : null;
-
-    const finalPlayerHp =
-      outcome === null ? Math.min(newPlayerHpRaw + perRound.hpRestore, maxHp) : newPlayerHpRaw;
-    const finalPlayerMagic =
-      outcome === null
-        ? Math.min(magicAfterBarrier + perRound.magicRestore, maxMagic)
-        : magicAfterBarrier;
-
-    const droppedItems = killedMonster
-      ? rollLoot(snapshot.monster.lootTable, streakMultiplier, getPityFor(snapshot.monster.id))
-      : snapshot.droppedItems;
 
     const totalSpellHeal = resolution.healAmount + spellSoulDrain;
 
