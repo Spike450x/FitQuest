@@ -115,7 +115,7 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
           fetchActivityLogs(uid),
           cachedQuests.length > 0 ? Promise.resolve(cachedQuests) : fetchActiveQuests(uid),
           cachedItems.length > 0 ? Promise.resolve(cachedItems) : fetchInventoryItems(uid),
-          fetchRecentCombatLogs(uid, 200),
+          fetchRecentCombatLogs(uid, 1000),
         ]);
         setRaw({ logs, quests, inventory, combatLogs });
       } catch {
@@ -281,6 +281,9 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
             <p className="text-xs text-gray-400 text-right">
               Showing most recent 500 activity logs
             </p>
+          )}
+          {range === 'all' && raw && raw.combatLogs.length >= 1000 && (
+            <p className="text-xs text-gray-400 text-right">Showing most recent 1000 battles</p>
           )}
           <OverviewCards stats={stats} />
           <StreakPanel character={character} />
