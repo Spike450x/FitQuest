@@ -409,15 +409,8 @@ export default function CombatPage() {
       streakMultiplier,
       getPityFor,
     });
-    const {
-      killedMonster,
-      incoming,
-      perRound,
-      finalPlayerHp,
-      finalPlayerMagic,
-      outcome,
-      droppedItems,
-    } = roundResult;
+    const { incoming, perRound, finalPlayerHp, finalPlayerMagic, outcome, droppedItems } =
+      roundResult;
     const actualMonsterDamage = incoming.damage;
 
     const entry: RoundEntry = {
@@ -680,7 +673,6 @@ export default function CombatPage() {
     );
 
     const newMonsterHp = Math.max(0, snapshot.monsterHp - resolution.playerDamage);
-    const killedMonster = newMonsterHp === 0;
 
     // ── Post-damage pipeline (incoming passives, per-round passives, outcome) ──
     const spellCtx = {

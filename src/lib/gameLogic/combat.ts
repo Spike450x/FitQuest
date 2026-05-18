@@ -7,7 +7,7 @@ import {
   applyIncomingPassives,
   getPerRoundPassives,
 } from './passives';
-import type { PassiveContext } from './passives';
+import type { PassiveContext, IncomingPassiveResult, PerRoundPassives } from './passives';
 
 /**
  * Total magic pool available to the player.
@@ -258,6 +258,7 @@ export interface RoundOutcomeInput {
   playerMagicBeforeBarrier: number;
   /** Raw monster counter-attack damage before passives. Pass 0 if monster is dead. */
   rawMonsterDamage: number;
+  /** Passive evaluation context for the current round. */
   passiveCtx: PassiveContext;
   snapshot: { monster: MonsterDef; droppedItems: string[] };
   character: Character;
@@ -269,8 +270,8 @@ export interface RoundOutcomeInput {
 
 export interface RoundOutcomeResult {
   killedMonster: boolean;
-  incoming: ReturnType<typeof applyIncomingPassives>;
-  perRound: ReturnType<typeof getPerRoundPassives>;
+  incoming: IncomingPassiveResult;
+  perRound: PerRoundPassives;
   finalPlayerHp: number;
   finalPlayerMagic: number;
   outcome: 'win' | 'loss' | null;
@@ -300,7 +301,12 @@ export function resolveRoundOutcome(input: RoundOutcomeInput): RoundOutcomeResul
   const killedMonster = newMonsterHp === 0;
 
   const incoming = killedMonster
-    ? { damage: 0, magicDrained: 0, divineAegisBlocked: false, ironWillActive: false }
+    ? ({
+        damage: 0,
+        magicDrained: 0,
+        divineAegisBlocked: false,
+        ironWillActive: false,
+      } satisfies IncomingPassiveResult)
     : applyIncomingPassives(character, rawMonsterDamage, passiveCtx);
 
   const perRound = getPerRoundPassives(character);
