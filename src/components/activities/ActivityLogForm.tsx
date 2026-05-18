@@ -268,10 +268,14 @@ export function ActivityLogForm() {
         <p className="text-sm text-gray-500">{def.description}</p>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">
+          <label
+            htmlFor="activity-amount"
+            className="block text-sm font-medium text-gray-700 mb-1 capitalize"
+          >
             {def.unit}
           </label>
           <input
+            id="activity-amount"
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}

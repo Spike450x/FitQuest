@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { subscribeToRecentActivity } from '@/lib/fetchPlayerData';
 import type { ActivityLog } from '@/types';

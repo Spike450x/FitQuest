@@ -263,7 +263,7 @@ function timeAgo(ms: number): string {
 function ActivityFeedItem({ log }: { log: ActivityLog }) {
   const def = ACTIVITY_DEFINITIONS[log.type];
   const icon = getActivityIcon(log.type);
-  const amount = (log.data as Record<string, number>).amount;
+  const amount = Number(log.data.amount);
 
   return (
     <li className="flex items-center gap-3 text-sm">

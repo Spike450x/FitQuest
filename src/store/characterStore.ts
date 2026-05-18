@@ -116,7 +116,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       const data = await getCharacterDoc(uid);
       if (data) {
         // Backfill: agility was added after launch; old character docs don't have it.
-        if (!data.stats?.agility) {
+        if (data.stats?.agility === undefined) {
           const startingAgility = CLASS_DEFINITIONS[data.class].startingStats.agility;
           data.stats = { ...data.stats, agility: startingAgility };
           await updateCharacterDoc(uid, { 'stats.agility': startingAgility });
