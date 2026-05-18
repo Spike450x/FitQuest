@@ -901,6 +901,8 @@ export const ITEM_CATALOG: ItemDef[] = [
   },
 ];
 
+const ITEM_MAP = new Map(ITEM_CATALOG.map((item) => [item.id, item]));
+
 export function getItemById(id: string): ItemDef | undefined {
-  return ITEM_CATALOG.find((item) => item.id === id);
+  return ITEM_MAP.get(id);
 }
