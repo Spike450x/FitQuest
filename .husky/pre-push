@@ -1,3 +1,4 @@
+#!/bin/sh
 protected='refs/heads/master'
 
 while read -r local_ref local_sha remote_ref remote_sha; do
