@@ -1,12 +1,11 @@
 'use client';
 
 import type { User } from 'firebase/auth';
-import type { Character, ActivityLog, ActiveQuest, InventoryItem } from '@/types';
+import type { Character, ActivityLog, ActiveQuest } from '@/types';
 import { useCharacter } from './useCharacter';
 import { useRecentActivity } from './useRecentActivity';
 import { useTodayKey } from './useTodayKey';
 import { useQuestStore } from '@/store/questStore';
-import { useInventoryStore } from '@/store/inventoryStore';
 
 export interface GameData {
   /** Authenticated Firebase user, or null while loading / unauthenticated. */
@@ -29,8 +28,6 @@ export interface GameData {
   questsLoading: boolean;
   /** Quest fetch/assign error message, or null. */
   questsError: string | null;
-  /** All inventory items from the inventory store. */
-  inventoryItems: InventoryItem[];
 }
 
 /**
@@ -46,7 +43,6 @@ export function useGameData(): GameData {
   const quests = useQuestStore((s) => s.quests);
   const questsLoading = useQuestStore((s) => s.loading);
   const questsError = useQuestStore((s) => s.error);
-  const inventoryItems = useInventoryStore((s) => s.items);
 
   return {
     user,
@@ -59,6 +55,5 @@ export function useGameData(): GameData {
     quests,
     questsLoading,
     questsError,
-    inventoryItems,
   };
 }

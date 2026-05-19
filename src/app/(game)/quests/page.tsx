@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useCharacter } from '@/hooks/useCharacter';
+import { useGameData } from '@/hooks/useGameData';
 import { useQuestStore } from '@/store/questStore';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
@@ -233,10 +233,7 @@ function LoadingSkeleton() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function QuestsPage() {
-  const { character } = useCharacter();
-  const quests = useQuestStore((s) => s.quests);
-  const loading = useQuestStore((s) => s.loading);
-  const error = useQuestStore((s) => s.error);
+  const { character, quests, questsLoading: loading, questsError: error } = useGameData();
   const fetchAndAssignQuests = useQuestStore((s) => s.fetchAndAssignQuests);
   const claimReward = useQuestStore((s) => s.claimReward);
   const [claiming, setClaiming] = useState<string | null>(null);
