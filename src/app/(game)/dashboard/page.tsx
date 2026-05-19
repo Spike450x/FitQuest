@@ -3,8 +3,7 @@
 import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCharacter } from '@/hooks/useCharacter';
-import { useRecentActivity } from '@/hooks/useRecentActivity';
+import { useGameData } from '@/hooks/useGameData';
 import { XPBar } from '@/components/ui/XPBar';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
@@ -14,7 +13,6 @@ import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { getStreakTier } from '@/lib/gameLogic/streaks';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
-import { useTodayKey } from '@/hooks/useTodayKey';
 import { getActivityIcon } from '@/lib/activityIcons';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { StatAllocModal } from '@/components/character/StatAllocModal';
@@ -37,13 +35,19 @@ const STAT_CONFIG = [
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { character, loading, error: characterError, user } = useCharacter();
-  const { logs, loading: logsLoading } = useRecentActivity(character?.uid);
-  const todayKey = useTodayKey();
+  const {
+    character,
+    loading,
+    error: characterError,
+    user,
+    recentLogs: logs,
+    logsLoading,
+    todayKey,
+    quests,
+    questsLoading,
+    questsError,
+  } = useGameData();
   const fetchCharacter = useCharacterStore((s) => s.fetchCharacter);
-  const quests = useQuestStore((s) => s.quests);
-  const questsLoading = useQuestStore((s) => s.loading);
-  const questsError = useQuestStore((s) => s.error);
   const fetchAndAssignQuests = useQuestStore((s) => s.fetchAndAssignQuests);
 
   useEffect(() => {
