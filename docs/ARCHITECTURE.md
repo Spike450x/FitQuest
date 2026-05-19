@@ -93,12 +93,15 @@ First-login flow. Picks a name and one of `warrior` / `wizard` / `rogue` and cre
 
 ## Middleware (`src/middleware.ts`)
 
-Pure redirection logic — **not an authoritative auth gate**, just UX guidance.
+Pure redirection logic — **not an authoritative auth gate**, just UX guidance. Implements secure-by-default: every route requires auth unless explicitly listed in `PUBLIC_PATHS`.
 
 - Reads the `__session` cookie (set client-side by Firebase Auth).
-- If unauthenticated and the path matches an `AUTH_PATHS` prefix → redirect to `/login`.
-- If authenticated and the path is `/login` or `/register` → redirect to `/dashboard`.
+- Defines `PUBLIC_PATHS = ['/login', '/register']` — the _only_ routes accessible without authentication. All other routes are automatically protected.
+- If unauthenticated and the path is not in `PUBLIC_PATHS` → redirect to `/login`.
+- If authenticated and the path is in `PUBLIC_PATHS` → redirect to `/dashboard` (avoid showing auth forms to logged-in users).
 - The matcher excludes `_next/static`, `_next/image`, `favicon.ico`, and any path containing a `.` (asset requests).
+
+**No AUTH_PATHS allowlist to maintain** — new game routes are automatically protected without middleware changes.
 
 Authoritative protection lives in `firestore.rules` — see [FIRESTORE.md](FIRESTORE.md).
 

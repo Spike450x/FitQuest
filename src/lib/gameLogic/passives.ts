@@ -130,12 +130,15 @@ export const SUBCLASS_CATALOG: Record<CharacterClass, [SubclassDef, SubclassDef]
   ],
 };
 
+const SUBCLASS_MAP: Record<string, SubclassDef> = Object.fromEntries(
+  Object.values(SUBCLASS_CATALOG).flatMap(([a, b]) => [
+    [a.id, a],
+    [b.id, b],
+  ]),
+);
+
 export function getSubclassDef(subclass: CharacterSubclass): SubclassDef | undefined {
-  for (const [a, b] of Object.values(SUBCLASS_CATALOG)) {
-    if (a.id === subclass) return a;
-    if (b.id === subclass) return b;
-  }
-  return undefined;
+  return SUBCLASS_MAP[subclass];
 }
 
 // ─── Subclass Ability Modifications ──────────────────────────────────────────

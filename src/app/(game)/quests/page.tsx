@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useCharacter } from '@/hooks/useCharacter';
+import { useGameData } from '@/hooks/useGameData';
 import { useQuestStore } from '@/store/questStore';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
@@ -110,7 +110,14 @@ function QuestCard({
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-indigo-600 font-semibold">+{def.rewards.xp} XP</span>
+            <span
+              className="text-xs text-indigo-600 font-semibold"
+              title="Scales with level and streak"
+            >
+              {isClaimed && quest.rewardedXp != null
+                ? `+${quest.rewardedXp} XP`
+                : `~${def.rewards.xp}+ XP`}
+            </span>
             <span className="text-xs text-amber-500 font-semibold">+{def.rewards.gold} 💰</span>
           </div>
           {!isClaimed && (
@@ -226,8 +233,9 @@ function LoadingSkeleton() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function QuestsPage() {
-  const { character } = useCharacter();
-  const { quests, loading, error, fetchAndAssignQuests, claimReward } = useQuestStore();
+  const { character, quests, questsLoading: loading, questsError: error } = useGameData();
+  const fetchAndAssignQuests = useQuestStore((s) => s.fetchAndAssignQuests);
+  const claimReward = useQuestStore((s) => s.claimReward);
   const [claiming, setClaiming] = useState<string | null>(null);
 
   useEffect(() => {

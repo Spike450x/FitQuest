@@ -30,19 +30,17 @@ const SLOT_ICON: Record<string, string> = {
 
 export default function InventoryPage() {
   const { character } = useCharacter();
-  const {
-    items,
-    loading,
-    error: storeError,
-    fetchInventory,
-    equipItem,
-    unequipItem,
-    useConsumable: consumeItem,
-    equipConsumable,
-    unequipConsumable,
-    equipSpell,
-    unequipSpell,
-  } = useInventoryStore();
+  const items = useInventoryStore((s) => s.items);
+  const loading = useInventoryStore((s) => s.loading);
+  const storeError = useInventoryStore((s) => s.error);
+  const fetchInventory = useInventoryStore((s) => s.fetchInventory);
+  const equipItem = useInventoryStore((s) => s.equipItem);
+  const unequipItem = useInventoryStore((s) => s.unequipItem);
+  const consumeItem = useInventoryStore((s) => s.useConsumable);
+  const equipConsumable = useInventoryStore((s) => s.equipConsumable);
+  const unequipConsumable = useInventoryStore((s) => s.unequipConsumable);
+  const equipSpell = useInventoryStore((s) => s.equipSpell);
+  const unequipSpell = useInventoryStore((s) => s.unequipSpell);
   const [activeTab, setActiveTab] = useState<ItemType | 'all'>('all');
   const [acting, setActing] = useState<string | null>(null);
   const [spellError, setSpellError] = useState<string | null>(null);

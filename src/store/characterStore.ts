@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { captureError } from '@/lib/errors';
 import { getCharacterDoc, createCharacterDoc, updateCharacterDoc } from '@/lib/characterData';
 import { updateUserDisplayName } from '@/lib/auth';
 import { MONSTER_CATALOG } from '@/lib/gameLogic/monsters';
@@ -116,7 +117,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       const data = await getCharacterDoc(uid);
       if (data) {
         // Backfill: agility was added after launch; old character docs don't have it.
-        if (!data.stats?.agility) {
+        if (data.stats?.agility === undefined) {
           const startingAgility = CLASS_DEFINITIONS[data.class].startingStats.agility;
           data.stats = { ...data.stats, agility: startingAgility };
           await updateCharacterDoc(uid, { 'stats.agility': startingAgility });
@@ -126,6 +127,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         set({ character: null, loading: false, lastFetchedAt: null });
       }
     } catch (e) {
+      captureError('characterStore.fetchCharacter', e);
       set({ error: (e as Error).message, loading: false });
     }
   },
@@ -150,6 +152,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       await createCharacterDoc(uid, character);
       set({ character, loading: false });
     } catch (e) {
+      captureError('characterStore.createCharacter', e);
       set({ error: (e as Error).message, loading: false });
     }
   },
@@ -158,53 +161,62 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const { character } = get();
     if (!character) return 0;
 
-    const { level, xp, xpToNextLevel: nextXp, levelsGained } = applyXp(character, xpGained);
-    let newStats = applyStatGains(character.stats, statGains, level);
+    try {
+      const { level, xp, xpToNextLevel: nextXp, levelsGained } = applyXp(character, xpGained);
+      let newStats = applyStatGains(character.stats, statGains, level);
 
-    const updated: Partial<Character> = {
-      level,
-      xp,
-      xpToNextLevel: nextXp,
-      stats: newStats,
-    };
-
-    // ── Level-up bonuses ──────────────────────────────────────────────────────
-    if (levelsGained > 0) {
-      const newCap = maxStatForLevel(level);
-      // Auto-increase health and defense per level gained
-      newStats = {
-        ...newStats,
-        health: Math.min(newStats.health + LEVEL_UP.HEALTH_PER_LEVEL * levelsGained, newCap),
-        defense: Math.min(newStats.defense + LEVEL_UP.DEFENSE_PER_LEVEL * levelsGained, newCap),
-      };
-      updated.stats = newStats;
-
-      // Award player-choice stat points
-      updated.pendingStatPoints =
-        (character.pendingStatPoints ?? 0) + LEVEL_UP.STAT_POINTS_PER_LEVEL * levelsGained;
-
-      // Level-up fully restores all combat resources to the new (possibly higher) max.
-      updated.currentHp = playerMaxHp({ stats: newStats, equippedGear: character.equippedGear });
-      updated.currentStamina = playerMaxStamina({
+      const updated: Partial<Character> = {
+        level,
+        xp,
+        xpToNextLevel: nextXp,
         stats: newStats,
-        equippedGear: character.equippedGear,
-      });
-      updated.currentMagic = playerMaxMagic({ stats: newStats, class: character.class });
+      };
+
+      // ── Level-up bonuses ──────────────────────────────────────────────────────
+      if (levelsGained > 0) {
+        const newCap = maxStatForLevel(level);
+        // Auto-increase health and defense per level gained
+        newStats = {
+          ...newStats,
+          health: Math.min(newStats.health + LEVEL_UP.HEALTH_PER_LEVEL * levelsGained, newCap),
+          defense: Math.min(newStats.defense + LEVEL_UP.DEFENSE_PER_LEVEL * levelsGained, newCap),
+        };
+        updated.stats = newStats;
+
+        // Award player-choice stat points
+        updated.pendingStatPoints =
+          (character.pendingStatPoints ?? 0) + LEVEL_UP.STAT_POINTS_PER_LEVEL * levelsGained;
+
+        // Level-up fully restores all combat resources to the new (possibly higher) max.
+        updated.currentHp = playerMaxHp({ stats: newStats, equippedGear: character.equippedGear });
+        updated.currentStamina = playerMaxStamina({
+          stats: newStats,
+          equippedGear: character.equippedGear,
+        });
+        updated.currentMagic = playerMaxMagic({ stats: newStats, class: character.class });
+      }
+
+      await updateCharacterDoc(character.uid, updated);
+      set({ character: { ...character, ...updated } });
+
+      return levelsGained;
+    } catch (e) {
+      captureError('characterStore.awardXpAndStats', e);
+      return 0;
     }
-
-    await updateCharacterDoc(character.uid, updated);
-    set({ character: { ...character, ...updated } });
-
-    return levelsGained;
   },
 
   awardGold: async (amount) => {
     const { character } = get();
     if (!character) return;
 
-    const newGold = character.gold + amount;
-    await updateCharacterDoc(character.uid, { gold: newGold });
-    set({ character: { ...character, gold: newGold } });
+    try {
+      const newGold = character.gold + amount;
+      await updateCharacterDoc(character.uid, { gold: newGold });
+      set({ character: { ...character, gold: newGold } });
+    } catch (e) {
+      captureError('characterStore.awardGold', e);
+    }
   },
 
   setHpLocal: (hp) => {
@@ -216,8 +228,12 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
   updateCurrentHp: async (hp) => {
     const { character } = get();
     if (!character) return;
-    await updateCharacterDoc(character.uid, { currentHp: hp });
-    set({ character: { ...character, currentHp: hp } });
+    try {
+      await updateCharacterDoc(character.uid, { currentHp: hp });
+      set({ character: { ...character, currentHp: hp } });
+    } catch (e) {
+      captureError('characterStore.updateCurrentHp', e);
+    }
   },
 
   setStaminaLocal: (stamina) => {
@@ -229,8 +245,12 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
   updateCurrentStamina: async (stamina) => {
     const { character } = get();
     if (!character) return;
-    await updateCharacterDoc(character.uid, { currentStamina: stamina });
-    set({ character: { ...character, currentStamina: stamina } });
+    try {
+      await updateCharacterDoc(character.uid, { currentStamina: stamina });
+      set({ character: { ...character, currentStamina: stamina } });
+    } catch (e) {
+      captureError('characterStore.updateCurrentStamina', e);
+    }
   },
 
   setMagicLocal: (magic) => {
@@ -242,8 +262,12 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
   updateCurrentMagic: async (magic) => {
     const { character } = get();
     if (!character) return;
-    await updateCharacterDoc(character.uid, { currentMagic: magic });
-    set({ character: { ...character, currentMagic: magic } });
+    try {
+      await updateCharacterDoc(character.uid, { currentMagic: magic });
+      set({ character: { ...character, currentMagic: magic } });
+    } catch (e) {
+      captureError('characterStore.updateCurrentMagic', e);
+    }
   },
 
   allocateStatPoint: async (stat) => {
@@ -252,61 +276,74 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const pending = character.pendingStatPoints ?? 0;
     if (pending <= 0) return;
 
-    const newStats: Stats = {
-      ...character.stats,
-      [stat]: Math.min((character.stats[stat] ?? 0) + 1, statCap(stat, character.level)),
-    };
-    const newPending = pending - 1;
-    await updateCharacterDoc(character.uid, { stats: newStats, pendingStatPoints: newPending });
-    set({ character: { ...character, stats: newStats, pendingStatPoints: newPending } });
+    try {
+      const newStats: Stats = {
+        ...character.stats,
+        [stat]: Math.min((character.stats[stat] ?? 0) + 1, statCap(stat, character.level)),
+      };
+      const newPending = pending - 1;
+      await updateCharacterDoc(character.uid, { stats: newStats, pendingStatPoints: newPending });
+      set({ character: { ...character, stats: newStats, pendingStatPoints: newPending } });
+    } catch (e) {
+      captureError('characterStore.allocateStatPoint', e);
+    }
   },
 
   resetCharacter: async () => {
     const { character } = get();
     if (!character) return;
 
-    const classDef = CLASS_DEFINITIONS[character.class];
-    const level = 1;
-    const resetStats = { ...classDef.startingStats };
-    const resetHp = playerMaxHp({
-      stats: resetStats,
-      equippedGear: { weapon: null, armor: null, accessory: null },
-    });
+    try {
+      const classDef = CLASS_DEFINITIONS[character.class];
+      const level = 1;
+      const resetStats = { ...classDef.startingStats };
+      const resetHp = playerMaxHp({
+        stats: resetStats,
+        equippedGear: { weapon: null, armor: null, accessory: null },
+      });
 
-    const reset: Partial<Character> = {
-      level,
-      xp: 0,
-      xpToNextLevel: xpToNextLevel(level),
-      stats: resetStats,
-      currentHp: resetHp,
-    };
+      const reset: Partial<Character> = {
+        level,
+        xp: 0,
+        xpToNextLevel: xpToNextLevel(level),
+        stats: resetStats,
+        currentHp: resetHp,
+      };
 
-    await updateCharacterDoc(character.uid, reset);
-    set({ character: { ...character, ...reset } });
+      await updateCharacterDoc(character.uid, reset);
+      set({ character: { ...character, ...reset } });
+    } catch (e) {
+      captureError('characterStore.resetCharacter', e);
+    }
   },
 
   persistStreakAndRecord: async (activityType, value, unit) => {
     const { character } = get();
     if (!character) return false;
 
-    const today = todayUTC();
-    const newStreakData = computeNewStreak(character.streakData, today);
+    try {
+      const today = todayUTC();
+      const newStreakData = computeNewStreak(character.streakData, today);
 
-    const currentPr = character.personalRecords?.[activityType];
-    const isNewRecord = !currentPr || value > currentPr.value;
+      const currentPr = character.personalRecords?.[activityType];
+      const isNewRecord = !currentPr || value > currentPr.value;
 
-    const updates: Partial<Character> = { streakData: newStreakData };
-    if (isNewRecord) {
-      updates.personalRecords = {
-        ...character.personalRecords,
-        [activityType]: { value, loggedAt: Date.now(), unit },
-      };
+      const updates: Partial<Character> = { streakData: newStreakData };
+      if (isNewRecord) {
+        updates.personalRecords = {
+          ...character.personalRecords,
+          [activityType]: { value, loggedAt: Date.now(), unit },
+        };
+      }
+
+      await updateCharacterDoc(character.uid, updates);
+      set({ character: { ...character, ...updates } });
+
+      return isNewRecord;
+    } catch (e) {
+      captureError('characterStore.persistStreakAndRecord', e);
+      return false;
     }
-
-    await updateCharacterDoc(character.uid, updates);
-    set({ character: { ...character, ...updates } });
-
-    return isNewRecord;
   },
 
   applyMasteryLocal: (activityType, newCount, milestoneHit) => {
@@ -347,35 +384,48 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     const { character } = get();
     if (!character) return;
     if (character.level < 10 || character.subclass) return;
-    await updateCharacterDoc(character.uid, { subclass });
-    set({ character: { ...character, subclass } });
+    try {
+      await updateCharacterDoc(character.uid, { subclass });
+      set({ character: { ...character, subclass } });
+    } catch (e) {
+      captureError('characterStore.chooseSubclass', e);
+    }
   },
 
   updateMonsterPity: async (monsterId, gotLegendary) => {
     const { character } = get();
     if (!character) return;
-    const current = character.legendaryDryStreak?.[monsterId] ?? 0;
-    const next = gotLegendary ? 0 : current + 1;
 
-    // Prune keys for monsters no longer in the catalog so the map stays bounded
-    // as the catalog evolves. Runs inline with the write — no extra reads needed.
-    const validIds = new Set(MONSTER_CATALOG.map((m) => m.id));
-    const pruned = Object.fromEntries(
-      Object.entries({ ...character.legendaryDryStreak, [monsterId]: next }).filter(([id]) =>
-        validIds.has(id),
-      ),
-    );
+    try {
+      const current = character.legendaryDryStreak?.[monsterId] ?? 0;
+      const next = gotLegendary ? 0 : current + 1;
 
-    await updateCharacterDoc(character.uid, { legendaryDryStreak: pruned });
-    set({ character: { ...character, legendaryDryStreak: pruned } });
+      // Prune keys for monsters no longer in the catalog so the map stays bounded
+      // as the catalog evolves. Runs inline with the write — no extra reads needed.
+      const validIds = new Set(MONSTER_CATALOG.map((m) => m.id));
+      const pruned = Object.fromEntries(
+        Object.entries({ ...character.legendaryDryStreak, [monsterId]: next }).filter(([id]) =>
+          validIds.has(id),
+        ),
+      );
+
+      await updateCharacterDoc(character.uid, { legendaryDryStreak: pruned });
+      set({ character: { ...character, legendaryDryStreak: pruned } });
+    } catch (e) {
+      captureError('characterStore.updateMonsterPity', e);
+    }
   },
 
   updateName: async (uid, name) => {
-    await updateCharacterDoc(uid, { name });
-    await updateUserDisplayName(name);
-    set((state) => ({
-      character: state.character ? { ...state.character, name } : null,
-    }));
+    try {
+      await updateCharacterDoc(uid, { name });
+      await updateUserDisplayName(name);
+      set((state) => ({
+        character: state.character ? { ...state.character, name } : null,
+      }));
+    } catch (e) {
+      captureError('characterStore.updateName', e);
+    }
   },
 
   clear: () => set({ character: null, loading: false, error: null, lastFetchedAt: null }),

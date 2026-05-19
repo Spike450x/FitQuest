@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { captureError } from '@/lib/errors';
 import { useCharacterStore } from './characterStore';
 import {
   fetchInventoryDocs,
@@ -11,7 +12,7 @@ import { updateCharacterDoc } from '@/lib/characterData';
 import { getItemById } from '@/lib/gameLogic/items';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
 import { COMBAT } from '@/lib/gameLogic/constants';
-import type { EquippedGear, InventoryItem } from '@/types';
+import type { Character, EquippedGear, InventoryItem } from '@/types';
 
 interface InventoryStore {
   items: InventoryItem[];
@@ -67,6 +68,52 @@ interface InventoryStore {
   clear: () => void;
 }
 
+interface GearDeltaResult {
+  charUpdate: Record<string, unknown>;
+  newCurrentHp?: number;
+  newCurrentStamina?: number;
+}
+
+function computeGearDelta(
+  character: Character | null,
+  slot: 'weapon' | 'armor' | 'accessory',
+  newItemDefId: string | null,
+): GearDeltaResult {
+  if (!character) return { charUpdate: { [`equippedGear.${slot}`]: newItemDefId } };
+
+  const newEquippedGear: EquippedGear = { ...character.equippedGear, [slot]: newItemDefId };
+  const oldMaxHp = playerMaxHp(character);
+  const oldMaxStamina = playerMaxStamina(character);
+  const newMaxHp = playerMaxHp({ stats: character.stats, equippedGear: newEquippedGear });
+  const newMaxStamina = playerMaxStamina({ stats: character.stats, equippedGear: newEquippedGear });
+  const hpDelta = newMaxHp - oldMaxHp;
+  const staminaDelta = newMaxStamina - oldMaxStamina;
+
+  const charUpdate: Record<string, unknown> = { [`equippedGear.${slot}`]: newItemDefId };
+  let newCurrentHp: number | undefined;
+  let newCurrentStamina: number | undefined;
+
+  if (hpDelta !== 0) {
+    newCurrentHp =
+      newItemDefId !== null
+        ? Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta, newMaxHp))
+        : Math.max(1, (character.currentHp ?? oldMaxHp) + hpDelta);
+    charUpdate.currentHp = newCurrentHp;
+  }
+  if (staminaDelta !== 0) {
+    newCurrentStamina =
+      newItemDefId !== null
+        ? Math.max(
+            0,
+            Math.min((character.currentStamina ?? oldMaxStamina) + staminaDelta, newMaxStamina),
+          )
+        : Math.max(0, (character.currentStamina ?? oldMaxStamina) + staminaDelta);
+    charUpdate.currentStamina = newCurrentStamina;
+  }
+
+  return { charUpdate, newCurrentHp, newCurrentStamina };
+}
+
 export const useInventoryStore = create<InventoryStore>((set, get) => ({
   items: [],
   loading: false,
@@ -78,6 +125,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       const items = await fetchInventoryDocs(uid);
       set({ items, loading: false });
     } catch (e) {
+      captureError('inventoryStore.fetchInventory', e);
       set({ error: (e as Error).message, loading: false });
     }
   },
@@ -104,6 +152,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       }));
       return true;
     } catch (e) {
+      captureError('inventoryStore.buyItem', e);
       set({ error: (e as Error).message });
       return false;
     }
@@ -176,37 +225,12 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       return getItemById(i.itemDefId)?.type === slot;
     });
 
-    // Compute HP/stamina delta: new gear may raise or lower the max
     const character = useCharacterStore.getState().character;
-    const newEquippedGear: EquippedGear = character
-      ? { ...character.equippedGear, [slot]: target.itemDefId }
-      : { weapon: null, armor: null, accessory: null, [slot]: target.itemDefId };
-    const oldMaxHp = character ? playerMaxHp(character) : 0;
-    const oldMaxStamina = character ? playerMaxStamina(character) : 0;
-    const newMaxHp = character
-      ? playerMaxHp({ stats: character.stats, equippedGear: newEquippedGear })
-      : 0;
-    const newMaxStamina = character
-      ? playerMaxStamina({ stats: character.stats, equippedGear: newEquippedGear })
-      : 0;
-    const hpDelta = newMaxHp - oldMaxHp;
-    const staminaDelta = newMaxStamina - oldMaxStamina;
-
-    // Build a single character update (equippedGear + optional HP/stamina)
-    const charUpdate: Record<string, unknown> = { [`equippedGear.${slot}`]: target.itemDefId };
-    let newCurrentHp: number | undefined;
-    let newCurrentStamina: number | undefined;
-    if (character && hpDelta !== 0) {
-      newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta, newMaxHp));
-      charUpdate.currentHp = newCurrentHp;
-    }
-    if (character && staminaDelta !== 0) {
-      newCurrentStamina = Math.max(
-        0,
-        Math.min((character.currentStamina ?? oldMaxStamina) + staminaDelta, newMaxStamina),
-      );
-      charUpdate.currentStamina = newCurrentStamina;
-    }
+    const { charUpdate, newCurrentHp, newCurrentStamina } = computeGearDelta(
+      character,
+      slot,
+      target.itemDefId,
+    );
 
     await Promise.all([
       currentlyEquipped
@@ -245,33 +269,8 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     if (!itemDef || itemDef.type === 'consumable' || itemDef.type === 'spell') return;
     const slot = itemDef.type as 'weapon' | 'armor' | 'accessory';
 
-    // Compute HP/stamina delta (will be ≤ 0 when removing a bonus item)
     const character = useCharacterStore.getState().character;
-    const newEquippedGear: EquippedGear = character
-      ? { ...character.equippedGear, [slot]: null }
-      : { weapon: null, armor: null, accessory: null };
-    const oldMaxHp = character ? playerMaxHp(character) : 0;
-    const oldMaxStamina = character ? playerMaxStamina(character) : 0;
-    const newMaxHp = character
-      ? playerMaxHp({ stats: character.stats, equippedGear: newEquippedGear })
-      : 0;
-    const newMaxStamina = character
-      ? playerMaxStamina({ stats: character.stats, equippedGear: newEquippedGear })
-      : 0;
-    const hpDelta = newMaxHp - oldMaxHp;
-    const staminaDelta = newMaxStamina - oldMaxStamina;
-
-    const charUpdate: Record<string, unknown> = { [`equippedGear.${slot}`]: null };
-    let newCurrentHp: number | undefined;
-    let newCurrentStamina: number | undefined;
-    if (character && hpDelta !== 0) {
-      newCurrentHp = Math.max(1, (character.currentHp ?? oldMaxHp) + hpDelta);
-      charUpdate.currentHp = newCurrentHp;
-    }
-    if (character && staminaDelta !== 0) {
-      newCurrentStamina = Math.max(0, (character.currentStamina ?? oldMaxStamina) + staminaDelta);
-      charUpdate.currentStamina = newCurrentStamina;
-    }
+    const { charUpdate, newCurrentHp, newCurrentStamina } = computeGearDelta(character, slot, null);
 
     await Promise.all([
       updateInventoryDoc(inventoryItemId, { equipped: false }),

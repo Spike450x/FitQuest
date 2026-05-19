@@ -10,11 +10,26 @@ import {
   runTransaction,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { normalizeInventoryItem } from '@/lib/fetchPlayerData';
 import type { InventoryItem } from '@/types';
 
 const INVENTORY = 'inventory';
 const CHARACTERS = 'characters';
+
+// CONTRACT: whenever a new optional field is added to InventoryItem, add a safe
+// default here. See "Adding a post-MVP schema field" in docs/FIRESTORE.md.
+export function normalizeInventoryItem(id: string, data: Record<string, unknown>): InventoryItem {
+  return {
+    ...data,
+    id,
+    quantity: (data.quantity as number | undefined) ?? 1,
+    equipped: (data.equipped as boolean | undefined) ?? false,
+  } as InventoryItem;
+}
+
+export async function fetchInventoryItems(uid: string): Promise<InventoryItem[]> {
+  const snap = await getDocs(query(collection(db, INVENTORY), where('uid', '==', uid)));
+  return snap.docs.map((d) => normalizeInventoryItem(d.id, d.data()));
+}
 
 export async function fetchInventoryDocs(uid: string): Promise<InventoryItem[]> {
   const snap = await getDocs(query(collection(db, INVENTORY), where('uid', '==', uid)));

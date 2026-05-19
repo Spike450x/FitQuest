@@ -3,8 +3,7 @@
 import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCharacter } from '@/hooks/useCharacter';
-import { useRecentActivity } from '@/hooks/useRecentActivity';
+import { useGameData } from '@/hooks/useGameData';
 import { XPBar } from '@/components/ui/XPBar';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
@@ -14,7 +13,6 @@ import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { getStreakTier } from '@/lib/gameLogic/streaks';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
-import { useTodayKey } from '@/hooks/useTodayKey';
 import { getActivityIcon } from '@/lib/activityIcons';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { StatAllocModal } from '@/components/character/StatAllocModal';
@@ -37,16 +35,20 @@ const STAT_CONFIG = [
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { character, loading, error: characterError, user } = useCharacter();
-  const { logs, loading: logsLoading } = useRecentActivity(character?.uid);
-  const todayKey = useTodayKey();
-  const fetchCharacter = useCharacterStore((s) => s.fetchCharacter);
   const {
+    character,
+    loading,
+    error: characterError,
+    user,
+    recentLogs: logs,
+    logsLoading,
+    todayKey,
     quests,
-    loading: questsLoading,
-    error: questsError,
-    fetchAndAssignQuests,
-  } = useQuestStore();
+    questsLoading,
+    questsError,
+  } = useGameData();
+  const fetchCharacter = useCharacterStore((s) => s.fetchCharacter);
+  const fetchAndAssignQuests = useQuestStore((s) => s.fetchAndAssignQuests);
 
   useEffect(() => {
     if (!loading && !character && !characterError) {
@@ -263,7 +265,7 @@ function timeAgo(ms: number): string {
 function ActivityFeedItem({ log }: { log: ActivityLog }) {
   const def = ACTIVITY_DEFINITIONS[log.type];
   const icon = getActivityIcon(log.type);
-  const amount = (log.data as Record<string, number>).amount;
+  const amount = Number(log.data.amount);
 
   return (
     <li className="flex items-center gap-3 text-sm">

@@ -9,6 +9,7 @@ import {
   calculateRound,
   rollLoot,
   rollRunAway,
+  resolveRoundOutcome,
 } from '../combat';
 import { COMBAT } from '../constants';
 import type { Character, EquippedGear, MonsterDef } from '@/types';
@@ -318,5 +319,73 @@ describe('rollRunAway', () => {
 
     expect(result.escaped).toBe(false);
     expect(result.monsterDamage).toBeGreaterThanOrEqual(COMBAT.MIN_DAMAGE);
+  });
+});
+
+// ── resolveRoundOutcome ───────────────────────────────────────────────────────
+
+describe('resolveRoundOutcome', () => {
+  it('returns win when monster hp reaches 0', () => {
+    const result = resolveRoundOutcome({
+      newMonsterHp: 0,
+      preIncomingPlayerHp: 50,
+      playerMagicBeforeBarrier: 10,
+      rawMonsterDamage: 0,
+      passiveCtx: { currentHpPct: 1, currentMagic: 10, isFirstAbility: false, executeUsed: false },
+      snapshot: { monster: makeMonster({ attack: 10 }), droppedItems: [] },
+      character: makeChar({ stats: { ...BASE_STATS, defense: 5 } }),
+      maxHp: 100,
+      maxMagic: 20,
+      streakMultiplier: 1,
+      getPityFor: () => 0,
+    });
+    expect(result.outcome).toBe('win');
+    expect(result.killedMonster).toBe(true);
+    expect(result.finalPlayerHp).toBe(50);
+  });
+
+  it('returns loss when player hp reaches 0', () => {
+    const result = resolveRoundOutcome({
+      newMonsterHp: 10,
+      preIncomingPlayerHp: 1,
+      playerMagicBeforeBarrier: 10,
+      rawMonsterDamage: 1000,
+      passiveCtx: {
+        currentHpPct: 0.01,
+        currentMagic: 10,
+        isFirstAbility: false,
+        executeUsed: false,
+      },
+      snapshot: { monster: makeMonster({ attack: 1000 }), droppedItems: [] },
+      character: makeChar({ stats: { ...BASE_STATS, defense: 0 } }),
+      maxHp: 100,
+      maxMagic: 20,
+      streakMultiplier: 1,
+      getPityFor: () => 0,
+    });
+    expect(result.outcome).toBe('loss');
+  });
+
+  it('returns null outcome mid-fight', () => {
+    const result = resolveRoundOutcome({
+      newMonsterHp: 50,
+      preIncomingPlayerHp: 80,
+      playerMagicBeforeBarrier: 10,
+      rawMonsterDamage: 5,
+      passiveCtx: {
+        currentHpPct: 0.8,
+        currentMagic: 10,
+        isFirstAbility: false,
+        executeUsed: false,
+      },
+      snapshot: { monster: makeMonster({ attack: 5 }), droppedItems: [] },
+      character: makeChar({ stats: { ...BASE_STATS, defense: 100 } }),
+      maxHp: 100,
+      maxMagic: 20,
+      streakMultiplier: 1,
+      getPityFor: () => 0,
+    });
+    expect(result.outcome).toBeNull();
+    expect(result.killedMonster).toBe(false);
   });
 });
