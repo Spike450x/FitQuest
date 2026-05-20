@@ -114,12 +114,13 @@ Diminishing returns feels less punishing than a hard wall.
 The quest XP scaler uses `0.6 + 0.4 * sqrt(level)`. At level 20, this is `~2.39×`. The hardest daily quest (130 base XP) becomes 310 XP. But `xpToNextLevel(20) = 8,944`. Quests contribute 3.5% of a level at level 20 — negligible.
 
 **Calculated scaling:**
+
 | Level | Scaler | Best daily quest XP | % of level-up |
-|-------|--------|---------------------|----------------|
-| 5 | 1.49× | 194 | 10% |
-| 10 | 1.86× | 242 | 7.7% |
-| 20 | 2.39× | 310 | 3.5% |
-| 30 | 2.79× | 363 | 2.2% |
+| ----- | ------ | ------------------- | ------------- |
+| 5     | 1.49×  | 194                 | 10%           |
+| 10    | 1.86×  | 242                 | 7.7%          |
+| 20    | 2.39×  | 310                 | 3.5%          |
+| 30    | 2.79×  | 363                 | 2.2%          |
 
 **Where in code:**
 
@@ -146,13 +147,14 @@ Streaks provide two bonuses: loot drop multiplier (1.0 → 2.0×) and XP multipl
 - `src/lib/gameLogic/streaks.ts:STREAK_TIERS` — `xpMultiplier` tops at `1.25` (Blessed tier)
 
 **Proposed fix:**
-| Tier | Days | Loot (current) | XP (current) | XP (proposed) |
-|-------------|------|----------------|--------------|----------------|
-| Focused | 3 | 1.15× | 1.05× | 1.08× |
-| Dedicated | 7 | 1.30× | 1.10× | 1.15× |
-| Relentless | 14 | 1.50× | 1.15× | 1.25× |
-| Unstoppable | 21 | 1.75× | 1.20× | 1.35× |
-| Blessed | 30 | 2.00× | 1.25× | 1.50× |
+
+| Tier        | Days | Loot (current) | XP (current) | XP (proposed) |
+| ----------- | ---- | -------------- | ------------ | ------------- |
+| Focused     | 3    | 1.15×          | 1.05×        | 1.08×         |
+| Dedicated   | 7    | 1.30×          | 1.10×        | 1.15×         |
+| Relentless  | 14   | 1.50×          | 1.15×        | 1.25×         |
+| Unstoppable | 21   | 1.75×          | 1.20×        | 1.35×         |
+| Blessed     | 30   | 2.00×          | 1.25×        | 1.50×         |
 
 The cap of 1.5× still keeps the XP scaler below the loot scaler (maintaining that loot is the primary streak reward), but makes the XP bonus feel meaningful at high levels.
 
@@ -260,7 +262,7 @@ The current combat initializes stamina and magic to their full max at the start 
 
 **Proposed dungeon resource model:**
 
-```
+```text
 On dungeon entry:
   - HP: use current (already persistent) — do NOT heal on entry
   - Stamina: carry over from previous room (start at dungeon-entry value)
@@ -349,7 +351,7 @@ _Not a full spec — this captures design constraints derived from the above aud
 
 ### Recommended room structure
 
-```
+```text
 Room 1: Level = player level - 1 (warm-up)
 Room 2: Level = player level (even fight)
 Room 3: Level = player level (even fight, lower resource)

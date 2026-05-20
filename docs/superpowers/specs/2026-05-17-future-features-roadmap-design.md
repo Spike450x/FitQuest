@@ -12,7 +12,7 @@ This document captures the agreed design for six major feature areas plus one lo
 
 ## Interconnection Map
 
-```
+```text
 Wanted Board → Reputation (currency)
                     ↓
 Reputation + Gold → Champions (purchasable)

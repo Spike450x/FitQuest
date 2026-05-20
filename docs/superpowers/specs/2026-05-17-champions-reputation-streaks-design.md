@@ -176,42 +176,42 @@ Each NPC has a fixed **identity, personality, and activity theme**. Their specif
 
 ### NPC Roster
 
-**Aldric the Ironbound**
+#### Aldric the Ironbound
 
 - Theme: Strength / Workout
 - Personality: Gruff, direct, respects only effort. No sympathy for excuses.
 - Challenge pool: Log 15–25 workouts this month / Log workouts on 4 of every 5 days / Hit a new workout PR twice this month
 - Reward pool: Epic or Legendary heavy armor, STR-boosting accessories, "Ironbound" title
 
-**Sera of the Dawnrun**
+#### Sera of the Dawnrun
 
 - Theme: Endurance / Run
 - Personality: Optimistic and relentless. Believes anyone can be a runner if they just start.
 - Challenge pool: Run 3x/week for 3 consecutive weeks / Log X total miles this month / Hit a new distance or pace PR twice this month
 - Reward pool: Legendary boots, AGI-boosting accessories, "Dawnrunner" title
 
-**Brother Merek**
+#### Brother Merek
 
 - Theme: Nutrition / Recovery
 - Personality: Calm, patient, and quietly judgmental about skipped meals. Warm but firm.
 - Challenge pool: Log 3 healthy meals/day for 21 days / Log at least 2 meals every day this month / Log nutrition on 25 of 30 days
 - Reward pool: Epic accessories, WIS-boosting items, "Well-Nourished" title
 
-**The Sleepless Sage**
+#### The Sleepless Sage
 
 - Theme: Sleep / Wisdom
 - Personality: Ancient and cryptic. Speaks in riddles. Deeply invested in rest as power.
 - Challenge pool: Log 7+ hours of sleep for 14 consecutive days / Average 7+ hours sleep across the whole month / Log sleep every single day this month
 - Reward pool: Rare spell unlocks, WIS-boosting gear, "Sage's Rest" title
 
-**Kira Swiftfoot**
+#### Kira Swiftfoot
 
 - Theme: Steps / Movement
 - Personality: Cheerful and competitive. Turns everything into a race. Can't sit still.
 - Challenge pool: Hit 10,000 steps on 20 days this month / Average 8,000+ steps across the full month / Hit a new single-day steps PR
 - Reward pool: Legendary accessories, AGI gear, "Swiftfoot" title
 
-**Commander Vex**
+#### Commander Vex
 
 - Theme: Full discipline (all 6 activity types)
 - Personality: Intense, military bearing, no tolerance for partial effort. The hardest NPC.
