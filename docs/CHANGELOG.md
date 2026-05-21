@@ -4,8 +4,9 @@ Append a new entry whenever a feature ships or a meaningful change lands on `mas
 
 **Format:**
 
-```
+```markdown
 ## YYYY-MM-DD — <short title>
+
 - What changed (1–3 bullets)
 - Why (one line, when not obvious)
 ```

@@ -86,7 +86,7 @@ npx firebase functions:log --project fitness-rpg-claude --limit 20
 
 Or via the Firebase MCP in Claude Code:
 
-```
+```bash
 firebase functions get_logs
 ```
 
