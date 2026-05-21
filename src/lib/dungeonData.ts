@@ -101,3 +101,16 @@ export async function finalizeDungeonRun(
 export async function claimDungeonRunRewards(runId: string): Promise<void> {
   await updateDoc(doc(db, DUNGEON_RUNS_COLLECTION, runId), { claimed: true });
 }
+
+/** Fetch the most recent completed/abandoned runs for a user. Uses uid+startedAt DESC index. */
+export async function getRecentDungeonRuns(uid: string, count = 10): Promise<DungeonRun[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, DUNGEON_RUNS_COLLECTION),
+      where('uid', '==', uid),
+      orderBy('startedAt', 'desc'),
+      limit(count),
+    ),
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<DungeonRun, 'id'>) }));
+}

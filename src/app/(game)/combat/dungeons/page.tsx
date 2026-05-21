@@ -6,7 +6,8 @@ import { useCharacter } from '@/hooks/useCharacter';
 import { useDungeonStore } from '@/store/dungeonStore';
 import { DUNGEON_TIERS } from '@/lib/gameLogic/dungeons';
 import { playerMaxHp } from '@/lib/gameLogic/combat';
-import type { DungeonTierId, DungeonRunsToday } from '@/types';
+import { getRecentDungeonRuns } from '@/lib/dungeonData';
+import type { DungeonTierId, DungeonRunsToday, DungeonRun } from '@/types';
 
 const TIER_ORDER: DungeonTierId[] = ['goblin-caves', 'spider-lair', 'dark-sanctum', 'dragons-keep'];
 
@@ -65,14 +66,47 @@ function runsRemainingToday(dungeonRunsToday: DungeonRunsToday | undefined): num
   return Math.max(0, 2 - dungeonRunsToday.count);
 }
 
+function formatRunDate(ts: number): string {
+  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function RunHistoryRow({ run }: { run: DungeonRun }) {
+  const tier = DUNGEON_TIERS[run.tierId];
+  const style = TIER_STYLE[run.tierId];
+  const isCompleted = run.status === 'completed';
+  return (
+    <div className="flex items-center gap-3 py-2 border-b border-slate-700 last:border-0">
+      <span className="text-base w-6 text-center">{style.emoji}</span>
+      <div className="flex-1 min-w-0">
+        <div className={`text-xs font-semibold truncate ${style.nameColor}`}>{tier.name}</div>
+        <div className="text-slate-500 text-xs">
+          {formatRunDate(run.startedAt)} · {run.currentRoom}/{run.rooms.length} rooms
+        </div>
+      </div>
+      <div className="text-right shrink-0">
+        <div className={`text-xs font-bold ${isCompleted ? 'text-green-400' : 'text-red-400'}`}>
+          {isCompleted ? 'Cleared' : 'Abandoned'}
+        </div>
+        <div className="text-slate-500 text-xs">{run.cumulativeXp} XP</div>
+      </div>
+    </div>
+  );
+}
+
 export default function DungeonLobbyPage() {
   const { character } = useCharacter();
   const { activeRun, loading, fetchActiveRun } = useDungeonStore();
   const [hasFetched, setHasFetched] = useState(false);
+  const [recentRuns, setRecentRuns] = useState<DungeonRun[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   useEffect(() => {
     if (character) {
       fetchActiveRun(character.uid).then(() => setHasFetched(true));
+      getRecentDungeonRuns(character.uid, 10).then((runs) => {
+        setRecentRuns(runs.filter((r) => r.status !== 'active'));
+        setHistoryLoaded(true);
+      });
     }
   }, [character, fetchActiveRun]);
 
@@ -172,6 +206,26 @@ export default function DungeonLobbyPage() {
           </p>
         </div>
       )}
+
+      {/* Recent run history */}
+      <div className="mt-6">
+        <div className="text-slate-400 text-xs font-semibold uppercase tracking-wide mb-3">
+          Recent Runs
+        </div>
+        {!historyLoaded ? (
+          <div className="bg-slate-800 rounded-xl h-24 animate-pulse" />
+        ) : recentRuns.length === 0 ? (
+          <div className="bg-slate-800 rounded-xl p-4 text-center text-slate-500 text-sm">
+            No completed runs yet. Enter a dungeon to begin.
+          </div>
+        ) : (
+          <div className="bg-slate-800 rounded-xl p-4">
+            {recentRuns.map((run) => (
+              <RunHistoryRow key={run.id} run={run} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

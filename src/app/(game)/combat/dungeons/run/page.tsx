@@ -24,6 +24,7 @@ import {
   getWeekSeed,
 } from '@/lib/gameLogic/dungeons';
 import { claimDungeonRunCF } from '@/lib/functions';
+import type { ClaimDungeonRunResult } from '@/types/cloudFunctions';
 import {
   calculateRound,
   rollLoot,
@@ -189,8 +190,10 @@ export default function DungeonRunPage() {
   const [log, setLog] = useState<string[]>([]);
   const [roomResult, setRoomResult] = useState<RoomResult>({ xp: 0, gold: 0, items: [] });
   const [claiming, setClaiming] = useState(false);
+  const [fleeing, setFleeing] = useState(false);
   const [returning, setReturning] = useState(false);
   const [acting, setActing] = useState(false);
+  const [claimResult, setClaimResult] = useState<ClaimDungeonRunResult | null>(null);
   const [cumulativeXp, setCumulativeXp] = useState(0);
   const [cumulativeGold, setCumulativeGold] = useState(0);
   const [allItems, setAllItems] = useState<string[]>([]);
@@ -523,6 +526,29 @@ export default function DungeonRunPage() {
     }
   }
 
+  async function handleFlee() {
+    if (!character || !activeRun || acting || claiming || fleeing) return;
+    const fleeDmg = Math.round(maxHp * 0.2);
+    const newHp = Math.max(0, playerHp - fleeDmg);
+    if (newHp <= 0) {
+      setPlayerHp(0);
+      setPhase('defeat');
+      return;
+    }
+    setPlayerHp(newHp);
+    setFleeing(true);
+    try {
+      if (!activeRun.claimed) {
+        await claimDungeonRunCF(activeRun.id, false, 'completed');
+        await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
+      }
+      await completeRun(character.uid, false);
+      router.push('/combat/dungeons');
+    } finally {
+      setFleeing(false);
+    }
+  }
+
   async function handleClaimVictory() {
     if (!character || !activeRun || claiming) return;
     if (activeRun.claimed) {
@@ -532,10 +558,14 @@ export default function DungeonRunPage() {
     setClaiming(true);
     const legendaryUsed = activeRun.legendaryEligible;
     try {
-      await claimDungeonRunCF(activeRun.id, legendaryUsed, 'completed');
+      const result = await claimDungeonRunCF(activeRun.id, legendaryUsed, 'completed');
       await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
       await completeRun(character.uid, legendaryUsed);
-      router.push('/combat/dungeons');
+      if (result.leveledUp) {
+        setClaimResult(result);
+      } else {
+        router.push('/combat/dungeons');
+      }
     } finally {
       setClaiming(false);
     }
@@ -672,13 +702,31 @@ export default function DungeonRunPage() {
           )}
         </div>
 
-        <button
-          onClick={handleClaimVictory}
-          disabled={claiming}
-          className="w-full py-4 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-bold text-base transition-colors"
-        >
-          {claiming ? 'Claiming…' : 'Claim Rewards'}
-        </button>
+        {/* Level-up banner — shown after claiming if the run triggered a level-up */}
+        {claimResult?.leveledUp && (
+          <div className="bg-gradient-to-br from-yellow-900 to-amber-950 border-2 border-yellow-500 rounded-xl p-5 mb-4 text-center">
+            <div className="text-4xl mb-1">⬆</div>
+            <div className="text-2xl font-bold text-yellow-300">LEVEL UP!</div>
+            <div className="text-yellow-400 text-sm mt-1">You are now Level {character.level}</div>
+          </div>
+        )}
+
+        {claimResult ? (
+          <button
+            onClick={() => router.push('/combat/dungeons')}
+            className="w-full py-4 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-base transition-colors"
+          >
+            Continue
+          </button>
+        ) : (
+          <button
+            onClick={handleClaimVictory}
+            disabled={claiming}
+            className="w-full py-4 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-bold text-base transition-colors"
+          >
+            {claiming ? 'Claiming…' : 'Claim Rewards'}
+          </button>
+        )}
       </div>
     );
   }
@@ -763,14 +811,25 @@ export default function DungeonRunPage() {
             </div>
           )}
 
-          {/* Attack button */}
-          <button
-            onClick={handleAttack}
-            disabled={acting}
-            className="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-base transition-colors"
-          >
-            {acting ? 'Rolling…' : '⚔ Attack'}
-          </button>
+          {/* Combat actions */}
+          <div className={phase === 'boss' ? '' : 'grid grid-cols-2 gap-3'}>
+            <button
+              onClick={handleAttack}
+              disabled={acting || fleeing}
+              className={`py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-base transition-colors ${phase === 'boss' ? 'w-full' : ''}`}
+            >
+              {acting ? 'Rolling…' : '⚔ Attack'}
+            </button>
+            {phase !== 'boss' && (
+              <button
+                onClick={handleFlee}
+                disabled={acting || fleeing}
+                className="py-4 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-300 font-semibold text-sm transition-colors"
+              >
+                {fleeing ? 'Fleeing…' : `💨 Flee (−${Math.round(maxHp * 0.2)} HP)`}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
