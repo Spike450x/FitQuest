@@ -51,6 +51,13 @@ interface Character {
     Record<ActivityType, { value: number; loggedAt: number; unit: string }>
   >;
   legendaryDryStreak?: Record<string, number>; // kills-since-last-legendary per monster — pity system
+  dungeonRunsToday?: {
+    date: string; // 'YYYY-MM-DD' UTC
+    count: number; // runs started this calendar day (max 2)
+    legendaryUsed: boolean; // true after the first run of the day is claimed
+  };
+  activeDungeonRunId?: string | null; // set to runId when a run is in progress; null otherwise
+  achievements?: AchievementId[]; // one-time milestone badges earned (see src/lib/gameLogic/achievements.ts)
 }
 
 interface Stats {
@@ -75,6 +82,9 @@ interface Stats {
 - `uid`, `class`, `createdAt` are **immutable** — write must equal the existing value.
 - All fields revalidated against the same ranges (so a buggy client cannot push `level: 200` or `gold: 1e9`).
 - `legendaryDryStreak` must be a map if present (`is map` validated in `isValidCharacterOptionals`).
+- `dungeonRunsToday` must be a map if present.
+- `activeDungeonRunId` must be a string or null if present.
+- `achievements` must be a list if present.
 - Subclass rules (`subclassIsValid`):
   - Absent → OK (not chosen yet).
   - Same as before → OK (already locked in).
@@ -226,6 +236,60 @@ The highest single-combat XP reward in the game (Ancient Dragon, level 100 gear)
 
 ---
 
+## `dungeonRuns/{runId}`
+
+One document per dungeon run attempt. `uid` carries ownership; document ID is auto-generated.
+
+```ts
+interface DungeonRun {
+  uid: string;
+  tierId: 'goblin-caves' | 'spider-lair' | 'dark-sanctum' | 'dragons-keep';
+  weekSeed: number; // ISO week number used to generate this run's layout
+  status: 'active' | 'completed' | 'abandoned';
+  currentRoom: number; // 0-indexed; advances per room cleared
+  rooms: Array<{
+    type: 'combat' | 'stat-check' | 'rest' | 'boss';
+    monsterId?: string; // present for combat and boss rooms
+    cleared: boolean;
+    lootAwarded: string[]; // itemDefIds awarded on clear
+    xpAwarded: number;
+    goldAwarded: number;
+  }>;
+  currentHp: number;
+  currentStamina: number;
+  currentMagic: number;
+  legendaryEligible: boolean;
+  cumulativeXp: number; // XP across all cleared rooms so far
+  cumulativeGold: number;
+  allDroppedItems: string[]; // itemDefIds across all rooms (for history panel)
+  startedAt: number; // unix ms
+  completedAt: number | null;
+  claimed?: boolean; // set by claimDungeonRun CF — write-once idempotency guard
+}
+```
+
+### Validation — create
+
+- `uid == request.auth.uid`.
+- `status == 'active'`.
+- `currentRoom == 0`.
+- `cumulativeXp == 0`, `cumulativeGold == 0`.
+- `claimed` field absent.
+
+### Validation — update
+
+- `uid` is **immutable**.
+- `status` transitions one-way: `active → completed` or `active → abandoned`. Once non-active, no further updates allowed.
+- `currentRoom` is non-decreasing.
+- `cumulativeXp ≤ 8000`, `cumulativeGold ≤ 10000` (anti-cheat ceilings for a single run).
+- `claimed` is write-once — once set to `true`, it cannot be changed. This is the idempotency guard that prevents double-award even if the client retries the claim call.
+
+### The `claimDungeonRun` Cloud Function
+
+Run rewards (XP, gold, inventory items) are awarded atomically by the `claimDungeonRun` callable Cloud Function in `functions/src/claimDungeonRun.ts`. It uses a Firestore transaction to stamp `claimed: true` + final status before applying any rewards — making the claim idempotent. Inventory writes happen outside the transaction (acceptable: worst-case is a lost item, not duplicate XP). The function runs with `minInstances: 1` to eliminate cold-start latency.
+
+---
+
 ## Indexes
 
 Indexes are declared in [`firestore.indexes.json`](../firestore.indexes.json) at the repo root and deployed with:
@@ -238,11 +302,13 @@ firebase deploy --only firestore:indexes
 
 ### Active composite indexes
 
-| Collection     | Fields (in order)                     | Purpose                                                                                                      |
-| -------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `activityLogs` | `uid ASC`, `type ASC`, `loggedAt ASC` | 3-field query in `logActivity` Cloud Function — aggregate today's logged amount for daily-cap enforcement.   |
-| `activityLogs` | `uid ASC`, `loggedAt DESC`            | Stats page — fetch the player's most recent activity logs for the XP-over-time chart and activity breakdown. |
-| `combatLogs`   | `uid ASC`, `loggedAt DESC`            | Stats page — fetch the player's most recent combat logs for battles-won count and combat XP stacked bars.    |
+| Collection     | Fields (in order)                         | Purpose                                                                                                      |
+| -------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `activityLogs` | `uid ASC`, `type ASC`, `loggedAt ASC`     | 3-field query in `logActivity` Cloud Function — aggregate today's logged amount for daily-cap enforcement.   |
+| `activityLogs` | `uid ASC`, `loggedAt DESC`                | Stats page — fetch the player's most recent activity logs for the XP-over-time chart and activity breakdown. |
+| `combatLogs`   | `uid ASC`, `loggedAt DESC`                | Stats page — fetch the player's most recent combat logs for battles-won count and combat XP stacked bars.    |
+| `dungeonRuns`  | `uid ASC`, `status ASC`, `startedAt DESC` | Dungeon store — query for the player's active run on lobby load.                                             |
+| `dungeonRuns`  | `uid ASC`, `startedAt DESC`               | Dungeon lobby — fetch recent run history (all statuses) ordered by start date.                               |
 
 The `questStore` deliberately avoids composite queries for `activeQuests` — it filters by `uid` only and applies the `expiresAt` check client-side. No index needed there.
 

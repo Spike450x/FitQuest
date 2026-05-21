@@ -25,6 +25,8 @@ Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Firebase**, and *
   - [Inventory & Shop](#inventory--shop)
   - [Consumable Combat Pack](#consumable-combat-pack)
   - [Quests](#quests)
+  - [Dungeons](#dungeons)
+  - [Achievement System](#achievement-system)
   - [Profile & Analytics](#profile--analytics)
 - [Game Mechanics](#game-mechanics)
   - [Stats](#stats)
@@ -87,14 +89,15 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
 | Bonus  | Streaks & Blessing system       | ✅ Complete    |
 | Bonus  | Personal Records                | ✅ Complete    |
 | Bonus  | Subclass System (6 subclasses)  | ✅ Complete    |
-| Future | Dungeons (multi-room runs)      | 🔲 Not started |
+| Bonus  | Dungeons (multi-room runs)      | ✅ Complete    |
+| Bonus  | Achievement system (6 badges)   | ✅ Complete    |
 | Future | Champions & Raids               | 🔲 Not started |
 | Future | Guilds                          | 🔲 Not started |
+| Future | Prestige / Ascension            | 🔲 Not started |
 | Future | Pets                            | 🔲 Not started |
 | Future | Wanted Board & Reputation       | 🔲 Not started |
 | Future | Monthly NPCs                    | 🔲 Not started |
-| Future | Achievement system              | 🔲 Not started |
-| Future | Prestige / Ascension            | 🔲 Not started |
+| Future | PWA                             | 🔲 Not started |
 | Future | Apple Health integration        | 🔲 Not started |
 | Future | Leaderboards                    | 🔲 Not started |
 
@@ -148,6 +151,10 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
   │  │  applyRestoreLocal                                          │   │
   │  │  chooseSubclass                                             │   │
   │  │  updateMonsterPity                                          │   │
+  │  │                                                             │   │
+  │  │  dungeonStore                                               │   │
+  │  │  ─────────────                                              │   │
+  │  │  fetchActiveRun  startRun  completeRun  abandonRun          │   │
   │  └─────────────────────────────────────────────────────────────┘   │
   │                                   │                                 │
   │  ┌─────────────────────────────────────────────────────────────┐   │
@@ -191,7 +198,9 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
   │                          ├─ currentHp / currentStamina / currentMagic│
   │                          ├─ pendingStatPoints, subclass             │
   │                          ├─ masteryCounts, streakData               │
-  │                          └─ personalRecords                         │
+  │                          ├─ personalRecords, legendaryDryStreak     │
+  │                          ├─ dungeonRunsToday, activeDungeonRunId    │
+  │                          └─ achievements[]                          │
   │                                                                     │
   │                          inventory/{docId}                          │
   │                          ├─ uid, itemDefId, quantity                │
@@ -204,6 +213,18 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
   │                          activeQuests/{docId}                       │
   │                          ├─ uid, questDefId, progress               │
   │                          └─ completedAt, claimedAt, expiresAt       │
+  │                                                                     │
+  │                          dungeonRuns/{runId}                        │
+  │                          ├─ uid, tierId, weekSeed, status           │
+  │                          ├─ currentRoom, rooms[], currentHp/Sta/Mag │
+  │                          ├─ cumulativeXp, cumulativeGold            │
+  │                          ├─ allDroppedItems[], legendaryEligible    │
+  │                          └─ startedAt, completedAt, claimed         │
+  │                                                                     │
+  │  Cloud Functions                                                    │
+  │  ───────────────                                                    │
+  │  logActivity            Server-side daily-cap, mastery, HP restore  │
+  │  claimDungeonRun        Atomic XP/gold/item award on run complete   │
   └─────────────────────────────────────────────────────────────────────┘
 
   KEY DATA FLOWS
@@ -226,6 +247,15 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
   Quest Claim   →  claimReward() → awardXpAndStats() + awardGold() [in parallel]
 
   Shop Purchase →  awardGold(-price) + buyItem() [caller responsible for both]
+
+  Dungeon Run   →  dungeonStore.startRun() — HP gate, daily cap, gold deduct
+                     → createDungeonRunDoc() [Firestore write]
+                →  per-room: updateDungeonRunProgress() [HP/Stamina/Magic sync]
+                →  on complete/retreat: claimDungeonRunCF() [Cloud Function]
+                     ├─ Firestore transaction: stamp claimed=true + status
+                     ├─ apply XP+gold with level-up logic
+                     └─ inventory item writes (outside transaction)
+                →  checkDungeonAchievements() → toastAchievement() [client-side]
 
   Level-Up      →  applyXp() → levelsGained > 0 → LEVEL_UP bonuses applied
                 →  health + defense auto-increase; pendingStatPoints++
@@ -467,6 +497,58 @@ Pack management is handled from the **Inventory → Consumables** tab.
 **Weekly quests:** 3 quests active per week, drawn from a pool of 5 (one per activity type). Rotate deterministically — same quests for all players in a given week.
 
 Quest progress updates automatically as you log activities. Rewards (XP + gold) are claimed manually via a button. Quests expire at the end of the day/week with a live countdown timer.
+
+---
+
+### Dungeons
+
+Multi-room dungeon runs with escalating loot, seeded weekly layouts, and a boss encounter at the end.
+
+**Four tiers:**
+
+| Tier             | Rec. Level | Entry Fee | Rooms      | Top Loot  |
+| ---------------- | ---------- | --------- | ---------- | --------- |
+| 👺 Goblin Caves  | 1–5        | 50g       | 3–5 + boss | Epic      |
+| 🕷 Spider Lair   | 4–8        | 100g      | 3–6 + boss | Epic      |
+| 💀 Dark Sanctum  | 7–10       | 200g      | 4–6 + boss | Legendary |
+| 🔥 Dragon's Keep | 10+        | 400g      | 4–7 + boss | Legendary |
+
+**Rules:**
+
+- Entry requires ≥ 50% HP. HP restores only by logging real-world meals and sleep.
+- 2 runs per day maximum (global across all tiers). First run is legendary-eligible; second run is legendary-locked.
+- Entry fee is non-refundable — retreat or defeat still costs the fee.
+- Resources (HP, Stamina, Magic) carry over between rooms.
+
+**Room types:**
+
+- ⚔ **Combat rooms** — turn-based fight using the existing engine; loot quality scales with room depth.
+- 🔍 **Stat check rooms** — choose a path (STR / WIS / AGI); meet the threshold to pass free, or attempt anyway for HP damage.
+- 💤 **Rest rooms** — seed-determined; restores 30% Stamina and 30% Magic (shown as `?` on the entry preview).
+- 💀 **Boss room** — tier-specific boss with an enrage mechanic; awards the dungeon-exclusive loot table.
+
+**Seeded weekly rotation:** All players on the same calendar week see the same dungeon layout per tier (same rooms, same monsters, same stat check variants). The layout resets each Monday (UTC).
+
+**12 dungeon-exclusive items** (cannot drop from regular combat or be purchased in the shop): Goblin King's Signet, Scavenger's Chain, Flintsteel Dagger, Venomfang Bracer, Arachnoweave Cloak, Spiderspun Tome, Bone Lattice Armor, Necrotic Staff, Wraithbound Ring, Draconic Sigil, Emberclaw Gauntlets, Scale of the Dragon King.
+
+**Flee:** During combat rooms, the "Flee" action uses Agility (same `rollRunAway` mechanic as the arena). Failed flee = monster gets a free hit and you stay in the fight. In the room transition interstitial, "Retreat with Loot" is always-succeeds and ends the run with all earned loot/XP.
+
+**Rewards:** Claimed atomically by the `claimDungeonRun` Cloud Function — XP, gold, and inventory items are awarded server-side. Run history with loot preview is shown in the dungeon lobby.
+
+---
+
+### Achievement System
+
+One-time milestone badges earned through dungeon progression. Each badge awards gold once, displayed in the profile page achievement gallery.
+
+| Badge               | Condition                                    | Gold |
+| ------------------- | -------------------------------------------- | ---- |
+| 🏰 Dungeon Initiate | Complete your first dungeon run              | 50g  |
+| 👺 Goblin Slayer    | Clear the Goblin Caves                       | 100g |
+| 🕷 Web Walker       | Clear the Spider Lair                        | 150g |
+| 💀 Dark Arts        | Clear the Dark Sanctum                       | 250g |
+| 🔥 Dragonheart      | Clear Dragon's Keep                          | 500g |
+| ⭐ Legendary Haul   | Receive a legendary item from a dungeon boss | 200g |
 
 ---
 
