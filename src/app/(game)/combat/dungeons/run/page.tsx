@@ -195,6 +195,7 @@ export default function DungeonRunPage() {
   const [roomResult, setRoomResult] = useState<RoomResult>({ xp: 0, gold: 0, items: [] });
   const [claiming, setClaiming] = useState(false);
   const [fleeing, setFleeing] = useState(false);
+  const [fleeFailed, setFleeFailed] = useState(false);
   const [returning, setReturning] = useState(false);
   const [acting, setActing] = useState(false);
   const [claimResult, setClaimResult] = useState<ClaimDungeonRunResult | null>(null);
@@ -541,6 +542,8 @@ export default function DungeonRunPage() {
       const newHp = Math.max(0, playerHp - monsterDamage);
       setPlayerHp(newHp);
       setLog([`💨 Flee failed! ${monster.name} strikes for ${monsterDamage} dmg.`, ...log]);
+      setFleeFailed(true);
+      setTimeout(() => setFleeFailed(false), 700);
       if (newHp <= 0) setPhase('defeat');
       return;
     }
@@ -852,12 +855,21 @@ export default function DungeonRunPage() {
               <button
                 onClick={handleFlee}
                 disabled={acting || fleeing}
-                className="py-4 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-300 font-semibold text-sm transition-colors"
+                className={`py-4 rounded-xl disabled:opacity-50 font-semibold text-sm transition-all duration-200 ${
+                  fleeFailed
+                    ? 'bg-red-900 ring-2 ring-red-500 text-red-300'
+                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                }`}
               >
                 {fleeing ? 'Fleeing…' : '💨 Flee'}
               </button>
             )}
           </div>
+          {phase !== 'boss' && (
+            <p className="text-slate-600 text-xs text-center -mt-1">
+              Flee uses Agility — may fail, monster gets a hit
+            </p>
+          )}
         </div>
       )}
 

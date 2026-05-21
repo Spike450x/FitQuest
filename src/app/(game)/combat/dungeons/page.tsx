@@ -81,6 +81,8 @@ function RunHistoryRow({ run }: { run: DungeonRun }) {
     <div className="border-b border-slate-700 last:border-0">
       <button
         onClick={() => hasLoot && setExpanded((e) => !e)}
+        aria-label={`${tier.name} run — ${isCompleted ? 'Cleared' : 'Abandoned'} on ${formatRunDate(run.startedAt)}${hasLoot ? `. ${expanded ? 'Hide' : 'Show'} loot (${run.allDroppedItems.length} item${run.allDroppedItems.length > 1 ? 's' : ''})` : ''}`}
+        aria-expanded={hasLoot ? expanded : undefined}
         className="w-full flex items-center gap-3 py-2 text-left"
       >
         <span className="text-base w-6 text-center shrink-0">{style.emoji}</span>

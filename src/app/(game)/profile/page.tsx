@@ -5,6 +5,7 @@ import { type User } from 'firebase/auth';
 import { updateUserEmail, updateUserPassword } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
+import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
 import type { Character } from '@/types';
 
 export default function ProfilePage() {
@@ -21,9 +22,72 @@ export default function ProfilePage() {
         </p>
       </div>
 
+      <AchievementGallery character={character} />
       <ChangeNameForm character={character} />
       <ChangeEmailForm user={user} />
       <ChangePasswordForm user={user} />
+    </div>
+  );
+}
+
+// ── Achievement Gallery ───────────────────────────────────────────────────────
+
+function AchievementGallery({ character }: { character: Character }) {
+  const unlocked = new Set(character.achievements ?? []);
+  const all = Object.values(ACHIEVEMENTS);
+  const unlockedCount = all.filter((a) => unlocked.has(a.id)).length;
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-gray-900 text-sm">Achievements</h3>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {unlockedCount} / {all.length} unlocked
+          </p>
+        </div>
+        <div className="flex gap-1">
+          {all.map((def) => (
+            <span
+              key={def.id}
+              title={def.name}
+              className={`text-lg leading-none ${unlocked.has(def.id) ? '' : 'grayscale opacity-30'}`}
+            >
+              {def.emoji}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {all.map((def) => {
+          const isUnlocked = unlocked.has(def.id);
+          return (
+            <div
+              key={def.id}
+              className={`rounded-xl p-3 border ${
+                isUnlocked
+                  ? 'bg-indigo-50 border-indigo-200'
+                  : 'bg-gray-50 border-gray-200 opacity-50'
+              }`}
+            >
+              <div className="text-2xl mb-1">{isUnlocked ? def.emoji : '🔒'}</div>
+              <div
+                className={`text-xs font-bold leading-tight ${isUnlocked ? 'text-indigo-900' : 'text-gray-400'}`}
+              >
+                {def.name}
+              </div>
+              <div className="text-xs text-gray-400 mt-0.5 leading-snug">{def.description}</div>
+              {isUnlocked && (
+                <div className="mt-2">
+                  <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-medium">
+                    +{def.goldReward} gold earned
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
