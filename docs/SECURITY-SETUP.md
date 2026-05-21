@@ -161,9 +161,11 @@ The `FIREBASE_TOKEN` secret is a long-lived Firebase CI token used by the CI aut
 **To rotate:**
 
 1. Generate a new token locally:
+
    ```bash
    npx firebase-tools login:ci   # opens browser → outputs a new CI token
    ```
+
 2. Update the secret: **Settings → Secrets and variables → Actions → `FIREBASE_TOKEN` → Update**.
 3. Revoke the old token in the [Firebase Console](https://console.firebase.google.com/) under **Project settings → Service accounts** if applicable, or via `firebase logout --token <old-token>`.
 4. Trigger a master push (or re-run the last CI workflow) to confirm both deploy steps succeed with the new token.
