@@ -65,6 +65,11 @@ test.describe('unauthenticated redirects', () => {
     await page.goto('/combat/dungeons/run');
     await expect(page).toHaveURL(/\/login/);
   });
+
+  test('/combat/dungeons/[tierId] redirects to /login', async ({ page }) => {
+    await page.goto('/combat/dungeons/goblin-caves');
+    await expect(page).toHaveURL(/\/login/);
+  });
 });
 
 // ─── Login Page ───────────────────────────────────────────────────────────────

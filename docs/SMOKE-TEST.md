@@ -104,7 +104,7 @@ History: introduced after the firebase 12.12 → 12.13 bump (PR #28) where the s
 
 **Steps 1–4 are now covered by the Playwright E2E smoke suite** (`tests/e2e/smoke.test.ts`) running in CI on every PR and master push. The suite asserts:
 
-- All 12 protected routes redirect to `/login` (Step 3 equivalent): `/`, `/dashboard`, `/activities`, `/combat`, `/combat/dungeons`, `/combat/dungeons/run`, `/character`, `/inventory`, `/shop`, `/quests`, `/profile`, `/stats`.
+- All 13 protected routes redirect to `/login` (Step 3 equivalent): `/`, `/dashboard`, `/activities`, `/combat`, `/combat/dungeons`, `/combat/dungeons/[tierId]` (tested via `/combat/dungeons/goblin-caves`), `/combat/dungeons/run`, `/character`, `/inventory`, `/shop`, `/quests`, `/profile`, `/stats`.
 - `/login` renders the heading, email/password inputs, submit button, and correct a11y attributes (Steps 1–2 equivalent).
 - `/register` renders the heading and link back to login (Step 4 equivalent).
 
