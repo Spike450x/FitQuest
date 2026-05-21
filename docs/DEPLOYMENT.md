@@ -10,15 +10,15 @@ Pair with [CI.md](CI.md) for the automated checks that gate every deploy and [SE
 
 FitQuest has two deployable artifacts:
 
-| Artifact                       | Deployed by                                      | Command                                    |
-| ------------------------------ | ------------------------------------------------ | ------------------------------------------ |
-| `firestore.rules`              | CI auto-deploy on every master push (CI step 11) | `firebase deploy --only firestore:rules`   |
-| `firestore.indexes.json`       | **Manual** — must precede function deploy        | `firebase deploy --only firestore:indexes` |
-| Cloud Functions (`functions/`) | **Manual**                                       | `firebase deploy --only functions`         |
+| Artifact                       | Deployed by                                                              | Command                                                    |
+| ------------------------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `firestore.rules`              | CI auto-deploy on every master push (CI step 15)                         | `firebase deploy --only firestore:rules,firestore:indexes` |
+| `firestore.indexes.json`       | CI auto-deploy step 15 (combined with rules)                             | `firebase deploy --only firestore:rules,firestore:indexes` |
+| Cloud Functions (`functions/`) | CI step 16 auto-deploys when `functions/` files change; manual otherwise | `firebase deploy --only functions --force`                 |
 
-**Firestore rules are auto-deployed.** Any rules change merged to master is live within minutes. You do not normally need to deploy rules manually.
+**Firestore rules and indexes are auto-deployed together** on every master push (CI step 15). Any rules or index change merged to master is live within minutes. You do not normally need to deploy either manually.
 
-**Indexes and functions are manual.** The `deploy:prod` npm script enforces the correct ordering.
+**Cloud Functions are conditionally auto-deployed.** CI step 16 deploys when files under `functions/` changed in the push; skipped on frontend-only pushes. Use `deploy:prod` for a forced full deploy.
 
 ---
 
@@ -49,7 +49,7 @@ This script (`package.json` → `"deploy:prod"`) runs in order:
 
 1. `node scripts/validate-firestore-indexes.mjs` — validates the index schema before touching production
 2. `npx firebase deploy --only firestore:indexes,firestore:rules` — indexes and rules first
-3. `npx firebase deploy --only functions` — Cloud Functions second
+3. `npx firebase deploy --only functions --force` — Cloud Functions second (`--force` suppresses `minInstances` billing prompt)
 
 **The ordering is not optional.** The `logActivity` Cloud Function queries a composite index (`uid, type, loggedAt`). If you deploy the function before the index is ready, it will throw `FAILED_PRECONDITION` on every call until the index finishes building (which can take several minutes on an active dataset).
 
@@ -69,7 +69,7 @@ When the function logic changes but no new indexes are needed:
 
 ```bash
 cd functions && npm run build && cd ..
-npx firebase deploy --only functions --project fitness-rpg-claude
+npx firebase deploy --only functions --force --project fitness-rpg-claude
 ```
 
 Build the functions first to catch TypeScript errors before they go to production.
@@ -125,11 +125,11 @@ Indexes cannot be rolled back cleanly. Deleting an index requires the Function t
 
 ## Environment
 
-| Variable                 | Where set                           | Purpose                                                   |
-| ------------------------ | ----------------------------------- | --------------------------------------------------------- |
-| `FIREBASE_TOKEN`         | GitHub Actions secret               | CI rules auto-deploy (step 11)                            |
-| `NEXT_PUBLIC_FIREBASE_*` | `.env.local` (gitignored)           | Firebase client config for dev                            |
-| `NEXT_PUBLIC_FIREBASE_*` | `.env.ci` (committed, dummy values) | Prevents build from connecting to real Firebase during CI |
+| Variable                 | Where set                           | Purpose                                                          |
+| ------------------------ | ----------------------------------- | ---------------------------------------------------------------- |
+| `FIREBASE_TOKEN`         | GitHub Actions secret               | CI auto-deploy — rules/indexes (step 15) and functions (step 16) |
+| `NEXT_PUBLIC_FIREBASE_*` | `.env.local` (gitignored)           | Firebase client config for dev                                   |
+| `NEXT_PUBLIC_FIREBASE_*` | `.env.ci` (committed, dummy values) | Prevents build from connecting to real Firebase during CI        |
 
 Never commit `.env.local`. The `.env.ci` file contains intentionally non-functional values so the Next.js build succeeds in CI without live Firebase credentials.
 

@@ -14,6 +14,14 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-21 — Doc accuracy sweep and E2E route coverage
+
+- Fixed "Next.js 14" → "Next.js 15" in CLAUDE.md and ARCHITECTURE.md (package.json has been on v15 since PR #26).
+- DEPLOYMENT.md: corrected step references (11 → 15/16), marked indexes as CI auto-deployed, added `--force` to functions deploy commands, fixed FIREBASE_TOKEN description.
+- GAME-LOGIC.md: `MONSTER_CATALOG` note clarified — 10 entries but two at level 1 and no level 9 (Lich King is P1-5 backlog).
+- E2E smoke suite: added 7 missing protected-route redirect tests (/character, /inventory, /shop, /profile, /combat/dungeons, /combat/dungeons/[tierId], /combat/dungeons/run). Total tests: 21.
+- SMOKE-TEST.md: updated coverage claim from "nine" to the actual 12 routes now tested.
+
 ## 2026-05-21 — Achievement system hardening and victory screen polish
 
 - Achievement award moved inside the `claimDungeonRun` Firestore transaction — gold and badge stamp are now atomic; a concurrent claim can no longer award the same badge twice.
