@@ -501,30 +501,30 @@ export default function DungeonRunPage() {
   async function handleRetreat() {
     if (!character || !activeRun || claiming) return;
     setClaiming(true);
-    const run = activeRun;
-    // Award everything accumulated so far
-    if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
-    if (cumulativeGold > 0) await awardGold(cumulativeGold);
-    if (allItems.length > 0) await awardLoot(character.uid, allItems);
-    await completeRun(character.uid, false);
-    router.push('/combat/dungeons');
+    try {
+      if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
+      if (cumulativeGold > 0) await awardGold(cumulativeGold);
+      if (allItems.length > 0) await awardLoot(character.uid, allItems);
+      await completeRun(character.uid, false);
+      router.push('/combat/dungeons');
+    } finally {
+      setClaiming(false);
+    }
   }
 
   async function handleClaimVictory() {
     if (!character || !activeRun || claiming) return;
     setClaiming(true);
-    const run = activeRun;
-    const legendaryUsed = run.legendaryEligible;
-
-    const totalXp = cumulativeXp;
-    const totalGold = cumulativeGold;
-    const totalItems = allItems;
-
-    if (totalXp > 0) await awardXpAndStats(totalXp, {});
-    if (totalGold > 0) await awardGold(totalGold);
-    if (totalItems.length > 0) await awardLoot(character.uid, totalItems);
-    await completeRun(character.uid, legendaryUsed);
-    router.push('/combat/dungeons');
+    const legendaryUsed = activeRun.legendaryEligible;
+    try {
+      if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
+      if (cumulativeGold > 0) await awardGold(cumulativeGold);
+      if (allItems.length > 0) await awardLoot(character.uid, allItems);
+      await completeRun(character.uid, legendaryUsed);
+      router.push('/combat/dungeons');
+    } finally {
+      setClaiming(false);
+    }
   }
 
   // ── Guards ─────────────────────────────────────────────────────────────────
@@ -560,7 +560,7 @@ export default function DungeonRunPage() {
 
         <div className="bg-slate-800 rounded-xl p-4 mb-4 text-center">
           <div className="text-slate-400 text-xs mb-2">
-            Earlier rooms&apos; rewards were already saved.
+            Rewards from cleared rooms are still yours.
           </div>
           <div className="flex justify-center gap-6">
             <div>
@@ -576,7 +576,11 @@ export default function DungeonRunPage() {
 
         <button
           onClick={async () => {
-            if (character) await abandonRun(character.uid);
+            if (!character) return;
+            if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
+            if (cumulativeGold > 0) await awardGold(cumulativeGold);
+            if (allItems.length > 0) await awardLoot(character.uid, allItems);
+            await abandonRun(character.uid);
             router.push('/combat/dungeons');
           }}
           className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold py-4 rounded-xl transition-colors"
