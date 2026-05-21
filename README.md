@@ -4,7 +4,7 @@
 
 A full-stack fitness RPG where your real-world workouts power a fantasy character. Log runs, track sleep, eat well — your stats grow, you level up, and you fight monsters.
 
-Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Firebase**, and **Zustand**.
+Built with **Next.js 15**, **TypeScript**, **Tailwind CSS**, **Firebase**, and **Zustand**.
 
 ---
 
@@ -43,7 +43,7 @@ Built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **Firebase**, and *
 
 | Layer            | Technology                |
 | ---------------- | ------------------------- |
-| Framework        | Next.js 14 (App Router)   |
+| Framework        | Next.js 15 (App Router)   |
 | Language         | TypeScript 5              |
 | Styling          | Tailwind CSS 3            |
 | Auth & Database  | Firebase Auth + Firestore |
@@ -112,7 +112,7 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
 
   BROWSER
   ┌─────────────────────────────────────────────────────────────────────┐
-  │  Next.js 14 (App Router)                                           │
+  │  Next.js 15 (App Router)                                           │
   │                                                                     │
   │  Auth Routes            Game Routes (behind middleware)            │
   │  ┌──────────────┐       ┌──────────────────────────────────────┐   │
