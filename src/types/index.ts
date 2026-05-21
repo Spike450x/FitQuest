@@ -1,3 +1,13 @@
+// ─── Achievements ─────────────────────────────────────────────────────────────
+
+export type AchievementId =
+  | 'dungeon-initiate'
+  | 'goblin-slayer'
+  | 'web-walker'
+  | 'dark-arts'
+  | 'dragonheart'
+  | 'legendary-haul';
+
 // ─── Character ───────────────────────────────────────────────────────────────
 
 export type CharacterClass = 'warrior' | 'wizard' | 'rogue';
@@ -52,6 +62,7 @@ export interface Character {
   legendaryDryStreak?: Record<string, number>;
   dungeonRunsToday?: DungeonRunsToday;
   activeDungeonRunId?: string | null;
+  achievements?: AchievementId[];
   streakData?: {
     currentStreak: number;
     longestStreak: number;

@@ -7,6 +7,7 @@ import { useDungeonStore } from '@/store/dungeonStore';
 import { DUNGEON_TIERS } from '@/lib/gameLogic/dungeons';
 import { playerMaxHp } from '@/lib/gameLogic/combat';
 import { getRecentDungeonRuns } from '@/lib/dungeonData';
+import { getItemById, RARITY_BADGE } from '@/lib/gameLogic/items';
 import type { DungeonTierId, DungeonRunsToday, DungeonRun } from '@/types';
 
 const TIER_ORDER: DungeonTierId[] = ['goblin-caves', 'spider-lair', 'dark-sanctum', 'dragons-keep'];
@@ -71,43 +72,73 @@ function formatRunDate(ts: number): string {
 }
 
 function RunHistoryRow({ run }: { run: DungeonRun }) {
+  const [expanded, setExpanded] = useState(false);
   const tier = DUNGEON_TIERS[run.tierId];
   const style = TIER_STYLE[run.tierId];
   const isCompleted = run.status === 'completed';
+  const hasLoot = run.allDroppedItems.length > 0;
   return (
-    <div className="flex items-center gap-3 py-2 border-b border-slate-700 last:border-0">
-      <span className="text-base w-6 text-center">{style.emoji}</span>
-      <div className="flex-1 min-w-0">
-        <div className={`text-xs font-semibold truncate ${style.nameColor}`}>{tier.name}</div>
-        <div className="text-slate-500 text-xs">
-          {formatRunDate(run.startedAt)} · {run.currentRoom}/{run.rooms.length} rooms
+    <div className="border-b border-slate-700 last:border-0">
+      <button
+        onClick={() => hasLoot && setExpanded((e) => !e)}
+        className="w-full flex items-center gap-3 py-2 text-left"
+      >
+        <span className="text-base w-6 text-center shrink-0">{style.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <div className={`text-xs font-semibold truncate ${style.nameColor}`}>{tier.name}</div>
+          <div className="text-slate-500 text-xs">
+            {formatRunDate(run.startedAt)} · {run.currentRoom}/{run.rooms.length} rooms
+            {hasLoot
+              ? ` · ${run.allDroppedItems.length} item${run.allDroppedItems.length > 1 ? 's' : ''}`
+              : ''}
+          </div>
         </div>
-      </div>
-      <div className="text-right shrink-0">
-        <div className={`text-xs font-bold ${isCompleted ? 'text-green-400' : 'text-red-400'}`}>
-          {isCompleted ? 'Cleared' : 'Abandoned'}
+        <div className="text-right shrink-0">
+          <div className={`text-xs font-bold ${isCompleted ? 'text-green-400' : 'text-red-400'}`}>
+            {isCompleted ? 'Cleared' : 'Abandoned'}
+          </div>
+          <div className="text-slate-500 text-xs">{run.cumulativeXp} XP</div>
         </div>
-        <div className="text-slate-500 text-xs">{run.cumulativeXp} XP</div>
-      </div>
+        {hasLoot && (
+          <span className="text-slate-600 text-xs ml-1 shrink-0">{expanded ? '▲' : '▼'}</span>
+        )}
+      </button>
+      {expanded && hasLoot && (
+        <div className="pl-9 pb-2 space-y-1">
+          {run.allDroppedItems.map((itemId, i) => {
+            const def = getItemById(itemId);
+            if (!def) return null;
+            return (
+              <div key={`${itemId}-${i}`} className="flex items-center gap-2">
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded font-medium capitalize ${RARITY_BADGE[def.rarity]}`}
+                >
+                  {def.rarity[0].toUpperCase()}
+                </span>
+                <span className="text-xs text-slate-300">{def.name}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function DungeonLobbyPage() {
   const { character } = useCharacter();
-  const { activeRun, loading, fetchActiveRun } = useDungeonStore();
-  const [hasFetched, setHasFetched] = useState(false);
+  const { activeRun, fetchActiveRun } = useDungeonStore();
+  const [pageReady, setPageReady] = useState(false);
   const [recentRuns, setRecentRuns] = useState<DungeonRun[]>([]);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   useEffect(() => {
-    if (character) {
-      fetchActiveRun(character.uid).then(() => setHasFetched(true));
-      getRecentDungeonRuns(character.uid, 10).then((runs) => {
+    if (!character) return;
+    Promise.all([fetchActiveRun(character.uid), getRecentDungeonRuns(character.uid, 10)]).then(
+      ([, runs]) => {
         setRecentRuns(runs.filter((r) => r.status !== 'active'));
-        setHistoryLoaded(true);
-      });
-    }
+        setPageReady(true);
+      },
+    );
   }, [character, fetchActiveRun]);
 
   if (!character) return null;
@@ -124,7 +155,7 @@ export default function DungeonLobbyPage() {
       <h1 className="text-xl font-bold text-white mb-4">🏰 Dungeons</h1>
 
       {/* Resume banner or skeleton */}
-      {!hasFetched || loading ? (
+      {!pageReady ? (
         <div className="bg-slate-800 rounded-xl h-16 mb-4 animate-pulse" />
       ) : activeRun ? (
         <div className="bg-blue-950 border border-blue-700 rounded-xl p-4 mb-4 flex items-center justify-between">
@@ -212,7 +243,7 @@ export default function DungeonLobbyPage() {
         <div className="text-slate-400 text-xs font-semibold uppercase tracking-wide mb-3">
           Recent Runs
         </div>
-        {!historyLoaded ? (
+        {!pageReady ? (
           <div className="bg-slate-800 rounded-xl h-24 animate-pulse" />
         ) : recentRuns.length === 0 ? (
           <div className="bg-slate-800 rounded-xl p-4 text-center text-slate-500 text-sm">

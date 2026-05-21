@@ -99,7 +99,8 @@ service cloud.firestore {
           // which is legitimate game state).
           && (!('legendaryDryStreak'  in data) || data.legendaryDryStreak  is map)
           && (!('dungeonRunsToday'    in data) || data.dungeonRunsToday    is map)
-          && (!('activeDungeonRunId'  in data) || data.activeDungeonRunId  == null || data.activeDungeonRunId is string);
+          && (!('activeDungeonRunId'  in data) || data.activeDungeonRunId  == null || data.activeDungeonRunId is string)
+          && (!('achievements'        in data) || data.achievements        is list);
     }
 
     // Subclass rules (update path only — resource.data is the existing document):

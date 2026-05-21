@@ -79,3 +79,11 @@ export function toastMasteryMilestone(linkedStatLabel: string, activityLabel: st
     duration: 6000,
   });
 }
+
+/** Achievement unlocked — shown after dungeon claim when a new badge is earned. */
+export function toastAchievement(emoji: string, name: string, goldReward: number) {
+  toast.success(`${emoji} Achievement: ${name}`, {
+    description: `+${goldReward} gold bonus`,
+    duration: 6000,
+  });
+}

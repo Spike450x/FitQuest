@@ -24,9 +24,13 @@ import {
   getWeekSeed,
 } from '@/lib/gameLogic/dungeons';
 import { claimDungeonRunCF } from '@/lib/functions';
+import { updateCharacterDoc } from '@/lib/characterData';
+import { checkDungeonAchievements, ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
+import { toastAchievement } from '@/components/ui/Toaster';
 import type { ClaimDungeonRunResult } from '@/types/cloudFunctions';
 import {
   calculateRound,
+  rollRunAway,
   rollLoot,
   playerMaxHp,
   playerMaxStamina,
@@ -528,14 +532,19 @@ export default function DungeonRunPage() {
 
   async function handleFlee() {
     if (!character || !activeRun || acting || claiming || fleeing) return;
-    const fleeDmg = Math.round(maxHp * 0.2);
-    const newHp = Math.max(0, playerHp - fleeDmg);
-    if (newHp <= 0) {
-      setPlayerHp(0);
-      setPhase('defeat');
+    const monster = getCurrentMonster();
+    if (!monster) return;
+
+    const { escaped, monsterDamage } = rollRunAway(character, monster);
+
+    if (!escaped) {
+      const newHp = Math.max(0, playerHp - monsterDamage);
+      setPlayerHp(newHp);
+      setLog([`💨 Flee failed! ${monster.name} strikes for ${monsterDamage} dmg.`, ...log]);
+      if (newHp <= 0) setPhase('defeat');
       return;
     }
-    setPlayerHp(newHp);
+
     setFleeing(true);
     try {
       if (!activeRun.claimed) {
@@ -561,6 +570,25 @@ export default function DungeonRunPage() {
       const result = await claimDungeonRunCF(activeRun.id, legendaryUsed, 'completed');
       await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
       await completeRun(character.uid, legendaryUsed);
+
+      // Achievement check uses fresh character state post-CF
+      const freshChar = useCharacterStore.getState().character;
+      if (freshChar) {
+        const unlocked = checkDungeonAchievements(freshChar, activeRun);
+        if (unlocked.length > 0) {
+          const totalGold = unlocked.reduce((sum, id) => sum + ACHIEVEMENTS[id].goldReward, 0);
+          await updateCharacterDoc(freshChar.uid, {
+            achievements: [...(freshChar.achievements ?? []), ...unlocked],
+            gold: freshChar.gold + totalGold,
+          });
+          await fetchCharacter(freshChar.uid, true);
+          for (const id of unlocked) {
+            const def = ACHIEVEMENTS[id];
+            toastAchievement(def.emoji, def.name, def.goldReward);
+          }
+        }
+      }
+
       if (result.leveledUp) {
         setClaimResult(result);
       } else {
@@ -826,7 +854,7 @@ export default function DungeonRunPage() {
                 disabled={acting || fleeing}
                 className="py-4 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-300 font-semibold text-sm transition-colors"
               >
-                {fleeing ? 'Fleeing…' : `💨 Flee (−${Math.round(maxHp * 0.2)} HP)`}
+                {fleeing ? 'Fleeing…' : '💨 Flee'}
               </button>
             )}
           </div>
