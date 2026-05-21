@@ -14,6 +14,15 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-21 — Dungeon polish: level-up banner, flee, run history, warm CF
+
+- Victory screen shows a LEVEL UP! banner when the claimDungeonRun CF returns `leveledUp: true`, holding before navigating so the player sees the moment.
+- Flee button added to non-boss combat rooms: costs 20% max HP, claims all accumulated loot from previously cleared rooms and exits the run.
+- Dungeon lobby shows a Recent Runs history panel (last 10 non-active runs).
+- `claimDungeonRun` CF set to `minInstances: 1` — eliminates cold-start stall on the claim action.
+- Added `uid + startedAt DESC` composite Firestore index for the history query.
+- `abandonRun` store action now skips `finalizeDungeonRun` when CF has already closed the run.
+
 ## 2026-05-21 — Dungeons system shipped
 
 - Added 4-tier dungeon system (Goblin Caves → Spider Lair → Dark Sanctum → Dragon's Keep) with seeded weekly layouts, stat-check rooms, rest rooms, boss encounters with enrage mechanics, and escalating loot tables.
