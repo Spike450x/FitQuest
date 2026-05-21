@@ -14,6 +14,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-21 — Achievement gallery, flee feedback, a11y fixes
+
+- Profile page: 2-col achievement badge grid showing all 6 dungeon badges (unlocked in indigo with gold-earned label; locked dimmed with lock icon). Header strip previews all emojis at a glance.
+- Flee button flashes red for 700 ms on a failed attempt; caption below combat actions explains Agility mechanic.
+- History row buttons: `aria-label` with tier/date/status/loot count; `aria-expanded` on rows with loot.
+
 ## 2026-05-21 — Dungeon polish pass 2: achievements, agility flee, loot preview
 
 - **Achievements system (dungeon):** 6 badges (Initiate, 4 tier clears, Legendary Haul) with gold bonus rewards. Checked post-victory via `checkDungeonAchievements()`; unlocks fire `toastAchievement` toasts and write `achievements[]` to character doc. 11 vitest unit tests.
