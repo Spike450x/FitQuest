@@ -1,7 +1,7 @@
 # FitQuest — Dungeons System Design
 
 **Date:** 2026-05-21
-**Status:** Approved, ready for implementation planning
+**Status:** Shipped — 2026-05-21
 **Scope:** V1 Dungeon system — multi-room runs with escalating loot, seeded weekly rotation, stat check rooms, boss encounters, and Firestore-persisted run state.
 **Depends on:** Existing combat engine (`src/lib/gameLogic/combat.ts`), existing rotation logic, existing consumable system
 **Deferred to V2:** Activity gate rooms, text riddle rooms, Champions system (slots stubbed in V1)
