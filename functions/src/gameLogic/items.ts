@@ -26,4 +26,9 @@ export const GEAR_STAT_BONUSES: Record<string, { stamina?: number; health?: numb
   'stamina-band': { stamina: 2 },
   lifestone: { health: 6, stamina: 4 },
   'heart-of-the-cosmos': { stamina: 4 },
+
+  // ── Dungeon-exclusive items ───────────────────────────────────────────────────
+  'scavengers-chain': { stamina: 2 },
+  'wraithbound-ring': { stamina: 4 },
+  'scale-dragon-king': { health: 4 },
 };
