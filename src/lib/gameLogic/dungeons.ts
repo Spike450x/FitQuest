@@ -345,6 +345,9 @@ export function roomLootFilter(roomIndex: number): LootRarityFilter {
 
 // ─── Venom DoT helpers ────────────────────────────────────────────────────────
 
+/** Item ID of the Venomfang Bracer — single source of truth for venom proc checks. */
+export const VENOMFANG_BRACER_ID = 'venomfang-bracer';
+
 /** 20% proc chance. Returns true if venom should be applied this hit. */
 export function checkVenomProc(hasVenomfangBracer: boolean): boolean {
   if (!hasVenomfangBracer) return false;

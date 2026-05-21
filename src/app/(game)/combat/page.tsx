@@ -248,6 +248,17 @@ export default function CombatPage() {
   const consumeItem = useInventoryStore((s) => s.useConsumable);
 
   const [combatTab, setCombatTab] = useState<CombatTab>('arena');
+
+  // Persist tab in URL so back-navigation restores the correct tab
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'dungeons') setCombatTab('dungeons');
+  }, []);
+
+  function handleCombatTabChange(tab: CombatTab) {
+    setCombatTab(tab);
+    window.history.replaceState({}, '', tab === 'arena' ? '/combat' : '/combat?tab=dungeons');
+  }
   const [phase, setPhase] = useState<'select' | 'fighting'>('select');
   const [fightState, setFightState] = useState<FightState | null>(null);
   const [rollingAction, setRollingAction] = useState<
@@ -1497,7 +1508,7 @@ export default function CombatPage() {
         </div>
       </div>
 
-      <CombatModeTab active={combatTab} onChange={setCombatTab} />
+      <CombatModeTab active={combatTab} onChange={handleCombatTabChange} />
 
       {combatTab === 'dungeons' ? (
         <DungeonLobbyInline />

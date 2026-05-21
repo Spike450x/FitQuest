@@ -10,6 +10,7 @@ import { MONSTER_CATALOG } from '@/lib/gameLogic/monsters';
 import {
   DUNGEON_TIERS,
   DUNGEON_BOSSES,
+  VENOMFANG_BRACER_ID,
   resolveStatCheckOptions,
   statCheckFailureDamage,
   checkVenomProc,
@@ -22,6 +23,7 @@ import {
   dragonIgnoresDef,
   getWeekSeed,
 } from '@/lib/gameLogic/dungeons';
+import { claimDungeonRunRewards } from '@/lib/dungeonData';
 import {
   calculateRound,
   rollLoot,
@@ -319,7 +321,7 @@ export default function DungeonRunPage() {
 
     // Venom proc after player attack
     if (!curPoisoned) {
-      const hasVenom = character.equippedGear.accessory === 'venomfang-bracer';
+      const hasVenom = character.equippedGear.accessory === VENOMFANG_BRACER_ID;
       if (checkVenomProc(hasVenom)) {
         curPoisoned = createPoisonedStatus();
         newLog = ['🕷 Venom applied!', ...newLog];
@@ -352,9 +354,14 @@ export default function DungeonRunPage() {
     if (newMonsterHp <= 0) {
       // Monster dead — roll loot
       const tier = DUNGEON_TIERS[run.tierId];
-      const lootTable = isBossRoom
+      const rawLootTable = isBossRoom
         ? DUNGEON_BOSSES[run.tierId].bossLootTable
         : monsterBase.lootTable;
+      // Strip legendaries from boss loot when the player is on their 2nd run today
+      const lootTable =
+        isBossRoom && !run.legendaryEligible
+          ? rawLootTable.filter(({ itemId }) => getItemById(itemId)?.rarity !== 'legendary')
+          : rawLootTable;
       const dropped = rollLoot(lootTable);
       const xp = Math.round(monsterBase.xpReward * tier.xpMultiplier);
       const gold = monsterBase.goldReward;
