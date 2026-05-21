@@ -24,6 +24,8 @@ export interface ClaimDungeonRunResult {
   gold: number;
   items: string[];
   leveledUp: boolean;
+  /** Achievement IDs earned by this run. Awarded server-side (gold included in `gold`). */
+  newAchievements: string[];
 }
 
 export interface LogActivityInput {

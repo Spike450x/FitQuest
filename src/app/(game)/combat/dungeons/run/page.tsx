@@ -24,9 +24,9 @@ import {
   getWeekSeed,
 } from '@/lib/gameLogic/dungeons';
 import { claimDungeonRunCF } from '@/lib/functions';
-import { updateCharacterDoc } from '@/lib/characterData';
-import { checkDungeonAchievements, ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
+import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
 import { toastAchievement } from '@/components/ui/Toaster';
+import type { AchievementId } from '@/types';
 import type { ClaimDungeonRunResult } from '@/types/cloudFunctions';
 import {
   calculateRound,
@@ -574,22 +574,11 @@ export default function DungeonRunPage() {
       await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
       await completeRun(character.uid, legendaryUsed);
 
-      // Achievement check uses fresh character state post-CF
-      const freshChar = useCharacterStore.getState().character;
-      if (freshChar) {
-        const unlocked = checkDungeonAchievements(freshChar, activeRun);
-        if (unlocked.length > 0) {
-          const totalGold = unlocked.reduce((sum, id) => sum + ACHIEVEMENTS[id].goldReward, 0);
-          await updateCharacterDoc(freshChar.uid, {
-            achievements: [...(freshChar.achievements ?? []), ...unlocked],
-            gold: freshChar.gold + totalGold,
-          });
-          await fetchCharacter(freshChar.uid, true);
-          for (const id of unlocked) {
-            const def = ACHIEVEMENTS[id];
-            toastAchievement(def.emoji, def.name, def.goldReward);
-          }
-        }
+      // Achievement badges + gold were awarded atomically by the CF.
+      // fetchCharacter above already reflects the updated state; just fire toasts.
+      for (const id of result.newAchievements) {
+        const def = ACHIEVEMENTS[id as AchievementId];
+        if (def) toastAchievement(def.emoji, def.name, def.goldReward);
       }
 
       if (result.leveledUp) {

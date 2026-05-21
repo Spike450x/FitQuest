@@ -3,6 +3,53 @@ import * as admin from 'firebase-admin';
 import { applyXp, LEVEL_UP, statCapForLevel } from './gameLogic/xp';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from './gameLogic/combat';
 
+// ─── Achievement helpers ──────────────────────────────────────────────────────
+// Duplicated logic from src/lib/gameLogic/achievements.ts so the CF has no @/ deps.
+
+const LEGENDARY_ITEM_IDS = new Set([
+  'godslayer',
+  'the-eternal-grimoire',
+  'oblivion-edge',
+  'celestial-aegis',
+  'heart-of-the-cosmos',
+  'wraithbound-ring',
+  'draconic-sigil',
+  'scale-dragon-king',
+]);
+
+const ACHIEVEMENT_GOLD: Record<string, number> = {
+  'dungeon-initiate': 50,
+  'goblin-slayer': 100,
+  'web-walker': 150,
+  'dark-arts': 250,
+  dragonheart: 500,
+  'legendary-haul': 200,
+};
+
+function checkNewAchievements(
+  tierId: string,
+  existingAchievements: string[],
+  droppedItems: string[],
+  outcomeStatus: 'completed' | 'abandoned',
+): string[] {
+  if (outcomeStatus !== 'completed') return [];
+  const existing = new Set(existingAchievements);
+  const unlocked: string[] = [];
+  const check = (id: string, condition: boolean) => {
+    if (condition && !existing.has(id)) unlocked.push(id);
+  };
+  check('dungeon-initiate', true);
+  check('goblin-slayer', tierId === 'goblin-caves');
+  check('web-walker', tierId === 'spider-lair');
+  check('dark-arts', tierId === 'dark-sanctum');
+  check('dragonheart', tierId === 'dragons-keep');
+  check(
+    'legendary-haul',
+    droppedItems.some((id) => LEGENDARY_ITEM_IDS.has(id)),
+  );
+  return unlocked;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ClaimDungeonRunInput {
@@ -25,6 +72,7 @@ interface ClaimDungeonRunResult {
   gold: number;
   items: string[];
   leveledUp: boolean;
+  newAchievements: string[];
 }
 
 // ─── claimDungeonRun callable ─────────────────────────────────────────────────
@@ -66,6 +114,7 @@ export const claimDungeonRun = onCall<ClaimDungeonRunInput, Promise<ClaimDungeon
     let awardedGold = 0;
     let droppedItems: string[] = [];
     let didLevelUp = false;
+    let earnedAchievements: string[] = [];
 
     // ── Transaction: stamp run + update character atomically ──────────────────
     await db.runTransaction(async (txn) => {
@@ -103,6 +152,20 @@ export const claimDungeonRun = onCall<ClaimDungeonRunInput, Promise<ClaimDungeon
       awardedGold = (runData.cumulativeGold as number) ?? 0;
       droppedItems = (runData.allDroppedItems as string[]) ?? [];
 
+      // ── Achievement check (inside transaction so gold + badge stamp are atomic) ──
+      const existingAchievements = (charData.achievements as string[] | undefined) ?? [];
+      earnedAchievements = checkNewAchievements(
+        runData.tierId as string,
+        existingAchievements,
+        droppedItems,
+        outcomeStatus,
+      );
+      const achievementGold = earnedAchievements.reduce(
+        (sum, id) => sum + (ACHIEVEMENT_GOLD[id] ?? 0),
+        0,
+      );
+      awardedGold += achievementGold;
+
       // ── Stamp run as claimed + finalized ────────────────────────────────────
       txn.update(runRef, {
         claimed: true,
@@ -125,9 +188,13 @@ export const claimDungeonRun = onCall<ClaimDungeonRunInput, Promise<ClaimDungeon
         level,
         xp,
         xpToNextLevel,
+        // awardedGold already includes achievement gold added above
         gold: ((charData.gold as number | undefined) ?? 0) + awardedGold,
         activeDungeonRunId: null,
         ...(legendaryUsed ? { 'dungeonRunsToday.legendaryUsed': true } : {}),
+        ...(earnedAchievements.length > 0
+          ? { achievements: [...existingAchievements, ...earnedAchievements] }
+          : {}),
       };
 
       // ── Level-up bonuses ────────────────────────────────────────────────────
@@ -214,6 +281,7 @@ export const claimDungeonRun = onCall<ClaimDungeonRunInput, Promise<ClaimDungeon
       gold: awardedGold,
       items: droppedItems,
       leveledUp: didLevelUp,
+      newAchievements: earnedAchievements,
     };
   },
 );

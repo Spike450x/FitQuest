@@ -41,7 +41,7 @@ export async function claimDungeonRunCF(
       'code' in err &&
       (err as { code: string }).code === 'functions/already-exists'
     ) {
-      return { xp: 0, gold: 0, items: [], leveledUp: false };
+      return { xp: 0, gold: 0, items: [], leveledUp: false, newAchievements: [] };
     }
     throw err;
   }
