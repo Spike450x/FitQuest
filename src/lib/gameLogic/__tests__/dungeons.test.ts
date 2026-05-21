@@ -143,6 +143,18 @@ describe('generateDungeonLayout', () => {
       expect(room.goldAwarded).toBe(0);
     }
   });
+
+  it('always contains at least one combat room (excluding boss)', () => {
+    // Test many seeds to catch stat-check-heavy PRNG outputs
+    for (const tierId of TIERS) {
+      for (let seed = 1; seed <= 500; seed++) {
+        const layout = generateDungeonLayout(tierId, seed);
+        const nonBoss = layout.slice(0, -1);
+        const hasCombat = nonBoss.some((r) => r.type === 'combat');
+        expect(hasCombat).toBe(true);
+      }
+    }
+  });
 });
 
 // ── resolveStatCheckOptions ───────────────────────────────────────────────────

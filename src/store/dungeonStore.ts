@@ -62,6 +62,14 @@ export const useDungeonStore = create<DungeonStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const run = await getActiveDungeonRun(uid);
+      if (run?.claimed) {
+        // Run was claimed but not finalized — process died between claim stamp and
+        // completeRun. The claimDungeonRun Cloud Function eliminates this race in
+        // the normal flow; this handles legacy client-only claims. Finalize quietly.
+        await finalizeDungeonRun(run.id, 'completed');
+        set({ activeRun: null, loading: false });
+        return;
+      }
       set({ activeRun: run, loading: false });
     } catch (err) {
       captureError('dungeonStore.fetchActiveRun', err);

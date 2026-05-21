@@ -241,6 +241,23 @@ export function generateDungeonLayout(tierId: DungeonTierId, weekSeed: number): 
     rooms.push({ type, monsterId, cleared: false, lootAwarded: [], xpAwarded: 0, goldAwarded: 0 });
   }
 
+  // Guarantee at least one combat room — rare seeds can produce all stat-checks
+  const hasCombat = rooms.some((r) => r.type === 'combat');
+  if (!hasCombat) {
+    const firstStatCheck = rooms.findIndex((r) => r.type === 'stat-check');
+    if (firstStatCheck !== -1) {
+      const monsterId = tier.monsterPool[Math.floor(rand() * tier.monsterPool.length)];
+      rooms[firstStatCheck] = {
+        type: 'combat',
+        monsterId,
+        cleared: false,
+        lootAwarded: [],
+        xpAwarded: 0,
+        goldAwarded: 0,
+      };
+    }
+  }
+
   // Boss room always last
   const boss = DUNGEON_BOSSES[tierId];
   rooms.push({

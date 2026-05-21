@@ -189,6 +189,7 @@ export default function DungeonRunPage() {
   const [log, setLog] = useState<string[]>([]);
   const [roomResult, setRoomResult] = useState<RoomResult>({ xp: 0, gold: 0, items: [] });
   const [claiming, setClaiming] = useState(false);
+  const [returning, setReturning] = useState(false);
   const [acting, setActing] = useState(false);
   const [cumulativeXp, setCumulativeXp] = useState(0);
   const [cumulativeGold, setCumulativeGold] = useState(0);
@@ -593,19 +594,25 @@ export default function DungeonRunPage() {
 
         <button
           onClick={async () => {
-            if (!character) return;
-            if (!activeRun?.claimed) {
-              await claimDungeonRunRewards(activeRun!.id);
-              if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
-              if (cumulativeGold > 0) await awardGold(cumulativeGold);
-              if (allItems.length > 0) await awardLoot(character.uid, allItems);
+            if (!character || returning) return;
+            setReturning(true);
+            try {
+              if (!activeRun?.claimed) {
+                await claimDungeonRunRewards(activeRun!.id);
+                if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
+                if (cumulativeGold > 0) await awardGold(cumulativeGold);
+                if (allItems.length > 0) await awardLoot(character.uid, allItems);
+              }
+              await abandonRun(character.uid);
+              router.push('/combat/dungeons');
+            } finally {
+              setReturning(false);
             }
-            await abandonRun(character.uid);
-            router.push('/combat/dungeons');
           }}
-          className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold py-4 rounded-xl transition-colors"
+          disabled={returning}
+          className="w-full bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-200 font-semibold py-4 rounded-xl transition-colors"
         >
-          Return to Dungeons
+          {returning ? 'Saving rewards…' : 'Return to Dungeons'}
         </button>
       </div>
     );
