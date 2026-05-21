@@ -581,7 +581,7 @@ export default function DungeonRunPage() {
         if (def) toastAchievement(def.emoji, def.name, def.goldReward);
       }
 
-      if (result.leveledUp) {
+      if (result.leveledUp || result.newAchievements.length > 0) {
         setClaimResult(result);
       } else {
         router.push('/combat/dungeons');
@@ -728,6 +728,16 @@ export default function DungeonRunPage() {
             <div className="text-4xl mb-1">⬆</div>
             <div className="text-2xl font-bold text-yellow-300">LEVEL UP!</div>
             <div className="text-yellow-400 text-sm mt-1">You are now Level {character.level}</div>
+          </div>
+        )}
+
+        {/* Achievement gold banner — shown when badges were earned this run */}
+        {claimResult != null && claimResult.achievementGold > 0 && (
+          <div className="bg-gradient-to-br from-amber-900 to-yellow-950 border border-yellow-600 rounded-xl p-4 mb-4 text-center">
+            <div className="text-lg font-bold text-yellow-300">
+              +{claimResult.achievementGold} Achievement Gold
+            </div>
+            <div className="text-yellow-600 text-xs mt-0.5">Included in your total reward</div>
           </div>
         )}
 

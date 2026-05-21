@@ -22,6 +22,8 @@ export interface ClaimDungeonRunInput {
 export interface ClaimDungeonRunResult {
   xp: number;
   gold: number;
+  /** Gold from achievements alone — subset of `gold`. Used by the victory screen to show a breakdown. */
+  achievementGold: number;
   items: string[];
   leveledUp: boolean;
   /** Achievement IDs earned by this run. Awarded server-side (gold included in `gold`). */

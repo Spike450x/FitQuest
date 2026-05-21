@@ -22,7 +22,7 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "validate:indexes": "node scripts/validate-firestore-indexes.mjs",
-    "deploy:prod": "node scripts/validate-firestore-indexes.mjs && npx firebase deploy --only firestore:indexes,firestore:rules && npx firebase deploy --only functions"
+    "deploy:prod": "node scripts/validate-firestore-indexes.mjs && npx firebase deploy --only firestore:indexes,firestore:rules && npx firebase deploy --only functions --force"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,cjs}": [
