@@ -24,6 +24,15 @@
         { "fieldPath": "uid", "order": "ASCENDING" },
         { "fieldPath": "loggedAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "dungeonRuns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "startedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
