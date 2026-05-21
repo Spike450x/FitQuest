@@ -4,7 +4,7 @@ Every exported symbol from `src/lib/gameLogic/*.ts` with a one-line description 
 
 For balance numbers (XP curves, stat caps, drop rates, formulas), see [`src/lib/gameLogic/constants.ts`](../src/lib/gameLogic/constants.ts) and the [Game Mechanics section of the README](../README.md#game-mechanics). For how stores call into these functions, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
-All functions are **pure and deterministic** except those that explicitly call `Math.random()` (`rollD10`, `rollSpellDice`, `rollLoot`, `rollRunAway`, `calculateRound`'s damage rolls, ability resolution randomness). The vitest suite at [`src/lib/gameLogic/__tests__/`](../src/lib/gameLogic/__tests__/) covers every logic module — `xp`, `combat`, `spells`, `streaks`, `quests`, `abilities`, `passives`, `rotation`, `stats`, mastery milestone helpers in `constants`, and `activityCaps` — plus two parity tests (`activityCaps-parity`, `gearBonuses-parity`) that prevent drift from the duplicated `functions/` copies.
+All functions are **pure and deterministic** except those that explicitly call `Math.random()` (`rollD10`, `rollSpellDice`, `rollLoot`, `rollRunAway`, `calculateRound`'s damage rolls, ability resolution randomness). The vitest suite at [`src/lib/gameLogic/__tests__/`](../src/lib/gameLogic/__tests__/) covers every logic module — `xp`, `combat`, `spells`, `streaks`, `quests`, `abilities`, `passives`, `rotation`, `stats`, mastery milestone helpers in `constants`, `activityCaps`, `dungeons`, and `achievements` — plus three parity tests (`activityCaps-parity`, `gearBonuses-parity`, `achievements-parity`) that prevent drift from the duplicated `functions/` copies.
 
 ---
 
@@ -154,7 +154,7 @@ Items with `lootOnly: true` never appear in the shop — only in monster loot ta
 | ----------------- | ---------------------------------------------------------- |
 | `MONSTER_CATALOG` | All 10 monsters (level 1 → 10) with stats and loot tables. |
 
-The Ancient Dragon's loot table is the only source of legendary loot in the game.
+The Ancient Dragon's loot table is the primary source of legendary loot from regular combat. Dungeon bosses have separate, tier-specific loot tables (defined in `dungeons.ts`) containing 12 dungeon-exclusive items not available from regular combat or the shop (`lootOnly: true`).
 
 ---
 
@@ -196,6 +196,44 @@ Internal helpers (`getDaySeed`, `getWeekSeed`, `seededShuffle` — Numerical Rec
 | `getStreakTier(streak)`            | function  | Highest tier reached at the given streak length.                                                                       |
 | `getStreakLootMultiplier(streak)`  | function  | Convenience accessor for the tier's loot multiplier.                                                                   |
 | `getStreakXpMultiplier(streak)`    | function  | XP multiplier for the current streak length (≥ 1.0). Snapshotted at kill-time for the `BattleResultsModal` annotation. |
+
+---
+
+## `dungeons.ts` — dungeon system logic
+
+Tested in [`__tests__/dungeons.test.ts`](../src/lib/gameLogic/__tests__/dungeons.test.ts).
+
+| Export                                          | Kind      | Purpose                                                                                                                                   |
+| ----------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `DungeonTierId`                                 | type      | `'goblin-caves' \| 'spider-lair' \| 'dark-sanctum' \| 'dragons-keep'`.                                                                    |
+| `DungeonTierDef`                                | interface | Static tier definition: name, rec level range, entry fee, min/max rooms, XP multiplier, monster pool.                                     |
+| `DUNGEON_TIERS`                                 | const     | The 4 tier definitions keyed by `DungeonTierId`.                                                                                          |
+| `DUNGEON_BOSS_DEFS`                             | const     | Boss definitions per tier — HP, ATK, DEF, base XP, level cap, and enrage threshold/effect.                                                |
+| `mulberry32(seed)`                              | function  | Deterministic PRNG. Returns a seeded `() => number` generator. All dungeon generation is seeded through this.                             |
+| `getWeekSeedForDungeon(tierId)`                 | function  | Computes `year * 100 + ISO week number` — stable across all players in the same calendar week.                                            |
+| `generateDungeonRooms(tierId, seed)`            | function  | Produces the full room sequence (type, monsterId, etc.) for a given tier and week seed. Deterministic — same inputs → same layout.        |
+| `getStatCheckThreshold(tierId, stat)`           | function  | Returns the stat threshold for a given tier and stat path (STR/WIS/AGI).                                                                  |
+| `getStatCheckDamage(tierId, maxHp)`             | function  | Returns the HP damage for a failed stat-check "Attempt Anyway" (percentage of maxHp, tier-scaled).                                        |
+| `resolveStatCheck(character, tierId, statPath)` | function  | Evaluates whether the player passes the stat check for the chosen path, using base stat + gear bonuses.                                   |
+| `applyVenomTick(monsterHp, poisoned)`           | function  | Advances the venom DoT state: decrements `roundsRemaining`, applies `damagePerRound` to monster HP, bypassing defense.                    |
+| `applyBossEnrage(boss, enrageState, round)`     | function  | Returns modified boss stats for the current round given active enrage state (Broodmother ATK+5, Necromancer shield, Dragon King 3-round). |
+| `isBossEnrageTriggered(boss, bossHp, maxHp)`    | function  | Returns whether the enrage threshold has been crossed this round.                                                                         |
+
+---
+
+## `achievements.ts` — one-time milestone badges
+
+Tested in [`__tests__/achievements.test.ts`](../src/lib/gameLogic/__tests__/achievements.test.ts) and parity-tested against the `functions/` copy in [`__tests__/achievements-parity.test.ts`](../src/lib/gameLogic/__tests__/achievements-parity.test.ts).
+
+| Export                                     | Kind      | Purpose                                                                                                                                                          |
+| ------------------------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AchievementDef`                           | interface | Static badge definition: `id`, `name`, `description`, `goldReward`, `emoji`.                                                                                     |
+| `ACHIEVEMENTS`                             | const     | All 6 dungeon achievement definitions keyed by `AchievementId`: `dungeon-initiate`, `goblin-slayer`, `web-walker`, `dark-arts`, `dragonheart`, `legendary-haul`. |
+| `checkDungeonAchievements(character, run)` | function  | Compares a completed run against the character's existing achievements. Returns newly earned `AchievementId[]`. Returns `[]` for non-completed runs.             |
+
+Gold rewards: `dungeon-initiate` 50g, `goblin-slayer` 100g, `web-walker` 150g, `dark-arts` 250g, `dragonheart` 500g, `legendary-haul` 200g.
+
+**Why duplicated:** Achievement award logic runs inside the `claimDungeonRun` Firestore transaction so gold + badge are stamped atomically. To avoid `@/` path-alias dependencies in the Cloud Function, the pure helpers (`LEGENDARY_ITEM_IDS`, `ACHIEVEMENT_GOLD`, `checkNewAchievements`) are mirrored in `functions/src/gameLogic/achievements.ts`. The parity test asserts `LEGENDARY_ITEM_IDS` exactly matches every `rarity: 'legendary'` item in `ITEM_CATALOG`, `ACHIEVEMENT_GOLD` values match `ACHIEVEMENTS[id].goldReward`, and `checkNewAchievements` produces the same output as `checkDungeonAchievements` for equivalent inputs.
 
 ---
 

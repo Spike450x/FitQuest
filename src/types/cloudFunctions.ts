@@ -3,6 +3,33 @@ import type { ActivityType } from '@/types';
 // Shared callable function types — mirrors functions/src/index.ts interfaces.
 // Any change to the function's input/output shape must be reflected here.
 
+// ─── claimDungeonRun ──────────────────────────────────────────────────────────
+
+export interface ClaimDungeonRunInput {
+  runId: string;
+  /**
+   * Whether to mark `dungeonRunsToday.legendaryUsed = true` on the character.
+   * True for victory, false for retreat/defeat.
+   */
+  legendaryUsed: boolean;
+  /**
+   * Final status to stamp on the run document.
+   * Victory/retreat → 'completed', defeat → 'abandoned'.
+   */
+  outcomeStatus: 'completed' | 'abandoned';
+}
+
+export interface ClaimDungeonRunResult {
+  xp: number;
+  gold: number;
+  /** Gold from achievements alone — subset of `gold`. Used by the victory screen to show a breakdown. */
+  achievementGold: number;
+  items: string[];
+  leveledUp: boolean;
+  /** Achievement IDs earned by this run. Awarded server-side (gold included in `gold`). */
+  newAchievements: string[];
+}
+
 export interface LogActivityInput {
   activityType: ActivityType;
   amount: number;

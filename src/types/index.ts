@@ -1,3 +1,13 @@
+// ─── Achievements ─────────────────────────────────────────────────────────────
+
+export type AchievementId =
+  | 'dungeon-initiate'
+  | 'goblin-slayer'
+  | 'web-walker'
+  | 'dark-arts'
+  | 'dragonheart'
+  | 'legendary-haul';
+
 // ─── Character ───────────────────────────────────────────────────────────────
 
 export type CharacterClass = 'warrior' | 'wizard' | 'rogue';
@@ -50,6 +60,9 @@ export interface Character {
    * legendary chance. Resets to 0 on a legendary drop.
    */
   legendaryDryStreak?: Record<string, number>;
+  dungeonRunsToday?: DungeonRunsToday;
+  activeDungeonRunId?: string | null;
+  achievements?: AchievementId[];
   streakData?: {
     currentStreak: number;
     longestStreak: number;
@@ -261,4 +274,62 @@ export interface CombatResult {
   outcome: 'win' | 'loss';
   rounds: CombatRound[];
   rewards: { xp: number; gold: number; itemId?: string };
+}
+
+// ─── Dungeons ─────────────────────────────────────────────────────────────────
+
+export type DungeonTierId = 'goblin-caves' | 'spider-lair' | 'dark-sanctum' | 'dragons-keep';
+
+export type DungeonRoomType = 'combat' | 'stat-check' | 'rest' | 'boss';
+
+export interface DungeonRoomDef {
+  type: DungeonRoomType;
+  /** monsterId from MONSTER_CATALOG or DUNGEON_BOSSES — present for combat and boss rooms. */
+  monsterId?: string;
+  cleared: boolean;
+  lootAwarded: string[];
+  xpAwarded: number;
+  goldAwarded: number;
+}
+
+export interface DungeonRun {
+  id: string;
+  uid: string;
+  tierId: DungeonTierId;
+  weekSeed: number;
+  status: 'active' | 'completed' | 'abandoned';
+  currentRoom: number;
+  rooms: DungeonRoomDef[];
+  currentHp: number;
+  currentStamina: number;
+  currentMagic: number;
+  legendaryEligible: boolean;
+  cumulativeXp: number;
+  cumulativeGold: number;
+  allDroppedItems: string[];
+  startedAt: number;
+  completedAt: number | null;
+  /** True after the player has claimed rewards. Prevents double-award on re-open. */
+  claimed?: boolean;
+}
+
+export interface DungeonRunsToday {
+  date: string; // 'YYYY-MM-DD' UTC
+  count: number; // runs started today (0–2)
+  legendaryUsed: boolean;
+}
+
+/** Active venom DoT applied to a monster during a dungeon run combat room. */
+export interface PoisonedStatus {
+  roundsRemaining: number;
+  damagePerRound: number;
+}
+
+/** Tracks boss enrage state across rounds in a dungeon run. */
+export interface BossEnrageState {
+  triggered: boolean;
+  /** Dragon King: how many rounds of ignore-DEF remain (0 when inactive). */
+  dragonIgnoreDefRoundsLeft: number;
+  /** Necromancer: HP remaining in the one-time absorb shield (0 when spent). */
+  necroShieldHp: number;
 }

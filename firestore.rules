@@ -73,10 +73,10 @@ service cloud.firestore {
     // up to 1.5×). Decreases are always allowed (level-up rollover, gold spend,
     // resetCharacter, future prestige).
     function isValidCharacterDelta(newData, oldData) {
-      // XP cap tightened from 5000 → 600 after activity-cap audit.
-      // Largest single legit gain: top quest at level 50 (~350 XP) × streak ×1.25 ≈ 440 XP.
-      // 600 gives comfortable headroom while closing the sustained-drip fraud window.
-      return (newData.xp    - oldData.xp)    <= 600
+      // XP cap raised from 600 → 2000 to accommodate dungeon boss rooms.
+      // Dragon's Keep boss awards 550 base XP × 2.0 tier bonus = 1,100 XP in a single write.
+      // 2000 gives comfortable headroom while still blocking sustained-drip fraud.
+      return (newData.xp    - oldData.xp)    <= 2000
           && (newData.gold  - oldData.gold)  <= 2000
           && (newData.level - oldData.level) <= 5;
     }
@@ -97,7 +97,10 @@ service cloud.firestore {
           // Validated as a map only — individual values are kill counters with no meaningful
           // ceiling (a player who never gets a legendary would accumulate counts indefinitely,
           // which is legitimate game state).
-          && (!('legendaryDryStreak'  in data) || data.legendaryDryStreak  is map);
+          && (!('legendaryDryStreak'  in data) || data.legendaryDryStreak  is map)
+          && (!('dungeonRunsToday'    in data) || data.dungeonRunsToday    is map)
+          && (!('activeDungeonRunId'  in data) || data.activeDungeonRunId  == null || data.activeDungeonRunId is string)
+          && (!('achievements'        in data) || data.achievements        is list);
     }
 
     // Subclass rules (update path only — resource.data is the existing document):
@@ -310,6 +313,74 @@ service cloud.firestore {
           && request.resource.data.gold        is int && request.resource.data.gold >= 0 && request.resource.data.gold <= 10000
           && request.resource.data.loggedAt    is int && isRecentTimestamp(request.resource.data.loggedAt);
       allow update, delete: if false;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // DUNGEON RUNS — /dungeonRuns/{runId}
+    //
+    // Auto-ID documents. Created client-side when a run starts.
+    // Status transitions: active → completed | abandoned (one-way).
+    // currentRoom can only increase. cumulativeXp cap 8000 (Dragon's Keep boss
+    // 550 × 2.0 × all rooms ~7 ≈ 7,700; 8,000 is safe headroom).
+    // ══════════════════════════════════════════════════════════════════════════
+
+    function isValidDungeonTier(t) {
+      return t in ['goblin-caves', 'spider-lair', 'dark-sanctum', 'dragons-keep'];
+    }
+
+    function isValidDungeonStatus(s) {
+      return s in ['active', 'completed', 'abandoned'];
+    }
+
+    function isValidDungeonRunCreate(data) {
+      return data.uid               is string
+          && data.uid               == request.auth.uid
+          && isValidDungeonTier(data.tierId)
+          && data.weekSeed          is int   && data.weekSeed > 0
+          && data.status            == 'active'
+          && data.currentRoom       == 0
+          && data.rooms             is list
+          && data.currentHp         is int   && data.currentHp        >= 0
+          && data.currentStamina    is int   && data.currentStamina   >= 0
+          && data.currentMagic      is int   && data.currentMagic     >= 0
+          && data.legendaryEligible is bool
+          && data.cumulativeXp      == 0
+          && data.cumulativeGold    == 0
+          && data.allDroppedItems   is list
+          && data.startedAt         is int   && data.startedAt        > 0
+          && data.completedAt       == null;
+    }
+
+    function isValidDungeonRunUpdate(data) {
+      return data.uid       == resource.data.uid       // immutable
+          && data.tierId    == resource.data.tierId    // immutable
+          && data.weekSeed  == resource.data.weekSeed  // immutable
+          && data.startedAt == resource.data.startedAt // immutable
+          && isValidDungeonStatus(data.status)
+          // Status can only move forward: active→completed|abandoned, never back to active
+          && (resource.data.status == 'active' || data.status == resource.data.status)
+          && data.currentRoom    is int && data.currentRoom    >= resource.data.currentRoom
+          && data.rooms          is list
+          && data.currentHp      is int && data.currentHp      >= 0
+          && data.currentStamina is int && data.currentStamina >= 0
+          && data.currentMagic   is int && data.currentMagic   >= 0
+          && data.cumulativeXp   is int && data.cumulativeXp   >= 0 && data.cumulativeXp   <= 8000
+          && data.cumulativeGold is int && data.cumulativeGold >= 0 && data.cumulativeGold <= 10000
+          && data.allDroppedItems is list
+          && (data.completedAt == null || (data.completedAt is int && data.completedAt > 0))
+          && (!('claimed' in data) || data.claimed is bool)
+          // claimed is write-once: once true it cannot be unset
+          && (!('claimed' in resource.data) || !resource.data.claimed || (data.claimed == true));
+    }
+
+    match /dungeonRuns/{runId} {
+      allow read:   if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && isValidDungeonRunCreate(request.resource.data);
+      allow update: if isSignedIn()
+          && resource.data.uid == request.auth.uid
+          && isValidDungeonRunUpdate(request.resource.data);
+      allow delete: if false;
     }
 
   }

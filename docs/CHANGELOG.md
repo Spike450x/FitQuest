@@ -14,6 +14,44 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-21 — Achievement system hardening and victory screen polish
+
+- Achievement award moved inside the `claimDungeonRun` Firestore transaction — gold and badge stamp are now atomic; a concurrent claim can no longer award the same badge twice.
+- `logActivity` CF upgraded to `minInstances: 1` (matching `claimDungeonRun`) — eliminates cold-start delay on first daily log.
+- Achievement helpers extracted to `functions/src/gameLogic/achievements.ts`; new `achievements-parity.test.ts` asserts `LEGENDARY_ITEM_IDS`, `ACHIEVEMENT_GOLD`, and `checkNewAchievements` stay in sync with the src copy. Test count: 368.
+- `ClaimDungeonRunResult` gains `achievementGold: number`; victory screen Run Summary card shows a "Dungeon Xg + Achievements Yg" breakdown row when badges were earned.
+- `deploy:prod` script and CI step 16 updated to pass `--force` for non-interactive `minInstances` billing confirmation.
+
+## 2026-05-21 — Achievement gallery, flee feedback, a11y fixes
+
+- Profile page: 2-col achievement badge grid showing all 6 dungeon badges (unlocked in indigo with gold-earned label; locked dimmed with lock icon). Header strip previews all emojis at a glance.
+- Flee button flashes red for 700 ms on a failed attempt; caption below combat actions explains Agility mechanic.
+- History row buttons: `aria-label` with tier/date/status/loot count; `aria-expanded` on rows with loot.
+
+## 2026-05-21 — Dungeon polish pass 2: achievements, agility flee, loot preview
+
+- **Achievements system (dungeon):** 6 badges (Initiate, 4 tier clears, Legendary Haul) with gold bonus rewards. Checked post-victory via `checkDungeonAchievements()`; unlocks fire `toastAchievement` toasts and write `achievements[]` to character doc. 11 vitest unit tests.
+- **Agility-based flee:** replaced flat 20%-HP flee cost with `rollRunAway()` (existing arena formula — d10 + Agility bonus vs monster d10). Failed flee gives monster a free hit; success escapes with accumulated loot. Boss rooms still disallow flee.
+- **Run history loot preview:** rows are now expandable; clicking a row with drops reveals each item with rarity badge.
+- **Panel flash fix:** batched `fetchActiveRun` + `getRecentDungeonRuns` into `Promise.all`; resume banner and history section now appear in one render instead of sequentially.
+
+## 2026-05-21 — Dungeon polish: level-up banner, flee, run history, warm CF
+
+- Victory screen shows a LEVEL UP! banner when the claimDungeonRun CF returns `leveledUp: true`, holding before navigating so the player sees the moment.
+- Flee button added to non-boss combat rooms: costs 20% max HP, claims all accumulated loot from previously cleared rooms and exits the run.
+- Dungeon lobby shows a Recent Runs history panel (last 10 non-active runs).
+- `claimDungeonRun` CF set to `minInstances: 1` — eliminates cold-start stall on the claim action.
+- Added `uid + startedAt DESC` composite Firestore index for the history query.
+- `abandonRun` store action now skips `finalizeDungeonRun` when CF has already closed the run.
+
+## 2026-05-21 — Dungeons system shipped
+
+- Added 4-tier dungeon system (Goblin Caves → Spider Lair → Dark Sanctum → Dragon's Keep) with seeded weekly layouts, stat-check rooms, rest rooms, boss encounters with enrage mechanics, and escalating loot tables.
+- 12 dungeon-exclusive items (Epic/Legendary), venom DoT mechanic (Venomfang Bracer), boss enrage states, legendary lockout system.
+- `claimDungeonRun` callable Cloud Function for atomic reward disbursement (XP, gold, inventory) with idempotency guard.
+- Firestore: `dungeonRuns` collection with full security rules, composite index, XP delta cap raised to 2000 for Dragon's Keep boss rewards.
+- New routes: `/combat/dungeons` lobby, `/combat/dungeons/[tierId]` entry, `/combat/dungeons/run` active run. Arena|Dungeons tab switcher with URL persistence on `/combat`.
+
 ## 2026-05-18 — Documentation sweep and remaining gap fixes
 
 - `docs/CI.md`: added steps 5b (functions unit tests), 13-14 (Playwright install + E2E), corrected auto-deploy to combined `firestore:rules,indexes`, expanded regression table.
