@@ -30,7 +30,7 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 **Next priorities (post-MVP backlog, prioritized):**
 
-#### Balance & engine fixes (from game-systems-audit spec — fix before adding features)
+### Balance & engine fixes (from game-systems-audit spec — fix before adding features)
 
 - **P0-1** — Unify monster counter-attack formula: all monsters use flat damage (not % of player health); S effort
 - **P0-2** — Monster XP scaling cliff at level 10: add level-scaling multiplier so XP doesn't stall post-10; M effort
@@ -46,7 +46,7 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 - **P2-3** — Activity cap proximity indicator on the log form (e.g., "68% of daily cap used"); M effort
 - **P2-4** — Quest pool expansion + reroll mechanic (100g per reroll); S–M effort
 
-#### Feature backlog (dependency order — each unlocks the next)
+### Feature backlog (dependency order — each unlocks the next)
 
 1. **Achievements page** — `/character/achievements` full catalog with locked/unlocked states (badge gallery exists on profile; this adds the dedicated view with descriptions and progress hints)
 2. **Reputation / Wanted Board** — foundation currency for all social/endgame features; daily bounties from the Wanted Board, Reputation tiers with stat bonuses; spec: `2026-05-17-future-features-roadmap-design.md`
