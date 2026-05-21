@@ -20,6 +20,8 @@ import { playerMaxHp, playerMaxStamina, playerMaxMagic } from './gameLogic/comba
 admin.initializeApp();
 const db = admin.firestore();
 
+export { claimDungeonRun } from './claimDungeonRun';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface LogActivityInput {

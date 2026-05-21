@@ -23,7 +23,7 @@ import {
   dragonIgnoresDef,
   getWeekSeed,
 } from '@/lib/gameLogic/dungeons';
-import { claimDungeonRunRewards } from '@/lib/dungeonData';
+import { claimDungeonRunCF } from '@/lib/functions';
 import {
   calculateRound,
   rollLoot,
@@ -173,8 +173,8 @@ function LootCard({ itemId, index }: { itemId: string; index: number }) {
 export default function DungeonRunPage() {
   const router = useRouter();
   const { character } = useCharacter();
-  const { awardXpAndStats, awardGold } = useCharacterStore();
-  const { awardLoot } = useInventoryStore();
+  const { fetchCharacter } = useCharacterStore();
+  const { fetchInventory } = useInventoryStore();
   const { activeRun, fetchActiveRun, advanceRoom, completeRun, abandonRun } = useDungeonStore();
 
   // ── Local run state ────────────────────────────────────────────────────────
@@ -514,10 +514,8 @@ export default function DungeonRunPage() {
     }
     setClaiming(true);
     try {
-      await claimDungeonRunRewards(activeRun.id);
-      if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
-      if (cumulativeGold > 0) await awardGold(cumulativeGold);
-      if (allItems.length > 0) await awardLoot(character.uid, allItems);
+      await claimDungeonRunCF(activeRun.id, false, 'completed');
+      await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
       await completeRun(character.uid, false);
       router.push('/combat/dungeons');
     } finally {
@@ -534,10 +532,8 @@ export default function DungeonRunPage() {
     setClaiming(true);
     const legendaryUsed = activeRun.legendaryEligible;
     try {
-      await claimDungeonRunRewards(activeRun.id);
-      if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
-      if (cumulativeGold > 0) await awardGold(cumulativeGold);
-      if (allItems.length > 0) await awardLoot(character.uid, allItems);
+      await claimDungeonRunCF(activeRun.id, legendaryUsed, 'completed');
+      await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
       await completeRun(character.uid, legendaryUsed);
       router.push('/combat/dungeons');
     } finally {
@@ -598,10 +594,11 @@ export default function DungeonRunPage() {
             setReturning(true);
             try {
               if (!activeRun?.claimed) {
-                await claimDungeonRunRewards(activeRun!.id);
-                if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
-                if (cumulativeGold > 0) await awardGold(cumulativeGold);
-                if (allItems.length > 0) await awardLoot(character.uid, allItems);
+                await claimDungeonRunCF(activeRun!.id, false, 'abandoned');
+                await Promise.all([
+                  fetchCharacter(character.uid, true),
+                  fetchInventory(character.uid),
+                ]);
               }
               await abandonRun(character.uid);
               router.push('/combat/dungeons');

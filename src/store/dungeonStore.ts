@@ -161,6 +161,13 @@ export const useDungeonStore = create<DungeonStore>((set, get) => ({
     const { activeRun } = get();
     if (!activeRun) return;
     try {
+      // If the CF already finalized the run (status is non-active), skip Firestore
+      // writes — the CF stamped status, completedAt, activeDungeonRunId, and
+      // legendaryUsed server-side. Just clear local store state.
+      if (activeRun.status !== 'active') {
+        set({ activeRun: null });
+        return;
+      }
       await finalizeDungeonRun(activeRun.id, 'completed');
       // Update character: clear active run id, mark legendary used if applicable.
       // Dot-notation key 'dungeonRunsToday.legendaryUsed' is a valid Firestore
