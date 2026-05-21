@@ -22,20 +22,21 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 ---
 
-## Current Status (last updated 2026-05-17)
+## Current Status (last updated 2026-05-21)
 
-**Shipped:** MVP phases 1–5 + Spells (21-spell catalog, dice resolution) + Streaks/PRs (Blessing tiers, 1.5× PR XP) + Subclasses (6, level-10 unlock) + Profile analytics + R1 streak boost transparency in victory modal + R4-StageB `logActivity` Cloud Function (server-side daily-cap enforcement, mastery writes) + R4-StageC restore migration (HP/Stamina/Magic capped at formula-derived max server-side) + CI Firestore rules auto-deploy. Code-audit sweeps to 10/10 — full architecture contract (lib wrappers for Firestore/Auth/Cloud Functions via `src/lib/{auth,functions,fetchPlayerData,characterData,activityData,questData,inventoryData,combatData,errors}.ts`), Firestore field normalizers (safe defaults for post-MVP schema fields), store-first reads on stats page, parallel equipment writes in `awardLoot`, combat `useMemo` hoisting, `useCharacter` 30 s TTL with `force` bypass, stat-alloc two-click confirmation, auth form a11y (`id`/`htmlFor`/`autoComplete`), `rotationExpiresAt()`, `(uid, loggedAt DESC)` Firestore index deployed, `rewardedXp`/`rewardedGold` stamped at quest claim, `legendaryDryStreak` Firestore rule validation, Cloud Functions vitest suite, Playwright E2E smoke suite (14 tests), CI updated with functions tests + E2E steps + combined `firestore:rules,indexes` auto-deploy, stats page analytics dashboard (stacked XP chart, Battles Won card, error state, 1000-log limit).
+**Shipped:** MVP phases 1–5 + Spells (21-spell catalog, dice resolution) + Streaks/PRs (Blessing tiers, 1.5× PR XP) + Subclasses (6, level-10 unlock) + Profile analytics + R1 streak boost transparency in victory modal + R4-StageB `logActivity` Cloud Function (server-side daily-cap enforcement, mastery writes) + R4-StageC restore migration (HP/Stamina/Magic capped at formula-derived max server-side) + CI Firestore rules auto-deploy. Code-audit sweeps to 10/10 — full architecture contract (lib wrappers for Firestore/Auth/Cloud Functions via `src/lib/{auth,functions,fetchPlayerData,characterData,activityData,questData,inventoryData,combatData,errors}.ts`), Firestore field normalizers (safe defaults for post-MVP schema fields), store-first reads on stats page, parallel equipment writes in `awardLoot`, combat `useMemo` hoisting, `useCharacter` 30 s TTL with `force` bypass, stat-alloc two-click confirmation, auth form a11y (`id`/`htmlFor`/`autoComplete`), `rotationExpiresAt()`, `(uid, loggedAt DESC)` Firestore index deployed, `rewardedXp`/`rewardedGold` stamped at quest claim, `legendaryDryStreak` Firestore rule validation, Cloud Functions vitest suite, Playwright E2E smoke suite (14 tests), CI updated with functions tests + E2E steps + combined `firestore:rules,indexes` auto-deploy, stats page analytics dashboard (stacked XP chart, Battles Won card, error state, 1000-log limit). **Dungeons** — 4-tier multi-room runs (Goblin Caves/Spider Lair/Dark Sanctum/Dragon's Keep), seeded weekly layouts, stat-check/rest/boss rooms, enrage mechanics, venom DoT, 12 exclusive items, legendary lockout, `claimDungeonRun` CF for atomic rewards.
 
-**Active focus:** Dungeons — multi-room runs with escalating loot.
+**Active focus:** Achievements — milestone badges, one-time rewards.
 
 **Next priorities (post-MVP backlog, prioritized):**
 
-1. **Dungeons** — multi-room runs with escalating loot
-2. **Achievements** — milestone badges, one-time rewards
+1. **Achievements** — milestone badges, one-time rewards
+2. **Prestige / Ascension** — reset for permanent bonuses
 3. **Prestige / Ascension** — reset for permanent bonuses
 4. **PWA** — installable mobile experience
 5. **Apple Health integration** — auto-import workouts
 6. **Leaderboards** — compare with other users
+7. **Guild system** — cooperative play
 
 **Update protocol:** when a feature ships, move it from "Next" to "Shipped", bump the date, and append an entry to [docs/CHANGELOG.md](docs/CHANGELOG.md). This section in CLAUDE.md is the **canonical** status snapshot — `memory/project_state.md` no longer tracks status, only deep implementation details.
 
