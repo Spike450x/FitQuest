@@ -105,7 +105,7 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          FitQuest — Architecture                        │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -354,31 +354,34 @@ Roll 6d6 during combat to trigger a class-specific ability. Costs 10 stamina. Th
 **Pattern priority (highest wins):** Four of a Kind > Full House > Large Straight (1–5 or 2–6) > Small Straight (any 4 consecutive) > Three of a Kind
 
 **Warrior:**
-| Pattern | Ability | Effect |
-|---|---|---|
-| Three of a Kind | Power Strike | 2× damage, bypasses monster defense |
-| Full House | Shield Slam | 2× damage, stuns monster |
-| Small Straight | War Cry | 1.5× damage, stuns monster |
-| Large Straight | Berserker Rage | 3× damage, bypasses all defense (yours too) |
-| Four of a Kind | Unstoppable | 3× damage, bypasses defense, stuns monster |
+
+| Pattern         | Ability        | Effect                                      |
+| --------------- | -------------- | ------------------------------------------- |
+| Three of a Kind | Power Strike   | 2× damage, bypasses monster defense         |
+| Full House      | Shield Slam    | 2× damage, stuns monster                    |
+| Small Straight  | War Cry        | 1.5× damage, stuns monster                  |
+| Large Straight  | Berserker Rage | 3× damage, bypasses all defense (yours too) |
+| Four of a Kind  | Unstoppable    | 3× damage, bypasses defense, stuns monster  |
 
 **Wizard:**
-| Pattern | Ability | Effect |
-|---|---|---|
-| Three of a Kind | Arcane Bolt | 2× magic damage |
-| Full House | Mana Surge | 2× magic damage, stuns monster |
-| Small Straight | Chain Lightning | 3× magic damage |
-| Large Straight | Meteor | 3× magic damage, bypasses defense |
-| Four of a Kind | Time Warp | 2.5× magic damage, stuns monster |
+
+| Pattern         | Ability         | Effect                            |
+| --------------- | --------------- | --------------------------------- |
+| Three of a Kind | Arcane Bolt     | 2× magic damage                   |
+| Full House      | Mana Surge      | 2× magic damage, stuns monster    |
+| Small Straight  | Chain Lightning | 3× magic damage                   |
+| Large Straight  | Meteor          | 3× magic damage, bypasses defense |
+| Four of a Kind  | Time Warp       | 2.5× magic damage, stuns monster  |
 
 **Rogue:**
-| Pattern | Ability | Effect |
-|---|---|---|
-| Three of a Kind | Backstab | 2× damage |
-| Full House | Smoke Bomb | 1.5× damage, stuns monster |
-| Small Straight | Blade Dance | 1.5× damage, 30% lifesteal |
-| Large Straight | Death Mark | 2.5× damage, 50% lifesteal |
-| Four of a Kind | Assassinate | 3× damage, bypasses defense, stuns monster |
+
+| Pattern         | Ability     | Effect                                     |
+| --------------- | ----------- | ------------------------------------------ |
+| Three of a Kind | Backstab    | 2× damage                                  |
+| Full House      | Smoke Bomb  | 1.5× damage, stuns monster                 |
+| Small Straight  | Blade Dance | 1.5× damage, 30% lifesteal                 |
+| Large Straight  | Death Mark  | 2.5× damage, 50% lifesteal                 |
+| Four of a Kind  | Assassinate | 3× damage, bypasses defense, stuns monster |
 
 ---
 
@@ -587,7 +590,7 @@ A dedicated profile page with:
 
 ### XP & Leveling
 
-```
+```text
 XP to next level = floor(100 × level^1.5)
 ```
 
@@ -595,7 +598,7 @@ Examples: Level 1 → 2 requires 100 XP. Level 5 → 6 requires 559 XP. Level 10
 
 ### Combat Formulas
 
-```
+```text
 Player Max HP      = 50 + (stamina × 2) + (health × 1) + gear bonuses
 Player Max Stamina = 20  + (stamina stat × 5) + gear bonuses
 Player Max Magic   = 20  + (wisdom × 3) [+10 for wizards]
@@ -634,7 +637,7 @@ All monsters have loot tables. The Ancient Dragon drops legendary loot-only item
 
 ## Project Structure
 
-```
+```text
 src/
 ├── app/
 │   ├── (auth)/              # Login, register pages
@@ -720,7 +723,7 @@ src/
 
    Copy `.env.local.example` to `.env.local` and fill in your Firebase project credentials:
 
-   ```
+   ```env
    NEXT_PUBLIC_FIREBASE_API_KEY=
    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
    NEXT_PUBLIC_FIREBASE_PROJECT_ID=
@@ -732,9 +735,11 @@ src/
    Find these in: Firebase Console → Project Settings → Your Apps → SDK setup and configuration.
 
 4. **Run the dev server**
+
    ```bash
    npm run dev
    ```
+
    Open [http://localhost:3000](http://localhost:3000).
 
 ---

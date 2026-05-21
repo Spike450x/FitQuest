@@ -35,6 +35,41 @@ test.describe('unauthenticated redirects', () => {
     await page.goto('/quests');
     await expect(page).toHaveURL(/\/login/);
   });
+
+  test('/character redirects to /login', async ({ page }) => {
+    await page.goto('/character');
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test('/inventory redirects to /login', async ({ page }) => {
+    await page.goto('/inventory');
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test('/shop redirects to /login', async ({ page }) => {
+    await page.goto('/shop');
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test('/profile redirects to /login', async ({ page }) => {
+    await page.goto('/profile');
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test('/combat/dungeons redirects to /login', async ({ page }) => {
+    await page.goto('/combat/dungeons');
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test('/combat/dungeons/run redirects to /login', async ({ page }) => {
+    await page.goto('/combat/dungeons/run');
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test('/combat/dungeons/[tierId] redirects to /login', async ({ page }) => {
+    await page.goto('/combat/dungeons/goblin-caves');
+    await expect(page).toHaveURL(/\/login/);
+  });
 });
 
 // ─── Login Page ───────────────────────────────────────────────────────────────

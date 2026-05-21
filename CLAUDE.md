@@ -4,7 +4,7 @@
 
 A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Players log real-world workouts to earn XP, level up a character, unlock gear, complete quests, and battle enemies.
 
-**Stack:** Next.js 14 (App Router) · React 18 · TypeScript 5 · Tailwind CSS · Firebase (Firestore + Auth) · Zustand · Recharts
+**Stack:** Next.js 15 (App Router) · React 18 · TypeScript 5 · Tailwind CSS · Firebase (Firestore + Auth) · Zustand · Recharts
 
 **Firebase project:** `fitness-rpg-claude`
 
@@ -26,16 +26,40 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 **Shipped:** MVP phases 1–5 + Spells (21-spell catalog, dice resolution) + Streaks/PRs (Blessing tiers, 1.5× PR XP) + Subclasses (6, level-10 unlock) + Profile analytics + R1 streak boost transparency in victory modal + R4-StageB `logActivity` Cloud Function (server-side daily-cap enforcement, mastery writes) + R4-StageC restore migration (HP/Stamina/Magic capped at formula-derived max server-side) + CI Firestore rules auto-deploy. Code-audit sweeps to 10/10 — full architecture contract (lib wrappers for Firestore/Auth/Cloud Functions via `src/lib/{auth,functions,fetchPlayerData,characterData,activityData,questData,inventoryData,combatData,errors}.ts`), Firestore field normalizers (safe defaults for post-MVP schema fields), store-first reads on stats page, parallel equipment writes in `awardLoot`, combat `useMemo` hoisting, `useCharacter` 30 s TTL with `force` bypass, stat-alloc two-click confirmation, auth form a11y (`id`/`htmlFor`/`autoComplete`), `rotationExpiresAt()`, `(uid, loggedAt DESC)` Firestore index deployed, `rewardedXp`/`rewardedGold` stamped at quest claim, `legendaryDryStreak` Firestore rule validation, Cloud Functions vitest suite, Playwright E2E smoke suite (14 tests), CI updated with functions tests + E2E steps + combined `firestore:rules,indexes` auto-deploy, stats page analytics dashboard (stacked XP chart, Battles Won card, error state, 1000-log limit). **Dungeons** — 4-tier multi-room runs (Goblin Caves/Spider Lair/Dark Sanctum/Dragon's Keep), seeded weekly layouts, stat-check/rest/boss rooms, enrage mechanics, venom DoT, 12 exclusive items, legendary lockout, `claimDungeonRun` CF for atomic rewards. **Achievements** — 6 dungeon badges (Initiate, 4 tier clears, Legendary Haul), gold rewards awarded atomically inside `claimDungeonRun` CF transaction (no race window), parity-tested CF copy, achievement gold breakdown in victory screen, profile badge gallery.
 
-**Active focus:** Prestige / Ascension — reset for permanent bonuses.
+**Active focus:** Balance & engine fixes — high-value, small-to-medium effort items that sharpen the core game loop before adding new features.
 
 **Next priorities (post-MVP backlog, prioritized):**
 
-1. **Prestige / Ascension** — reset for permanent bonuses
-2. **Achievements page** — dedicated `/character/achievements` view (badge grid already visible on profile, but no full catalog/locked state view)
-3. **PWA** — installable mobile experience
-4. **Apple Health integration** — auto-import workouts
-5. **Leaderboards** — compare with other users
-6. **Guild system** — cooperative play
+### Balance & engine fixes (from game-systems-audit spec — fix before adding features)
+
+- **P0-1** — Unify monster counter-attack formula: all monsters use flat damage (not % of player health); S effort
+- **P0-2** — Monster XP scaling cliff at level 10: add level-scaling multiplier so XP doesn't stall post-10; M effort
+- **P0-3** — Daily combat XP cap / diminishing returns: prevent farm loops after ~10 battles/day; M effort
+- **P1-1** — Steepen quest XP scaler to `0.4 + 0.6 * sqrt(level)` — quests fall behind monster XP at high levels; S effort
+- **P1-2** — Raise Blessed tier streak XP multiplier 1.25× → 1.50× — current bonus undersells the habit streak; S effort
+- **P1-3** — Gold endgame sinks: quest reroll (100g) and dungeon entry fees — gold accumulates with nothing to spend it on; S–M effort
+- **P1-4** — Fizzle stamina refund: return 5 stamina on failed ability roll (currently 10 — too generous); S effort
+- **P1-5** — Add level-9 monster (Lich King) to fill the gap between level-8 Vampire and level-10 Dragon; S effort
+- **P1-6** — Dungeon resource persistence: HP/Stamina/Magic carry between rooms (currently reset); L effort
+- **P2-1** — Wisdom-from-steps mastery tooltip: surface the stat link on the log form; S effort
+- **P2-2** — Wizard starting stats: +2 health or stamina to compensate for low base; S effort
+- **P2-3** — Activity cap proximity indicator on the log form (e.g., "68% of daily cap used"); M effort
+- **P2-4** — Quest pool expansion + reroll mechanic (100g per reroll); S–M effort
+
+### Feature backlog (dependency order — each unlocks the next)
+
+1. **Achievements page** — `/character/achievements` full catalog with locked/unlocked states (badge gallery exists on profile; this adds the dedicated view with descriptions and progress hints)
+2. **Reputation / Wanted Board** — foundation currency for all social/endgame features; daily bounties from the Wanted Board, Reputation tiers with stat bonuses; spec: `2026-05-17-future-features-roadmap-design.md`
+3. **Champions** — 10-champion roster, dungeon deployment, injury/recovery system, 7 archetypes (Warrior/Mage/Rogue/Ranger/Paladin/Necromancer/Bard), pip-dot cooldown UI; spec: `2026-05-17-champions-reputation-streaks-design.md`; requires Reputation
+4. **Guilds** — level-15 unlock, activity-aligned XP drip, rank milestones, exclusive gear; requires Reputation
+5. **Pets** — milestone/birthday unlock, 3 active slots, passive+active abilities scaled by rarity; requires Reputation/Champions groundwork
+6. **Monthly NPCs** — 6 rotating NPCs with seeded challenge pools, permanent expiry after each month, level/reputation gates; requires Champions + Reputation
+7. **Raids** — bi-weekly events, 5-day streak gate, 2+ champions required, god-tier loot, streak makeup mechanics; requires Champions + Guilds
+8. **Territory / Map** — GPS-based zone claiming, PvP disputes with 3-day response window; long-horizon feature, requires all above
+9. **Prestige / Ascension** — reset for permanent bonuses; design TBD (no spec yet)
+10. **PWA** — installable mobile experience (no spec yet; can land independently)
+11. **Apple Health integration** — auto-import workouts (no spec yet; can land independently)
+12. **Leaderboards** — compare with other users (no spec yet; requires user growth)
 
 **Update protocol:** when a feature ships, move it from "Next" to "Shipped", bump the date, and append an entry to [docs/CHANGELOG.md](docs/CHANGELOG.md). This section in CLAUDE.md is the **canonical** status snapshot — `memory/project_state.md` no longer tracks status, only deep implementation details.
 
