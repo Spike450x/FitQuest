@@ -4,7 +4,7 @@
 
 A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Players log real-world workouts to earn XP, level up a character, unlock gear, complete quests, and battle enemies.
 
-**Stack:** Next.js 14 (App Router) · React 18 · TypeScript 5 · Tailwind CSS · Firebase (Firestore + Auth) · Zustand · Recharts
+**Stack:** Next.js 15 (App Router) · React 18 · TypeScript 5 · Tailwind CSS · Firebase (Firestore + Auth) · Zustand · Recharts
 
 **Firebase project:** `fitness-rpg-claude`
 

@@ -150,9 +150,9 @@ Items with `lootOnly: true` never appear in the shop — only in monster loot ta
 
 ## `monsters.ts` — monster catalog
 
-| Export            | Purpose                                                    |
-| ----------------- | ---------------------------------------------------------- |
-| `MONSTER_CATALOG` | All 10 monsters (level 1 → 10) with stats and loot tables. |
+| Export            | Purpose                                                                                               |
+| ----------------- | ----------------------------------------------------------------------------------------------------- |
+| `MONSTER_CATALOG` | 10 monsters (levels 1–10; two at level 1, gap at level 9 — Lich King pending, see P1-5 in CLAUDE.md). |
 
 The Ancient Dragon's loot table is the primary source of legendary loot from regular combat. Dungeon bosses have separate, tier-specific loot tables (defined in `dungeons.ts`) containing 12 dungeon-exclusive items not available from regular combat or the shop (`lootOnly: true`).
 

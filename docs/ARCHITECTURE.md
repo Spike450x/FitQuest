@@ -6,7 +6,7 @@ Reference for how the app is wired together. For game-design / mechanic details 
 
 ## Layered architecture
 
-FitQuest is a single-page Next.js 14 app with a clear top-down dependency chain. Every layer below is a **producer** that the layer above consumes; nothing skips a layer (e.g. components must not call Firestore directly).
+FitQuest is a single-page Next.js 15 app with a clear top-down dependency chain. Every layer below is a **producer** that the layer above consumes; nothing skips a layer (e.g. components must not call Firestore directly).
 
 ```mermaid
 graph TD
