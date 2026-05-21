@@ -4,7 +4,7 @@
 **Status:** Approved, ready for implementation planning
 **Scope:** V1 Dungeon system — multi-room runs with escalating loot, seeded weekly rotation, stat check rooms, boss encounters, and Firestore-persisted run state.
 **Depends on:** Existing combat engine (`src/lib/gameLogic/combat.ts`), existing rotation logic, existing consumable system
-**Deferred to V2:** Activity gate rooms, text riddle rooms, Champions system (slots stubbed in V1), boss enrage UI polish
+**Deferred to V2:** Activity gate rooms, text riddle rooms, Champions system (slots stubbed in V1)
 
 ---
 
@@ -196,7 +196,7 @@ Items are thematically tied to their tier and build-enabling rather than strictl
 
 ### Spider Lair
 
-- **Venomfang Bracer** (Accessory, Epic): +5 AGI. Passive: 20% chance on physical hit to apply venom — monster takes 3 damage per round for 3 rounds, bypassing defense. **Note:** venom DoT is a new combat mechanic not in the current engine. Implementation requires a `poisoned` status flag on monster state and a per-round damage tick in `resolveRoundOutcome`. Scope explicitly in the implementation plan or simplify to a flat +N damage on proc for V1.
+- **Venomfang Bracer** (Accessory, Epic): +5 AGI. Passive: 20% chance on physical hit to apply venom — monster takes 3 damage per round for 3 rounds, bypassing defense. **Implementation note:** venom DoT requires a `poisoned: { roundsRemaining: number; damagePerRound: number }` status field on in-combat monster state, and a per-round tick in `resolveRoundOutcome` before incoming passive resolution. DoT damage bypasses defense and the `DEFENSE_FAIL_CHANCE` roll. Scoped into V1.
 - **Arachnoweave Cloak** (Armor, Rare): +3 DEF, +4 AGI. Passive: reduce escape-roll failure chance by 15%.
 - **Spiderspun Tome** (Accessory, Epic, Wizard only): +6 WIS. Passive: once per combat, when magic would drop to 0, retain 10 magic instead.
 
@@ -343,9 +343,15 @@ These are not blockers if tight on time — dungeons will function without them 
 - [ ] Seeded generation function produces deterministic output for the same week seed
 - [ ] Stat check thresholds include gear bonuses (same as combat stat resolution)
 - [ ] Entry fee deducted atomically with run document creation
-- [ ] Resume state loads before rendering the lobby (no false "no run" flash)
+- [ ] Dungeon lobby renders a skeleton loading state until active run check resolves (prevents false "no run" flash before resume banner appears)
+- [ ] Resume banner shows dungeon name, current room, and HP/Stamina/Magic at last save point
 - [ ] Daily limit and legendary lockout enforced server-side (not just client-side)
 - [ ] Boss enrage mechanics stay within existing `calculateRound` pipeline
+- [ ] Enrage UI: a status strip below the progress chain shows active boss effects ("Enraged — +8 ATK", "Shield active — 30 HP remaining") when triggered
+- [ ] Necromancer shield implemented as a damage-absorption modifier in `resolveRoundOutcome` (mirrors existing Divine Aegis passive pattern)
+- [ ] Dragon King enrage implemented as a stat override applied for exactly 3 rounds with a round counter in dungeon run state
+- [ ] Venom DoT: `poisoned` status on in-combat monster state, 3-damage tick per round for 3 rounds in `resolveRoundOutcome`, bypassing defense
+- [ ] Venom proc chance (20%) and DoT values covered by vitest unit tests in `src/lib/gameLogic/__tests__/`
 - [ ] Dungeon-exclusive items added to item catalog with `lootOnly: true`
 - [ ] Retreat and defeat both award previously-cleared-room loot/XP
 - [ ] Progress chain accessible: nodes use icon + label, not color alone
@@ -365,7 +371,7 @@ These are not blockers if tight on time — dungeons will function without them 
 
 1. **Global daily limit vs per-tier** — a player who runs Goblin Caves twice has used their daily allocation and cannot access Dragon's Keep that day. This may feel restrictive for high-level players who have outgrown Goblin Caves. Consider whether the global cap should only apply to same-tier runs, or exempt lower tiers from counting against the cap for players 5+ levels above the tier range.
 2. **HP gate gaming via nutrition logging** — a player at 30% HP can log meals to restore HP and then immediately enter. This is the intended fitness loop, but the restoration is instant in-game (no cooldown). Acceptable design risk given the Cloud Function daily cap on nutrition, but worth monitoring.
-3. **Enrage UI requirements** — the Necromancer shield and Dragon King enrage both need new combat UI signals (shield HP indicator, enrage status icon) not currently in the combat page. Scope these explicitly in the implementation plan or defer enrage to the second tier shipped.
-4. **Resume latency** — loading `activeDungeonRunId` from Firestore on lobby page load causes a flash where the tier grid renders before the resume banner appears. A skeleton loading state for the lobby is required.
+3. **Enrage UI** — resolved: a status strip below the progress chain surfaces active boss effects. Necromancer shield mirrors the existing Divine Aegis passive. Dragon King enrage uses a 3-round counter in run state. Fully scoped into V1.
+4. **Resume latency** — resolved: lobby renders a skeleton loading state until the active run check resolves. See pre-ship checklist.
 5. **Hybrid build stat check accessibility** — a player who split points across STR/WIS/AGI may fail all available paths on Dark Sanctum or Dragon's Keep checks (thresholds 19/16/16 and 25/21/21). Consider a fourth fallback path using a secondary stat (Stamina or Defense) for high-tier dungeons.
 6. **Legendary lockout communication on run 2** — if the lockout status is not shown inside the boss victory modal (only on the entry screen), players on their second daily run will fight the full boss and see no legendary with no explanation. The lockout must appear in the boss loot section of the victory modal.
