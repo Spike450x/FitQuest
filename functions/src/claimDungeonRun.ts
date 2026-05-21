@@ -38,6 +38,7 @@ interface ClaimDungeonRunResult {
 // already owned — mirrors the equipment branch of awardLoot in inventoryStore).
 
 export const claimDungeonRun = onCall<ClaimDungeonRunInput, Promise<ClaimDungeonRunResult>>(
+  { minInstances: 1 },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError('unauthenticated', 'Must be signed in.');
