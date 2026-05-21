@@ -96,3 +96,8 @@ export async function finalizeDungeonRun(
     completedAt: Date.now(),
   });
 }
+
+/** Atomically mark a run as rewards-claimed. Call before awarding XP/gold/items. */
+export async function claimDungeonRunRewards(runId: string): Promise<void> {
+  await updateDoc(doc(db, DUNGEON_RUNS_COLLECTION, runId), { claimed: true });
+}

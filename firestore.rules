@@ -367,7 +367,10 @@ service cloud.firestore {
           && data.cumulativeXp   is int && data.cumulativeXp   >= 0 && data.cumulativeXp   <= 8000
           && data.cumulativeGold is int && data.cumulativeGold >= 0 && data.cumulativeGold <= 10000
           && data.allDroppedItems is list
-          && (data.completedAt == null || (data.completedAt is int && data.completedAt > 0));
+          && (data.completedAt == null || (data.completedAt is int && data.completedAt > 0))
+          && (!('claimed' in data) || data.claimed is bool)
+          // claimed is write-once: once true it cannot be unset
+          && (!('claimed' in resource.data) || !resource.data.claimed || (data.claimed == true));
     }
 
     match /dungeonRuns/{runId} {

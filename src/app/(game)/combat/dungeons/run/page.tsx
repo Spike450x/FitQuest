@@ -507,8 +507,13 @@ export default function DungeonRunPage() {
 
   async function handleRetreat() {
     if (!character || !activeRun || claiming) return;
+    if (activeRun.claimed) {
+      router.push('/combat/dungeons');
+      return;
+    }
     setClaiming(true);
     try {
+      await claimDungeonRunRewards(activeRun.id);
       if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
       if (cumulativeGold > 0) await awardGold(cumulativeGold);
       if (allItems.length > 0) await awardLoot(character.uid, allItems);
@@ -521,9 +526,14 @@ export default function DungeonRunPage() {
 
   async function handleClaimVictory() {
     if (!character || !activeRun || claiming) return;
+    if (activeRun.claimed) {
+      router.push('/combat/dungeons');
+      return;
+    }
     setClaiming(true);
     const legendaryUsed = activeRun.legendaryEligible;
     try {
+      await claimDungeonRunRewards(activeRun.id);
       if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
       if (cumulativeGold > 0) await awardGold(cumulativeGold);
       if (allItems.length > 0) await awardLoot(character.uid, allItems);
@@ -584,9 +594,12 @@ export default function DungeonRunPage() {
         <button
           onClick={async () => {
             if (!character) return;
-            if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
-            if (cumulativeGold > 0) await awardGold(cumulativeGold);
-            if (allItems.length > 0) await awardLoot(character.uid, allItems);
+            if (!activeRun?.claimed) {
+              await claimDungeonRunRewards(activeRun!.id);
+              if (cumulativeXp > 0) await awardXpAndStats(cumulativeXp, {});
+              if (cumulativeGold > 0) await awardGold(cumulativeGold);
+              if (allItems.length > 0) await awardLoot(character.uid, allItems);
+            }
             await abandonRun(character.uid);
             router.push('/combat/dungeons');
           }}

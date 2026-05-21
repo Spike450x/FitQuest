@@ -298,6 +298,8 @@ export interface DungeonRun {
   allDroppedItems: string[];
   startedAt: number;
   completedAt: number | null;
+  /** True after the player has claimed rewards. Prevents double-award on re-open. */
+  claimed?: boolean;
 }
 
 export interface DungeonRunsToday {
