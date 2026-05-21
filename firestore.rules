@@ -73,10 +73,10 @@ service cloud.firestore {
     // up to 1.5×). Decreases are always allowed (level-up rollover, gold spend,
     // resetCharacter, future prestige).
     function isValidCharacterDelta(newData, oldData) {
-      // XP cap tightened from 5000 → 600 after activity-cap audit.
-      // Largest single legit gain: top quest at level 50 (~350 XP) × streak ×1.25 ≈ 440 XP.
-      // 600 gives comfortable headroom while closing the sustained-drip fraud window.
-      return (newData.xp    - oldData.xp)    <= 600
+      // XP cap raised from 600 → 2000 to accommodate dungeon boss rooms.
+      // Dragon's Keep boss awards 550 base XP × 2.0 tier bonus = 1,100 XP in a single write.
+      // 2000 gives comfortable headroom while still blocking sustained-drip fraud.
+      return (newData.xp    - oldData.xp)    <= 2000
           && (newData.gold  - oldData.gold)  <= 2000
           && (newData.level - oldData.level) <= 5;
     }
@@ -97,7 +97,9 @@ service cloud.firestore {
           // Validated as a map only — individual values are kill counters with no meaningful
           // ceiling (a player who never gets a legendary would accumulate counts indefinitely,
           // which is legitimate game state).
-          && (!('legendaryDryStreak'  in data) || data.legendaryDryStreak  is map);
+          && (!('legendaryDryStreak'  in data) || data.legendaryDryStreak  is map)
+          && (!('dungeonRunsToday'    in data) || data.dungeonRunsToday    is map)
+          && (!('activeDungeonRunId'  in data) || data.activeDungeonRunId  == null || data.activeDungeonRunId is string);
     }
 
     // Subclass rules (update path only — resource.data is the existing document):
