@@ -3,6 +3,51 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+
+// ─── Dungeon tab helpers ───────────────────────────────────────────────────────
+
+type CombatTab = 'arena' | 'dungeons';
+
+function CombatModeTab({
+  active,
+  onChange,
+}: {
+  active: CombatTab;
+  onChange: (t: CombatTab) => void;
+}) {
+  return (
+    <div className="flex bg-slate-800 rounded-lg p-1 mb-4">
+      {(['arena', 'dungeons'] as const).map((tab) => (
+        <button
+          key={tab}
+          onClick={() => onChange(tab)}
+          className={`flex-1 py-2 rounded-md text-sm font-semibold transition-colors capitalize ${
+            active === tab
+              ? 'bg-indigo-600 text-white shadow'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          {tab === 'arena' ? '⚔ Arena' : '🏰 Dungeons'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DungeonLobbyInline() {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 gap-4">
+      <div className="text-5xl">🏰</div>
+      <p className="text-slate-300 text-sm">Enter weekly dungeon runs for escalating loot.</p>
+      <Link
+        href="/combat/dungeons"
+        className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+      >
+        Open Dungeon Lobby →
+      </Link>
+    </div>
+  );
+}
 import { useRouter } from 'next/navigation';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
@@ -202,6 +247,7 @@ export default function CombatPage() {
   const awardLoot = useInventoryStore((s) => s.awardLoot);
   const consumeItem = useInventoryStore((s) => s.useConsumable);
 
+  const [combatTab, setCombatTab] = useState<CombatTab>('arena');
   const [phase, setPhase] = useState<'select' | 'fighting'>('select');
   const [fightState, setFightState] = useState<FightState | null>(null);
   const [rollingAction, setRollingAction] = useState<
@@ -1451,41 +1497,49 @@ export default function CombatPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {dailyMonsters.map((monster) => (
-          <MonsterCard
-            key={monster.id}
-            monster={monster}
-            playerLevel={character.level}
-            dryStreak={getPityFor(monster.id)}
-            onFight={enterFight}
-          />
-        ))}
-      </div>
+      <CombatModeTab active={combatTab} onChange={setCombatTab} />
 
-      {/* Ability reference card */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            🎲 Ability Guide · <span className="capitalize">{character.class}</span>
-          </p>
-          {character.subclass &&
-            (() => {
-              const sd = getSubclassDef(character.subclass);
-              return sd ? (
-                <span className="text-xs font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2.5 py-0.5">
-                  {sd.emoji} {sd.name}
-                </span>
-              ) : null;
-            })()}
-        </div>
-        <p className="text-xs text-gray-400 mb-3">
-          Roll 6d6 and spend {COMBAT.ABILITY_STAMINA_COST} stamina. Hit one of these patterns to
-          unleash your class ability.
-          {character.subclass && ' Subclass passives apply automatically.'}
-        </p>
-        <AbilityReference characterClass={character.class} />
-      </div>
+      {combatTab === 'dungeons' ? (
+        <DungeonLobbyInline />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {dailyMonsters.map((monster) => (
+              <MonsterCard
+                key={monster.id}
+                monster={monster}
+                playerLevel={character.level}
+                dryStreak={getPityFor(monster.id)}
+                onFight={enterFight}
+              />
+            ))}
+          </div>
+
+          {/* Ability reference card */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                🎲 Ability Guide · <span className="capitalize">{character.class}</span>
+              </p>
+              {character.subclass &&
+                (() => {
+                  const sd = getSubclassDef(character.subclass);
+                  return sd ? (
+                    <span className="text-xs font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2.5 py-0.5">
+                      {sd.emoji} {sd.name}
+                    </span>
+                  ) : null;
+                })()}
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              Roll 6d6 and spend {COMBAT.ABILITY_STAMINA_COST} stamina. Hit one of these patterns to
+              unleash your class ability.
+              {character.subclass && ' Subclass passives apply automatically.'}
+            </p>
+            <AbilityReference characterClass={character.class} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
