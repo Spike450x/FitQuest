@@ -187,7 +187,9 @@ export const useDungeonStore = create<DungeonStore>((set, get) => ({
     const { activeRun } = get();
     if (!activeRun) return;
     try {
-      await finalizeDungeonRun(activeRun.id, 'abandoned');
+      if (activeRun.status === 'active') {
+        await finalizeDungeonRun(activeRun.id, 'abandoned');
+      }
       await updateCharacterDoc(uid, { activeDungeonRunId: null });
       set({ activeRun: null });
     } catch (err) {
