@@ -163,10 +163,11 @@ describe('characters — update', () => {
     );
   });
 
-  it('denies an XP jump exceeding the 600-per-write delta cap', async () => {
+  it('denies an XP jump exceeding the 2000-per-write delta cap', async () => {
     const ctx = testEnv.authenticatedContext(uid);
-    // Character starts at xp: 0; writing xp: 601 is a delta of 601 > 600
-    await assertFails(ctx.firestore().collection('characters').doc(uid).update({ xp: 601 }));
+    // Cap raised from 600 → 2000 to accommodate Dragon's Keep boss XP awards.
+    // Character starts at xp: 0; writing xp: 2001 is a delta of 2001 > 2000.
+    await assertFails(ctx.firestore().collection('characters').doc(uid).update({ xp: 2001 }));
   });
 
   it('denies a level jump exceeding the 5-per-write delta cap', async () => {
