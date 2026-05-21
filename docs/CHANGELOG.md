@@ -14,6 +14,14 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-21 — Achievement system hardening and victory screen polish
+
+- Achievement award moved inside the `claimDungeonRun` Firestore transaction — gold and badge stamp are now atomic; a concurrent claim can no longer award the same badge twice.
+- `logActivity` CF upgraded to `minInstances: 1` (matching `claimDungeonRun`) — eliminates cold-start delay on first daily log.
+- Achievement helpers extracted to `functions/src/gameLogic/achievements.ts`; new `achievements-parity.test.ts` asserts `LEGENDARY_ITEM_IDS`, `ACHIEVEMENT_GOLD`, and `checkNewAchievements` stay in sync with the src copy. Test count: 368.
+- `ClaimDungeonRunResult` gains `achievementGold: number`; victory screen Run Summary card shows a "Dungeon Xg + Achievements Yg" breakdown row when badges were earned.
+- `deploy:prod` script and CI step 16 updated to pass `--force` for non-interactive `minInstances` billing confirmation.
+
 ## 2026-05-21 — Achievement gallery, flee feedback, a11y fixes
 
 - Profile page: 2-col achievement badge grid showing all 6 dungeon badges (unlocked in indigo with gold-earned label; locked dimmed with lock icon). Header strip previews all emojis at a glance.
