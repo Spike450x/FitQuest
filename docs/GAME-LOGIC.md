@@ -4,7 +4,7 @@ Every exported symbol from `src/lib/gameLogic/*.ts` with a one-line description 
 
 For balance numbers (XP curves, stat caps, drop rates, formulas), see [`src/lib/gameLogic/constants.ts`](../src/lib/gameLogic/constants.ts) and the [Game Mechanics section of the README](../README.md#game-mechanics). For how stores call into these functions, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
-All functions are **pure and deterministic** except those that explicitly call `Math.random()` (`rollD10`, `rollSpellDice`, `rollLoot`, `rollRunAway`, `calculateRound`'s damage rolls, ability resolution randomness). The vitest suite at [`src/lib/gameLogic/__tests__/`](../src/lib/gameLogic/__tests__/) covers every logic module — `xp`, `combat`, `spells`, `streaks`, `quests`, `abilities`, `passives`, `rotation`, `stats`, mastery milestone helpers in `constants`, `activityCaps`, `dungeons`, and `achievements` — plus two parity tests (`activityCaps-parity`, `gearBonuses-parity`) that prevent drift from the duplicated `functions/` copies.
+All functions are **pure and deterministic** except those that explicitly call `Math.random()` (`rollD10`, `rollSpellDice`, `rollLoot`, `rollRunAway`, `calculateRound`'s damage rolls, ability resolution randomness). The vitest suite at [`src/lib/gameLogic/__tests__/`](../src/lib/gameLogic/__tests__/) covers every logic module — `xp`, `combat`, `spells`, `streaks`, `quests`, `abilities`, `passives`, `rotation`, `stats`, mastery milestone helpers in `constants`, `activityCaps`, `dungeons`, and `achievements` — plus three parity tests (`activityCaps-parity`, `gearBonuses-parity`, `achievements-parity`) that prevent drift from the duplicated `functions/` copies.
 
 ---
 
@@ -223,7 +223,7 @@ Tested in [`__tests__/dungeons.test.ts`](../src/lib/gameLogic/__tests__/dungeons
 
 ## `achievements.ts` — one-time milestone badges
 
-Tested in [`__tests__/achievements.test.ts`](../src/lib/gameLogic/__tests__/achievements.test.ts).
+Tested in [`__tests__/achievements.test.ts`](../src/lib/gameLogic/__tests__/achievements.test.ts) and parity-tested against the `functions/` copy in [`__tests__/achievements-parity.test.ts`](../src/lib/gameLogic/__tests__/achievements-parity.test.ts).
 
 | Export                                     | Kind      | Purpose                                                                                                                                                          |
 | ------------------------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -232,6 +232,8 @@ Tested in [`__tests__/achievements.test.ts`](../src/lib/gameLogic/__tests__/achi
 | `checkDungeonAchievements(character, run)` | function  | Compares a completed run against the character's existing achievements. Returns newly earned `AchievementId[]`. Returns `[]` for non-completed runs.             |
 
 Gold rewards: `dungeon-initiate` 50g, `goblin-slayer` 100g, `web-walker` 150g, `dark-arts` 250g, `dragonheart` 500g, `legendary-haul` 200g.
+
+**Why duplicated:** Achievement award logic runs inside the `claimDungeonRun` Firestore transaction so gold + badge are stamped atomically. To avoid `@/` path-alias dependencies in the Cloud Function, the pure helpers (`LEGENDARY_ITEM_IDS`, `ACHIEVEMENT_GOLD`, `checkNewAchievements`) are mirrored in `functions/src/gameLogic/achievements.ts`. The parity test asserts `LEGENDARY_ITEM_IDS` exactly matches every `rarity: 'legendary'` item in `ITEM_CATALOG`, `ACHIEVEMENT_GOLD` values match `ACHIEVEMENTS[id].goldReward`, and `checkNewAchievements` produces the same output as `checkDungeonAchievements` for equivalent inputs.
 
 ---
 

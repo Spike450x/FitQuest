@@ -179,6 +179,8 @@ export const ITEM_CATALOG: ItemDef[] = [
   },
 
   // ── Weapons — Legendary ────────────────────────────────────────────────────
+  // When adding a new legendary item, also update LEGENDARY_ITEM_IDS in
+  // functions/src/gameLogic/achievements.ts — the parity test will catch drift.
   {
     id: 'godslayer',
     name: 'Godslayer',

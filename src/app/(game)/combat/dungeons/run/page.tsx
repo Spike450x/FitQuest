@@ -688,7 +688,9 @@ export default function DungeonRunPage() {
               <div className="text-slate-500 text-xs">Total XP</div>
             </div>
             <div className="flex-1 text-center">
-              <div className="text-yellow-400 font-bold text-xl">{cumulativeGold}</div>
+              <div className="text-yellow-400 font-bold text-xl">
+                {claimResult ? claimResult.gold : cumulativeGold}
+              </div>
               <div className="text-slate-500 text-xs">Total Gold</div>
             </div>
             <div className="flex-1 text-center">
@@ -696,6 +698,23 @@ export default function DungeonRunPage() {
               <div className="text-slate-500 text-xs">Rooms</div>
             </div>
           </div>
+
+          {/* Gold breakdown — visible after claiming when achievements added bonus gold */}
+          {claimResult != null && claimResult.achievementGold > 0 && (
+            <div className="flex items-center justify-center gap-2 text-xs mb-3 border-t border-slate-700 pt-2">
+              <span className="text-slate-500">
+                Dungeon{' '}
+                <span className="text-yellow-500 font-semibold">
+                  {claimResult.gold - claimResult.achievementGold}g
+                </span>
+              </span>
+              <span className="text-slate-600">+</span>
+              <span className="text-slate-500">
+                Achievements{' '}
+                <span className="text-amber-400 font-semibold">{claimResult.achievementGold}g</span>
+              </span>
+            </div>
+          )}
 
           {allItems.length > 0 && (
             <div className="space-y-1.5">
@@ -728,16 +747,6 @@ export default function DungeonRunPage() {
             <div className="text-4xl mb-1">⬆</div>
             <div className="text-2xl font-bold text-yellow-300">LEVEL UP!</div>
             <div className="text-yellow-400 text-sm mt-1">You are now Level {character.level}</div>
-          </div>
-        )}
-
-        {/* Achievement gold banner — shown when badges were earned this run */}
-        {claimResult != null && claimResult.achievementGold > 0 && (
-          <div className="bg-gradient-to-br from-amber-900 to-yellow-950 border border-yellow-600 rounded-xl p-4 mb-4 text-center">
-            <div className="text-lg font-bold text-yellow-300">
-              +{claimResult.achievementGold} Achievement Gold
-            </div>
-            <div className="text-yellow-600 text-xs mt-0.5">Included in your total reward</div>
           </div>
         )}
 
