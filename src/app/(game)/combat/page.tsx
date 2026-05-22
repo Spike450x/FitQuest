@@ -87,13 +87,14 @@ import { SpellCard } from '@/components/ui/SpellCard';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Card } from '@/components/ui/Card';
 import { CombatEffects } from '@/components/combat/CombatEffects';
+import { CombatArena } from '@/components/combat/CombatArena';
 import { fireConfetti } from '@/lib/confetti';
 import { playSound } from '@/hooks/useSound';
 import { useCombatBursts } from '@/hooks/useCombatBursts';
 import { useTodayKey } from '@/hooks/useTodayKey';
 import { toast, toastReward, toastLoot } from '@/components/ui/Toaster';
 import { addCombatLogDoc } from '@/lib/combatData';
-import { COMBAT } from '@/lib/gameLogic/constants';
+import { COMBAT, CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 import type { MonsterDef, ItemDef, SpellDiceRequirement } from '@/types';
 import type { DicePattern, AbilityDef } from '@/lib/gameLogic/abilities';
 
@@ -1140,26 +1141,47 @@ export default function CombatPage() {
           </Card>
         )}
 
-        {/* HP + Stamina + Magic bars */}
-        <motion.div
-          // Shake on monster damage taken — re-keyed on each hit so the animation re-plays
-          key={`hpblock-${log.length}-${lastEntry?.playerDamage ?? 0}-${lastEntry?.monsterDamage ?? 0}`}
-          animate={
-            (lastEntry?.playerDamage ?? 0) > 0 || (lastEntry?.monsterDamage ?? 0) > 0
-              ? { x: [0, -6, 6, -3, 3, 0] }
-              : {}
-          }
-          transition={{ duration: 0.3 }}
-          className="relative bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-sm space-y-3 overflow-visible"
-        >
-          <CombatEffects bursts={bursts} onBurstExpired={expire} />
-          <HpBar
-            label={`You (${character.name})`}
-            current={playerHp}
-            max={maxHp}
-            color="bg-rose-400"
-            sub={`🛡️ ${playerDefStat} DEF · ${Math.round(COMBAT.DEFENSE_FAIL_CHANCE * 100)}% bypass chance`}
-          />
+        {/* ── Arena: side-by-side player + monster portraits with HP bars ── */}
+        {(() => {
+          const playerEmoji = CLASS_DEFINITIONS[character.class].emoji;
+          const pity = getPityFor(monster.id);
+          const pityActive = pity >= LEGENDARY_PITY_THRESHOLD;
+          const pityBoost = pityActive
+            ? Math.min(Math.round((pity - LEGENDARY_PITY_THRESHOLD) * 0.02 * 100), 85)
+            : 0;
+          const monsterSub =
+            pity > 0 ? (
+              <span className={pityActive ? 'text-orange-600 dark:text-orange-400' : ''}>
+                {pityActive ? '🔥' : '🎯'} {pity} kill{pity !== 1 ? 's' : ''}
+                {pityActive && ` · +${pityBoost}% legendary`}
+              </span>
+            ) : null;
+          return (
+            <CombatArena
+              shakeKey={`${log.length}-${lastEntry?.playerDamage ?? 0}-${lastEntry?.monsterDamage ?? 0}`}
+              bursts={bursts}
+              onBurstExpired={expire}
+              player={{
+                name: character.name,
+                emoji: playerEmoji,
+                hp: playerHp,
+                maxHp,
+                defense: playerDefStat,
+              }}
+              monster={{
+                name: monster.name,
+                emoji,
+                hp: monsterHp,
+                maxHp: monster.hp,
+                defense: monster.defense,
+              }}
+              monsterSub={monsterSub}
+            />
+          );
+        })()}
+
+        {/* Player-only resources — Stamina + Magic */}
+        <div className="bg-white dark:bg-slate-900/80 backdrop-blur-sm border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
           {(() => {
             const staCost = getAbilityStaminaCost(
               character,
@@ -1168,7 +1190,7 @@ export default function CombatPage() {
             );
             return (
               <HpBar
-                label="Stamina"
+                label="⚡ Stamina"
                 current={playerStamina}
                 max={maxStamina}
                 color="bg-amber-400"
@@ -1187,31 +1209,7 @@ export default function CombatPage() {
                 : `${equippedSpells.length} spell${equippedSpells.length !== 1 ? 's' : ''} ready`
             }
           />
-          <HpBar
-            label={`${emoji} ${monster.name}`}
-            current={monsterHp}
-            max={monster.hp}
-            color="bg-gray-400"
-            sub={`🛡️ ${monster.defense} DEF · ${Math.round(COMBAT.DEFENSE_FAIL_CHANCE * 100)}% bypass chance`}
-          />
-          {/* Pity tracker — shown once a hunt has begun */}
-          {getPityFor(monster.id) > 0 &&
-            (() => {
-              const pity = getPityFor(monster.id);
-              const active = pity >= LEGENDARY_PITY_THRESHOLD;
-              const boostPct = active
-                ? Math.min(Math.round((pity - LEGENDARY_PITY_THRESHOLD) * 0.02 * 100), 85)
-                : 0;
-              return (
-                <p
-                  className={`text-xs font-medium ${active ? 'text-orange-600' : 'text-gray-400 dark:text-slate-500'}`}
-                >
-                  {active ? '🔥' : '🎯'} Hunting · {pity} kill{pity !== 1 ? 's' : ''}
-                  {active && ` · +${boostPct}% legendary`}
-                </p>
-              );
-            })()}
-        </motion.div>
+        </div>
 
         {/* Last roll summary */}
         {lastEntry && (
@@ -3150,9 +3148,18 @@ function MonsterCard({
         Math.round((0.95 - 0.1) * 100), // visual cap based on a 10% base chance
       )
     : 0;
+  // Difficulty-tinted border + glow so harder fights pop visually.
+  const tierClass =
+    levelDiff <= -2
+      ? 'border-emerald-200/70 dark:border-emerald-900/60 hover:shadow-emerald-500/20'
+      : levelDiff <= 1
+        ? 'border-amber-200/70 dark:border-amber-900/60 hover:shadow-amber-500/20'
+        : 'border-rose-300/70 dark:border-rose-800/70 hover:shadow-rose-500/30 shadow-rose-500/10';
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-sm space-y-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-indigo-200 group">
+    <div
+      className={`bg-white dark:bg-slate-900 border-2 rounded-xl p-4 shadow-sm space-y-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg group ${tierClass}`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <span className="text-3xl transition-transform group-hover:scale-110 group-hover:-rotate-3">

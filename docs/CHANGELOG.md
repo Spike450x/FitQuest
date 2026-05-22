@@ -15,6 +15,17 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Combat scene redesign (UI pass 8)
+
+- New `CombatArena` component (`src/components/combat/CombatArena.tsx`) — side-by-side player vs monster portraits with HP bars under each. Replaces the 3-stacked-HP-bars block in `combat/page.tsx` that read like an admin form.
+- Player avatar: class emoji (Warrior ⚔️ / Wizard 🧙 / Rogue 🗡️) in an indigo→violet ring frame on the left, with HP + defense readout below.
+- Monster avatar: monster emoji in a rose ring frame on the right, mirrored to face the player. Pity / hunting tracker sits as a sub-line under the HP bar.
+- Per-side hit shake — when fresh damage arrives, the player or monster portrait rocks via framer-motion with a re-keyed animation. HP bars use a spring tween (200/26) instead of the previous linear `transition-all`. Low-HP (≤30%) portraits gently pulse; fainted portraits grayscale.
+- `CombatEffects` floating damage numbers (already positioned to left/right per `burst.target`) now overlay the appropriate side of the new arena view.
+- Stamina + Magic stay in a smaller secondary card below the arena so the arena view is the unmistakable focal point.
+- Monster select cards: difficulty-tiered borders + glow (emerald = easy, amber = fair, rose = hard). Hard fights now visibly pop instead of looking identical to easy fights.
+- This was the last large-scope item from `docs/UI-UX-MODERNIZATION.md`. Only the design-token overhaul remains.
+
 ## 2026-05-22 — Illustrated route backgrounds (UI pass 7)
 
 - New `RouteBackground` component (`src/components/ui/RouteBackground.tsx`) reads the current pathname and paints a per-route gradient + inline SVG pattern behind all content. Mount lives in `(game)/layout.tsx`; game layout's outer div dropped its solid `bg-gray-50` / `dark:bg-slate-950` so the gradient is visible (body keeps the fallback color).
