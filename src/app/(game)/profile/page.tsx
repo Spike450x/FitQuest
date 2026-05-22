@@ -8,6 +8,7 @@ import { useCharacterStore } from '@/store/characterStore';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
 import { Card } from '@/components/ui/Card';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { InstallAppButton } from '@/components/ui/InstallAppButton';
 import type { Character } from '@/types';
 
 export default function ProfilePage() {
@@ -34,6 +35,18 @@ export default function ProfilePage() {
             Light and dark modes for your eyes.
           </p>
           <ThemeToggle variant="full" />
+        </div>
+      </SettingsCard>
+
+      <SettingsCard
+        title="Install App"
+        description="Add FitQuest to your home screen for a native-app feel."
+      >
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm text-gray-600 dark:text-slate-300">
+            Launch in full-screen, no browser chrome. Loads faster on each visit.
+          </p>
+          <InstallAppButton />
         </div>
       </SettingsCard>
 
