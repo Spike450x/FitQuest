@@ -94,7 +94,7 @@ The **template to copy**: `SpellCard.tsx`, `LevelUpCelebration.tsx`, combat dice
 - [ ] **Illustrated route backgrounds** — combat coliseum, dungeon caves, shop wooden shelves. SVG/CSS or commissioned. 1–2 weeks.
 - [ ] **Combat scene redesign** — render player + monster as facing avatars/sprites in an arena, framer-motion or Lottie. 2+ weeks.
 - [ ] **Sound design pass** — opt-in Howler.js for level-up/attack/dice/claim/legendary fanfare. Settings toggle on profile. 1 week.
-- [ ] **PWA + install prompt** — branded splash, install banner with character preview, push notifications. 1 week.
+- [x] **PWA + install prompt** — Next.js metadata-API manifest, themed light/dark theme-color meta tags, SVG + PNG icon set (any + maskable variants for Android adaptive), Apple touch icon + status-bar meta, `useInstallPrompt` hook abstracting `beforeinstallprompt` / iOS detection / standalone-mode detection, `InstallAppButton` in `/profile`, and dismissible `InstallBanner` after 12 s of activity. Push notifications + service-worker offline caching are still TODO — see notes below.
 
 ---
 

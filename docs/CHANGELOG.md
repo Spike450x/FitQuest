@@ -15,6 +15,17 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — PWA install support (UI pass 5)
+
+- `src/app/manifest.ts` declares the web app manifest via Next.js's metadata API. Stand-alone display, indigo→violet theme colors, dark `background_color` matching the new dark-mode shell.
+- Icon set in `public/icons/`: 192/512 `any` variants, 192/512 `maskable` variants (content scaled to 80% safe zone for Android adaptive icons), Apple touch icon (180×180), 16/32 favicons, and a vector source for resolution-independent display. Initial art is a placeholder sword on the brand gradient — easy to replace with bespoke icons later.
+- Root layout: light/dark `theme-color` meta tags via the Next.js `Viewport` export so the browser chrome (URL bar / iOS status bar) matches the active theme.
+- Apple PWA meta: `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style: black-translucent`, custom title.
+- `useInstallPrompt` hook (`src/hooks/useInstallPrompt.ts`) abstracts the `beforeinstallprompt` event, detects iOS (where the event doesn't fire), and detects already-installed standalone mode. Returns `available | ios | installed | unsupported`.
+- `InstallAppButton` (`src/components/ui/InstallAppButton.tsx`) renders the right affordance per platform — native install button on Chrome/Android, Share→Add-to-Home-Screen hint on iOS, "Installed" badge once on home screen, nothing on unsupported. Wired into a new Install App card on `/profile`.
+- `InstallBanner` (`src/components/ui/InstallBanner.tsx`) is a dismissible bottom-of-screen prompt that appears 12 s after the player loads the game layout if their browser supports install. Dismissal is persisted to localStorage so it doesn't nag.
+- Service-worker offline caching + push notifications still TODO — see `docs/UI-UX-MODERNIZATION.md` for the next-step plan.
+
 ## 2026-05-22 — Dark mode global (UI pass 4 — first large investment)
 
 - Tailwind `darkMode: 'class'` enabled. Theme toggle (`src/components/ui/ThemeToggle.tsx`) backed by `useTheme` hook (`src/hooks/useTheme.ts`) that persists to `fitquest-theme` localStorage and falls back to `prefers-color-scheme`. No-flash bootstrap script in `<html>` head sets the class before React hydrates.

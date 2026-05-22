@@ -19,6 +19,7 @@ import { useCharacter } from '@/hooks/useCharacter';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { XPBar } from '@/components/ui/XPBar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { InstallBanner } from '@/components/ui/InstallBanner';
 import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
 import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
 
@@ -50,6 +51,9 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col transition-colors">
       {/* Global level-up celebration — fires whenever character.level increases */}
       <LevelUpCelebration />
+
+      {/* PWA install nudge — appears after ~12 s of activity if installable */}
+      <InstallBanner />
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <header className="border-b border-gray-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl backdrop-saturate-150 sticky top-0 z-20 h-14 shadow-sm shadow-gray-900/5 dark:shadow-black/30">
