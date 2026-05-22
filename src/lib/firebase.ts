@@ -1,6 +1,11 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  getFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 
 const firebaseConfig = {
@@ -16,5 +21,22 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
 export const functions = getFunctions(app);
+
+// Enable IndexedDB persistence so reads are served from the local cache when
+// offline or on a slow connection (PWA offline support).
+// - SSR / Node (vitest): window is undefined — fall back to the default
+//   memory-only Firestore instance so tests are unaffected.
+// - Hot reload: initializeFirestore throws if already called for this app —
+//   catch and fall through to getFirestore which returns the existing instance.
+function buildDb() {
+  if (typeof window === 'undefined') return getFirestore(app);
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    });
+  } catch {
+    return getFirestore(app);
+  }
+}
+export const db = buildDb();
