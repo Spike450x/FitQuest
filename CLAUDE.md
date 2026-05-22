@@ -191,6 +191,26 @@ Core game systems to keep internally consistent:
 
 ## Git Workflow
 
+### Before every PR — documentation checklist
+
+**Run this before staging any commit. Do not open a PR until every applicable item is done.**
+
+| Document                            | Update when…                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------------- |
+| `CLAUDE.md` — Shipped status + date | A feature, fix, or audit lands on `master`                                                  |
+| `docs/CHANGELOG.md`                 | Any meaningful change — **bundle in the same PR, never a follow-up**                        |
+| `docs/ARCHITECTURE.md`              | New `src/lib/` file, store, route, hook, or folder; new component pattern                   |
+| `docs/UI-UX-MODERNIZATION.md`       | UI component added or changed; dark-mode coverage changed; new design pattern established   |
+| `docs/GAME-LOGIC.md`                | New or changed exported function in `src/lib/gameLogic/`                                    |
+| `docs/FIRESTORE.md`                 | Schema field added/removed, collection changed, index added/removed                         |
+| `docs/CI.md`                        | CI workflow file changed; new test suite added; husky hooks changed                         |
+| `docs/SMOKE-TEST.md`                | New manual verification steps are needed for a feature                                      |
+| Spec / design docs in `docs/`       | A spec item was implemented — mark it done and note any deviations from the original design |
+
+**Quick rule:** if you touched anything in `src/lib/`, `src/components/`, `src/store/`, `src/hooks/`, `tests/`, `functions/`, or `.github/` — at least one doc probably needs updating. When in doubt, update it. A doc PR is cheap; stale docs compound silently.
+
+---
+
 ### Commit messages (imperative prose)
 
 - Subject ≤ 50 characters, imperative mood, no trailing period
