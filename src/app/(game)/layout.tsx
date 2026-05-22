@@ -17,6 +17,8 @@ import {
 import { logOut } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useActivityStore } from '@/store/activityStore';
+import { useQuestStore } from '@/store/questStore';
+import { useInventoryStore } from '@/store/inventoryStore';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { XPBar } from '@/components/ui/XPBar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -52,6 +54,8 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
   async function handleSignOut() {
     useActivityStore.getState().clear();
+    useQuestStore.getState().clear();
+    useInventoryStore.getState().clear();
     await logOut();
     router.push('/login');
   }
