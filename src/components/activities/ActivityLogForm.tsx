@@ -249,14 +249,12 @@ export function ActivityLogForm() {
       persistStreakAndRecord(activeTab, parsedAmount, def.unit).catch((e) =>
         captureError('ActivityLogForm:streak', e),
       );
-      // Refresh cap meter so it's accurate when the user dismisses the result card
-      // Invalidate cache for this type so the meter re-fetches on next render.
+      // Invalidate cache entry — the useEffect re-fetches on the next render.
       setTodayTotals((prev) => {
         const m = new Map(prev);
         m.delete(activeTab);
         return m;
       });
-      void refreshTodayTotal(character.uid, activeTab);
     } catch (err) {
       // logActivity function call failed — activity was NOT logged.
       toast('Failed to log activity', {
