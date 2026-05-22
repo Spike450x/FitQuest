@@ -89,7 +89,7 @@ The **template to copy**: `SpellCard.tsx`, `LevelUpCelebration.tsx`, combat dice
 
 ## Larger Investments (1+ week)
 
-- [x] **Commit to dark mode globally** — Tailwind `darkMode: 'class'` with proper light/dark toggle persisted to localStorage + system-preference fallback + no-flash bootstrap script. Theme toggle in header (icon) + profile settings (full label). All primitives (Card, Heading, EmptyState, Skeleton, Modal, Button, XPBar, GoldDisplay, ThemeToggle) and every screen got `dark:` variants. Recharts colors in stats page are theme-aware via `useChartColors()`. Sonner respects theme. Dungeons keep their always-dark fantasy aesthetic regardless of toggle (own `bg-slate-900` background). The audit's #1 single-impact change — shipped.
+- [x] **Commit to dark mode globally** — Tailwind `darkMode: 'class'` with proper light/dark toggle persisted to localStorage + system-preference fallback + no-flash bootstrap script. Theme toggle in header (icon) + profile settings (full label). All primitives (Card, Heading, EmptyState, Skeleton, Modal, Button, XPBar, GoldDisplay, ThemeToggle) and every screen got `dark:` variants. Recharts colors in stats page are theme-aware via `useChartColors()`. Sonner respects theme. Dungeons keep their always-dark fantasy aesthetic regardless of toggle (own `bg-slate-900` background). The audit's #1 single-impact change — shipped. **Follow-up audit pass** — `InputField` component introduced as the canonical themed input (`dark:bg-slate-950`, `sm`/`md`/`lg` size variants via `inputSize` prop); all 14 raw `<input>` elements across the codebase migrated to it. Comprehensive `dark:` sweep across 16 additional files: stat alloc modal, spell cards, combat dice faces, shop/inventory/quest/stats tinted surfaces, subclass/class selectors, level-up celebration. `tests/e2e/dark-mode.test.ts` Playwright guard added — verifies `dark` class on `<html>` and non-white input backgrounds on public routes.
 - [x] **Full design system overhaul** — CSS variable-backed semantic color tokens (`surface`, `surface-elevated`, `surface-muted`, `border-{subtle,default,strong}`, `text-{primary,secondary,muted,faint,disabled}`, `accent-{primary,secondary}`) defined in `globals.css` for light + dark, exposed through `tailwind.config.ts` so they're reachable as standard utilities (e.g. `bg-surface`, `text-text-muted`). Custom shadow scale (`shadow-card`, `shadow-card-hover`, `shadow-elevated`, `shadow-glow-{uncommon,rare,epic,legendary}`) and named radius tokens (`rounded-card`, `rounded-cinematic`). Foundational primitives — `Card`, `Heading`, `EmptyState`, `Button` — migrated to the new tokens; remaining per-screen migrations happen organically as features touch each file.
 - [x] **Illustrated route backgrounds** — `RouteBackground` component (`src/components/ui/RouteBackground.tsx`) reads pathname and paints a per-route gradient + inline SVG pattern at low opacity behind everything. 9 themed schemes — dashboard (compass-rose), character (scroll), activities (sunburst), combat (colosseum arches + vignette), quests (scroll), inventory (crosshatch), shop (wood-grain), stats (graph paper), profile (sigil). All theme-aware via Tailwind `currentColor` so patterns swap colors with the light/dark toggle. Zero asset pipeline — pure CSS gradients + inline SVG with `patternUnits="userSpaceOnUse"` tiling. Dungeons keep their dedicated dark slate background (RouteBackground no-ops there).
 - [x] **Combat scene redesign** — new `CombatArena` component (`src/components/combat/CombatArena.tsx`) renders the player + monster as facing portrait avatars side-by-side with HP bars under each, replacing the old 3-stacked-HP-bars block that read like an admin form. Player avatar uses the class emoji in an indigo→violet ring frame; monster avatar uses the monster emoji in a rose ring frame (mirrored to face the player). Per-side hit shake re-triggers when fresh damage arrives. HP bars use a spring tween. Stamina + Magic stay in a smaller secondary card so the arena view stays the focal point. Monster select cards now have difficulty-tinted borders (emerald = easy, amber = fair, rose = hard) so the toughest fights pop visually.
@@ -196,22 +196,23 @@ The **template to copy**: `SpellCard.tsx`, `LevelUpCelebration.tsx`, combat dice
 
 ## Component-Level Notes
 
-| Component                          | Verdict                       | Issue                                                           |
-| ---------------------------------- | ----------------------------- | --------------------------------------------------------------- |
-| `ui/Button.tsx`                    | Decent, underused (2 imports) | No `iconic` variant for hero CTAs                               |
-| `ui/XPBar.tsx`                     | Functional                    | Width tween only — no level-up flash/glow                       |
-| `ui/Modal.tsx`                     | Solid (framer-motion 0.95→1)  | Generic — no cinematic variant                                  |
-| `ui/EmptyState.tsx`                | **Dead code** (0 imports)     | Pages duplicate empty-state markup                              |
-| `ui/Heading.tsx`                   | **Dead code** (0 imports)     | Pages hand-roll `text-2xl font-bold`                            |
-| `ui/GoldDisplay.tsx`               | Used                          | No coin spin / value tween                                      |
-| `ui/SpellCard.tsx`                 | **Excellent — template**      | Use as model for all item cards                                 |
-| `ui/Toaster.tsx`                   | Good (sonner wrappers)        | Loot toast is plain white background — should be rarity-tinted  |
-| `combat/CombatEffects.tsx`         | **Excellent**                 | Floating damage with crit glow — only real glow in the codebase |
-| `character/LevelUpCelebration.tsx` | **Excellent — template**      | Confetti, gradient modal, blur orbs                             |
-| `character/StatBar.tsx`            | Functional                    | No stat-up animation or class-baseline glow                     |
-| `character/CharacterCard.tsx`      | Needs portrait/frame          | Bare text where identity should live                            |
-| `character/ClassSelector.tsx`      | Mid                           | Three plain tiles, no class banner/silhouette                   |
-| `character/StatAllocModal.tsx`     | Good two-click pattern        | Gradient inconsistent with level-up modal                       |
+| Component                          | Verdict                        | Issue                                                                                                |
+| ---------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `ui/InputField.tsx`                | **Canonical — use everywhere** | `dark:bg-slate-950`, focus ring, `sm`/`md`/`lg` via `inputSize`; all raw `<input>` elements migrated |
+| `ui/Button.tsx`                    | Decent, underused (2 imports)  | No `iconic` variant for hero CTAs                                                                    |
+| `ui/XPBar.tsx`                     | Functional                     | Width tween only — no level-up flash/glow                                                            |
+| `ui/Modal.tsx`                     | Solid (framer-motion 0.95→1)   | Generic — no cinematic variant                                                                       |
+| `ui/EmptyState.tsx`                | **Dead code** (0 imports)      | Pages duplicate empty-state markup                                                                   |
+| `ui/Heading.tsx`                   | **Dead code** (0 imports)      | Pages hand-roll `text-2xl font-bold`                                                                 |
+| `ui/GoldDisplay.tsx`               | Used                           | No coin spin / value tween                                                                           |
+| `ui/SpellCard.tsx`                 | **Excellent — template**       | Use as model for all item cards                                                                      |
+| `ui/Toaster.tsx`                   | Good (sonner wrappers)         | Loot toast is plain white background — should be rarity-tinted                                       |
+| `combat/CombatEffects.tsx`         | **Excellent**                  | Floating damage with crit glow — only real glow in the codebase                                      |
+| `character/LevelUpCelebration.tsx` | **Excellent — template**       | Confetti, gradient modal, blur orbs                                                                  |
+| `character/StatBar.tsx`            | Functional                     | No stat-up animation or class-baseline glow                                                          |
+| `character/CharacterCard.tsx`      | Needs portrait/frame           | Bare text where identity should live                                                                 |
+| `character/ClassSelector.tsx`      | Mid                            | Three plain tiles, no class banner/silhouette                                                        |
+| `character/StatAllocModal.tsx`     | Good two-click pattern         | Gradient inconsistent with level-up modal                                                            |
 
 ---
 
@@ -224,7 +225,7 @@ The **template to copy**: `SpellCard.tsx`, `LevelUpCelebration.tsx`, combat dice
 - **Empty states** — `EmptyState` exists but nothing imports it.
 - **Typography** — system font everywhere; no display face, no display-uppercase heading variant.
 - **Iconography** — lucide-react installed, never used.
-- **Dark mode** — zero `dark:` classes; dungeons are the only dark screens.
+- ~~**Dark mode**~~ — ✅ shipped: global `dark:` coverage across all primitives and screens; `InputField` canonical component prevents future regressions; Playwright E2E guard.
 - **Sound/haptics** — zero. Web Audio + `navigator.vibrate(50)` would be huge.
 
 ---
