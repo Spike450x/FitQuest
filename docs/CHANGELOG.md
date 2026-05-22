@@ -15,6 +15,11 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — statsStore retry-with-backoff and OfflineBanner positioning fix
+
+- **Retry-with-backoff on `statsStore.fetchStatsData`.** Added a local `fetchWithRetry` helper (2 retries, exponential: 1 s → 3 s) wrapping the `Promise.all([fetchActivityLogs, fetchRecentCombatLogs])` call. Transient Firestore errors (network blip, cold-start timeout) now recover silently; only persistent failures surface the error banner.
+- **`OfflineBanner` positioning fixed.** Removed `fixed top-14 left-0 right-0 z-30` — the banner now renders in document flow between the sticky header and the main body in `GameLayout`. This eliminates the hardcoded 56px offset that would have broken on any header-height change. The banner still stretches full-width via the flex-column parent.
+
 ## 2026-05-22 — Test infrastructure, statsStore cache, error boundaries, offline detection
 
 - **Test infrastructure.** Installed `@testing-library/react`, `@testing-library/jest-dom`, and `jsdom`. Added 24 new unit tests: `activityStore` subscription idempotency and uid-change teardown, `questStore` and `inventoryStore` TTL skip / `_fetching` guard / `force` bypass, and `useTodayKey` date-roll and `visibilitychange` behaviour. Per-file `// @vitest-environment jsdom` convention documented for future hook/component tests.
