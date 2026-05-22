@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { toast, toastReward } from '@/components/ui/Toaster';
 import { fireConfetti } from '@/lib/confetti';
+import { playSound } from '@/hooks/useSound';
 import type { ActiveQuest } from '@/types';
 
 function timeUntilExpiry(expiresAt: number): string {
@@ -274,6 +275,7 @@ export default function QuestsPage() {
     setClaiming(null);
     if (result && def) {
       fireConfetti(def.type === 'weekly' ? 'celebration' : 'subtle');
+      playSound('claim');
       toastReward({
         emoji: '📜',
         title: `${def.name} claimed!`,

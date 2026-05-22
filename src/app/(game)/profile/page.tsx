@@ -8,6 +8,7 @@ import { useCharacterStore } from '@/store/characterStore';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
 import { Card } from '@/components/ui/Card';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { SoundToggle } from '@/components/ui/SoundToggle';
 import { InstallAppButton } from '@/components/ui/InstallAppButton';
 import type { Character } from '@/types';
 
@@ -35,6 +36,18 @@ export default function ProfilePage() {
             Light and dark modes for your eyes.
           </p>
           <ThemeToggle variant="full" />
+        </div>
+      </SettingsCard>
+
+      <SettingsCard
+        title="Sound Effects"
+        description="Retro-style sound cues for dice rolls, combat, level-ups and loot drops."
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-600 dark:text-slate-300">
+            Generated in-browser. No audio files, no tracking.
+          </p>
+          <SoundToggle variant="full" />
         </div>
       </SettingsCard>
 

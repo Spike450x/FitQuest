@@ -15,6 +15,18 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Sound design (UI pass 6)
+
+- `src/lib/sounds.ts` — Web Audio API synth functions (zero bundle cost, no licensing). Generates retro-RPG audio on the fly via oscillators + noise buffers + ADSR envelopes. 15 recipes: `playClick`, `playDiceRoll`, `playAttack`, `playMagic`, `playHit`, `playCrit`, `playFail`, `playClaim`, `playLoot`, `playLevelUp`, `playVictory`, `playLegendary`, `playAchievement`, `playStreak`, `playPersonalRecord`.
+- `useSound` hook (`src/hooks/useSound.ts`) — manages enabled state in localStorage (`fitquest-sound-enabled`), defaults OFF so first-time visitors aren't ambushed. Unlocks Web Audio on the user gesture that turns sound on (satisfies Chrome/Safari autoplay policy). Vanilla `playSound(key)` export lets non-hook code (toast helpers) fire sounds without a React tree.
+- `SoundToggle` (`src/components/ui/SoundToggle.tsx`) — icon + full label variants, sits next to the theme toggle in `/profile`. Plays a confirmation chime on enable so the user knows it's wired up.
+- Sounds wired across the game:
+  - Combat: dice-rattle on every roll overlay open (attack/magic/ability/spell), defeat sting on `outcome === 'loss'`, victory fanfare on pending rewards (escalates to legendary fanfare when legendary loot dropped), claim chime on rewards-claim button.
+  - Dungeon clear: victory or legendary fanfare based on legendary eligibility.
+  - Level-up celebration: heroic arpeggio.
+  - Quest claim: chime + scaled confetti.
+  - Toast helpers (now auto-play): `toastLoot` (loot or legendary), `toastAchievement`, `toastStreakTier`, `toastPersonalRecord`, `toastMasteryMilestone`.
+
 ## 2026-05-22 — PWA install support (UI pass 5)
 
 - `src/app/manifest.ts` declares the web app manifest via Next.js's metadata API. Stand-alone display, indigo→violet theme colors, dark `background_color` matching the new dark-mode shell.
