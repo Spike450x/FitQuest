@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useCharacter } from '@/hooks/useCharacter';
-import { fetchActivityLogs, fetchActiveQuests, fetchInventoryItems } from '@/lib/fetchPlayerData';
-import { fetchRecentCombatLogs, type CombatLog } from '@/lib/combatData';
+import { fetchActiveQuests, fetchInventoryItems } from '@/lib/fetchPlayerData';
+import type { CombatLog } from '@/lib/combatData';
 import { useQuestStore } from '@/store/questStore';
 import { useInventoryStore } from '@/store/inventoryStore';
+import { useStatsStore } from '@/store/statsStore';
 import { getItemById } from '@/lib/gameLogic/items';
 import { ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { ACTIVITY_ICONS } from '@/lib/activityIcons';
@@ -106,54 +107,57 @@ export default function StatsPage() {
 
 // ─── Stats Content ────────────────────────────────────────────────────────────
 
-interface RawStats {
-  logs: ActivityLog[];
-  quests: ActiveQuest[];
-  inventory: InventoryItem[];
-  combatLogs: CombatLog[];
-}
-
 function StatsContent({ character, uid }: { character: Character; uid: string }) {
   const [range, setRange] = useState<Range>('30d');
-  const [raw, setRaw] = useState<RawStats | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  // Activity + combat logs are cached in statsStore (30 s TTL) so navigating
+  // away and back doesn't re-fetch 1500 Firestore docs each time.
+  const fetchStatsData = useStatsStore((s) => s.fetchStatsData);
+  const activityLogs = useStatsStore((s) => s.activityLogs);
+  const combatLogs = useStatsStore((s) => s.combatLogs);
+  const statsLoading = useStatsStore((s) => s.loading);
+  const statsError = useStatsStore((s) => s.error);
+
+  // Quests and inventory are already loaded by other pages; read from their
+  // store snapshots and fall back to Firestore only if not yet populated.
+  const cachedQuests = useQuestStore((s) => s.quests);
+  const cachedItems = useInventoryStore((s) => s.items);
+  const [questsAndInventory, setQuestsAndInventory] = useState<{
+    quests: ActiveQuest[];
+    inventory: InventoryItem[];
+  } | null>(null);
+  const [qiLoading, setQiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        // Activity logs live only in Firestore — always fetch.
-        // Quests and inventory are already loaded by other pages in a normal
-        // session; read from the Zustand store snapshot and skip the round-trip.
-        // Fall back to Firestore only if the store hasn't been populated yet.
-        const { quests: cachedQuests } = useQuestStore.getState();
-        const { items: cachedItems } = useInventoryStore.getState();
+    fetchStatsData(uid);
+  }, [uid, fetchStatsData]);
 
-        const [logs, quests, inventory, combatLogs] = await Promise.all([
-          fetchActivityLogs(uid),
-          cachedQuests.length > 0 ? Promise.resolve(cachedQuests) : fetchActiveQuests(uid),
-          cachedItems.length > 0 ? Promise.resolve(cachedItems) : fetchInventoryItems(uid),
-          fetchRecentCombatLogs(uid, 1000),
-        ]);
-        setRaw({ logs, quests, inventory, combatLogs });
-      } catch {
-        setError('Failed to load stats. Please refresh to try again.');
-      } finally {
-        setLoading(false);
-      }
+  useEffect(() => {
+    if (cachedQuests.length > 0 && cachedItems.length > 0) {
+      setQuestsAndInventory({ quests: cachedQuests, inventory: cachedItems });
+      return;
     }
-    load();
-  }, [uid]);
+    setQiLoading(true);
+    Promise.all([
+      cachedQuests.length > 0 ? Promise.resolve(cachedQuests) : fetchActiveQuests(uid),
+      cachedItems.length > 0 ? Promise.resolve(cachedItems) : fetchInventoryItems(uid),
+    ])
+      .then(([quests, inventory]) => setQuestsAndInventory({ quests, inventory }))
+      .catch(() => setError('Failed to load stats. Please refresh to try again.'))
+      .finally(() => setQiLoading(false));
+  }, [uid, cachedQuests, cachedItems]);
+
+  const loading = statsLoading || qiLoading || questsAndInventory === null;
 
   const stats = useMemo(() => {
-    if (!raw) return null;
+    if (!questsAndInventory) return null;
+    const { quests, inventory } = questsAndInventory;
     const cutoff = startOfRange(range);
 
-    const logs = raw.logs.filter((l) => l.loggedAt >= cutoff);
-    const claimed = raw.quests.filter((q) => q.claimedAt !== null && (q.claimedAt ?? 0) >= cutoff);
-    const purchases = raw.inventory.filter((i) => i.acquiredAt >= cutoff);
+    const logs = activityLogs.filter((l) => l.loggedAt >= cutoff);
+    const claimed = quests.filter((q) => q.claimedAt !== null && (q.claimedAt ?? 0) >= cutoff);
+    const purchases = inventory.filter((i) => i.acquiredAt >= cutoff);
 
     const goldFromQuests = claimed.reduce(
       (s, q) => s + (q.rewardedGold ?? q.rewards?.gold ?? 0),
@@ -178,7 +182,7 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
     }
 
     const combatXpByDay: Record<string, number> = {};
-    for (const c of raw.combatLogs.filter((cl) => cl.loggedAt >= cutoff)) {
+    for (const c of combatLogs.filter((cl) => cl.loggedAt >= cutoff)) {
       const label = dayLabel(c.loggedAt);
       combatXpByDay[label] = (combatXpByDay[label] ?? 0) + c.xp;
     }
@@ -186,7 +190,7 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
     const totalQuestXp = Object.values(questXpByDay).reduce((s, v) => s + v, 0);
     const totalCombatXp = Object.values(combatXpByDay).reduce((s, v) => s + v, 0);
     const totalXp = totalQuestXp + totalCombatXp;
-    const battlesWon = raw.combatLogs.filter((cl) => cl.loggedAt >= cutoff).length;
+    const battlesWon = combatLogs.filter((cl) => cl.loggedAt >= cutoff).length;
 
     const byType: Record<string, { count: number; amount: number }> = {};
     for (const l of logs) {
@@ -262,7 +266,7 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
       questChartData,
       breakdownData,
     };
-  }, [raw, range]);
+  }, [activityLogs, combatLogs, questsAndInventory, range]);
 
   const RANGES: { value: Range; label: string }[] = [
     { value: '7d', label: 'Last 7 days' },
@@ -289,20 +293,20 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
         ))}
       </div>
 
-      {error ? (
+      {error || statsError ? (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-          {error}
+          {error ?? statsError ?? 'Failed to load stats. Please refresh to try again.'}
         </div>
       ) : loading || !stats ? (
         <StatsLoading />
       ) : (
         <>
-          {range === 'all' && raw && raw.logs.length >= 500 && (
+          {range === 'all' && activityLogs.length >= 500 && (
             <p className="text-xs text-gray-400 dark:text-slate-500 text-right">
               Showing most recent 500 activity logs
             </p>
           )}
-          {range === 'all' && raw && raw.combatLogs.length >= 1000 && (
+          {range === 'all' && combatLogs.length >= 1000 && (
             <p className="text-xs text-gray-400 dark:text-slate-500 text-right">
               Showing most recent 1000 battles
             </p>

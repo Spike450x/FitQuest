@@ -15,6 +15,13 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Test infrastructure, statsStore cache, error boundaries, offline detection
+
+- **Test infrastructure.** Installed `@testing-library/react`, `@testing-library/jest-dom`, and `jsdom`. Added 24 new unit tests: `activityStore` subscription idempotency and uid-change teardown, `questStore` and `inventoryStore` TTL skip / `_fetching` guard / `force` bypass, and `useTodayKey` date-roll and `visibilitychange` behaviour. Per-file `// @vitest-environment jsdom` convention documented for future hook/component tests.
+- **Stats page performance.** Extracted `fetchActivityLogs` (500 docs) and `fetchRecentCombatLogs` (1000 docs) into a new `statsStore` with 30-second TTL — same pattern as `questStore` / `inventoryStore`. Navigating away from /stats and back no longer re-fetches 1500 docs. `statsStore.clear()` wired into `handleSignOut`.
+- **Error boundaries.** Added `src/app/(game)/error.tsx` (game segment) and `src/app/error.tsx` (root) using Next.js App Router convention. Both log via `captureError` so crashes are tracked. Recovery UI provides "Try again" and "Go to Dashboard" actions.
+- **Offline detection.** Added `useOnlineStatus` hook wrapping `navigator.onLine` + browser `online`/`offline` events. `OfflineBanner` renders a sticky amber strip with a user-facing message whenever the browser loses connectivity; disappears automatically on reconnection. Mounted in `GameLayout`.
+
 ## 2026-05-22 — Tab navigation performance + theme stability
 
 - **Instant tab switching.** Firestore `onSnapshot` subscription for recent activity logs is now held in a persistent Zustand store (`activityStore`) started once in `GameLayout`. Previously torn down and rebuilt on every page navigation, causing a visible loading flash on each tab switch. Inventory and quest stores gained a 30-second TTL cache matching the character store, so navigating back to a recently-visited tab skips redundant Firestore reads entirely.

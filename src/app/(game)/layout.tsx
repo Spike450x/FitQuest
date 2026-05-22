@@ -19,10 +19,12 @@ import { useCharacter } from '@/hooks/useCharacter';
 import { useActivityStore } from '@/store/activityStore';
 import { useQuestStore } from '@/store/questStore';
 import { useInventoryStore } from '@/store/inventoryStore';
+import { useStatsStore } from '@/store/statsStore';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { XPBar } from '@/components/ui/XPBar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { InstallBanner } from '@/components/ui/InstallBanner';
+import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { RouteBackground } from '@/components/ui/RouteBackground';
 import { BrandMark } from '@/components/ui/BrandMark';
 import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
@@ -56,6 +58,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
     useActivityStore.getState().clear();
     useQuestStore.getState().clear();
     useInventoryStore.getState().clear();
+    useStatsStore.getState().clear();
     await logOut();
     router.push('/login');
   }
@@ -70,6 +73,9 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
       {/* PWA install nudge — appears after ~12 s of activity if installable */}
       <InstallBanner />
+
+      {/* Network status — shows when browser loses connectivity */}
+      <OfflineBanner />
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <header className="border-b border-gray-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl backdrop-saturate-150 sticky top-0 z-20 h-14 shadow-sm shadow-gray-900/5 dark:shadow-black/30">
