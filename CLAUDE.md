@@ -40,10 +40,10 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 - ~~**P1-3** — Gold endgame sinks~~ — shipped: 100g quest reroll mechanic on every active QuestCard (excludes currently-held questDefIds for genuine variety); dungeon entry fees verified already deducted
 - ~~**P1-4** — Fizzle stamina refund~~ — shipped: `COMBAT.FIZZLE_STAMINA_REFUND = 5` returned on failed ability roll
 - ~~**P1-5** — Add level-9 monster (Lich King)~~ — shipped: HP 150 / atk 28 / def 9 / xp 220 / gold 110 with necromancer loot table
-- **P1-6** — Dungeon resource persistence: HP/Stamina/Magic carry between rooms (currently reset); L effort
+- ~~**P1-6** — Dungeon resource persistence~~ — verified already complete: `DungeonRun` doc carries `currentHp` / `currentStamina` / `currentMagic`; `dungeonStore.advanceRoom()` persists them; `bootstrap()` on the run page restores them; `enterRoom()` does not reset player resources. Audit framing was outdated.
 - ~~**P2-1** — Mastery linked-stat hint on activity log form~~ — shipped: inline indigo callout shows the activity → stat mapping for workout / run / steps tabs
 - ~~**P2-2** — Wizard starting stats~~ — shipped: starting health 6 → 8
-- **P2-3** — Activity cap proximity indicator on the log form (e.g., "68% of daily cap used"); M effort
+- ~~**P2-3** — Activity cap proximity indicator on the log form~~ — shipped: subscribes to last-50 logs, computes today's total via UTC-day filter, shows a coloured cap meter (emerald → amber at 70% → rose when exhausted). Two helpers (`remainingCapacityForActivity`, `dailyCapUsageFraction`) with 7 new unit tests.
 - ~~**P2-4** — Quest reroll mechanic~~ — shipped alongside P1-3 (100g per reroll, excludes held questDefIds). Quest pool expansion deferred — current pool (28 daily / 14 weekly) already supports variety.
 
 ### Feature backlog (dependency order — each unlocks the next)
