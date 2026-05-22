@@ -41,3 +41,34 @@ export function eligibleAmountForRewards(
   const remaining = Math.max(0, cap - alreadyLoggedToday);
   return Math.min(amount, remaining);
 }
+
+/**
+ * Returns the remaining daily-cap headroom for an activity given how much has
+ * already been logged today. Display-only — the server still enforces the cap
+ * at submit time via the `logActivity` Cloud Function.
+ *
+ *   logged 0   → remaining = cap
+ *   logged cap → remaining = 0  (cap reached, further amount earns nothing)
+ *   logged > cap → remaining = 0 (clamped)
+ */
+export function remainingCapacityForActivity(
+  activityType: ActivityType,
+  alreadyLoggedToday: number,
+): number {
+  const cap = DAILY_ACTIVITY_CAPS[activityType];
+  if (cap === undefined) return 0;
+  return Math.max(0, cap - alreadyLoggedToday);
+}
+
+/**
+ * Returns `alreadyLoggedToday / cap` as a 0–1 fraction, clamped to [0, 1].
+ * Useful for progress-bar widths and "X% of cap used" labels.
+ */
+export function dailyCapUsageFraction(
+  activityType: ActivityType,
+  alreadyLoggedToday: number,
+): number {
+  const cap = DAILY_ACTIVITY_CAPS[activityType];
+  if (!cap) return 0;
+  return Math.min(1, Math.max(0, alreadyLoggedToday / cap));
+}

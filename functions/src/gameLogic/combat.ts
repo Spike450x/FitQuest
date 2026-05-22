@@ -73,3 +73,20 @@ export function playerMaxStamina(
 export function playerMaxMagic(wisdom: number, charClass: string): number {
   return BASE_MAGIC + wisdom * MAGIC_PER_WISDOM + (charClass === 'wizard' ? WIZARD_MAGIC_BONUS : 0);
 }
+
+// ─── Daily combat XP cap (parity copy of client function) ────────────────────
+//
+// PARITY: must match src/lib/gameLogic/combat.ts → combatXpDailyMultiplier.
+// A parity test (functions/src/__tests__/combatXp.test.ts) cross-checks the
+// two copies. If you change one, change the other in the same commit.
+//
+//   wins 0–9   → 1.0×
+//   wins 10–19 → 0.5×
+//   wins 20–29 → 0.25×
+//   wins 30+   → 0.1×
+export function combatXpDailyMultiplier(winsToday: number): number {
+  if (winsToday < 10) return 1.0;
+  if (winsToday < 20) return 0.5;
+  if (winsToday < 30) return 0.25;
+  return 0.1;
+}

@@ -345,6 +345,8 @@ Turn-based combat against a roster of 10 monsters. Each day a rotation of 4 mons
 
 **Loot:** Winning a fight rolls the monster's loot table. Gear, consumables, and spells can all drop.
 
+**Daily combat XP cap:** Combat-win XP is subject to diminishing returns to prevent grind loops. Wins 1–9 of the UTC day earn full XP; wins 10–19 earn 50%; wins 20–29 earn 25%; wins 30+ earn 10%. **Gold is never diminished** — combat farming for gold to fund quest rerolls or dungeon entry fees stays viable. The "Daily combat XP" badge on the combat page shows the current multiplier and the wins remaining until the next penalty. Enforced server-side by the `claimCombatVictory` Cloud Function (P0-3).
+
 ---
 
 ### Class Abilities
@@ -612,6 +614,12 @@ Regular round      = monster deals flat monster.attack − player defense
 Ability/Spell round = monster counter-attack adds d10 + monster.attack − player defense
 
 Escape roll        = d10 + AGI vs monster d10
+
+Daily combat XP    = base_xp × multiplier, where multiplier =
+                     1.0  if wins_today < 10
+                     0.5  if wins_today < 20
+                     0.25 if wins_today < 30
+                     0.1  otherwise        (gold is NOT diminished)
 ```
 
 ### Monsters

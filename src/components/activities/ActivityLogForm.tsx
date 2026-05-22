@@ -1,11 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { logActivityFn } from '@/lib/functions';
 import { captureError } from '@/lib/errors';
 import { useCharacter } from '@/hooks/useCharacter';
+import { useRecentActivity } from '@/hooks/useRecentActivity';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
 import { calculateResourceRestore } from '@/lib/gameLogic/stats';
+import {
+  DAILY_ACTIVITY_CAPS,
+  dailyCapUsageFraction,
+  remainingCapacityForActivity,
+} from '@/lib/gameLogic/activityCaps';
 import {
   ACTIVITY_DEFINITIONS,
   MASTERY_ACTIVITIES,
@@ -83,6 +89,10 @@ type LogResult = MasteryResult | RestoreResult;
 
 export function ActivityLogForm() {
   const { character } = useCharacter();
+  // Subscribe to the last 50 activity logs so today's totals stay accurate
+  // even on a very-active day (cap enforcement still happens server-side; this
+  // is display-only).
+  const { logs: recentLogs } = useRecentActivity(character?.uid, 50);
   const applyMasteryLocal = useCharacterStore((s) => s.applyMasteryLocal);
   const applyRestoreLocal = useCharacterStore((s) => s.applyRestoreLocal);
   const persistStreakAndRecord = useCharacterStore((s) => s.persistStreakAndRecord);
@@ -93,12 +103,30 @@ export function ActivityLogForm() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<LogResult | null>(null);
 
+  // Sum today's logged amount for the active tab. UTC-day boundary so it
+  // matches the server's cap enforcement window.
+  const loggedTodayForActiveTab = useMemo(() => {
+    const today = todayUTC();
+    return recentLogs.reduce((sum, log) => {
+      if (log.type !== activeTab) return sum;
+      const day = new Date(log.loggedAt).toISOString().slice(0, 10);
+      if (day !== today) return sum;
+      const amt = (log.data as { amount?: number }).amount ?? 0;
+      return sum + amt;
+    }, 0);
+  }, [recentLogs, activeTab]);
+
   if (!character) return null;
 
   const def = ACTIVITY_DEFINITIONS[activeTab];
   const inputCfg = INPUT_CONFIG[activeTab];
   const parsedAmount = parseFloat(amount);
   const amountValid = !isNaN(parsedAmount) && parsedAmount > 0;
+  const dailyCap = DAILY_ACTIVITY_CAPS[activeTab];
+  const remainingCap = remainingCapacityForActivity(activeTab, loggedTodayForActiveTab);
+  const capFraction = dailyCapUsageFraction(activeTab, loggedTodayForActiveTab);
+  const capPct = Math.round(capFraction * 100);
+  const capExhausted = remainingCap === 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -291,6 +319,49 @@ export function ActivityLogForm() {
             </div>
           );
         })()}
+
+        {/* Daily-cap proximity indicator — P2-3. Shows how close the player is
+            to the soft daily cap before they submit. Tints amber at 70%+ and
+            rose when exhausted so the warning is visible at a glance. */}
+        <div
+          className={`rounded-lg border px-3 py-2 text-xs transition-colors ${
+            capExhausted
+              ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-200'
+              : capPct >= 70
+                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-200'
+                : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium">
+              {capExhausted ? (
+                <>⚠️ Daily cap reached for {def.label.toLowerCase()}</>
+              ) : (
+                <>
+                  Today:{' '}
+                  <span className="font-semibold tabular-nums">{loggedTodayForActiveTab}</span> /{' '}
+                  {dailyCap} {def.unit}
+                </>
+              )}
+            </span>
+            <span className="font-semibold tabular-nums">{capPct}%</span>
+          </div>
+          {/* Progress bar — width keyed off the same fraction. */}
+          <div className="mt-1.5 h-1.5 w-full rounded-full bg-white/70 dark:bg-slate-950/40 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                capExhausted ? 'bg-rose-500' : capPct >= 70 ? 'bg-amber-500' : 'bg-emerald-500'
+              }`}
+              style={{ width: `${capPct}%` }}
+            />
+          </div>
+          {!capExhausted && remainingCap < dailyCap && (
+            <p className="mt-1 text-[11px] opacity-80">
+              <span className="font-semibold tabular-nums">{remainingCap}</span> {def.unit} left
+              before further logs stop earning rewards.
+            </p>
+          )}
+        </div>
 
         <div>
           <label
