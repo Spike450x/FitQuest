@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { logActivityFn } from '@/lib/functions';
 import { captureError } from '@/lib/errors';
 import { fetchTodayLogsForType } from '@/lib/activityData';
+import { fetchWithRetry, STORE_RETRY_DELAYS } from '@/lib/retry';
 import { dailyCapUsageFraction, DAILY_ACTIVITY_CAPS } from '@/lib/gameLogic/activityCaps';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
@@ -104,7 +105,7 @@ export function ActivityLogForm() {
 
   const refreshTodayTotal = useCallback(async (uid: string, type: string) => {
     try {
-      const logs = await fetchTodayLogsForType(uid, type);
+      const logs = await fetchWithRetry(() => fetchTodayLogsForType(uid, type), STORE_RETRY_DELAYS);
       const total = logs.reduce((sum, l) => sum + ((l.data.amount as number) ?? 0), 0);
       setTodayTotals((prev) => new Map(prev).set(type, { value: total, stale: false }));
     } catch {
