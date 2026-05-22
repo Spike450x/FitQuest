@@ -15,6 +15,13 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Tab navigation performance + theme stability
+
+- **Instant tab switching.** Firestore `onSnapshot` subscription for recent activity logs is now held in a persistent Zustand store (`activityStore`) started once in `GameLayout`. Previously torn down and rebuilt on every page navigation, causing a visible loading flash on each tab switch. Inventory and quest stores gained a 30-second TTL cache matching the character store, so navigating back to a recently-visited tab skips redundant Firestore reads entirely.
+- **Dark mode race condition fixed.** `useTheme` refactored into a single React context (`ThemeProvider`) with one shared state and one `MutationObserver`. Multiple independent hook instances were racing each other and causing toggles not to persist across component re-renders. SSR hydration mismatches in `ThemeToggle` and `SoundToggle` fixed with mounted-guard pattern.
+- **Store cleanup on sign-out.** `useActivityStore`, `useQuestStore`, and `useInventoryStore` are now explicitly cleared on sign-out so no stale subscription or cached data leaks into a subsequent login session.
+- **P2-3 cap indicator temporarily removed.** The daily-cap progress bar on the activity log form depended on `useRecentActivity(uid, 50)` — incompatible with the new store-backed hook that caps at 5 entries. Removed to unblock the architecture change; P2-3 remains in the backlog for a redesign using server-side daily totals.
+
 ## 2026-05-22 — Balance & engine fixes pass 4 (P0-3 daily combat XP cap — backlog cleared)
 
 Closes **P0-3** and clears the final outstanding item from the post-MVP balance backlog. After today, the "Balance & engine fixes" section in CLAUDE.md is complete — focus shifts to the feature backlog (Achievements page → Reputation/Wanted Board → Champions → …).
