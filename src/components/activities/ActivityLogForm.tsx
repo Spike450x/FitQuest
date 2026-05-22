@@ -108,8 +108,16 @@ export function ActivityLogForm() {
       const total = logs.reduce((sum, l) => sum + ((l.data.amount as number) ?? 0), 0);
       setTodayTotals((prev) => new Map(prev).set(type, { value: total, stale: false }));
     } catch {
-      // Non-critical — leave the existing entry unchanged (stale meter stays
-      // visible) rather than hiding the meter or triggering a re-fetch loop.
+      // On failure, clear the stale flag so the last known value shows without
+      // a persistent spinner. The next submit will re-invalidate if needed.
+      // If there was no prior entry (first fetch), state is unchanged — meter stays hidden.
+      setTodayTotals((prev) => {
+        const existing = prev.get(type);
+        if (!existing?.stale) return prev;
+        const m = new Map(prev);
+        m.set(type, { ...existing, stale: false });
+        return m;
+      });
     }
   }, []);
 

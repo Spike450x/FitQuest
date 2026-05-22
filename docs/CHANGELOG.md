@@ -15,6 +15,11 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — questStore read retry, stale spinner on error resolved
+
+- **`fetchWithRetry` on `questStore.fetchAndAssignQuests` read path.** Only the initial `fetchActiveQuests` call is retried; the conditional `addActiveQuestDoc` writes that follow are intentionally excluded — partial quest assignments can't be safely rolled back.
+- **Stale cap-meter spinner resolves on persistent fetch failure.** Previously, if `refreshTodayTotal` failed (e.g., no connection), the stale spinner ran indefinitely. The catch block now clears the stale flag so the last known value shows without a spinner. The next submit re-invalidates if needed.
+
 ## 2026-05-22 — Retry breadth, stale cap meter, utcDayStartMs test seam
 
 - **`fetchWithRetry` wired into `characterStore.fetchCharacter` and `inventoryStore.fetchInventory`.** Both were single-attempt Firestore reads with no resilience; they now get the same `[1 s, 3 s]` back-off as `statsStore`.
