@@ -48,6 +48,8 @@
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
     "@playwright/test": "^1.60.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^18",
@@ -60,6 +62,7 @@
     "eslint-config-prettier": "^10.1.8",
     "firebase-tools": "^13.35.1",
     "husky": "^9.1.6",
+    "jsdom": "^29.1.1",
     "lint-staged": "^15.2.10",
     "postcss": "^8.5.10",
     "prettier": "^3.8.3",
