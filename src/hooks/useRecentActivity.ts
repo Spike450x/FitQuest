@@ -1,30 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { subscribeToRecentActivity } from '@/lib/activityData';
-import type { ActivityLog } from '@/types';
+import { useActivityStore } from '@/store/activityStore';
 
-export function useRecentActivity(uid: string | null | undefined, count = 5) {
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!uid) {
-      setLogs([]);
-      setLoading(false);
-      return;
-    }
-
-    return subscribeToRecentActivity(
-      uid,
-      count,
-      (items) => {
-        setLogs(items);
-        setLoading(false);
-      },
-      () => setLoading(false),
-    );
-  }, [uid, count]);
-
+export function useRecentActivity(_uid?: string | null) {
+  const logs = useActivityStore((s) => s.recentLogs);
+  const loading = useActivityStore((s) => s.loading);
   return { logs, loading };
 }

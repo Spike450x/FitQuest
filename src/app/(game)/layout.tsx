@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { logOut } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
+import { useActivityStore } from '@/store/activityStore';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { XPBar } from '@/components/ui/XPBar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -43,6 +44,11 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const { character, loading } = useCharacter();
   const [collapsed, setCollapsed] = useState(true);
+  const subscribeActivity = useActivityStore((s) => s.subscribe);
+
+  useEffect(() => {
+    if (character?.uid) subscribeActivity(character.uid);
+  }, [character?.uid, subscribeActivity]);
 
   async function handleSignOut() {
     await logOut();
