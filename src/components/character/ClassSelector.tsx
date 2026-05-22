@@ -27,7 +27,7 @@ export function ClassSelector({ selected, onSelect }: ClassSelectorProps) {
               text-left rounded-xl p-4 border-2 transition-all duration-150
               ${
                 isSelected
-                  ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/50 shadow-sm'
                   : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-indigo-300 hover:shadow-sm'
               }
             `}

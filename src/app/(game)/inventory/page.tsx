@@ -354,7 +354,7 @@ export default function InventoryPage() {
                 return (
                   <div
                     key={invItem.id}
-                    className="flex items-center justify-between gap-3 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"
+                    className="flex items-center justify-between gap-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -486,8 +486,8 @@ export default function InventoryPage() {
                 className={`relative bg-white dark:bg-slate-900 border-2 rounded-xl p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-lg ${rarityScheme.glow} ${
                   isEquipped
                     ? isConsumable
-                      ? 'border-emerald-400 bg-emerald-50/40 ring-2 ring-emerald-200'
-                      : 'border-indigo-400 bg-indigo-50/40 ring-2 ring-indigo-200'
+                      ? 'border-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20 ring-2 ring-emerald-200 dark:ring-emerald-800'
+                      : 'border-indigo-400 bg-indigo-50/40 dark:bg-indigo-950/20 ring-2 ring-indigo-200 dark:ring-indigo-800'
                     : rarityScheme.border
                 } ${isLegendary && !isEquipped ? 'animate-legendary-glow' : ''}`}
               >
@@ -546,7 +546,7 @@ export default function InventoryPage() {
                     .map(([key, val]) => (
                       <span
                         key={key}
-                        className="text-xs bg-indigo-50 text-indigo-600 font-medium px-2 py-0.5 rounded-full capitalize"
+                        className="text-xs bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 font-medium px-2 py-0.5 rounded-full capitalize"
                       >
                         +{val} {key}
                       </span>

@@ -26,6 +26,7 @@ import {
   toastMasteryMilestone,
 } from '@/components/ui/Toaster';
 import { Card } from '@/components/ui/Card';
+import { InputField } from '@/components/ui/InputField';
 import type { ActivityType, Character } from '@/types';
 
 const TABS: { type: ActivityType; icon: string; label: string }[] = [
@@ -53,9 +54,24 @@ const RESOURCE_LABEL: Record<
   'hp' | 'stamina' | 'magic',
   { label: string; icon: string; color: string }
 > = {
-  hp: { label: 'HP', icon: '❤️', color: 'text-rose-600 border-rose-200 bg-rose-50' },
-  stamina: { label: 'Stamina', icon: '⚡', color: 'text-amber-600 border-amber-200 bg-amber-50' },
-  magic: { label: 'Magic', icon: '✨', color: 'text-violet-600 border-violet-200 bg-violet-50' },
+  hp: {
+    label: 'HP',
+    icon: '❤️',
+    color:
+      'text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40',
+  },
+  stamina: {
+    label: 'Stamina',
+    icon: '⚡',
+    color:
+      'text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40',
+  },
+  magic: {
+    label: 'Magic',
+    icon: '✨',
+    color:
+      'text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-900 bg-violet-50 dark:bg-violet-950/40',
+  },
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -300,8 +316,8 @@ export function ActivityLogForm() {
             }}
             className={`flex-1 py-3 text-xs font-medium transition-colors ${
               activeTab === type
-                ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500'
-                : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-50 dark:bg-slate-900'
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-b-2 border-indigo-500'
+                : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 dark:bg-slate-900'
             }`}
           >
             <span className="block text-xl mb-0.5">{icon}</span>
@@ -345,7 +361,7 @@ export function ActivityLogForm() {
           >
             {def.unit}
           </label>
-          <input
+          <InputField
             id="activity-amount"
             type="number"
             value={amount}
@@ -355,7 +371,6 @@ export function ActivityLogForm() {
             step={inputCfg.step}
             placeholder={inputCfg.placeholder}
             required
-            className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
 
@@ -454,15 +469,15 @@ function ActivityPreview({
     const logsUntil = nextMilestone - currentCount;
 
     return (
-      <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3 space-y-1">
+      <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 rounded-lg px-4 py-3 space-y-1">
         <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wider">
           Mastery Progress
         </p>
-        <p className="text-sm text-indigo-700">
+        <p className="text-sm text-indigo-700 dark:text-indigo-300">
           <span className="font-bold">{currentCount}</span> {config.linkedStatLabel.toLowerCase()}{' '}
           logs so far
         </p>
-        <p className="text-xs text-indigo-500">
+        <p className="text-xs text-indigo-500 dark:text-indigo-400">
           {logsUntil} more to +1 {config.linkedStatLabel}
         </p>
       </div>
@@ -542,10 +557,12 @@ function MasteryResult({ result }: { result: MasteryResult }) {
     <>
       {/* Milestone banner */}
       {result.milestoneHit && (
-        <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-xl p-4">
+        <div className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 border border-violet-200 dark:border-violet-800 rounded-xl p-4">
           <p className="text-3xl mb-1">⬆️</p>
-          <p className="text-lg font-bold text-violet-700">Mastery Milestone!</p>
-          <p className="text-sm text-violet-600">
+          <p className="text-lg font-bold text-violet-700 dark:text-violet-300">
+            Mastery Milestone!
+          </p>
+          <p className="text-sm text-violet-600 dark:text-violet-400">
             +1 {result.linkedStatLabel} — earned through consistency
           </p>
         </div>
@@ -553,10 +570,12 @@ function MasteryResult({ result }: { result: MasteryResult }) {
 
       {/* Personal Record banner */}
       {result.isNewRecord && (
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4">
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
           <p className="text-3xl mb-1">🏆</p>
-          <p className="text-lg font-bold text-emerald-700">New Personal Record!</p>
-          <p className="text-sm text-emerald-600">
+          <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+            New Personal Record!
+          </p>
+          <p className="text-sm text-emerald-600 dark:text-emerald-400">
             Best {result.activityLabel} yet — noted for raid access.
           </p>
         </div>
@@ -571,11 +590,11 @@ function MasteryResult({ result }: { result: MasteryResult }) {
       </div>
 
       {/* Progress to next milestone */}
-      <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3">
+      <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 rounded-lg px-4 py-3">
         <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wider mb-1">
           Next Milestone
         </p>
-        <p className="text-sm text-indigo-700">
+        <p className="text-sm text-indigo-700 dark:text-indigo-300">
           <span className="font-bold">{result.nextMilestone - result.newCount}</span> more{' '}
           {result.activityLabel.toLowerCase()} sessions → +1 {config.linkedStatLabel}
         </p>

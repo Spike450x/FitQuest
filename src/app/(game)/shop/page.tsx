@@ -89,11 +89,11 @@ export default function ShopPage() {
       </div>
 
       {/* Daily rotation notice */}
-      <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
-        <p className="text-xs text-amber-700 font-medium">
+      <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-2.5">
+        <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
           🔄 {GEAR_SHOP_COUNT} gear/consumables today — spells always available
         </p>
-        <p className="text-xs text-amber-600 font-semibold">
+        <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
           Resets in {formatCountdown(rotationExpiresAt())} (midnight UTC)
         </p>
       </div>
@@ -223,7 +223,7 @@ export default function ShopPage() {
                     .map(([key, val]) => (
                       <span
                         key={key}
-                        className="text-xs bg-indigo-50 text-indigo-600 font-medium px-2 py-0.5 rounded-full capitalize"
+                        className="text-xs bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-300 font-medium px-2 py-0.5 rounded-full capitalize"
                       >
                         +{val} {key}
                       </span>
@@ -231,7 +231,7 @@ export default function ShopPage() {
                 </div>
 
                 {owned ? (
-                  <div className="w-full text-center text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg py-2">
+                  <div className="w-full text-center text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg py-2">
                     {bought ? '✓ Purchased!' : 'Already owned'}
                   </div>
                 ) : (

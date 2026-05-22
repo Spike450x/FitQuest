@@ -12,6 +12,7 @@ import { SoundToggle } from '@/components/ui/SoundToggle';
 import { InstallAppButton } from '@/components/ui/InstallAppButton';
 import { EntityArt } from '@/components/art/EntityArt';
 import type { Character } from '@/types';
+import { InputField } from '@/components/ui/InputField';
 
 export default function ProfilePage() {
   const { character, user } = useCharacter();
@@ -107,7 +108,7 @@ function AchievementGallery({ character }: { character: Character }) {
               key={def.id}
               className={`rounded-xl p-3 border flex gap-3 items-start ${
                 isUnlocked
-                  ? 'bg-indigo-50 border-indigo-200'
+                  ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800'
                   : 'bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-slate-700 opacity-50'
               }`}
             >
@@ -129,7 +130,7 @@ function AchievementGallery({ character }: { character: Character }) {
               )}
               <div className="flex-1 min-w-0">
                 <div
-                  className={`text-xs font-bold leading-tight ${isUnlocked ? 'text-indigo-900' : 'text-gray-400 dark:text-slate-500'}`}
+                  className={`text-xs font-bold leading-tight ${isUnlocked ? 'text-indigo-900 dark:text-indigo-200' : 'text-gray-400 dark:text-slate-500'}`}
                 >
                   {def.name}
                 </div>
@@ -138,7 +139,7 @@ function AchievementGallery({ character }: { character: Character }) {
                 </div>
                 {isUnlocked && (
                   <div className="mt-2">
-                    <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-medium">
+                    <span className="text-xs bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 px-1.5 py-0.5 rounded font-medium">
                       +{def.goldReward} gold earned
                     </span>
                   </div>
@@ -181,12 +182,14 @@ function ChangeNameForm({ character }: { character: Character }) {
   return (
     <SettingsCard title="Character Name" description="Your in-game display name">
       <form onSubmit={handleSave} className="space-y-3">
-        <input
+        <InputField
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={32}
-          className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          inputSize="sm"
+          aria-label="Character name"
+          autoComplete="nickname"
         />
         {error && <p className="text-xs text-red-500">{error}</p>}
         <button
@@ -235,9 +238,9 @@ function ChangeEmailForm({ user }: { user: User }) {
     <SettingsCard title="Email Address" description="Changing email requires your current password">
       {pendingEmail ? (
         <div className="space-y-3">
-          <div className="rounded-lg bg-indigo-50 border border-indigo-200 px-4 py-3 text-sm text-indigo-800">
+          <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-4 py-3 text-sm text-indigo-800 dark:text-indigo-200">
             <p className="font-semibold">Check your inbox</p>
-            <p className="mt-0.5 text-indigo-700">
+            <p className="mt-0.5 text-indigo-700 dark:text-indigo-300">
               A verification link was sent to <span className="font-medium">{pendingEmail}</span>.
               Your email won&apos;t change until you click it.
             </p>
@@ -252,19 +255,19 @@ function ChangeEmailForm({ user }: { user: User }) {
         </div>
       ) : (
         <form onSubmit={handleSave} className="space-y-3">
-          <input
+          <InputField
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="New email address"
-            className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            inputSize="sm"
           />
-          <input
+          <InputField
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Current password to confirm"
-            className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            inputSize="sm"
           />
           {error && <p className="text-xs text-red-500">{error}</p>}
           <button
@@ -321,26 +324,29 @@ function ChangePasswordForm({ user }: { user: User }) {
   return (
     <SettingsCard title="Password" description="Must be at least 6 characters">
       <form onSubmit={handleSave} className="space-y-3">
-        <input
+        <InputField
           type="password"
           value={current}
           onChange={(e) => setCurrent(e.target.value)}
           placeholder="Current password"
-          className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          autoComplete="current-password"
+          inputSize="sm"
         />
-        <input
+        <InputField
           type="password"
           value={next}
           onChange={(e) => setNext(e.target.value)}
           placeholder="New password"
-          className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          autoComplete="new-password"
+          inputSize="sm"
         />
-        <input
+        <InputField
           type="password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           placeholder="Confirm new password"
-          className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          autoComplete="new-password"
+          inputSize="sm"
         />
         {error && <p className="text-xs text-red-500">{error}</p>}
         <button

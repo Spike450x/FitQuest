@@ -74,7 +74,7 @@ export function LevelUpCelebration() {
           {character.name} reached <span className="font-semibold">Level {showLevel}</span>
         </p>
 
-        <div className="relative bg-white/80 border border-amber-200 rounded-xl px-4 py-3 mb-5 backdrop-blur-sm">
+        <div className="relative bg-white/80 dark:bg-slate-900/80 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 mb-5 backdrop-blur-sm">
           <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
             Earned
           </p>

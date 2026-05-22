@@ -54,7 +54,7 @@ export function CharacterCard({ character }: CharacterCardProps) {
   const currentStamina = character.currentStamina ?? maxStamina;
 
   return (
-    <div className="relative bg-white border border-gray-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
+    <div className="relative bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
       {/* Themed top banner */}
       <div
         className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-br ${theme.gradient} opacity-80`}
@@ -78,7 +78,7 @@ export function CharacterCard({ character }: CharacterCardProps) {
               ariaLabel={`${classDef.label} portrait`}
             />
             <span
-              className={`absolute -bottom-1 right-0 bg-white border border-gray-200 dark:border-slate-700 rounded-full px-1.5 py-0.5 text-[10px] font-display font-bold tabular-nums shadow-sm ${theme.accent}`}
+              className={`absolute -bottom-1 right-0 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-full px-1.5 py-0.5 text-[10px] font-display font-bold tabular-nums shadow-sm ${theme.accent}`}
             >
               Lv {character.level}
             </span>
@@ -159,7 +159,7 @@ export function CharacterCard({ character }: CharacterCardProps) {
                   key={slot}
                   className={`rounded-lg p-2 border transition-colors ${
                     equipped
-                      ? 'bg-white border-indigo-200 shadow-sm'
+                      ? 'bg-white dark:bg-slate-800 border-indigo-200 dark:border-indigo-800 shadow-sm'
                       : 'bg-gray-50 dark:bg-slate-900 border-dashed border-gray-300 dark:border-slate-700'
                   }`}
                 >
