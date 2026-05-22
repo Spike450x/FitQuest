@@ -15,6 +15,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Retry breadth, stale cap meter, utcDayStartMs test seam
+
+- **`fetchWithRetry` wired into `characterStore.fetchCharacter` and `inventoryStore.fetchInventory`.** Both were single-attempt Firestore reads with no resilience; they now get the same `[1 s, 3 s]` back-off as `statsStore`.
+- **Stale cap-meter indicator in `ActivityLogForm`.** After an activity is submitted, the cap meter now stays visible (dimmed, with a spinner) while the usage count re-fetches, instead of disappearing for 1–2 s. State shape changed from `Map<string, number>` to `Map<string, {value, stale}>`.
+- **`utcDayStartMs` extracted to `src/lib/gameLogic/streaks.ts`.** Pure helper (no Firebase deps) alongside `todayUTC()`; 4 unit tests cover the UTC midnight boundary including the 23:59:59 / 00:00:00 rollover edge case.
+
 ## 2026-05-22 — Shared retry utility, statsStore retrying indicator, cap-meter caching
 
 - **`fetchWithRetry` extracted to `src/lib/retry.ts`.** Previously an inline function in `statsStore`; now a typed, tested utility (5 unit tests) with an optional `onRetry` callback and configurable delays. Any store can now use it without copy-pasting the pattern.

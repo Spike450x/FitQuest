@@ -1,5 +1,6 @@
 import { collection, query, where, getDocs, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { utcDayStartMs } from '@/lib/gameLogic/streaks';
 import type { ActivityLog } from '@/types';
 
 export const ACTIVITY_LOGS_COLLECTION = 'activityLogs';
@@ -43,8 +44,12 @@ export async function fetchRecentActivityLogs(uid: string, count: number): Promi
  * Used by the cap-proximity indicator in ActivityLogForm to show daily usage.
  * Uses the (uid, type, loggedAt ASC) composite index.
  */
-export async function fetchTodayLogsForType(uid: string, type: string): Promise<ActivityLog[]> {
-  const todayStartMs = new Date().setUTCHours(0, 0, 0, 0);
+export async function fetchTodayLogsForType(
+  uid: string,
+  type: string,
+  referenceDate: Date = new Date(),
+): Promise<ActivityLog[]> {
+  const todayStartMs = utcDayStartMs(referenceDate);
   const snap = await getDocs(
     query(
       collection(db, ACTIVITY_LOGS_COLLECTION),

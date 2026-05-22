@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { captureError } from '@/lib/errors';
+import { fetchWithRetry } from '@/lib/retry';
 import { getCharacterDoc, createCharacterDoc, updateCharacterDoc } from '@/lib/characterData';
 import { updateUserDisplayName } from '@/lib/auth';
 import { MONSTER_CATALOG } from '@/lib/gameLogic/monsters';
@@ -114,7 +115,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     }
     set({ loading: true, error: null });
     try {
-      const data = await getCharacterDoc(uid);
+      const data = await fetchWithRetry(() => getCharacterDoc(uid));
       if (data) {
         // Backfill: agility was added after launch; old character docs don't have it.
         if (data.stats?.agility === undefined) {

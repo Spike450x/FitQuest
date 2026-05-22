@@ -113,6 +113,11 @@ export function todayUTC(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Returns the UTC midnight (start-of-day) timestamp in milliseconds for the given date. */
+export function utcDayStartMs(date: Date = new Date()): number {
+  return new Date(date).setUTCHours(0, 0, 0, 0);
+}
+
 /** Returns the date `daysAgo` before `today` ("YYYY-MM-DD"). */
 function dateMinusDays(today: string, daysAgo: number): string {
   const [y, m, d] = today.split('-').map(Number);
