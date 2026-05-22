@@ -15,7 +15,7 @@ export function OfflineBanner() {
     <div
       role="alert"
       aria-live="assertive"
-      className="fixed top-14 left-0 right-0 z-30 flex items-center justify-center gap-2 bg-amber-500 text-white text-sm font-medium py-2 px-4 shadow-lg"
+      className="flex items-center justify-center gap-2 bg-amber-500 text-white text-sm font-medium py-2 px-4 shadow-sm"
     >
       <span aria-hidden="true">📡</span>
       You&apos;re offline — changes may not save until you reconnect.

@@ -15,6 +15,11 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — statsStore retry-with-backoff and OfflineBanner positioning fix
+
+- **Retry-with-backoff on `statsStore.fetchStatsData`.** Added a local `fetchWithRetry` helper (2 retries, exponential: 1 s → 3 s) wrapping the `Promise.all([fetchActivityLogs, fetchRecentCombatLogs])` call. Transient Firestore errors (network blip, cold-start timeout) now recover silently; only persistent failures surface the error banner.
+- **`OfflineBanner` positioning fixed.** Removed `fixed top-14 left-0 right-0 z-30` — the banner now renders in document flow between the sticky header and the main body in `GameLayout`. This eliminates the hardcoded 56px offset that would have broken on any header-height change. The banner still stretches full-width via the flex-column parent.
+
 ## 2026-05-22 — Cap indicator, game loading skeleton, vitest fix
 
 - **P2-3 cap proximity indicator redesigned and restored.** `ActivityLogForm` now fires a one-time `getDocs` query (`fetchTodayLogsForType`) on mount and after each successful submit, using the existing `(uid, type, loggedAt ASC)` Firestore composite index. `CapMeter` component shows an emerald → amber → rose progress bar with "X remaining" or "Cap reached" label. No permanent listener; no midnight-rollover bug.
