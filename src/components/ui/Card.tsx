@@ -6,15 +6,15 @@ type Variant = 'default' | 'hero' | 'highlight' | 'legendary' | 'dark' | 'flat';
 type Padding = 'none' | 'sm' | 'md' | 'lg';
 
 const VARIANT_CLASSES: Record<Variant, string> = {
-  default:
-    'bg-white border border-gray-200 shadow-sm dark:bg-slate-900/70 dark:border-slate-700/80 dark:shadow-black/30',
+  // Semantic-token-backed surfaces — automatically theme-swap via CSS vars.
+  default: 'bg-surface border border-border-default shadow-card',
   hero: 'relative overflow-hidden bg-gradient-to-br from-indigo-100/80 via-white/90 to-violet-100/80 backdrop-blur-sm border border-indigo-200/80 shadow-lg shadow-indigo-500/10 dark:from-indigo-950/60 dark:via-slate-900/80 dark:to-violet-950/60 dark:border-indigo-800/60 dark:shadow-indigo-900/40',
   highlight:
     'bg-indigo-50/40 border border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800/60',
   legendary:
-    'bg-gradient-to-br from-orange-50 via-amber-50/70 to-white border-2 border-orange-300 shadow-lg shadow-orange-500/30 dark:from-orange-950/40 dark:via-amber-950/30 dark:to-slate-900 dark:border-orange-700',
-  dark: 'bg-slate-900/95 backdrop-blur border border-slate-700 text-slate-100 shadow-lg shadow-black/30',
-  flat: 'bg-white border border-gray-200 dark:bg-slate-900/70 dark:border-slate-700/80',
+    'bg-gradient-to-br from-orange-50 via-amber-50/70 to-white border-2 border-orange-300 shadow-glow-legendary dark:from-orange-950/40 dark:via-amber-950/30 dark:to-slate-900 dark:border-orange-700',
+  dark: 'bg-slate-900/95 backdrop-blur border border-slate-700 text-slate-100 shadow-elevated shadow-black/30',
+  flat: 'bg-surface border border-border-default',
 };
 
 const PADDING_CLASSES: Record<Padding, string> = {
@@ -48,10 +48,12 @@ export function Card({
   return (
     <div
       className={[
-        'rounded-xl',
+        'rounded-card',
         VARIANT_CLASSES[variant],
         PADDING_CLASSES[padding],
-        interactive ? 'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg' : '',
+        interactive
+          ? 'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover'
+          : '',
         className,
       ]
         .filter(Boolean)
