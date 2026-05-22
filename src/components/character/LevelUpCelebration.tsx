@@ -6,6 +6,7 @@ import { useCharacterStore } from '@/store/characterStore';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { fireConfetti } from '@/lib/confetti';
+import { playSound } from '@/hooks/useSound';
 import { CLASS_DEFINITIONS, LEVEL_UP } from '@/lib/gameLogic/constants';
 
 /**
@@ -32,6 +33,7 @@ export function LevelUpCelebration() {
     if (character.level > previousLevel.current) {
       setShowLevel(character.level);
       fireConfetti('celebration');
+      playSound('levelUp');
     }
     previousLevel.current = character.level;
   }, [character]);

@@ -88,6 +88,7 @@ import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Card } from '@/components/ui/Card';
 import { CombatEffects } from '@/components/combat/CombatEffects';
 import { fireConfetti } from '@/lib/confetti';
+import { playSound } from '@/hooks/useSound';
 import { useCombatBursts } from '@/hooks/useCombatBursts';
 import { useTodayKey } from '@/hooks/useTodayKey';
 import { toast, toastReward, toastLoot } from '@/components/ui/Toaster';
@@ -279,6 +280,7 @@ export default function CombatPage() {
     const hasLegendary = rarities.includes('legendary');
     const hasEpic = rarities.includes('epic');
     fireConfetti(hasLegendary ? 'legendary' : hasEpic ? 'celebration' : 'subtle');
+    playSound(hasLegendary ? 'legendary' : 'victory');
   }, [pendingRewards]);
   const [claiming, setClaiming] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -289,6 +291,19 @@ export default function CombatPage() {
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [pendingAbility, setPendingAbility] = useState<PendingAbility | null>(null);
   const [pendingSpell, setPendingSpell] = useState<PendingSpell | null>(null);
+
+  // Fire dice-rattle sound whenever any roll overlay opens.
+  useEffect(() => {
+    if (pendingAction || pendingAbility || pendingSpell) {
+      playSound('diceRoll');
+    }
+  }, [pendingAction, pendingAbility, pendingSpell]);
+
+  // Defeat sting — wins are sounded via the pendingRewards effect below.
+  const fightOutcome = fightState?.outcome ?? null;
+  useEffect(() => {
+    if (fightOutcome === 'loss') playSound('fail');
+  }, [fightOutcome]);
 
   // Combat-juice: floating damage numbers driven by the round log
   const { bursts, expire } = useCombatBursts(fightState?.log ?? []);
@@ -849,6 +864,7 @@ export default function CombatPage() {
 
   async function handleClaimRewards() {
     if (!pendingRewards) return;
+    playSound('claim');
     setClaiming(true);
     // xpReward is already streak-boosted (captured at kill-time via getStreakBoost) so
     // the modal, toast, and awardXpAndStats all use the same pre-computed value.

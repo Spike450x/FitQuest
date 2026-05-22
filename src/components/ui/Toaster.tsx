@@ -5,6 +5,7 @@ import type { ItemRarity } from '@/types';
 import { RARITY_BADGE } from '@/lib/gameLogic/items';
 import { fireConfetti } from '@/lib/confetti';
 import { useTheme } from '@/hooks/useTheme';
+import { playSound } from '@/hooks/useSound';
 
 /**
  * Global toast renderer. Mounted once in the root layout.
@@ -53,6 +54,7 @@ export function toastReward(opts: { xp?: number; gold?: number; emoji?: string; 
  */
 export function toastLoot(itemName: string, rarity: ItemRarity) {
   const dwell = rarity === 'legendary' ? 6000 : rarity === 'epic' ? 5000 : 3500;
+  playSound(rarity === 'legendary' ? 'legendary' : 'loot');
   toast(`Loot: ${itemName}`, {
     description: `${rarity[0].toUpperCase()}${rarity.slice(1)} drop`,
     duration: dwell,
@@ -62,6 +64,7 @@ export function toastLoot(itemName: string, rarity: ItemRarity) {
 
 /** PR celebration toast (new personal record on an activity). */
 export function toastPersonalRecord(activityLabel: string, value: number, unit: string) {
+  playSound('personalRecord');
   toast.success(`🏆 New ${activityLabel} record!`, {
     description: `${value} ${unit}`,
     duration: 5000,
@@ -71,6 +74,7 @@ export function toastPersonalRecord(activityLabel: string, value: number, unit: 
 /** Streak milestone — reached a new tier (Spark / Blaze / Inferno / Eternal). */
 export function toastStreakTier(tierLabel: string, currentStreak: number) {
   fireConfetti('subtle');
+  playSound('streak');
   toast(`🔥 ${tierLabel} streak unlocked!`, {
     description: `Day ${currentStreak} — bonus loot drops boosted.`,
     duration: 5000,
@@ -80,6 +84,7 @@ export function toastStreakTier(tierLabel: string, currentStreak: number) {
 /** Mastery milestone — permanent +1 stat for consistency on an activity. */
 export function toastMasteryMilestone(linkedStatLabel: string, activityLabel: string) {
   fireConfetti('subtle');
+  playSound('achievement');
   toast.success(`⬆️ Mastery milestone: +1 ${linkedStatLabel}`, {
     description: `Earned through consistent ${activityLabel.toLowerCase()} logs.`,
     duration: 6000,
@@ -89,6 +94,7 @@ export function toastMasteryMilestone(linkedStatLabel: string, activityLabel: st
 /** Achievement unlocked — shown after dungeon claim when a new badge is earned. */
 export function toastAchievement(emoji: string, name: string, goldReward: number) {
   fireConfetti('celebration');
+  playSound('achievement');
   toast.success(`${emoji} Achievement: ${name}`, {
     description: `+${goldReward} gold bonus`,
     duration: 6000,
