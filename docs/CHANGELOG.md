@@ -15,6 +15,13 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Balance & engine fixes pass 3 (daily cap indicator)
+
+- **P2-3 — Activity cap proximity indicator.** `ActivityLogForm` now subscribes to the last 50 activity logs (via `useRecentActivity`, count bumped from default 5 specifically for accurate same-day aggregation), computes today's total for the active tab via UTC-day filter, and shows a coloured cap meter above the input. Reads "Today: X / Y unit" + percentage; progress bar tints emerald → amber at 70% → rose when exhausted. When the cap is reached, the meter reads "⚠️ Daily cap reached for {activity}". Display-only — the Cloud Function still enforces the cap server-side.
+- Two new helpers in `src/lib/gameLogic/activityCaps.ts`: `remainingCapacityForActivity(type, alreadyLogged)` and `dailyCapUsageFraction(type, alreadyLogged)`. Both pure functions, clamped to safe ranges. 7 new unit tests covering edge cases (no logs, mid-cap, exactly at cap, over-cap, negative inputs).
+- **P1-6 — verified already complete.** Audit framing was outdated. `DungeonRun` already carries `currentHp` / `currentStamina` / `currentMagic` fields; `dungeonStore.advanceRoom()` persists them after each room; `bootstrap()` on the run page restores them from the persisted run; `enterRoom()` does **not** reset player resources. The "rooms reset HP" complaint is no longer accurate — resources carry over correctly.
+- CLAUDE.md backlog updated: P1-6 and P2-3 closed. Only P0-3 (daily combat XP cap, requires a Cloud Function) remains in the balance backlog.
+
 ## 2026-05-22 — Balance & engine fixes pass 2 (quest reroll + mastery hint)
 
 - **P1-3 / P2-4 — Quest reroll mechanic.** New `QUEST_REROLL_COST = 100` gold constant. `questStore.rerollQuest(questId)` validates the quest is active (not complete, not claimed), validates gold, picks a new quest from the appropriate pool excluding the player's currently-held questDefIds (no rolling back into the same quest or any other quest you already hold), and writes the replacement + gold deduction atomically. Each `QuestCard` now shows a "🎲 Reroll · 100 💰" button on active quests; disabled when the player can't afford it. Toast confirms the new quest name + gold spent. Plays the dice-roll sound from `useSound`.
