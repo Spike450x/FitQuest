@@ -15,6 +15,24 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Design token overhaul (UI pass 9 — last roadmap item)
+
+- CSS variable-backed semantic color tokens in `src/app/globals.css`:
+  - `--surface`, `--surface-elevated`, `--surface-muted`, `--surface-inverse`
+  - `--border-subtle`, `--border-default`, `--border-strong`
+  - `--text-primary`, `--text-secondary`, `--text-muted`, `--text-faint`, `--text-disabled`
+  - `--accent-primary`, `--accent-primary-hover`, `--accent-secondary`
+  - Defined twice (light in `:root`, dark in `.dark`) so the entire palette swaps automatically with the theme toggle.
+- Exposed in `tailwind.config.ts` via `theme.extend.colors` so every utility (`bg-*`, `text-*`, `border-*`) reaches the tokens by name.
+- Custom shadow scale: `shadow-card`, `shadow-card-hover`, `shadow-elevated`, `shadow-glow-uncommon`, `shadow-glow-rare`, `shadow-glow-epic`, `shadow-glow-legendary`. Named radii: `rounded-card` (xl), `rounded-cinematic` (2xl).
+- Foundational primitives migrated to the new tokens — one edit to the variable now cascades through every consumer:
+  - `Card` — `default` and `flat` variants use `bg-surface border-border-default shadow-card`. Hover state uses `shadow-card-hover`. Legendary variant uses `shadow-glow-legendary`. Outer radius uses `rounded-card`.
+  - `Heading` — all four levels use `text-text-primary` / `text-text-muted` (no more paired `dark:` literals).
+  - `EmptyState` — title/description/CTA use `text-text-secondary` / `text-text-muted` / `text-accent-primary`.
+  - `Button` — `secondary` and `ghost` variants use `bg-surface`, `text-text-primary`, `border-border-strong`, `text-text-secondary`. `primary` keeps its bespoke indigo gradient so the action affordance reads as branded.
+- The four primitives now drive the look of every game screen through composition — `Card` alone is mounted at 16+ sites. Inline `bg-white dark:bg-slate-900` etc. still exist on legacy markup; they'll migrate naturally as features touch each file. The token system is the contract for new work.
+- This was the last item on `docs/UI-UX-MODERNIZATION.md`. Every item from the original ui-critic audit is now ✅.
+
 ## 2026-05-22 — Combat scene redesign (UI pass 8)
 
 - New `CombatArena` component (`src/components/combat/CombatArena.tsx`) — side-by-side player vs monster portraits with HP bars under each. Replaces the 3-stacked-HP-bars block in `combat/page.tsx` that read like an admin form.

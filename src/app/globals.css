@@ -2,9 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Semantic design tokens ──────────────────────────────────────────────────
+ *
+ * Light + dark theme variables consumed by Tailwind via the `theme.extend`
+ * config in tailwind.config.ts. Using CSS variables here means a single edit
+ * cascades through every component that reads the token, including future
+ * features that adopt the same primitives.
+ *
+ * Naming conventions:
+ *   --surface-*  → backgrounds
+ *   --border-*   → borders
+ *   --text-*     → typography
+ *   --accent-*   → indigo / violet brand
+ *   --rarity-*   → loot rarity scale (matches RARITY_CARD constants)
+ *
+ * Values are hex/HSL — no rgba wrapper — so consumers can apply opacity
+ * modifiers via the Tailwind alpha syntax (e.g. `bg-surface/80`).
+ */
 :root {
   --background: #f9fafb;
   --foreground: #111827;
+
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-muted: #f9fafb;
+  --surface-inverse: #0f172a;
+
+  --border-subtle: #f3f4f6;
+  --border-default: #e5e7eb;
+  --border-strong: #d1d5db;
+
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+  --text-disabled: #d1d5db;
+
+  --accent-primary: #4f46e5;
+  --accent-primary-hover: #4338ca;
+  --accent-secondary: #7c3aed;
+}
+
+.dark {
+  --background: #020617;
+  --foreground: #f1f5f9;
+
+  --surface: #0f172a;
+  --surface-elevated: #1e293b;
+  --surface-muted: #020617;
+  --surface-inverse: #f8fafc;
+
+  --border-subtle: #1e293b;
+  --border-default: #334155;
+  --border-strong: #475569;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-faint: #64748b;
+  --text-disabled: #475569;
+
+  --accent-primary: #818cf8;
+  --accent-primary-hover: #a5b4fc;
+  --accent-secondary: #a78bfa;
 }
 
 body {
