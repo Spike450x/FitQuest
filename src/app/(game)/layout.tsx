@@ -51,6 +51,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   }, [character?.uid, subscribeActivity]);
 
   async function handleSignOut() {
+    useActivityStore.getState().clear();
     await logOut();
     router.push('/login');
   }
