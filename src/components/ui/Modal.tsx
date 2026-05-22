@@ -98,7 +98,9 @@ export function Modal({
             role="presentation"
             aria-hidden="true"
             onClick={onClose}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-default"
+            className={`absolute inset-0 cursor-default ${
+              feel === 'cinematic' ? 'bg-black/70 backdrop-blur-md' : 'bg-black/50 backdrop-blur-sm'
+            }`}
           />
           <motion.div
             ref={dialogRef}

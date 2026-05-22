@@ -51,7 +51,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
       <LevelUpCelebration />
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
-      <header className="border-b border-gray-200 bg-white/90 backdrop-blur sticky top-0 z-20 h-14">
+      <header className="border-b border-gray-200/80 bg-white/70 backdrop-blur-xl backdrop-saturate-150 sticky top-0 z-20 h-14 shadow-sm shadow-gray-900/5">
         <div className="h-full px-4 flex items-center justify-between gap-4">
           <Link
             href="/dashboard"
@@ -129,7 +129,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         <aside
           className={`
             hidden md:flex flex-col shrink-0
-            bg-white border-r border-gray-200
+            bg-white/70 backdrop-blur-lg border-r border-gray-200/80
             sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto
             transition-all duration-200 ease-in-out
             ${collapsed ? 'w-14' : 'w-44'}
@@ -193,7 +193,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
       {/* ── Mobile bottom nav ─────────────────────────────────────────────── */}
       <nav
-        className="fixed bottom-0 left-0 right-0 md:hidden bg-white/95 backdrop-blur border-t border-gray-200 z-10"
+        className="fixed bottom-0 left-0 right-0 md:hidden bg-white/80 backdrop-blur-xl backdrop-saturate-150 border-t border-gray-200/80 z-10 shadow-lg shadow-gray-900/5"
         aria-label="Primary"
       >
         <ul className="flex justify-around overflow-x-auto">

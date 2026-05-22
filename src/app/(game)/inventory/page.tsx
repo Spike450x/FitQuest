@@ -9,6 +9,8 @@ import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/c
 import { SpellCard } from '@/components/ui/SpellCard';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { Card } from '@/components/ui/Card';
 import { toast } from '@/components/ui/Toaster';
 import { useInventoryNewMarkers } from '@/hooks/useInventoryNewMarkers';
 import { COMBAT } from '@/lib/gameLogic/constants';
@@ -204,7 +206,7 @@ export default function InventoryPage() {
       {/* Loadout row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Gear loadout */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <Card variant="default" padding="md">
           <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
             Gear Loadout
           </p>
@@ -240,10 +242,10 @@ export default function InventoryPage() {
               );
             })}
           </div>
-        </div>
+        </Card>
 
         {/* Spell loadout */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <Card variant="default" padding="md">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               ✨ Spell Loadout
@@ -295,10 +297,10 @@ export default function InventoryPage() {
               })}
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Consumable pack */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <Card variant="default" padding="md">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               🧪 Combat Pack
@@ -380,7 +382,7 @@ export default function InventoryPage() {
               })}
             </div>
           )}
-        </div>
+        </Card>
       </div>
       {/* end loadout row */}
 
@@ -408,9 +410,9 @@ export default function InventoryPage() {
 
       {/* Item list */}
       {loading ? (
-        <div className="space-y-3 animate-pulse">
+        <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 h-24" />
+            <Skeleton key={i} shape="card" height="h-24" />
           ))}
         </div>
       ) : filtered.length === 0 ? (

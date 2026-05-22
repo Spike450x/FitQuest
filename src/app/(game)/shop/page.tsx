@@ -8,6 +8,7 @@ import { getDailyPick, rotationExpiresAt, formatCountdown } from '@/lib/gameLogi
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { SpellCard } from '@/components/ui/SpellCard';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { toast } from '@/components/ui/Toaster';
 import { useTodayKey } from '@/hooks/useTodayKey';
 import type { ItemDef, ItemType } from '@/types';
@@ -130,13 +131,13 @@ export default function ShopPage() {
 
       {/* Item grid */}
       {inventoryLoading && items.length === 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-pulse">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 h-44 space-y-3">
-              <div className="h-4 bg-gray-100 rounded w-2/3" />
-              <div className="h-3 bg-gray-100 rounded w-full" />
-              <div className="h-3 bg-gray-100 rounded w-3/4" />
-              <div className="h-8 bg-gray-100 rounded mt-auto" />
+              <Skeleton shape="line" height="h-4" width="w-2/3" />
+              <Skeleton shape="line" />
+              <Skeleton shape="line" width="w-3/4" />
+              <Skeleton shape="block" height="h-8" className="mt-auto" />
             </div>
           ))}
         </div>

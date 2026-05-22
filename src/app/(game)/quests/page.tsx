@@ -6,6 +6,7 @@ import { useQuestStore } from '@/store/questStore';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { toast, toastReward } from '@/components/ui/Toaster';
 import { fireConfetti } from '@/lib/confetti';
 import type { ActiveQuest } from '@/types';
@@ -228,12 +229,12 @@ function QuestSection({
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
+    <div className="space-y-6">
       {[3, 5].map((count, i) => (
         <div key={i} className="space-y-3">
-          <div className="h-5 w-32 bg-gray-200 rounded" />
+          <Skeleton shape="line" height="h-5" width="w-32" />
           {Array.from({ length: count }).map((_, j) => (
-            <div key={j} className="bg-white border border-gray-200 rounded-xl p-4 h-28" />
+            <Skeleton key={j} shape="card" height="h-28" />
           ))}
         </div>
       ))}

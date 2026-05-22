@@ -22,6 +22,7 @@ import {
   toastStreakTier,
   toastMasteryMilestone,
 } from '@/components/ui/Toaster';
+import { Card } from '@/components/ui/Card';
 import type { ActivityType, Character } from '@/types';
 
 const TABS: { type: ActivityType; icon: string; label: string }[] = [
@@ -240,7 +241,7 @@ export function ActivityLogForm() {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <Card variant="default" padding="none" className="overflow-hidden">
       {/* Tabs */}
       <div className="flex border-b border-gray-100">
         {TABS.map(({ type, icon, label }) => (
@@ -296,12 +297,12 @@ export function ActivityLogForm() {
         <button
           type="submit"
           disabled={!amountValid || submitting}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg transition-colors"
+          className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 hover:shadow-md hover:shadow-indigo-500/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none text-white font-semibold py-2.5 rounded-lg transition-all active:scale-[0.98]"
         >
           {submitting ? 'Logging…' : 'Log Activity'}
         </button>
       </form>
-    </div>
+    </Card>
   );
 }
 
@@ -390,7 +391,7 @@ function ActivityPreview({
 
 function ResultCard({ result, onReset }: { result: LogResult; onReset: () => void }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center space-y-5">
+    <Card variant="default" padding="none" className="p-8 text-center space-y-5">
       {result.kind === 'mastery' ? (
         <MasteryResult result={result} />
       ) : (
@@ -398,11 +399,11 @@ function ResultCard({ result, onReset }: { result: LogResult; onReset: () => voi
       )}
       <button
         onClick={onReset}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition-colors"
+        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 hover:shadow-md hover:shadow-indigo-500/40 text-white font-semibold py-2.5 rounded-lg transition-all active:scale-[0.98]"
       >
         Log Another Activity
       </button>
-    </div>
+    </Card>
   );
 }
 
