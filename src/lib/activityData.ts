@@ -38,6 +38,25 @@ export async function fetchRecentActivityLogs(uid: string, count: number): Promi
   return snap.docs.map((d) => normalizeActivityLog(d.id, d.data()));
 }
 
+/**
+ * Fetches all activity logs of a specific type logged today (UTC midnight to now).
+ * Used by the cap-proximity indicator in ActivityLogForm to show daily usage.
+ * Uses the (uid, type, loggedAt ASC) composite index.
+ */
+export async function fetchTodayLogsForType(uid: string, type: string): Promise<ActivityLog[]> {
+  const todayStartMs = new Date().setUTCHours(0, 0, 0, 0);
+  const snap = await getDocs(
+    query(
+      collection(db, ACTIVITY_LOGS_COLLECTION),
+      where('uid', '==', uid),
+      where('type', '==', type),
+      where('loggedAt', '>=', todayStartMs),
+      orderBy('loggedAt', 'asc'),
+    ),
+  );
+  return snap.docs.map((d) => normalizeActivityLog(d.id, d.data()));
+}
+
 export function subscribeToRecentActivity(
   uid: string,
   count: number,
