@@ -1,7 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { logActivityFn } from '@/lib/functions';
 import { captureError } from '@/lib/errors';
+import { fetchTodayLogsForType } from '@/lib/activityData';
+import { dailyCapUsageFraction, DAILY_ACTIVITY_CAPS } from '@/lib/gameLogic/activityCaps';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
@@ -92,6 +94,24 @@ export function ActivityLogForm() {
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<LogResult | null>(null);
+  const [todayTotal, setTodayTotal] = useState<number | null>(null);
+
+  const refreshTodayTotal = useCallback(async (uid: string, type: string) => {
+    try {
+      const logs = await fetchTodayLogsForType(uid, type);
+      const total = logs.reduce((sum, l) => sum + ((l.data.amount as number) ?? 0), 0);
+      setTodayTotal(total);
+    } catch {
+      // Non-critical — cap indicator stays hidden rather than blocking the form
+    }
+  }, []);
+
+  const characterUid = character?.uid;
+  useEffect(() => {
+    if (!characterUid) return;
+    setTodayTotal(null);
+    void refreshTodayTotal(characterUid, activeTab);
+  }, [characterUid, activeTab, refreshTodayTotal]);
 
   if (!character) return null;
 
@@ -225,6 +245,8 @@ export function ActivityLogForm() {
       persistStreakAndRecord(activeTab, parsedAmount, def.unit).catch((e) =>
         captureError('ActivityLogForm:streak', e),
       );
+      // Refresh cap meter so it's accurate when the user dismisses the result card
+      void refreshTodayTotal(character.uid, activeTab);
     } catch (err) {
       // logActivity function call failed — activity was NOT logged.
       toast('Failed to log activity', {
@@ -318,6 +340,9 @@ export function ActivityLogForm() {
           <ActivityPreview activityType={activeTab} amount={parsedAmount} character={character} />
         )}
 
+        {/* Daily cap proximity meter — shows once today's total is loaded */}
+        {todayTotal !== null && <CapMeter activityType={activeTab} todayTotal={todayTotal} />}
+
         <button
           type="submit"
           disabled={!amountValid || submitting}
@@ -327,6 +352,46 @@ export function ActivityLogForm() {
         </button>
       </form>
     </Card>
+  );
+}
+
+// ─── Daily Cap Meter ──────────────────────────────────────────────────────────
+
+function CapMeter({
+  activityType,
+  todayTotal,
+}: {
+  activityType: ActivityType;
+  todayTotal: number;
+}) {
+  const fraction = dailyCapUsageFraction(activityType, todayTotal);
+  const cap = DAILY_ACTIVITY_CAPS[activityType];
+  const unit = ACTIVITY_DEFINITIONS[activityType].unit;
+  const remaining = Math.max(0, cap - todayTotal);
+  const exhausted = fraction >= 1;
+
+  const barColor = exhausted ? 'bg-rose-500' : fraction >= 0.7 ? 'bg-amber-400' : 'bg-emerald-500';
+  const textColor = exhausted
+    ? 'text-rose-700 dark:text-rose-300'
+    : fraction >= 0.7
+      ? 'text-amber-700 dark:text-amber-300'
+      : 'text-emerald-700 dark:text-emerald-300';
+
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs">
+        <span className="text-gray-500 dark:text-slate-400">Today&apos;s cap</span>
+        <span className={textColor}>
+          {exhausted ? 'Cap reached — streaks & PRs only' : `${remaining} ${unit} remaining`}
+        </span>
+      </div>
+      <div className="h-1.5 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${barColor}`}
+          style={{ width: `${Math.min(100, fraction * 100)}%` }}
+        />
+      </div>
+    </div>
   );
 }
 

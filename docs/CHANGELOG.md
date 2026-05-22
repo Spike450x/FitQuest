@@ -20,6 +20,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 - **Retry-with-backoff on `statsStore.fetchStatsData`.** Added a local `fetchWithRetry` helper (2 retries, exponential: 1 s → 3 s) wrapping the `Promise.all([fetchActivityLogs, fetchRecentCombatLogs])` call. Transient Firestore errors (network blip, cold-start timeout) now recover silently; only persistent failures surface the error banner.
 - **`OfflineBanner` positioning fixed.** Removed `fixed top-14 left-0 right-0 z-30` — the banner now renders in document flow between the sticky header and the main body in `GameLayout`. This eliminates the hardcoded 56px offset that would have broken on any header-height change. The banner still stretches full-width via the flex-column parent.
 
+## 2026-05-22 — Cap indicator, game loading skeleton, vitest fix
+
+- **P2-3 cap proximity indicator redesigned and restored.** `ActivityLogForm` now fires a one-time `getDocs` query (`fetchTodayLogsForType`) on mount and after each successful submit, using the existing `(uid, type, loggedAt ASC)` Firestore composite index. `CapMeter` component shows an emerald → amber → rose progress bar with "X remaining" or "Cap reached" label. No permanent listener; no midnight-rollover bug.
+- **Game loading skeleton added.** `src/app/(game)/loading.tsx` provides a Suspense-compatible shimmer skeleton (using the existing `Skeleton` component) for all game-segment pages — shown while Next.js streams or suspends a page.
+- **Fix vitest `setupFiles` path breaking functions tests.** Relative `'src/test-setup.ts'` in root `vitest.config.ts` resolved against CWD when vitest walked up from `functions/`, causing CI to fail with a missing-file error. Changed to `path.resolve(__dirname, 'src/test-setup.ts')`.
+
 ## 2026-05-22 — Test infrastructure, statsStore cache, error boundaries, offline detection
 
 - **Test infrastructure.** Installed `@testing-library/react`, `@testing-library/jest-dom`, and `jsdom`. Added 24 new unit tests: `activityStore` subscription idempotency and uid-change teardown, `questStore` and `inventoryStore` TTL skip / `_fetching` guard / `force` bypass, and `useTodayKey` date-roll and `visibilitychange` behaviour. Per-file `// @vitest-environment jsdom` convention documented for future hook/component tests.
