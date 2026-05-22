@@ -20,6 +20,7 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 - **`fetchWithRetry` extracted to `src/lib/retry.ts`.** Previously an inline function in `statsStore`; now a typed, tested utility (5 unit tests) with an optional `onRetry` callback and configurable delays. Any store can now use it without copy-pasting the pattern.
 - **`statsStore` gains a `retrying` flag.** Set to `true` during the back-off window between attempts. The stats page renders a spinner + "Retrying…" amber strip so users understand why the skeleton is persisting past the expected load time.
 - **`statsStore` uses the shared utility.** Inline `fetchWithRetry` and `RETRY_DELAYS_MS` constant removed; now imports from `@/lib/retry`.
+- **Cap-meter tab caching.** `ActivityLogForm` stores per-type today totals in a `Map<string, number>` instead of a single value. Switching back to a previously-viewed tab shows the cached value instantly — no Firestore re-read. The cache entry is invalidated on successful submit so the meter re-fetches the authoritative post-submit total.
 
 ## 2026-05-22 — statsStore retry-with-backoff and OfflineBanner positioning fix
 

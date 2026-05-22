@@ -94,13 +94,15 @@ export function ActivityLogForm() {
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<LogResult | null>(null);
-  const [todayTotal, setTodayTotal] = useState<number | null>(null);
+  // Per-type cache: avoids re-querying Firestore when switching back to a
+  // previously-viewed tab during the same form session.
+  const [todayTotals, setTodayTotals] = useState<Map<string, number>>(new Map());
 
   const refreshTodayTotal = useCallback(async (uid: string, type: string) => {
     try {
       const logs = await fetchTodayLogsForType(uid, type);
       const total = logs.reduce((sum, l) => sum + ((l.data.amount as number) ?? 0), 0);
-      setTodayTotal(total);
+      setTodayTotals((prev) => new Map(prev).set(type, total));
     } catch {
       // Non-critical — cap indicator stays hidden rather than blocking the form
     }
@@ -109,9 +111,11 @@ export function ActivityLogForm() {
   const characterUid = character?.uid;
   useEffect(() => {
     if (!characterUid) return;
-    setTodayTotal(null);
-    void refreshTodayTotal(characterUid, activeTab);
-  }, [characterUid, activeTab, refreshTodayTotal]);
+    // Only fetch if we don't have a cached value for this tab yet.
+    if (!todayTotals.has(activeTab)) {
+      void refreshTodayTotal(characterUid, activeTab);
+    }
+  }, [characterUid, activeTab, todayTotals, refreshTodayTotal]);
 
   if (!character) return null;
 
@@ -246,6 +250,12 @@ export function ActivityLogForm() {
         captureError('ActivityLogForm:streak', e),
       );
       // Refresh cap meter so it's accurate when the user dismisses the result card
+      // Invalidate cache for this type so the meter re-fetches on next render.
+      setTodayTotals((prev) => {
+        const m = new Map(prev);
+        m.delete(activeTab);
+        return m;
+      });
       void refreshTodayTotal(character.uid, activeTab);
     } catch (err) {
       // logActivity function call failed — activity was NOT logged.
@@ -341,7 +351,9 @@ export function ActivityLogForm() {
         )}
 
         {/* Daily cap proximity meter — shows once today's total is loaded */}
-        {todayTotal !== null && <CapMeter activityType={activeTab} todayTotal={todayTotal} />}
+        {todayTotals.has(activeTab) && (
+          <CapMeter activityType={activeTab} todayTotal={todayTotals.get(activeTab)!} />
+        )}
 
         <button
           type="submit"
