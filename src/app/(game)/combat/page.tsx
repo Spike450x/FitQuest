@@ -1153,15 +1153,15 @@ export default function CombatPage() {
               Rewards Claimed
             </p>
             <div className="flex gap-3">
-              <div className="flex-1 bg-indigo-50 rounded-lg p-3 text-center">
+              <div className="flex-1 bg-indigo-50 dark:bg-indigo-950/40 rounded-lg p-3 text-center">
                 <AnimatedNumber
                   value={monster.xpReward}
                   prefix="+"
-                  className="text-2xl font-bold text-indigo-600"
+                  className="text-2xl font-bold text-indigo-600 dark:text-indigo-400"
                 />
                 <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">XP</p>
               </div>
-              <div className="flex-1 bg-amber-50 rounded-lg p-3 text-center">
+              <div className="flex-1 bg-amber-50 dark:bg-amber-950/40 rounded-lg p-3 text-center">
                 <AnimatedNumber
                   value={monster.goldReward}
                   prefix="+"
@@ -1691,7 +1691,7 @@ export default function CombatPage() {
                 (() => {
                   const sd = getSubclassDef(character.subclass);
                   return sd ? (
-                    <span className="text-xs font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-2.5 py-0.5">
+                    <span className="text-xs font-semibold text-violet-600 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/50 border border-violet-200 dark:border-violet-800 rounded-full px-2.5 py-0.5">
                       {sd.emoji} {sd.name}
                     </span>
                   ) : null;
@@ -2322,11 +2322,12 @@ function DieFace({
       : { die: 'w-7 h-7 rounded-xl', grid: 'p-1', pip: 'w-1.5 h-1.5' };
 
   const v = {
-    spinning: 'bg-rose-50 border-2 border-rose-300 text-rose-500 shadow-md shadow-rose-200',
+    spinning:
+      'bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-700 text-rose-500 dark:text-rose-400 shadow-md shadow-rose-200 dark:shadow-rose-900',
     settled:
       'bg-white dark:bg-slate-900 border-2 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300',
     highlighted:
-      'bg-amber-50 border-2 border-amber-400 text-amber-600 scale-110 shadow-md shadow-amber-100',
+      'bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-400 dark:border-amber-600 text-amber-600 dark:text-amber-400 scale-110 shadow-md shadow-amber-100 dark:shadow-amber-900',
     wildcard:
       'bg-gray-50 dark:bg-slate-900 border-2 border-dashed border-gray-200 dark:border-slate-700 text-gray-300 dark:text-slate-600',
   };
@@ -2371,35 +2372,46 @@ function D10Face({
 }) {
   const colorTokens: Record<string, Record<string, string>> = {
     indigo: {
-      spinning: 'bg-indigo-50 border-indigo-300 text-indigo-600 shadow-lg shadow-indigo-200',
-      settled: 'bg-white dark:bg-slate-900   border-indigo-300 text-indigo-700',
+      spinning:
+        'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 shadow-lg shadow-indigo-200 dark:shadow-indigo-900',
+      settled:
+        'bg-white dark:bg-slate-900 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300',
     },
     violet: {
-      spinning: 'bg-violet-50 border-violet-300 text-violet-600 shadow-lg shadow-violet-200',
-      settled: 'bg-white dark:bg-slate-900    border-violet-300 text-violet-700',
+      spinning:
+        'bg-violet-50 dark:bg-violet-950/40 border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 shadow-lg shadow-violet-200 dark:shadow-violet-900',
+      settled:
+        'bg-white dark:bg-slate-900 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300',
     },
     amber: {
-      spinning: 'bg-amber-50 border-amber-300 text-amber-600 shadow-lg shadow-amber-200',
-      settled: 'bg-white   border-amber-400 text-amber-700 shadow-md shadow-amber-100',
+      spinning:
+        'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 shadow-lg shadow-amber-200 dark:shadow-amber-900',
+      settled:
+        'bg-white dark:bg-slate-900 border-amber-400 dark:border-amber-700 text-amber-700 dark:text-amber-300 shadow-md shadow-amber-100 dark:shadow-amber-900',
     },
     gray: {
-      spinning: 'bg-gray-50 dark:bg-slate-900 border-gray-300 text-gray-400 dark:text-slate-500',
+      spinning:
+        'bg-gray-50 dark:bg-slate-900 border-gray-300 dark:border-slate-600 text-gray-400 dark:text-slate-500',
       settled:
-        'bg-white dark:bg-slate-900  border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400',
+        'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400',
     },
     rose: {
-      spinning: 'bg-rose-50 border-rose-300 text-rose-600 shadow-lg shadow-rose-200',
+      spinning:
+        'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 shadow-lg shadow-rose-200 dark:shadow-rose-900',
       settled:
-        'bg-white dark:bg-slate-900  border-rose-400 text-rose-700 shadow-md shadow-rose-100',
+        'bg-white dark:bg-slate-900 border-rose-400 dark:border-rose-700 text-rose-700 dark:text-rose-300 shadow-md shadow-rose-100 dark:shadow-rose-900',
     },
     sky: {
-      spinning: 'bg-sky-50 border-sky-300 text-sky-600 shadow-lg shadow-sky-200',
-      settled: 'bg-white dark:bg-slate-900 border-sky-300 text-sky-700 shadow-md shadow-sky-100',
+      spinning:
+        'bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-700 text-sky-600 dark:text-sky-400 shadow-lg shadow-sky-200 dark:shadow-sky-900',
+      settled:
+        'bg-white dark:bg-slate-900 border-sky-300 dark:border-sky-700 text-sky-700 dark:text-sky-300 shadow-md shadow-sky-100 dark:shadow-sky-900',
     },
     slate: {
-      spinning: 'bg-slate-50 border-slate-300 text-slate-600 shadow-lg shadow-slate-200',
+      spinning:
+        'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 shadow-lg shadow-slate-200 dark:shadow-slate-900',
       settled:
-        'bg-white dark:bg-slate-900  border-slate-300 text-slate-700 shadow-md shadow-slate-100',
+        'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 shadow-md shadow-slate-100 dark:shadow-slate-900',
     },
   };
 
@@ -2925,11 +2937,15 @@ function DiceRollOverlay({
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+              <div className="inline-flex items-center gap-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl px-4 py-3">
                 <span className="text-3xl">{ability!.emoji}</span>
                 <div className="text-left">
-                  <p className="font-bold text-rose-700 text-base leading-tight">{ability!.name}</p>
-                  <p className="text-xs text-rose-400 mt-0.5">{PATTERN_LABEL[pattern!]}</p>
+                  <p className="font-bold text-rose-700 dark:text-rose-300 text-base leading-tight">
+                    {ability!.name}
+                  </p>
+                  <p className="text-xs text-rose-400 dark:text-rose-500 mt-0.5">
+                    {PATTERN_LABEL[pattern!]}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-wrap justify-center gap-1.5">
@@ -3208,7 +3224,7 @@ function AbilityReference({ characterClass }: { characterClass: string }) {
                 {tags.map((tag) => (
                   <span
                     key={tag}
-                    className="text-xs bg-rose-50 text-rose-600 font-medium px-1.5 py-0.5 rounded"
+                    className="text-xs bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-medium px-1.5 py-0.5 rounded"
                   >
                     {tag}
                   </span>
@@ -3370,22 +3386,22 @@ function BattleResultsModal({
 
           {/* XP + Gold */}
           <div className="flex gap-3">
-            <div className="flex-1 bg-indigo-50 border border-indigo-100 rounded-xl p-3 text-center shadow-sm">
+            <div className="flex-1 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 rounded-xl p-3 text-center shadow-sm">
               <AnimatedNumber
                 value={pending.xpReward}
                 prefix="+"
-                className="text-3xl font-bold text-indigo-600"
+                className="text-3xl font-bold text-indigo-600 dark:text-indigo-400"
               />
               <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 uppercase tracking-wider font-semibold">
                 XP
               </p>
               {pending.streakMultiplier > 1.0 && (
-                <p className="text-xs text-emerald-600 font-medium mt-1">
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1">
                   🔥 ×{pending.streakMultiplier.toFixed(2)} streak
                 </p>
               )}
             </div>
-            <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl p-3 text-center shadow-sm">
+            <div className="flex-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900 rounded-xl p-3 text-center shadow-sm">
               <AnimatedNumber
                 value={pending.goldReward}
                 prefix="+"

@@ -40,7 +40,10 @@ function buildEffectTags(effect: SpellEffect, wisdom?: number): EffectTag[] {
         ? `${base} + ${wisdom} WIS = ${base + wisdom} dmg`
         : `${base} + WIS dmg`
       : `${base} dmg`;
-    tags.push({ label: `⚡ ${label}`, color: 'bg-red-50 text-red-700' });
+    tags.push({
+      label: `⚡ ${label}`,
+      color: 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400',
+    });
   }
 
   if (effect.heal) {
@@ -50,7 +53,10 @@ function buildEffectTags(effect: SpellEffect, wisdom?: number): EffectTag[] {
         ? `${base} + ${wisdom} WIS = ${base + wisdom} heal`
         : `${base} + WIS heal`
       : `${base} heal`;
-    tags.push({ label: `💚 ${label}`, color: 'bg-emerald-50 text-emerald-700' });
+    tags.push({
+      label: `💚 ${label}`,
+      color: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400',
+    });
   }
 
   if (effect.restoreStamina) {
@@ -60,7 +66,10 @@ function buildEffectTags(effect: SpellEffect, wisdom?: number): EffectTag[] {
         ? `${base} + ${wisdom} WIS = ${base + wisdom} stamina`
         : `${base} + WIS stamina`
       : `${base} stamina`;
-    tags.push({ label: `💛 ${label}`, color: 'bg-amber-50 text-amber-700' });
+    tags.push({
+      label: `💛 ${label}`,
+      color: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400',
+    });
   }
 
   if (effect.defenseBoost) {
@@ -70,11 +79,17 @@ function buildEffectTags(effect: SpellEffect, wisdom?: number): EffectTag[] {
         ? `+${base} + ${wisdom} WIS = +${base + wisdom} def`
         : `+${base} + WIS def`
       : `+${base} def`;
-    tags.push({ label: `🛡️ ${label}`, color: 'bg-blue-50 text-blue-700' });
+    tags.push({
+      label: `🛡️ ${label}`,
+      color: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400',
+    });
   }
 
   if (effect.stun) {
-    tags.push({ label: '❄️ Stun', color: 'bg-cyan-50 text-cyan-700' });
+    tags.push({
+      label: '❄️ Stun',
+      color: 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-400',
+    });
   }
 
   if (effect.bypassMonsterDef) {
@@ -87,7 +102,7 @@ function buildEffectTags(effect: SpellEffect, wisdom?: number): EffectTag[] {
   if (effect.lifestealPct) {
     tags.push({
       label: `🩸 ${Math.round(effect.lifestealPct * 100)}% lifesteal`,
-      color: 'bg-rose-50 text-rose-700',
+      color: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400',
     });
   }
 
@@ -141,7 +156,7 @@ export const SpellCard = memo(function SpellCard({
 
   return (
     <div
-      className={`flex flex-col rounded-2xl border-2 ${scheme.border} shadow-md ${scheme.glow ? `shadow-md ${scheme.glow}` : ''} overflow-hidden bg-white ${className}`}
+      className={`flex flex-col rounded-2xl border-2 ${scheme.border} shadow-md ${scheme.glow ? `shadow-md ${scheme.glow}` : ''} overflow-hidden bg-white dark:bg-slate-900 ${className}`}
     >
       {/* ── Card header (colored by rarity) ───────────────────────────────── */}
       <div className={`${scheme.header} px-3 pt-3 pb-2`}>
@@ -203,8 +218,8 @@ export const SpellCard = memo(function SpellCard({
         <div className="border-t border-gray-200 dark:border-slate-700" />
 
         {/* Dice requirement */}
-        <div className="bg-violet-50 border border-violet-200 rounded-lg px-2 py-1.5 text-center">
-          <p className="text-xs text-violet-700 font-semibold">
+        <div className="bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 rounded-lg px-2 py-1.5 text-center">
+          <p className="text-xs text-violet-700 dark:text-violet-300 font-semibold">
             🎲 {describeRequirement(sm.requirement)}
           </p>
         </div>

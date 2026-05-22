@@ -31,24 +31,28 @@ export function SubclassModal({ character }: SubclassModalProps) {
   if (confirmed) {
     const chosen = confirmed === optionA.id ? optionA : optionB;
     return (
-      <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border-2 border-violet-300 rounded-xl p-6 shadow-sm text-center">
+      <div className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/50 dark:to-indigo-950/50 border-2 border-violet-300 dark:border-violet-700 rounded-xl p-6 shadow-sm text-center">
         <div className="text-4xl mb-2">{chosen.emoji}</div>
-        <h3 className="text-xl font-bold text-violet-800">{chosen.name} Unlocked!</h3>
-        <p className="text-sm text-violet-600 mt-1">{chosen.tagline}</p>
+        <h3 className="text-xl font-bold text-violet-800 dark:text-violet-300">
+          {chosen.name} Unlocked!
+        </h3>
+        <p className="text-sm text-violet-600 dark:text-violet-400 mt-1">{chosen.tagline}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border-2 border-violet-300 rounded-xl p-6 shadow-sm">
+    <div className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/50 dark:to-indigo-950/50 border-2 border-violet-300 dark:border-violet-700 rounded-xl p-6 shadow-sm">
       <div className="flex items-center gap-2 mb-1">
         <span className="text-2xl">🌟</span>
-        <h3 className="font-bold text-violet-800 text-lg">Choose Your Subclass</h3>
+        <h3 className="font-bold text-violet-800 dark:text-violet-300 text-lg">
+          Choose Your Subclass
+        </h3>
         <span className="ml-auto text-xs bg-violet-500 text-white font-bold px-2.5 py-0.5 rounded-full">
           Level 10
         </span>
       </div>
-      <p className="text-sm text-violet-700 mb-5">
+      <p className="text-sm text-violet-700 dark:text-violet-400 mb-5">
         This is a permanent choice. Your subclass grants unique passive abilities and modifies your
         class skills.
       </p>
@@ -59,7 +63,7 @@ export function SubclassModal({ character }: SubclassModalProps) {
             key={sub.id}
             onClick={() => handleChoose(sub.id)}
             disabled={!!choosing}
-            className="flex flex-col items-start gap-2 border-2 border-violet-200 bg-white hover:border-violet-400 hover:bg-violet-50 rounded-xl p-4 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+            className="flex flex-col items-start gap-2 border-2 border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-900 hover:border-violet-400 dark:hover:border-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/40 rounded-xl p-4 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
           >
             {/* Header */}
             <div className="flex items-center gap-2 w-full">

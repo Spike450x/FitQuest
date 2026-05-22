@@ -5,6 +5,7 @@ import { signUp } from '@/lib/auth';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { InputField } from '@/components/ui/InputField';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -63,14 +64,13 @@ export default function RegisterPage() {
           >
             Email
           </label>
-          <input
+          <InputField
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            className="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
             placeholder="hero@example.com"
           />
         </div>
@@ -82,14 +82,13 @@ export default function RegisterPage() {
           >
             Password
           </label>
-          <input
+          <InputField
             id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="new-password"
-            className="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
             placeholder="••••••••"
           />
         </div>
@@ -101,14 +100,13 @@ export default function RegisterPage() {
           >
             Confirm Password
           </label>
-          <input
+          <InputField
             id="confirm-password"
             type="password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             required
             autoComplete="new-password"
-            className="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
             placeholder="••••••••"
           />
         </div>

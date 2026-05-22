@@ -106,7 +106,7 @@ function QuestCard({
         isClaimed
           ? 'border-emerald-200 opacity-60'
           : isComplete
-            ? 'border-amber-300 bg-amber-50/30'
+            ? 'border-amber-300 bg-amber-50/30 dark:bg-amber-950/20'
             : 'border-gray-200 dark:border-slate-700'
       }`}
     >
