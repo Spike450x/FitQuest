@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useInventoryStore } from '@/store/inventoryStore';
-import { ITEM_CATALOG, RARITY_BADGE, RARITY_TEXT } from '@/lib/gameLogic/items';
+import { ITEM_CATALOG, RARITY_BADGE, RARITY_CARD, RARITY_TEXT } from '@/lib/gameLogic/items';
 import { getDailyPick, rotationExpiresAt, formatCountdown } from '@/lib/gameLogic/rotation';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { SpellCard } from '@/components/ui/SpellCard';
@@ -77,7 +77,7 @@ export default function ShopPage() {
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Shop</h1>
+          <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">Shop</h1>
           <p className="text-sm text-gray-500 mt-1">
             Buy gear, consumables, and spells. Equip up to 5 spells before combat.
           </p>
@@ -176,11 +176,20 @@ export default function ShopPage() {
             }
 
             // ── Gear / consumable items ──────────────────────────────────────────
+            const rarityScheme = RARITY_CARD[item.rarity];
+            const isLegendary = item.rarity === 'legendary';
             return (
               <div
                 key={item.id}
-                className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3"
+                className={`relative bg-white border-2 ${rarityScheme.border} ${rarityScheme.glow} rounded-xl p-4 space-y-3 transition-all hover:-translate-y-0.5 hover:shadow-xl ${
+                  isLegendary ? 'animate-legendary-glow' : ''
+                }`}
               >
+                {/* Rarity accent strip */}
+                <div
+                  className={`absolute top-0 left-0 right-0 h-1 rounded-t-[10px] ${rarityScheme.header}`}
+                  aria-hidden="true"
+                />
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
@@ -221,7 +230,7 @@ export default function ShopPage() {
                   <button
                     onClick={() => handleBuy(item)}
                     disabled={!canAfford || isBuying || !!buying}
-                    className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 hover:shadow-md hover:shadow-amber-500/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none text-white text-sm font-semibold py-2 rounded-lg transition-all active:scale-[0.98]"
                   >
                     {isBuying
                       ? 'Buying…'

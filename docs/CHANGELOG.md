@@ -15,6 +15,21 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — UI/UX modernization quick wins (pass 1)
+
+- Display font: paired Cinzel (headings) + Inter (body) via `next/font`, wired through `--font-cinzel` / `--font-inter` CSS variables and Tailwind's `font-display` / `font-sans`. All page H1s, the FitQuest wordmark, and the combat Victory/Defeat banners use the display face.
+- Iconography: replaced OS-emoji nav glyphs in `src/app/(game)/layout.tsx` with Lucide icons (Home / Swords / ClipboardList / Skull / ScrollText / Backpack / Store / BarChart3) — first time `lucide-react` is actually imported in the codebase.
+- Mobile bottom nav: all 8 nav items now visible (was `slice(0, 5)` — Inventory, Shop, Stats were unreachable on phones). Active state gets scale + accent bar + thicker stroke.
+- Layout: `<main>` content now constrained to `max-w-7xl mx-auto` (stops dashboards stretching across 2560px monitors); `pb-20` on mobile so bottom-nav doesn't overlap content.
+- Rarity treatment: `RARITY_CARD.glow` upgraded from barely-visible `shadow-*-100` to `shadow-lg shadow-*-500/40` (legendary gets `shadow-xl shadow-orange-500/50`). Non-spell gear cards in `inventory/page.tsx` and `shop/page.tsx` now respect `RARITY_CARD` border + top accent strip + glow. Legendary gear gets the new `animate-legendary-glow` keyframe.
+- New `AnimatedNumber` component (`src/components/ui/AnimatedNumber.tsx`) — vanilla rAF easeOutCubic counter, respects `prefers-reduced-motion`. Used in `BattleResultsModal` and post-modal rewards summary.
+- `GoldDisplay` self-tweens between values and pulse-scales on increase. `XPBar` flashes/glows for ~700ms when XP changes, with a one-pass shimmer sweep.
+- Hover lifts (`hover:-translate-y-0.5 hover:shadow-lg`) added to dashboard quick-action cards, inventory items, shop gear.
+- Cinematic polish: `BattleResultsModal` got gradient backdrop, drop-shadow ⚔️, animated XP/Gold counters, indigo-to-violet gradient claim button with active-press scale. Victory / Defeat / Escape banners use display font + uppercase wide-tracking + rarity-tinted shadows.
+- New keyframes in `globals.css`: `fadeIn`, `shimmer`, `legendaryGlow`. All gated by `prefers-reduced-motion: reduce`.
+- "NEW" pill upgraded from `animate-pulse` to gradient + ring + colored shadow.
+- New roadmap doc: [docs/UI-UX-MODERNIZATION.md](UI-UX-MODERNIZATION.md). Tracks remaining quick wins (Card primitive adoption), medium efforts, and the larger investments (dark-mode global, design-token overhaul, combat scene redesign, sound design).
+
 ## 2026-05-21 — Doc accuracy sweep and E2E route coverage
 
 - Fixed "Next.js 14" → "Next.js 15" in CLAUDE.md and ARCHITECTURE.md (package.json has been on v15 since PR #26).

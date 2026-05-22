@@ -112,7 +112,9 @@ export default function DashboardPage() {
             <p className="text-indigo-400 text-sm font-medium">
               {classDef.emoji} {classDef.label}
             </p>
-            <h2 className="text-2xl font-bold text-gray-900">{character.name}</h2>
+            <h2 className="font-display text-3xl font-bold text-gray-900 tracking-tight">
+              {character.name}
+            </h2>
             <p className="text-indigo-600 text-sm mt-0.5 font-medium">
               Level {character.level} {subclassDef ? subclassDef.name : 'Adventurer'}
               {subclassDef && <span className="ml-1.5 text-violet-500">{subclassDef.emoji}</span>}
@@ -180,9 +182,9 @@ export default function DashboardPage() {
             <Link
               key={href}
               href={href}
-              className="bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-md rounded-xl p-4 text-center transition-all group"
+              className="bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.02] rounded-xl p-4 text-center transition-all duration-200 group"
             >
-              <div className="text-2xl mb-2">{icon}</div>
+              <div className="text-2xl mb-2 transition-transform group-hover:scale-110">{icon}</div>
               <p className="text-sm font-medium text-gray-800 group-hover:text-indigo-600 transition-colors">
                 {label}
               </p>

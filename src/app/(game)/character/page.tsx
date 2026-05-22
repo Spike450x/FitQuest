@@ -23,7 +23,9 @@ export default function CharacterPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Character Sheet</h1>
+      <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">
+        Character Sheet
+      </h1>
 
       <CharacterCard character={character} />
 

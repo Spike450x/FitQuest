@@ -84,6 +84,7 @@ import {
   canBloodPact,
 } from '@/lib/gameLogic/passives';
 import { SpellCard } from '@/components/ui/SpellCard';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { CombatEffects } from '@/components/combat/CombatEffects';
 import { useCombatBursts } from '@/hooks/useCombatBursts';
 import { useTodayKey } from '@/hooks/useTodayKey';
@@ -1016,19 +1017,23 @@ export default function CombatPage() {
       <div className="space-y-4">
         {/* Outcome banner */}
         {outcome === 'win' && (
-          <div className="rounded-xl p-5 text-center bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-200">
-            <p className="text-4xl mb-1">⚔️</p>
-            <p className="text-2xl font-bold text-indigo-700">Victory!</p>
-            <p className="text-sm text-gray-500 mt-1">
+          <div className="rounded-xl p-6 text-center bg-gradient-to-br from-indigo-100 via-violet-50 to-amber-50 border border-indigo-200 shadow-lg shadow-indigo-500/10">
+            <p className="text-5xl mb-2 drop-shadow-md">⚔️</p>
+            <p className="font-display text-4xl font-bold text-indigo-700 tracking-wider uppercase drop-shadow-sm">
+              Victory!
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
               vs. {emoji} {monster.name}
             </p>
           </div>
         )}
         {outcome === 'loss' && (
-          <div className="rounded-xl p-5 text-center bg-gradient-to-br from-red-50 to-orange-50 border border-red-200">
-            <p className="text-4xl mb-1">💀</p>
-            <p className="text-2xl font-bold text-red-700">You Have Fallen</p>
-            <p className="text-sm text-gray-500 mt-1">
+          <div className="rounded-xl p-6 text-center bg-gradient-to-br from-red-100 via-red-50 to-gray-100 border border-red-300 shadow-lg shadow-red-500/20">
+            <p className="text-5xl mb-2 grayscale-[30%]">💀</p>
+            <p className="font-display text-4xl font-bold text-red-700 tracking-wider uppercase">
+              You Have Fallen
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
               Defeated by {emoji} {monster.name}
             </p>
             <p className="text-sm text-amber-600 font-medium mt-2">
@@ -1039,7 +1044,9 @@ export default function CombatPage() {
         {outcome === 'fled' && (
           <div className="rounded-xl p-5 text-center bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200">
             <p className="text-4xl mb-1">🏃</p>
-            <p className="text-2xl font-bold text-amber-700">Escaped!</p>
+            <p className="font-display text-3xl font-bold text-amber-700 tracking-wide uppercase">
+              Escaped!
+            </p>
             <p className="text-sm text-gray-500 mt-1">
               You fled from {emoji} {monster.name} with {playerHp} HP remaining.
             </p>
@@ -1054,11 +1061,19 @@ export default function CombatPage() {
             </p>
             <div className="flex gap-3">
               <div className="flex-1 bg-indigo-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-indigo-600">+{monster.xpReward}</p>
+                <AnimatedNumber
+                  value={monster.xpReward}
+                  prefix="+"
+                  className="text-2xl font-bold text-indigo-600"
+                />
                 <p className="text-xs text-gray-400 mt-0.5">XP</p>
               </div>
               <div className="flex-1 bg-amber-50 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-amber-500">+{monster.goldReward}</p>
+                <AnimatedNumber
+                  value={monster.goldReward}
+                  prefix="+"
+                  className="text-2xl font-bold text-amber-500"
+                />
                 <p className="text-xs text-gray-400 mt-0.5">Gold</p>
               </div>
             </div>
@@ -1487,7 +1502,9 @@ export default function CombatPage() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Combat Arena</h1>
+          <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">
+            Combat Arena
+          </h1>
           <p className="text-sm text-gray-500 mt-1">
             Current HP:{' '}
             <span
@@ -3115,12 +3132,14 @@ function BattleResultsModal({
   const emoji = MONSTER_EMOJI[pending.monster.id] ?? '👾';
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm space-y-4 p-6">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-gradient-to-br from-white via-indigo-50/40 to-violet-50/60 border border-indigo-100 rounded-2xl shadow-2xl shadow-indigo-500/30 w-full max-w-sm space-y-4 p-6 animate-[fadeIn_0.3s_ease-out]">
         {/* Header */}
         <div className="text-center space-y-1">
-          <p className="text-4xl">⚔️</p>
-          <p className="text-2xl font-bold text-indigo-700">Victory!</p>
+          <p className="text-5xl drop-shadow-md">⚔️</p>
+          <p className="font-display text-4xl font-bold text-indigo-700 tracking-wider uppercase drop-shadow-sm">
+            Victory!
+          </p>
           <p className="text-sm text-gray-500">
             {emoji} {pending.monster.name} defeated
           </p>
@@ -3128,18 +3147,30 @@ function BattleResultsModal({
 
         {/* XP + Gold */}
         <div className="flex gap-3">
-          <div className="flex-1 bg-indigo-50 rounded-xl p-3 text-center">
-            <p className="text-2xl font-bold text-indigo-600">+{pending.xpReward}</p>
-            <p className="text-xs text-gray-400 mt-0.5">XP</p>
+          <div className="flex-1 bg-indigo-50 border border-indigo-100 rounded-xl p-3 text-center shadow-sm">
+            <AnimatedNumber
+              value={pending.xpReward}
+              prefix="+"
+              className="text-3xl font-bold text-indigo-600"
+            />
+            <p className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider font-semibold">
+              XP
+            </p>
             {pending.streakMultiplier > 1.0 && (
               <p className="text-xs text-emerald-600 font-medium mt-1">
                 🔥 ×{pending.streakMultiplier.toFixed(2)} streak
               </p>
             )}
           </div>
-          <div className="flex-1 bg-amber-50 rounded-xl p-3 text-center">
-            <p className="text-2xl font-bold text-amber-500">+{pending.goldReward}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Gold</p>
+          <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl p-3 text-center shadow-sm">
+            <AnimatedNumber
+              value={pending.goldReward}
+              prefix="+"
+              className="text-3xl font-bold text-amber-500"
+            />
+            <p className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider font-semibold">
+              Gold
+            </p>
           </div>
         </div>
 
@@ -3180,7 +3211,7 @@ function BattleResultsModal({
         <button
           onClick={onClaim}
           disabled={claiming}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
+          className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 hover:shadow-lg hover:shadow-indigo-500/40 disabled:opacity-50 disabled:hover:shadow-none text-white font-bold py-3 rounded-xl transition-all active:scale-[0.98]"
         >
           {claiming ? 'Claiming…' : 'Claim Rewards'}
         </button>

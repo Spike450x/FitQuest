@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useInventoryStore } from '@/store/inventoryStore';
-import { getItemById, RARITY_BADGE } from '@/lib/gameLogic/items';
+import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
 import { SpellCard } from '@/components/ui/SpellCard';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
@@ -186,7 +186,7 @@ export default function InventoryPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
+        <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">Inventory</h1>
         <p className="text-sm text-gray-500 mt-1">
           Equip gear for stat bonuses. Load up to 5 spells before combat.
         </p>
@@ -441,7 +441,7 @@ export default function InventoryPage() {
             return (
               <div key={invItem.id} className="relative">
                 {isNewItem && (
-                  <span className="absolute -top-2 -right-2 z-10 text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-400 text-white shadow animate-pulse">
+                  <span className="absolute -top-2 -right-2 z-10 text-[10px] px-2 py-0.5 rounded-full font-bold bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-md shadow-amber-500/40 ring-2 ring-white">
                     NEW
                   </span>
                 )}
@@ -470,23 +470,30 @@ export default function InventoryPage() {
             const isActing = acting === invItem.id;
 
             const isConsumable = def.type === 'consumable';
+            const rarityScheme = RARITY_CARD[def.rarity];
+            const isLegendary = def.rarity === 'legendary';
             return (
               <div
                 key={invItem.id}
-                className={`bg-white border rounded-xl p-4 shadow-sm space-y-2 transition-colors ${
+                className={`relative bg-white border-2 rounded-xl p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-lg ${rarityScheme.glow} ${
                   isEquipped
                     ? isConsumable
-                      ? 'border-emerald-300 bg-emerald-50/30'
-                      : 'border-indigo-300 bg-indigo-50/30'
-                    : 'border-gray-200'
-                }`}
+                      ? 'border-emerald-400 bg-emerald-50/40 ring-2 ring-emerald-200'
+                      : 'border-indigo-400 bg-indigo-50/40 ring-2 ring-indigo-200'
+                    : rarityScheme.border
+                } ${isLegendary && !isEquipped ? 'animate-legendary-glow' : ''}`}
               >
+                {/* Rarity accent strip */}
+                <div
+                  className={`absolute top-0 left-0 right-0 h-1 rounded-t-[10px] ${rarityScheme.header}`}
+                  aria-hidden="true"
+                />
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-gray-900 text-sm">{def.name}</h3>
                       {isNew(invItem.id) && (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-400 text-white animate-pulse">
+                        <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-sm shadow-amber-500/40">
                           NEW
                         </span>
                       )}

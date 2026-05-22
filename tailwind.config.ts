@@ -16,9 +16,15 @@ const config: Config = {
         },
       },
       fontFamily: {
-        // System font stack. Tier 3 plan replaces this with a fantasy display
-        // font for headings via next/font once that work begins.
-        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: [
+          'var(--font-inter)',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
+        display: ['var(--font-cinzel)', 'Cinzel', 'Georgia', 'serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       backgroundImage: {

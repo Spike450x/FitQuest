@@ -18,7 +18,7 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 - `src/types/` — TypeScript definitions
 - `src/hooks/` — custom React hooks
 - `src/middleware.ts` — route protection
-- `docs/` — engineering references: [ARCHITECTURE](docs/ARCHITECTURE.md), [FIRESTORE](docs/FIRESTORE.md), [CI](docs/CI.md), [GAME-LOGIC](docs/GAME-LOGIC.md), [SECURITY-SETUP](docs/SECURITY-SETUP.md), [SMOKE-TEST](docs/SMOKE-TEST.md), [CHANGELOG](docs/CHANGELOG.md)
+- `docs/` — engineering references: [ARCHITECTURE](docs/ARCHITECTURE.md), [FIRESTORE](docs/FIRESTORE.md), [CI](docs/CI.md), [GAME-LOGIC](docs/GAME-LOGIC.md), [SECURITY-SETUP](docs/SECURITY-SETUP.md), [SMOKE-TEST](docs/SMOKE-TEST.md), [CHANGELOG](docs/CHANGELOG.md), [UI-UX-MODERNIZATION](docs/UI-UX-MODERNIZATION.md)
 
 ---
 
