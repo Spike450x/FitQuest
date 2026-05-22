@@ -401,7 +401,11 @@ export function scaleQuestRewards(
   level: number,
 ): { xp: number; gold: number } {
   const safeLevel = Math.max(1, level);
-  const factor = 0.6 + 0.4 * Math.sqrt(safeLevel);
+  // Sub-linear by design, but with a steeper slope than the old 0.6 + 0.4·√l —
+  // quests were falling behind monster XP at high levels because √-growth was
+  // weighted too low. Inverting the coefficients keeps the level-1 anchor at
+  // 1.0× while lifting level-25 from 2.6× to 3.4×.
+  const factor = 0.4 + 0.6 * Math.sqrt(safeLevel);
   return {
     xp: Math.round(base.xp * factor),
     gold: Math.round(base.gold * factor),

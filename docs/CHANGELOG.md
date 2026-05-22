@@ -15,6 +15,20 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Balance & engine fixes pass 1
+
+Knocks out the highest-leverage items from the post-MVP balance backlog (CLAUDE.md "Next priorities"). All changes are surgical — pure game-logic edits plus targeted unit tests.
+
+- **P0-1 (verified, no change needed):** Audited monster counter-attack math. Already flat damage (`monster.attack − effectivePlayerDef`), uniform across all monsters. The audit's framing was outdated.
+- **P0-2 / Monster XP scaling cliff:** New `monsterXpScaling(playerLevel, monsterLevel)` in `combat.ts` — top-tier monsters (level ≥ 8) give +8% XP per player-level over the monster, capped at 2.0×. Low-level mobs stay at base XP so grinding the Goblin Scout at level 20 never becomes optimal. Wired through `getStreakBoost` so the same multiplier reaches modal/toast/award call sites. Closes the cliff where the Ancient Dragon used to give flat 320 XP regardless of player level.
+- **P1-1 / Quest XP scaler:** Swapped the coefficients on `scaleQuestRewards` from `0.6 + 0.4·√l` to `0.4 + 0.6·√l`. Anchor stays 1.0× at level 1; level-10 quest XP lifts from 1.86× → 2.30×, level-25 from 2.6× → 3.4×. Quests no longer fall behind combat XP at high levels.
+- **P1-2 / Blessed streak XP:** Raised the Blessed-tier (30+ day streak) `xpMultiplier` from 1.25 → 1.5. The habit reward is now meaningfully larger than mid-tier streaks.
+- **P1-4 / Fizzle stamina refund:** New `COMBAT.FIZZLE_STAMINA_REFUND = 5` constant. When an ability roll fizzles (no dice pattern matched), the player gets half the cost back instead of paying the full 10. Encourages tactical ability use without making abilities disposable.
+- **P1-5 / Lich King:** New level-9 monster filling the gap between Dark Mage (L8) and Ancient Dragon (L10). HP 150, attack 28, defense 9, xp 220, gold 110. Necromancer-themed loot table (staff-of-ages, void-tome, necrotic-staff, specter-shroud, ring-of-wisdom, greater-magic-potion). Hand-authored silhouette in `silhouettes.tsx` (crowned skull with violet wisps), purple frame tint via the art system. ☠️ fallback emoji.
+- **P2-2 / Wizard starting stats:** +2 starting health (6 → 8). The lowest-defense class needed a small HP cushion so early-game encounters aren't one-shot reset tickets.
+
+Tests: 4 new `monsterXpScaling` cases + 2 updated existing tests (quest scaler at level 10, streak XP cap). 372 total tests pass.
+
 ## 2026-05-22 — Custom art system (heraldic crests + brand refresh)
 
 - New `EntityArt` primitive (`src/components/art/EntityArt.tsx`) — single render path for every game-entity portrait. Renders a hand-authored SVG silhouette inside a `HeraldicFrame`, falling back to the supplied emoji if no silhouette is registered. Supports `monster | class | subclass | ability | spell | activity | achievement | dungeon | item` categories, `xs | sm | md | lg | xl` sizes, and per-category default tints + frame shapes.

@@ -64,6 +64,7 @@ import {
   gearDefenseBonus,
   LEGENDARY_PITY_THRESHOLD,
   resolveRoundOutcome,
+  monsterXpScaling,
 } from '@/lib/gameLogic/combat';
 import { getStreakLootMultiplier, getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
@@ -225,6 +226,7 @@ const MONSTER_EMOJI: Record<string, string> = {
   'dark-wolf': '🐺',
   'stone-troll': '🗿',
   'dark-mage': '🧙',
+  'lich-king': '☠️',
   'ancient-dragon': '🐉',
 };
 
@@ -349,14 +351,21 @@ export default function CombatPage() {
 
   if (!character) return null;
 
-  /** Captures the streak multiplier at call-time and returns both the multiplier value
-   *  and a boost function. Call once per kill so every consumer (modal, toast, award)
-   *  sees the same number — snapshotting here prevents mid-victory-screen streak ticks
-   *  from changing the displayed reward. */
-  function getStreakBoost(): { multiplier: number; boost: (rawXp: number) => number } {
+  /** Captures the streak + level-scaling multipliers at call-time and returns both
+   *  the streak multiplier (for UI display) and a boost function that takes the
+   *  defeated monster and applies streak × monster-level scaling. Call once per
+   *  kill so every consumer (modal, toast, award) sees the same number —
+   *  snapshotting here prevents mid-victory-screen streak ticks from changing
+   *  the displayed reward. */
+  function getStreakBoost(): { multiplier: number; boost: (monster: MonsterDef) => number } {
     const streak = character?.streakData?.currentStreak ?? 0;
     const multiplier = getStreakXpMultiplier(streak);
-    return { multiplier, boost: (rawXp) => Math.round(rawXp * multiplier) };
+    const playerLevel = character?.level ?? 1;
+    return {
+      multiplier,
+      boost: (monster) =>
+        Math.round(monster.xpReward * multiplier * monsterXpScaling(playerLevel, monster.level)),
+    };
   }
 
   function enterFight(monster: MonsterDef) {
@@ -556,7 +565,7 @@ export default function CombatPage() {
           if (outcome === 'win') {
             const { multiplier: streakMult, boost: streakBoost } = getStreakBoost();
             setPendingRewards({
-              xpReward: streakBoost(snapshot.monster.xpReward),
+              xpReward: streakBoost(snapshot.monster),
               streakMultiplier: streakMult,
               goldReward: snapshot.monster.goldReward,
               droppedItems,
@@ -644,8 +653,10 @@ export default function CombatPage() {
 
     // ── Warrior Momentum — restore stamina on ability kill ────────────────────
     const momentumRestore = getMomentumRestore(character, killedMonster);
+    // ── Fizzle refund — half-cost back when the dice yield no pattern ─────────
+    const fizzleRefund = fizzled ? COMBAT.FIZZLE_STAMINA_REFUND : 0;
     const newStamina = Math.min(
-      Math.max(0, fightState.playerStamina - actualStaminaCost) + momentumRestore,
+      Math.max(0, fightState.playerStamina - actualStaminaCost + fizzleRefund) + momentumRestore,
       maxStamina,
     );
 
@@ -710,7 +721,7 @@ export default function CombatPage() {
           if (outcome === 'win') {
             const { multiplier: streakMult, boost: streakBoost } = getStreakBoost();
             setPendingRewards({
-              xpReward: streakBoost(snapshot.monster.xpReward),
+              xpReward: streakBoost(snapshot.monster),
               streakMultiplier: streakMult,
               goldReward: snapshot.monster.goldReward,
               droppedItems,
@@ -849,7 +860,7 @@ export default function CombatPage() {
           if (outcome === 'win') {
             const { multiplier: streakMult, boost: streakBoost } = getStreakBoost();
             setPendingRewards({
-              xpReward: streakBoost(snapshot.monster.xpReward),
+              xpReward: streakBoost(snapshot.monster),
               streakMultiplier: streakMult,
               goldReward: snapshot.monster.goldReward,
               droppedItems,

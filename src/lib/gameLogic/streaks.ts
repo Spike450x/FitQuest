@@ -36,8 +36,9 @@ export interface StreakTier {
   lootDropMultiplier: number;
   /**
    * Multiplicative bonus applied to XP awarded from quest claims and combat
-   * victories. Softer than the loot multiplier (caps at ×1.25) — XP scaling
-   * compounds with the quest-level scaler so we keep the slope gentle.
+   * victories. Caps at ×1.50 for Blessed-tier players (30+ day streak) so the
+   * habit reward is meaningful but still compounds gently with the quest-level
+   * scaler.
    */
   xpMultiplier: number;
   /** Tailwind text color class for displaying the tier name. */
@@ -59,7 +60,7 @@ export const STREAK_TIERS: StreakTier[] = [
     minDays: 30,
     label: 'Blessed',
     lootDropMultiplier: 2.0,
-    xpMultiplier: 1.25,
+    xpMultiplier: 1.5,
     color: 'text-orange-500',
     bgColor: 'bg-orange-50 border-orange-200',
   },

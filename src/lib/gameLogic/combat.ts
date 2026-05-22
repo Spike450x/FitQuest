@@ -70,6 +70,28 @@ export function rollD10(): number {
 }
 
 /**
+ * Multiplier applied to a monster's base `xpReward` based on the player's
+ * level relative to the monster's level. Closes the XP cliff at level 10
+ * (top-tier monsters used to give flat 320 XP regardless of player level).
+ *
+ * Only **top-tier** monsters (level ≥ 8) benefit from level scaling — low-
+ * level mobs stay at base XP so grinding the Goblin Scout at level 20 never
+ * becomes optimal. Past the monster's level, the player gets +8% XP per
+ * level over the monster, capped at 2.0× (reached at +12 levels).
+ *
+ * Examples:
+ *   playerLevel=10, monsterLevel=10  → 1.00× (no change)
+ *   playerLevel=15, monsterLevel=10  → 1.40×
+ *   playerLevel=25, monsterLevel=10  → 2.00× (cap)
+ *   playerLevel=20, monsterLevel=3   → 1.00× (low-tier mobs ignored)
+ */
+export function monsterXpScaling(playerLevel: number, monsterLevel: number): number {
+  if (monsterLevel < 8) return 1.0;
+  const delta = Math.max(0, playerLevel - monsterLevel);
+  return Math.min(2.0, 1 + 0.08 * delta);
+}
+
+/**
  * Total HP available to the player.
  * Includes health and stamina bonuses from all equipped gear.
  */

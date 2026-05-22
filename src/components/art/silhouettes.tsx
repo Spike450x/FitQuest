@@ -261,6 +261,47 @@ function AncientDragon() {
   );
 }
 
+function LichKing() {
+  return (
+    <g fill="currentColor">
+      {/* Crowned skull with spectral ribbons */}
+      <path d="M 50 26 L 38 30 L 32 42 L 32 56 L 36 64 L 36 74 L 50 80 L 64 74 L 64 64 L 68 56 L 68 42 L 62 30 Z" />
+      {/* Crown points */}
+      <path d="M 36 32 L 32 18 L 40 28 Z" />
+      <path d="M 50 22 L 50 14 L 56 22 Z" />
+      <path d="M 64 32 L 68 18 L 60 28 Z" />
+      {/* Crown gem */}
+      <circle cx="50" cy="20" r="2.5" className="fill-violet-400" />
+      {/* Eye sockets with violet glow */}
+      <ellipse cx="42" cy="48" rx="4" ry="5" className="fill-slate-950" />
+      <ellipse cx="58" cy="48" rx="4" ry="5" className="fill-slate-950" />
+      <circle cx="42" cy="48" r="2" className="fill-violet-400" />
+      <circle cx="58" cy="48" r="2" className="fill-violet-400" />
+      {/* Nose + teeth */}
+      <path d="M 48 56 L 52 56 L 50 62 Z" className="fill-slate-950" />
+      <rect x="44" y="66" width="2" height="6" className="fill-slate-950" />
+      <rect x="48" y="66" width="2" height="6" className="fill-slate-950" />
+      <rect x="52" y="66" width="2" height="6" className="fill-slate-950" />
+      <rect x="56" y="66" width="2" height="6" className="fill-slate-950" />
+      {/* Wisp tendrils */}
+      <path
+        d="M 30 60 Q 22 70, 26 86"
+        stroke="currentColor"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 70 60 Q 78 70, 74 86"
+        stroke="currentColor"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
+
 export const MONSTER_SILHOUETTES: Record<string, () => React.ReactNode> = {
   'goblin-scout': GoblinScout,
   'giant-rat': GiantRat,
@@ -271,6 +312,7 @@ export const MONSTER_SILHOUETTES: Record<string, () => React.ReactNode> = {
   'dark-wolf': DarkWolf,
   'stone-troll': StoneTroll,
   'dark-mage': DarkMage,
+  'lich-king': LichKing,
   'ancient-dragon': AncientDragon,
 };
 

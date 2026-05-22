@@ -66,7 +66,7 @@ function defaultTint(category: EntityCategory, id: string): FrameTint {
       // Monsters tint by level / theme of the encounter.
       const ROSE = ['ancient-dragon', 'dark-mage', 'orc-grunt'];
       const SLATE = ['skeleton-warrior', 'stone-troll', 'dark-wolf'];
-      const PURPLE = ['cave-spider'];
+      const PURPLE = ['cave-spider', 'lich-king'];
       if (ROSE.includes(id)) return 'rose';
       if (SLATE.includes(id)) return 'slate';
       if (PURPLE.includes(id)) return 'purple';

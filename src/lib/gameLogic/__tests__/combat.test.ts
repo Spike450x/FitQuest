@@ -10,6 +10,7 @@ import {
   rollLoot,
   rollRunAway,
   resolveRoundOutcome,
+  monsterXpScaling,
 } from '../combat';
 import { COMBAT } from '../constants';
 import type { Character, EquippedGear, MonsterDef } from '@/types';
@@ -387,5 +388,33 @@ describe('resolveRoundOutcome', () => {
     });
     expect(result.outcome).toBeNull();
     expect(result.killedMonster).toBe(false);
+  });
+});
+
+// ── monsterXpScaling ─────────────────────────────────────────────────────────
+
+describe('monsterXpScaling', () => {
+  it('returns 1.0 when monster level is below the top-tier threshold (8)', () => {
+    expect(monsterXpScaling(1, 1)).toBe(1.0);
+    expect(monsterXpScaling(10, 3)).toBe(1.0);
+    expect(monsterXpScaling(25, 7)).toBe(1.0);
+  });
+
+  it('returns 1.0 when player level is at or below the monster level (top-tier)', () => {
+    expect(monsterXpScaling(8, 8)).toBe(1.0);
+    expect(monsterXpScaling(5, 10)).toBe(1.0);
+    expect(monsterXpScaling(10, 10)).toBe(1.0);
+  });
+
+  it('grows by 0.08 per level over the monster for top-tier monsters', () => {
+    expect(monsterXpScaling(11, 10)).toBeCloseTo(1.08, 5);
+    expect(monsterXpScaling(15, 10)).toBeCloseTo(1.4, 5);
+    expect(monsterXpScaling(20, 10)).toBeCloseTo(1.8, 5);
+  });
+
+  it('caps at 2.0× regardless of overlevel', () => {
+    expect(monsterXpScaling(25, 10)).toBe(2.0);
+    expect(monsterXpScaling(50, 8)).toBe(2.0);
+    expect(monsterXpScaling(100, 9)).toBe(2.0);
   });
 });
