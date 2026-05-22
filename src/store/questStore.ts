@@ -16,8 +16,10 @@ import {
   deriveWeekKey,
 } from '@/lib/gameLogic/rotation';
 import { getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
+import { QUEST_REROLL_COST } from '@/lib/gameLogic/constants';
+import { updateCharacterDoc } from '@/lib/characterData';
 import { useCharacterStore } from './characterStore';
-import type { ActiveQuest, ActivityType } from '@/types';
+import type { ActiveQuest, ActivityType, QuestDef } from '@/types';
 
 const DAILY_QUEST_COUNT = 3;
 const WEEKLY_QUEST_COUNT = 3;
@@ -46,6 +48,15 @@ interface QuestStore {
    * or false if the quest is not claimable.
    */
   claimReward: (questId: string) => Promise<{ xpAwarded: number; goldAwarded: number } | false>;
+  /**
+   * Replaces an active (not-yet-complete, not-yet-claimed) quest with a new
+   * pick from the appropriate pool. Costs `QUEST_REROLL_COST` gold. Excludes
+   * the player's currently-active questDefIds so they get a genuinely new
+   * quest. Returns `{ newQuestDefId, cost }` on success or `false` if the
+   * reroll wasn't possible (not enough gold, quest claimed, quest completed,
+   * or no other quest in the pool).
+   */
+  rerollQuest: (questId: string) => Promise<{ newQuestDefId: string; cost: number } | false>;
   clear: () => void;
 }
 
@@ -269,6 +280,74 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       return { xpAwarded: xpToAward, goldAwarded: scaled.gold };
     } catch (e) {
       captureError('questStore.claimReward', e);
+      return false;
+    }
+  },
+
+  rerollQuest: async (questId) => {
+    try {
+      const { quests } = get();
+      const quest = quests.find((q) => q.id === questId);
+      if (!quest) return false;
+      // Only active quests (not complete, not claimed) can be rerolled.
+      if (quest.completedAt !== null || quest.claimedAt !== null) return false;
+
+      const def = getQuestDef(quest.questDefId);
+      if (!def) return false;
+
+      // Affordability check using the latest character snapshot.
+      const { character } = useCharacterStore.getState();
+      if (!character || character.gold < QUEST_REROLL_COST) return false;
+
+      // Pool by quest type. Exclude defIds the player currently holds so the
+      // reroll always gives genuine variety (no rolling back into the same
+      // quest or one already held).
+      const pool: QuestDef[] = def.type === 'daily' ? DAILY_QUEST_POOL : WEEKLY_QUEST_POOL;
+      const heldDefIds = new Set(quests.map((q) => q.questDefId));
+      const candidates = pool.filter((d) => !heldDefIds.has(d.id));
+      if (candidates.length === 0) return false;
+
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      const expiry = def.type === 'daily' ? dailyExpiresAt() : weeklyExpiresAt();
+
+      // Persist the replacement + the gold deduction. Two writes (quest doc,
+      // character doc) — we accept the brief client-side window between them
+      // because Firestore rules already cap any further gold delta at the
+      // matching write, and the reroll is rare/explicit.
+      const newGold = character.gold - QUEST_REROLL_COST;
+      await Promise.all([
+        updateActiveQuestDoc(questId, {
+          questDefId: pick.id,
+          progress: 0,
+          extraProgress: pick.extraTargets ? {} : undefined,
+          completedAt: null,
+          rewards: pick.rewards,
+          expiresAt: expiry,
+        }),
+        updateCharacterDoc(character.uid, { gold: newGold }),
+      ]);
+
+      // Update local stores together so UI re-renders in one frame.
+      useCharacterStore.setState({ character: { ...character, gold: newGold } });
+      set((state) => ({
+        quests: state.quests.map((q) =>
+          q.id === questId
+            ? {
+                ...q,
+                questDefId: pick.id,
+                progress: 0,
+                extraProgress: pick.extraTargets ? {} : undefined,
+                completedAt: null,
+                rewards: pick.rewards,
+                expiresAt: expiry,
+              }
+            : q,
+        ),
+      }));
+
+      return { newQuestDefId: pick.id, cost: QUEST_REROLL_COST };
+    } catch (e) {
+      captureError('questStore.rerollQuest', e);
       return false;
     }
   },

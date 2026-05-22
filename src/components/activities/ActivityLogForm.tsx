@@ -268,6 +268,30 @@ export function ActivityLogForm() {
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
         <p className="text-sm text-gray-500 dark:text-slate-400">{def.description}</p>
 
+        {/* Linked-stat hint — surfaces the activity → stat mapping at log time
+            so players understand why they're picking this activity. P2-1. */}
+        {(() => {
+          // Set.has() doesn't narrow the type — pull the config via the typed
+          // MASTERY_CONFIG record and bail out if this activity isn't a mastery
+          // type. Done inline to keep the JSX flat.
+          const masteryCfg = (
+            MASTERY_CONFIG as Record<
+              string,
+              { linkedStat: string; linkedStatLabel: string } | undefined
+            >
+          )[activeTab];
+          if (!masteryCfg) return null;
+          return (
+            <div className="flex items-center gap-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 px-3 py-2 text-xs">
+              <span aria-hidden="true">⬆️</span>
+              <span className="text-indigo-700 dark:text-indigo-200">
+                Builds <span className="font-semibold">{masteryCfg.linkedStatLabel}</span> mastery —
+                every 5 → 15 → 25 logs grants +1 {masteryCfg.linkedStatLabel}.
+              </span>
+            </div>
+          );
+        })()}
+
         <div>
           <label
             htmlFor="activity-amount"

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useGameData } from '@/hooks/useGameData';
 import { useQuestStore } from '@/store/questStore';
 import { getQuestDef } from '@/lib/gameLogic/quests';
+import { QUEST_REROLL_COST } from '@/lib/gameLogic/constants';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -71,11 +72,19 @@ function ProgressBar({
 function QuestCard({
   quest,
   claiming,
+  rerolling,
+  canAffordReroll,
+  rerollCost,
   onClaim,
+  onReroll,
 }: {
   quest: ActiveQuest;
   claiming: string | null;
+  rerolling: string | null;
+  canAffordReroll: boolean;
+  rerollCost: number;
   onClaim: (id: string) => void;
+  onReroll: (id: string) => void;
 }) {
   const def = getQuestDef(quest.questDefId);
   if (!def) return null;
@@ -84,6 +93,11 @@ function QuestCard({
   const isComplete = quest.completedAt !== null;
   const isClaimed = quest.claimedAt !== null;
   const isClaiming = claiming === quest.id;
+  const isRerolling = rerolling === quest.id;
+  // Reroll is only offered on active (un-complete, un-claimed) quests so players
+  // can swap a quest they can't realistically finish today, but can't dodge the
+  // claim step on already-completed quests.
+  const canReroll = !isComplete && !isClaimed;
   const isMultiTarget = (def.extraTargets?.length ?? 0) > 0;
 
   return (
@@ -181,6 +195,24 @@ function QuestCard({
           </span>
         </button>
       )}
+
+      {/* Reroll button — only on active (incomplete, unclaimed) quests */}
+      {canReroll && (
+        <button
+          type="button"
+          onClick={() => onReroll(quest.id)}
+          disabled={!canAffordReroll || isRerolling || !!rerolling}
+          title={
+            canAffordReroll
+              ? `Spend ${rerollCost} gold for a new quest`
+              : `Need ${rerollCost} gold to reroll`
+          }
+          className="w-full inline-flex items-center justify-center gap-1.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 dark:text-slate-300 text-xs font-semibold py-1.5 rounded-lg transition-colors"
+        >
+          <span aria-hidden="true">🎲</span>
+          <span>{isRerolling ? 'Rerolling…' : `Reroll · ${rerollCost} 💰`}</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -192,13 +224,21 @@ function QuestSection({
   icon,
   quests,
   claiming,
+  rerolling,
+  canAffordReroll,
+  rerollCost,
   onClaim,
+  onReroll,
 }: {
   title: string;
   icon: string;
   quests: ActiveQuest[];
   claiming: string | null;
+  rerolling: string | null;
+  canAffordReroll: boolean;
+  rerollCost: number;
   onClaim: (id: string) => void;
+  onReroll: (id: string) => void;
 }) {
   const completed = quests.filter((q) => q.claimedAt !== null).length;
 
@@ -224,7 +264,16 @@ function QuestSection({
       ) : (
         <div className="space-y-3">
           {quests.map((q) => (
-            <QuestCard key={q.id} quest={q} claiming={claiming} onClaim={onClaim} />
+            <QuestCard
+              key={q.id}
+              quest={q}
+              claiming={claiming}
+              rerolling={rerolling}
+              canAffordReroll={canAffordReroll}
+              rerollCost={rerollCost}
+              onClaim={onClaim}
+              onReroll={onReroll}
+            />
           ))}
         </div>
       )}
@@ -255,7 +304,9 @@ export default function QuestsPage() {
   const { character, quests, questsLoading: loading, questsError: error } = useGameData();
   const fetchAndAssignQuests = useQuestStore((s) => s.fetchAndAssignQuests);
   const claimReward = useQuestStore((s) => s.claimReward);
+  const rerollQuest = useQuestStore((s) => s.rerollQuest);
   const [claiming, setClaiming] = useState<string | null>(null);
+  const [rerolling, setRerolling] = useState<string | null>(null);
 
   useEffect(() => {
     if (character?.uid) fetchAndAssignQuests(character.uid);
@@ -265,6 +316,7 @@ export default function QuestsPage() {
 
   const dailyQuests = quests.filter((q) => getQuestDef(q.questDefId)?.type === 'daily');
   const weeklyQuests = quests.filter((q) => getQuestDef(q.questDefId)?.type === 'weekly');
+  const canAffordReroll = character.gold >= QUEST_REROLL_COST;
 
   async function handleClaim(questId: string) {
     if (claiming) return;
@@ -284,6 +336,22 @@ export default function QuestsPage() {
       });
     } else if (!result) {
       toast.error('Could not claim that quest. Try again.');
+    }
+  }
+
+  async function handleReroll(questId: string) {
+    if (rerolling) return;
+    setRerolling(questId);
+    const result = await rerollQuest(questId);
+    setRerolling(null);
+    if (result) {
+      playSound('diceRoll');
+      const newDef = getQuestDef(result.newQuestDefId);
+      toast.success(`Quest rerolled — ${newDef?.name ?? 'new quest assigned'}`, {
+        description: `−${result.cost} gold`,
+      });
+    } else {
+      toast.error('Could not reroll that quest. Check your gold balance.');
     }
   }
 
@@ -315,14 +383,22 @@ export default function QuestsPage() {
             icon="📅"
             quests={dailyQuests}
             claiming={claiming}
+            rerolling={rerolling}
+            canAffordReroll={canAffordReroll}
+            rerollCost={QUEST_REROLL_COST}
             onClaim={handleClaim}
+            onReroll={handleReroll}
           />
           <QuestSection
             title="Weekly Quests"
             icon="📆"
             quests={weeklyQuests}
             claiming={claiming}
+            rerolling={rerolling}
+            canAffordReroll={canAffordReroll}
+            rerollCost={QUEST_REROLL_COST}
             onClaim={handleClaim}
+            onReroll={handleReroll}
           />
         </div>
       )}
