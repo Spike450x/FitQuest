@@ -14,3 +14,12 @@ This is separate from the **feature backlog** in CLAUDE.md, which covers game co
 | Firestore offline write UX  | `OfflineBanner` signals read-offline state but doesn't mention the pending-write queue. A "changes will sync when you reconnect" message would complete the offline story.                         | Before any mobile-first push                        |
 | IndexedDB quota on mobile   | Browser can evict the Firestore cache below ~50 MB on low-storage devices. Currently single-user; harmless until mobile audience grows.                                                            | User base grows to mobile-first                     |
 | `resource-exhausted` jitter | Retries use fixed delays (`[1_000, 3_000]`). Exponential back-off with jitter would reduce thundering-herd under concurrent load.                                                                  | Concurrent user count makes fixed delays observable |
+
+---
+
+## Polish / nice-to-have
+
+| Item                        | Detail                                                                                                                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| README docs table grouping  | Table has 13 entries and will grow. Add sub-headers (e.g. **Engineering**, **Game Design**, **Ops**) once it reaches ~15 to keep it scannable.                                                  |
+| Add SMOKE-TEST.md to README | `docs/SMOKE-TEST.md` is listed in CLAUDE.md's docs reference but absent from the README engineering references table. Add it alongside the other docs for full consistency and discoverability. |
