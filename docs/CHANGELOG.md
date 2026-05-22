@@ -15,6 +15,10 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Firestore IndexedDB offline persistence
+
+- **IndexedDB persistence enabled in `src/lib/firebase.ts`.** Uses `initializeFirestore` with `persistentLocalCache` + `persistentMultipleTabManager` so Firestore reads are served from the local cache when the device is offline or on a flaky connection. SSR/Node environments (including vitest) fall back to the memory-only default via a `typeof window` guard; hot-reload re-initialization is caught and falls through to `getFirestore`. No store or component changes required — the `db` export is a drop-in replacement.
+
 ## 2026-05-22 — retry.ts hardening, sign-out store flush, dependency fixes
 
 - **`isRetryable` classifier in `retry.ts`.** Non-retryable Firebase error codes (`permission-denied`, `unauthenticated`, `invalid-argument`, `not-found`, `failed-precondition`, and 4 others) now rethrow immediately without sleeping through delays. Unknown/network errors (no `.code`) default to retryable. 9 new unit tests cover the classifier and the fast-path behaviour.
