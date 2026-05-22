@@ -153,9 +153,9 @@ Items with `lootOnly: true` never appear in the shop — only in monster loot ta
 
 ## `monsters.ts` — monster catalog
 
-| Export            | Purpose                                                                                               |
-| ----------------- | ----------------------------------------------------------------------------------------------------- |
-| `MONSTER_CATALOG` | 10 monsters (levels 1–10; two at level 1, gap at level 9 — Lich King pending, see P1-5 in CLAUDE.md). |
+| Export            | Purpose                                                          |
+| ----------------- | ---------------------------------------------------------------- |
+| `MONSTER_CATALOG` | 10 monsters (levels 1–10; two at level 1, Lich King at level 9). |
 
 The Ancient Dragon's loot table is the primary source of legendary loot from regular combat. Dungeon bosses have separate, tier-specific loot tables (defined in `dungeons.ts`) containing 12 dungeon-exclusive items not available from regular combat or the shop (`lootOnly: true`).
 
@@ -187,18 +187,19 @@ Internal helpers (`getDaySeed`, `getWeekSeed`, `seededShuffle` — Numerical Rec
 
 ## `streaks.ts` — daily streaks + personal records
 
-| Export                             | Kind      | Purpose                                                                                                                |
-| ---------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `StreakData`                       | interface | `{ currentStreak, longestStreak, lastLogDate }`. Stored on the character doc.                                          |
-| `PersonalRecord`                   | interface | `{ value, loggedAt, unit }` per activity type.                                                                         |
-| `PersonalRecords`                  | type      | `Partial<Record<ActivityType, PersonalRecord>>`.                                                                       |
-| `StreakTier`                       | interface | A Blessing-tier definition (name, day threshold, loot multiplier).                                                     |
-| `STREAK_TIERS`                     | const     | The 6 Blessing tiers (Focused → Blessed). Multiplier applies to **rare+** loot only.                                   |
-| `todayUTC()`                       | function  | `'YYYY-MM-DD'` for today in UTC. Used for `lastLogDate`.                                                               |
-| `computeNewStreak(current, today)` | function  | Streak transition: same day → no change, consecutive day → +1, gap → reset to 1.                                       |
-| `getStreakTier(streak)`            | function  | Highest tier reached at the given streak length.                                                                       |
-| `getStreakLootMultiplier(streak)`  | function  | Convenience accessor for the tier's loot multiplier.                                                                   |
-| `getStreakXpMultiplier(streak)`    | function  | XP multiplier for the current streak length (≥ 1.0). Snapshotted at kill-time for the `BattleResultsModal` annotation. |
+| Export                             | Kind      | Purpose                                                                                                                                                                       |
+| ---------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `StreakData`                       | interface | `{ currentStreak, longestStreak, lastLogDate }`. Stored on the character doc.                                                                                                 |
+| `PersonalRecord`                   | interface | `{ value, loggedAt, unit }` per activity type.                                                                                                                                |
+| `PersonalRecords`                  | type      | `Partial<Record<ActivityType, PersonalRecord>>`.                                                                                                                              |
+| `StreakTier`                       | interface | A Blessing-tier definition (name, day threshold, loot multiplier).                                                                                                            |
+| `STREAK_TIERS`                     | const     | The 6 Blessing tiers (Focused → Blessed). Multiplier applies to **rare+** loot only.                                                                                          |
+| `todayUTC()`                       | function  | `'YYYY-MM-DD'` for today in UTC. Used for `lastLogDate`.                                                                                                                      |
+| `utcDayStartMs(date?)`             | function  | Unix ms for the UTC midnight that begins the given date (defaults to now). Used by `fetchTodayLogsForType` so the date boundary is injectable in tests without Firebase deps. |
+| `computeNewStreak(current, today)` | function  | Streak transition: same day → no change, consecutive day → +1, gap → reset to 1.                                                                                              |
+| `getStreakTier(streak)`            | function  | Highest tier reached at the given streak length.                                                                                                                              |
+| `getStreakLootMultiplier(streak)`  | function  | Convenience accessor for the tier's loot multiplier.                                                                                                                          |
+| `getStreakXpMultiplier(streak)`    | function  | XP multiplier for the current streak length (≥ 1.0). Snapshotted at kill-time for the `BattleResultsModal` annotation.                                                        |
 
 ---
 
