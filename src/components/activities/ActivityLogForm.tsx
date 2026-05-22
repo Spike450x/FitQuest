@@ -95,24 +95,29 @@ export function ActivityLogForm() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<LogResult | null>(null);
   // Per-type cache: avoids re-querying Firestore when switching back to a
-  // previously-viewed tab during the same form session.
-  const [todayTotals, setTodayTotals] = useState<Map<string, number>>(new Map());
+  // previously-viewed tab during the same form session. `stale: true` means
+  // the entry exists but needs a refresh (e.g. after a submit) — the meter
+  // stays visible (dimmed) while the re-fetch is in flight.
+  const [todayTotals, setTodayTotals] = useState<Map<string, { value: number; stale: boolean }>>(
+    new Map(),
+  );
 
   const refreshTodayTotal = useCallback(async (uid: string, type: string) => {
     try {
       const logs = await fetchTodayLogsForType(uid, type);
       const total = logs.reduce((sum, l) => sum + ((l.data.amount as number) ?? 0), 0);
-      setTodayTotals((prev) => new Map(prev).set(type, total));
+      setTodayTotals((prev) => new Map(prev).set(type, { value: total, stale: false }));
     } catch {
-      // Non-critical — cap indicator stays hidden rather than blocking the form
+      // Non-critical — leave the existing entry unchanged (stale meter stays
+      // visible) rather than hiding the meter or triggering a re-fetch loop.
     }
   }, []);
 
   const characterUid = character?.uid;
   useEffect(() => {
     if (!characterUid) return;
-    // Only fetch if we don't have a cached value for this tab yet.
-    if (!todayTotals.has(activeTab)) {
+    const entry = todayTotals.get(activeTab);
+    if (!entry || entry.stale) {
       void refreshTodayTotal(characterUid, activeTab);
     }
   }, [characterUid, activeTab, todayTotals, refreshTodayTotal]);
@@ -249,10 +254,12 @@ export function ActivityLogForm() {
       persistStreakAndRecord(activeTab, parsedAmount, def.unit).catch((e) =>
         captureError('ActivityLogForm:streak', e),
       );
-      // Invalidate cache entry — the useEffect re-fetches on the next render.
+      // Mark cache entry as stale — keeps the old value visible (dimmed) while
+      // the useEffect re-fetches on the next render.
       setTodayTotals((prev) => {
         const m = new Map(prev);
-        m.delete(activeTab);
+        const existing = m.get(activeTab);
+        if (existing) m.set(activeTab, { ...existing, stale: true });
         return m;
       });
     } catch (err) {
@@ -350,7 +357,11 @@ export function ActivityLogForm() {
 
         {/* Daily cap proximity meter — shows once today's total is loaded */}
         {todayTotals.has(activeTab) && (
-          <CapMeter activityType={activeTab} todayTotal={todayTotals.get(activeTab)!} />
+          <CapMeter
+            activityType={activeTab}
+            todayTotal={todayTotals.get(activeTab)!.value}
+            stale={todayTotals.get(activeTab)!.stale}
+          />
         )}
 
         <button
@@ -370,9 +381,11 @@ export function ActivityLogForm() {
 function CapMeter({
   activityType,
   todayTotal,
+  stale,
 }: {
   activityType: ActivityType;
   todayTotal: number;
+  stale?: boolean;
 }) {
   const fraction = dailyCapUsageFraction(activityType, todayTotal);
   const cap = DAILY_ACTIVITY_CAPS[activityType];
@@ -388,9 +401,17 @@ function CapMeter({
       : 'text-emerald-700 dark:text-emerald-300';
 
   return (
-    <div className="space-y-1">
+    <div className={`space-y-1 transition-opacity ${stale ? 'opacity-50' : ''}`}>
       <div className="flex justify-between text-xs">
-        <span className="text-gray-500 dark:text-slate-400">Today&apos;s cap</span>
+        <span className="text-gray-500 dark:text-slate-400 flex items-center gap-1">
+          Today&apos;s cap
+          {stale && (
+            <span
+              className="inline-block w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin"
+              aria-hidden="true"
+            />
+          )}
+        </span>
         <span className={textColor}>
           {exhausted ? 'Cap reached — streaks & PRs only' : `${remaining} ${unit} remaining`}
         </span>
