@@ -2,9 +2,15 @@
 
 import { motion } from 'framer-motion';
 import { CombatEffects } from './CombatEffects';
+import { EntityArt, type EntityCategory } from '@/components/art/EntityArt';
 import type { DamageBurst } from '@/hooks/useCombatBursts';
 
 interface AvatarProps {
+  /** Entity art category — 'class' for the player, 'monster' for foes. */
+  artCategory: EntityCategory;
+  /** Stable id used by the art lookup. */
+  artId: string;
+  /** Emoji fallback if no custom silhouette is registered for `artId`. */
   emoji: string;
   name: string;
   hp: number;
@@ -12,8 +18,6 @@ interface AvatarProps {
   defense: number;
   /** Tailwind color stop used for the HP bar fill. */
   hpColor: string;
-  /** Color used for the portrait ring + glow accents. */
-  accentColor: string;
   /** Last damage taken — triggers a brief flash when it ticks up. */
   damageKey?: string;
   /** Side hint used so the portrait can flip its facing direction. */
@@ -28,13 +32,14 @@ interface AvatarProps {
  * stacked HP bars that read like an admin form.
  */
 function Avatar({
+  artCategory,
+  artId,
   emoji,
   name,
   hp,
   maxHp,
   defense,
   hpColor,
-  accentColor,
   damageKey,
   side,
   sub,
@@ -42,7 +47,7 @@ function Avatar({
   const pct = Math.max(0, Math.min(100, (hp / maxHp) * 100));
   const fainted = hp <= 0;
   const low = hp / maxHp <= 0.3 && !fainted;
-  // Combatants face each other — left side neutral, right side mirrored.
+  // Monsters face the player — mirror the right-side portrait.
   const facingTransform = side === 'right' ? 'scale-x-[-1]' : '';
 
   return (
@@ -58,18 +63,20 @@ function Avatar({
             : {}
         }
         transition={{ duration: 0.4 }}
-        className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl flex items-center justify-center text-5xl sm:text-6xl shadow-lg ${accentColor} ${
+        className={`relative w-24 h-24 sm:w-28 sm:h-28 shadow-lg rounded-2xl ${
           fainted ? 'grayscale opacity-50' : ''
         } ${low ? 'animate-pulse' : ''}`}
       >
-        {/* Inner shadow + sheen to give the portrait depth */}
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-2xl shadow-[inset_0_2px_8px_rgba(0,0,0,0.15)]"
-        />
-        <span className={facingTransform} aria-hidden="true">
-          {emoji}
-        </span>
+        <div className={`${facingTransform} w-full h-full`}>
+          <EntityArt
+            category={artCategory}
+            id={artId}
+            size="lg"
+            fallbackEmoji={emoji}
+            ariaLabel={name}
+            className="w-full h-full"
+          />
+        </div>
       </motion.div>
       <p className="text-xs font-semibold text-gray-700 dark:text-slate-200 truncate max-w-full">
         {name}
@@ -101,6 +108,9 @@ interface CombatArenaProps {
   /** Player display props */
   player: {
     name: string;
+    /** Class id — drives custom-art lookup (`warrior` / `wizard` / `rogue`). */
+    classId: string;
+    /** Emoji fallback if no class silhouette is registered yet. */
     emoji: string;
     hp: number;
     maxHp: number;
@@ -109,6 +119,9 @@ interface CombatArenaProps {
   /** Monster display props */
   monster: {
     name: string;
+    /** Monster id — drives custom-art lookup. */
+    id: string;
+    /** Emoji fallback if no monster silhouette is registered yet. */
     emoji: string;
     hp: number;
     maxHp: number;
@@ -144,13 +157,14 @@ export function CombatArena({
       <div className="flex items-center justify-between gap-3">
         <Avatar
           side="left"
+          artCategory="class"
+          artId={player.classId}
           emoji={player.emoji}
           name={`You · ${player.name}`}
           hp={player.hp}
           maxHp={player.maxHp}
           defense={player.defense}
           hpColor="bg-gradient-to-r from-rose-400 to-rose-500"
-          accentColor="bg-gradient-to-br from-indigo-100 to-violet-200 dark:from-indigo-900/60 dark:to-violet-900/60 ring-2 ring-indigo-300 dark:ring-indigo-700 shadow-indigo-500/30"
           damageKey={shakeKey ? `${shakeKey}-player` : undefined}
         />
 
@@ -169,13 +183,14 @@ export function CombatArena({
 
         <Avatar
           side="right"
+          artCategory="monster"
+          artId={monster.id}
           emoji={monster.emoji}
           name={monster.name}
           hp={monster.hp}
           maxHp={monster.maxHp}
           defense={monster.defense}
           hpColor="bg-gradient-to-r from-slate-500 to-slate-600"
-          accentColor="bg-gradient-to-br from-rose-100 to-slate-200 dark:from-rose-900/40 dark:to-slate-800 ring-2 ring-rose-300 dark:ring-rose-800 shadow-rose-500/30"
           damageKey={shakeKey ? `${shakeKey}-monster` : undefined}
           sub={monsterSub}
         />

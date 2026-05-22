@@ -4,36 +4,58 @@
       <stop offset="0%" stop-color="#4f46e5" />
       <stop offset="100%" stop-color="#7c3aed" />
     </linearGradient>
+    <radialGradient id="sheen" cx="0.35" cy="0.25" r="0.7">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.30)" />
+      <stop offset="55%" stop-color="rgba(255,255,255,0)" />
+    </radialGradient>
     <linearGradient id="blade" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#fef3c7" />
       <stop offset="100%" stop-color="#fbbf24" />
     </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.45" />
-      <stop offset="60%" stop-color="#fbbf24" stop-opacity="0" />
+    <radialGradient id="bladeGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="rgba(251, 191, 36, 0.55)" />
+      <stop offset="65%" stop-color="rgba(251, 191, 36, 0)" />
     </radialGradient>
   </defs>
 
-  <!-- Rounded-square background -->
+  <!-- App icon background — rounded square with brand gradient + sheen -->
   <rect width="512" height="512" rx="96" fill="url(#bg)" />
-  <rect width="512" height="512" rx="96" fill="url(#glow)" />
+  <rect width="512" height="512" rx="96" fill="url(#sheen)" />
 
-  <!-- Sword: 45-degree, hilt at lower-left -->
-  <g transform="translate(256 256) rotate(-45)">
-    <!-- Blade -->
-    <rect x="-22" y="-180" width="44" height="240" rx="6" fill="url(#blade)" />
-    <rect x="-22" y="-180" width="44" height="240" rx="6" fill="none" stroke="#92400e" stroke-width="3" stroke-opacity="0.4" />
-    <!-- Tip highlight -->
-    <polygon points="-22,-180 22,-180 0,-212" fill="url(#blade)" stroke="#92400e" stroke-width="3" stroke-opacity="0.4" />
-    <!-- Cross-guard -->
-    <rect x="-86" y="60" width="172" height="22" rx="6" fill="#475569" />
-    <rect x="-86" y="60" width="172" height="22" rx="6" fill="none" stroke="#1e293b" stroke-width="2" />
-    <!-- Grip -->
-    <rect x="-14" y="82" width="28" height="64" rx="6" fill="#92400e" />
-    <line x1="-14" y1="98" x2="14" y2="98" stroke="#451a03" stroke-width="2" />
-    <line x1="-14" y1="114" x2="14" y2="114" stroke="#451a03" stroke-width="2" />
-    <line x1="-14" y1="130" x2="14" y2="130" stroke="#451a03" stroke-width="2" />
-    <!-- Pommel -->
-    <circle cx="0" cy="156" r="16" fill="#facc15" stroke="#92400e" stroke-width="3" />
+  <!-- Heraldic shield centered -->
+  <g transform="translate(256 268)">
+    <!-- Shield silhouette -->
+    <path
+      d="M 0 -150 L 110 -130 C 110 -10, 90 100, 0 170 C -90 100, -110 -10, -110 -130 Z"
+      fill="rgba(0,0,0,0.18)"
+    />
+    <path
+      d="M 0 -160 L 116 -134 C 116 -8, 92 100, 0 170 C -92 100, -116 -8, -116 -134 Z"
+      fill="none"
+      stroke="#fbbf24"
+      stroke-width="6"
+    />
+    <!-- Inner panel -->
+    <path
+      d="M 0 -140 L 100 -120 C 100 -10, 80 90, 0 152 C -80 90, -100 -10, -100 -120 Z"
+      fill="rgba(255,255,255,0.10)"
+    />
+    <!-- Blade glow -->
+    <circle cx="0" cy="0" r="120" fill="url(#bladeGlow)" />
+    <!-- Sword pointing up, centered on the shield -->
+    <g>
+      <!-- Pommel + grip + crossguard -->
+      <circle cx="0" cy="98" r="16" fill="#facc15" stroke="#78350f" stroke-width="4" />
+      <rect x="-12" y="34" width="24" height="64" fill="#78350f" />
+      <line x1="-12" y1="50" x2="12" y2="50" stroke="#451a03" stroke-width="3" />
+      <line x1="-12" y1="66" x2="12" y2="66" stroke="#451a03" stroke-width="3" />
+      <line x1="-12" y1="82" x2="12" y2="82" stroke="#451a03" stroke-width="3" />
+      <rect x="-72" y="14" width="144" height="20" rx="4" fill="#475569" />
+      <rect x="-72" y="14" width="144" height="20" rx="4" fill="none" stroke="#1e293b" stroke-width="2" />
+      <!-- Blade pointing up -->
+      <path d="M -16 14 L -16 -118 L 0 -150 L 16 -118 L 16 14 Z" fill="url(#blade)" />
+      <path d="M -16 14 L -16 -118 L 0 -150 L 16 -118 L 16 14 Z" fill="none" stroke="#78350f" stroke-width="3" stroke-opacity="0.5" />
+      <line x1="0" y1="-118" x2="0" y2="14" stroke="rgba(255,255,255,0.55)" stroke-width="2" />
+    </g>
   </g>
 </svg>

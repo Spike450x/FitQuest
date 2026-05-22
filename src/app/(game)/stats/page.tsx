@@ -11,6 +11,7 @@ import { ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { ACTIVITY_ICONS } from '@/lib/activityIcons';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Card } from '@/components/ui/Card';
+import { EntityArt } from '@/components/art/EntityArt';
 import { useTheme } from '@/hooks/useTheme';
 import { getStreakTier, STREAK_TIERS } from '@/lib/gameLogic/streaks';
 import type { ActivityLog, ActiveQuest, InventoryItem, ActivityType, Character } from '@/types';
@@ -409,7 +410,15 @@ function PersonalRecordsPanel({ character }: { character: Character }) {
                     : 'bg-gray-50 dark:bg-slate-900 border-gray-100 dark:border-slate-800 opacity-50'
                 }`}
               >
-                <p className="text-2xl mb-1">{ACTIVITY_ICONS[type]}</p>
+                <div className="flex justify-center mb-1">
+                  <EntityArt
+                    category="activity"
+                    id={type}
+                    size="sm"
+                    fallbackEmoji={ACTIVITY_ICONS[type]}
+                    ariaLabel={def.label}
+                  />
+                </div>
                 <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                   {def.label}
                 </p>

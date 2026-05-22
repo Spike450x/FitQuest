@@ -1,6 +1,7 @@
 'use client';
 
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
+import { EntityArt } from '@/components/art/EntityArt';
 import type { CharacterClass } from '@/types';
 
 interface ClassSelectorProps {
@@ -31,7 +32,15 @@ export function ClassSelector({ selected, onSelect }: ClassSelectorProps) {
               }
             `}
           >
-            <div className="text-2xl mb-2">{def.emoji}</div>
+            <div className="mb-2">
+              <EntityArt
+                category="class"
+                id={cls}
+                size="md"
+                fallbackEmoji={def.emoji}
+                ariaLabel={def.label}
+              />
+            </div>
             <div className="font-bold text-gray-900 dark:text-slate-100 mb-1">{def.label}</div>
             <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
               {def.description}

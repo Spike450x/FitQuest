@@ -88,6 +88,8 @@ import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Card } from '@/components/ui/Card';
 import { CombatEffects } from '@/components/combat/CombatEffects';
 import { CombatArena } from '@/components/combat/CombatArena';
+import { EntityArt } from '@/components/art/EntityArt';
+import { rarityTint } from '@/lib/entityArt';
 import { fireConfetti } from '@/lib/confetti';
 import { playSound } from '@/hooks/useSound';
 import { useCombatBursts } from '@/hooks/useCombatBursts';
@@ -1163,6 +1165,7 @@ export default function CombatPage() {
               onBurstExpired={expire}
               player={{
                 name: character.name,
+                classId: character.class,
                 emoji: playerEmoji,
                 hp: playerHp,
                 maxHp,
@@ -1170,6 +1173,7 @@ export default function CombatPage() {
               }}
               monster={{
                 name: monster.name,
+                id: monster.id,
                 emoji,
                 hp: monsterHp,
                 maxHp: monster.hp,
@@ -3162,9 +3166,15 @@ function MonsterCard({
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-3xl transition-transform group-hover:scale-110 group-hover:-rotate-3">
-            {emoji}
-          </span>
+          <div className="transition-transform group-hover:scale-110 group-hover:-rotate-3">
+            <EntityArt
+              category="monster"
+              id={monster.id}
+              size="md"
+              fallbackEmoji={emoji}
+              ariaLabel={monster.name}
+            />
+          </div>
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-slate-100">{monster.name}</h3>
             <p className="text-xs text-gray-400 dark:text-slate-500">
@@ -3246,8 +3256,15 @@ function BattleResultsModal({
         />
         <div className="relative space-y-4">
           {/* Header */}
-          <div className="text-center space-y-1">
-            <p className="text-5xl drop-shadow-md">⚔️</p>
+          <div className="text-center space-y-2 flex flex-col items-center">
+            <EntityArt
+              category="monster"
+              id={pending.monster.id}
+              size="lg"
+              fallbackEmoji={emoji}
+              ariaLabel={`Defeated ${pending.monster.name}`}
+              className="drop-shadow-md"
+            />
             <p className="font-display text-4xl font-bold text-indigo-700 tracking-wider uppercase drop-shadow-sm">
               Victory!
             </p>

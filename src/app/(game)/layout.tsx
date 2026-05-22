@@ -21,6 +21,7 @@ import { XPBar } from '@/components/ui/XPBar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { InstallBanner } from '@/components/ui/InstallBanner';
 import { RouteBackground } from '@/components/ui/RouteBackground';
+import { BrandMark } from '@/components/ui/BrandMark';
 import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
 import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
 
@@ -64,9 +65,10 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         <div className="h-full px-4 flex items-center justify-between gap-4">
           <Link
             href="/dashboard"
-            className="font-display text-indigo-600 dark:text-indigo-300 font-bold text-xl tracking-tight shrink-0 hover:text-indigo-700 dark:hover:text-indigo-200 transition-colors"
+            className="text-indigo-600 dark:text-indigo-300 shrink-0 hover:text-indigo-700 dark:hover:text-indigo-200 transition-colors"
+            aria-label="FitQuest home"
           >
-            FitQuest
+            <BrandMark size={28} />
           </Link>
 
           {/* XP bar */}

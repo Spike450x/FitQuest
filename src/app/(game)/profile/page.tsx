@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { SoundToggle } from '@/components/ui/SoundToggle';
 import { InstallAppButton } from '@/components/ui/InstallAppButton';
+import { EntityArt } from '@/components/art/EntityArt';
 import type { Character } from '@/types';
 
 export default function ProfilePage() {
@@ -104,28 +105,45 @@ function AchievementGallery({ character }: { character: Character }) {
           return (
             <div
               key={def.id}
-              className={`rounded-xl p-3 border ${
+              className={`rounded-xl p-3 border flex gap-3 items-start ${
                 isUnlocked
                   ? 'bg-indigo-50 border-indigo-200'
                   : 'bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-slate-700 opacity-50'
               }`}
             >
-              <div className="text-2xl mb-1">{isUnlocked ? def.emoji : '🔒'}</div>
-              <div
-                className={`text-xs font-bold leading-tight ${isUnlocked ? 'text-indigo-900' : 'text-gray-400 dark:text-slate-500'}`}
-              >
-                {def.name}
-              </div>
-              <div className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 leading-snug">
-                {def.description}
-              </div>
-              {isUnlocked && (
-                <div className="mt-2">
-                  <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-medium">
-                    +{def.goldReward} gold earned
-                  </span>
+              {isUnlocked ? (
+                <EntityArt
+                  category="achievement"
+                  id={def.id}
+                  size="md"
+                  fallbackEmoji={def.emoji}
+                  ariaLabel={def.name}
+                />
+              ) : (
+                <div
+                  className="text-2xl mb-1 w-14 h-14 flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  🔒
                 </div>
               )}
+              <div className="flex-1 min-w-0">
+                <div
+                  className={`text-xs font-bold leading-tight ${isUnlocked ? 'text-indigo-900' : 'text-gray-400 dark:text-slate-500'}`}
+                >
+                  {def.name}
+                </div>
+                <div className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 leading-snug">
+                  {def.description}
+                </div>
+                {isUnlocked && (
+                  <div className="mt-2">
+                    <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-medium">
+                      +{def.goldReward} gold earned
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
