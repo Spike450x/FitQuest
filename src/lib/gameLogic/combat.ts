@@ -92,6 +92,46 @@ export function monsterXpScaling(playerLevel: number, monsterLevel: number): num
 }
 
 /**
+ * Diminishing-returns multiplier on combat XP based on how many battles the
+ * player has already won today (UTC day). Discourages grinding loops without
+ * hard-capping play — players who genuinely want to fight all day still get
+ * something, just not at full rate.
+ *
+ * `winsToday` is the count BEFORE this win — so it is 0 on the very first
+ * kill of the day.
+ *
+ *   wins 0–9   (1st through 10th win) → 1.0×
+ *   wins 10–19 (11th through 20th)   → 0.5×
+ *   wins 20–29 (21st through 30th)   → 0.25×
+ *   wins 30+   (31st and beyond)     → 0.1×
+ *
+ * Mirrored server-side in `claimCombatVictory` Cloud Function — see
+ * `functions/src/gameLogic/combatXp.ts` for the parity copy that enforces
+ * the same curve at award time. A parity test guards the two copies.
+ */
+export function combatXpDailyMultiplier(winsToday: number): number {
+  if (winsToday < 10) return 1.0;
+  if (winsToday < 20) return 0.5;
+  if (winsToday < 30) return 0.25;
+  return 0.1;
+}
+
+/**
+ * The number of wins before the next diminishing-returns tier kicks in.
+ * Used for "N wins until 0.5× XP" UI badges on the combat page.
+ * Returns `null` past the final tier (player is already at 0.1×).
+ */
+export function combatWinsUntilNextPenalty(winsToday: number): {
+  remaining: number;
+  nextMultiplier: number;
+} | null {
+  if (winsToday < 10) return { remaining: 10 - winsToday, nextMultiplier: 0.5 };
+  if (winsToday < 20) return { remaining: 20 - winsToday, nextMultiplier: 0.25 };
+  if (winsToday < 30) return { remaining: 30 - winsToday, nextMultiplier: 0.1 };
+  return null;
+}
+
+/**
  * Total HP available to the player.
  * Includes health and stamina bonuses from all equipped gear.
  */

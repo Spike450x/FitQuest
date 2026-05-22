@@ -5,6 +5,8 @@ import type {
   LogActivityResult,
   ClaimDungeonRunInput,
   ClaimDungeonRunResult,
+  ClaimCombatVictoryInput,
+  ClaimCombatVictoryResult,
 } from '@/types/cloudFunctions';
 
 export const logActivityFn = httpsCallable<LogActivityInput, LogActivityResult>(
@@ -16,6 +18,28 @@ const claimDungeonRunFn = httpsCallable<ClaimDungeonRunInput, ClaimDungeonRunRes
   functions,
   'claimDungeonRun',
 );
+
+const claimCombatVictoryFn = httpsCallable<ClaimCombatVictoryInput, ClaimCombatVictoryResult>(
+  functions,
+  'claimCombatVictory',
+);
+
+/**
+ * Calls the claimCombatVictory Cloud Function to apply the daily diminishing-
+ * returns multiplier to a combat win and atomically award XP + gold +
+ * persist the combat log. The CF is the source of truth for `winsToday`,
+ * since clients can't be trusted to count their own wins.
+ *
+ * Returns the final XP that was actually awarded (may be less than xpReward
+ * if the player has farmed more than 10 wins today). Callers should display
+ * the multiplier when < 1.0 so the player understands the deduction.
+ */
+export async function claimCombatVictoryCF(
+  input: ClaimCombatVictoryInput,
+): Promise<ClaimCombatVictoryResult> {
+  const result = await claimCombatVictoryFn(input);
+  return result.data;
+}
 
 /**
  * Calls the claimDungeonRun Cloud Function to atomically stamp the run as

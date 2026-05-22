@@ -213,11 +213,17 @@ interface CombatLog {
   uid: string;
   monsterId: string; // non-empty — references MONSTER_CATALOG
   monsterName: string;
-  xp: number; // 0–10,000
-  gold: number; // 0–10,000
+  xp: number; // 0–10,000 — final XP after the daily diminishing-returns multiplier
+  gold: number; // 0–10,000 — never diminished
   loggedAt: number; // unix ms — server-window-validated
+  multiplier?: number; // 0.1 / 0.25 / 0.5 / 1.0 — recorded by claimCombatVictory CF (P0-3)
+  winsTodayAfter?: number; // running count of wins for this UTC day, including this one
 }
 ```
+
+`multiplier` and `winsTodayAfter` are absent on combat logs written before the `claimCombatVictory` Cloud Function shipped (P0-3, 2026-05-22). Treat them as `1.0` / unknown on legacy reads.
+
+**Document ID convention:** under the `claimCombatVictory` CF the document ID is `${uid}_${idempotencyKey}` (client-generated UUID). This makes retries idempotent — the CF short-circuits on an existing doc rather than double-awarding XP. Legacy combat logs (pre-P0-3) used auto-generated IDs; both still satisfy the `uid == request.auth.uid` rule.
 
 ### Validation — create
 
@@ -233,6 +239,19 @@ interface CombatLog {
 ### Why the 10,000 cap
 
 The highest single-combat XP reward in the game (Ancient Dragon, level 100 gear) is around 3,000 XP. The 10,000 ceiling is a generous anti-cheat wall that cannot be hit through normal play.
+
+### The `claimCombatVictory` Cloud Function
+
+Combat-win XP and gold are awarded server-side via the `claimCombatVictory` callable Cloud Function in `functions/src/claimCombatVictory.ts` (shipped 2026-05-22, P0-3). The CF:
+
+1. Aggregate-queries `combatLogs` for the player's wins today (UTC day, uses the `uid ASC, loggedAt DESC` index).
+2. Computes `combatXpDailyMultiplier(winsTodayBefore)` — the tiered diminishing-returns curve (`1.0 → 0.5 → 0.25 → 0.1` at thresholds 10 / 20 / 30).
+3. Inside a Firestore transaction: reads the character doc, applies the level-scaled XP via `applyXp`, handles level-up bookkeeping (stat auto-grants, resource refill, `pendingStatPoints` increment), writes the character update.
+4. After the transaction: writes the combat log doc with the **final** XP (post-multiplier), the multiplier, and `winsTodayAfter`.
+
+Gold is **not** diminished — only XP. Combat farming for gold remains viable; XP grinding the same monster does not.
+
+The CF runs with `minInstances: 1` to eliminate cold-start latency.
 
 ---
 
@@ -302,13 +321,13 @@ firebase deploy --only firestore:indexes
 
 ### Active composite indexes
 
-| Collection     | Fields (in order)                         | Purpose                                                                                                      |
-| -------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `activityLogs` | `uid ASC`, `type ASC`, `loggedAt ASC`     | 3-field query in `logActivity` Cloud Function — aggregate today's logged amount for daily-cap enforcement.   |
-| `activityLogs` | `uid ASC`, `loggedAt DESC`                | Stats page — fetch the player's most recent activity logs for the XP-over-time chart and activity breakdown. |
-| `combatLogs`   | `uid ASC`, `loggedAt DESC`                | Stats page — fetch the player's most recent combat logs for battles-won count and combat XP stacked bars.    |
-| `dungeonRuns`  | `uid ASC`, `status ASC`, `startedAt DESC` | Dungeon store — query for the player's active run on lobby load.                                             |
-| `dungeonRuns`  | `uid ASC`, `startedAt DESC`               | Dungeon lobby — fetch recent run history (all statuses) ordered by start date.                               |
+| Collection     | Fields (in order)                         | Purpose                                                                                                                                                                                                     |
+| -------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `activityLogs` | `uid ASC`, `type ASC`, `loggedAt ASC`     | 3-field query in `logActivity` Cloud Function — aggregate today's logged amount for daily-cap enforcement.                                                                                                  |
+| `activityLogs` | `uid ASC`, `loggedAt DESC`                | Stats page — fetch the player's most recent activity logs for the XP-over-time chart and activity breakdown.                                                                                                |
+| `combatLogs`   | `uid ASC`, `loggedAt DESC`                | Stats page — fetch the player's most recent combat logs for battles-won count and combat XP stacked bars. Also used by the `claimCombatVictory` Cloud Function for the today's-wins aggregate query (P0-3). |
+| `dungeonRuns`  | `uid ASC`, `status ASC`, `startedAt DESC` | Dungeon store — query for the player's active run on lobby load.                                                                                                                                            |
+| `dungeonRuns`  | `uid ASC`, `startedAt DESC`               | Dungeon lobby — fetch recent run history (all statuses) ordered by start date.                                                                                                                              |
 
 The `questStore` deliberately avoids composite queries for `activeQuests` — it filters by `uid` only and applies the `expiresAt` check client-side. No index needed there.
 

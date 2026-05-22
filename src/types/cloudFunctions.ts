@@ -71,3 +71,31 @@ export interface LogActivityResult {
     amount: number;
   };
 }
+
+// ─── claimCombatVictory ───────────────────────────────────────────────────────
+
+export interface ClaimCombatVictoryInput {
+  /** XP the client wants to award (already streak-boosted + level-scaled). */
+  xpReward: number;
+  /** Gold to award. Not capped — only XP is diminished. */
+  goldReward: number;
+  /** Monster id, persisted on the combat log for analytics + stats page. */
+  monsterId: string;
+  /** Monster display name, persisted on the combat log. */
+  monsterName: string;
+  /** Client UUID. The combat log doc id is `${uid}_${idempotencyKey}` so retries are safe. */
+  idempotencyKey: string;
+}
+
+export interface ClaimCombatVictoryResult {
+  /** XP actually awarded after the daily diminishing-returns multiplier. */
+  finalXp: number;
+  /** Multiplier applied (1.0 if no cap, down to 0.1 at the 31+ floor). */
+  multiplier: number;
+  /** Win count BEFORE this victory (today, UTC day). */
+  winsTodayBefore: number;
+  /** Win count INCLUDING this victory. */
+  winsTodayAfter: number;
+  /** Whether the XP award caused a level-up. */
+  leveledUp: boolean;
+}

@@ -86,11 +86,23 @@ If you have a test account, log in and walk through:
 1. `/dashboard` → character loads, no console errors
 2. `/activities` → log a small activity → success toast → XP bar updates
 3. `/quests` → claim any completed quest if available
-4. `/combat` → run one round → spell cast → victory modal renders correctly
+4. `/combat` → run one round → spell cast → victory modal renders correctly. Daily combat XP badge sits next to "Today's Encounters" and updates after each claim.
 5. `/character` → if level ≥ 10, subclass selection works
 6. `/shop` → buy an item, equip it, stats update
 
 Watch the dev console specifically for: Next.js async-API deprecation warnings, Firebase SDK warnings, and React hydration mismatches.
+
+### Optional — diminishing-returns combat XP cap (P0-3)
+
+Only needed when changes touch `claimCombatVictory`, the combat page victory flow, or the `combatLogs` collection.
+
+1. `/combat` → defeat a low-level monster repeatedly (Giant Rat / Goblin Scout) until you reach 10 wins on the same UTC day. Use a low-level test character to keep each fight short.
+2. After **win #10**, the victory modal awards XP, and a toast appears: "Daily combat XP at 50% — win #10 today". The badge above the Today's Encounters block turns amber and reads "Daily combat XP: 50%".
+3. Open Firebase MCP / Firestore console and inspect the latest `combatLogs/{uid}_*` doc: `multiplier == 0.5`, `winsTodayAfter == 10`, and `xp == round(xpReward × 0.5)`.
+4. (Optional, for tier verification) Run additional wins until #20 (multiplier 0.25) and #30 (multiplier 0.1). The badge tint moves emerald → amber → rose at each breakpoint.
+5. Verify gold is **not** capped — the gold delta on the character doc still increases by the full `goldReward` after every claim, regardless of the multiplier.
+
+If the multiplier never applies (or the badge stays on 100% past win 10), check that the CF deployed cleanly (`firebase functions:log`) and that the `combatLogs (uid ASC, loggedAt DESC)` index finished building.
 
 ---
 

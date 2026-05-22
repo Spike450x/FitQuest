@@ -11,6 +11,8 @@ import {
   rollRunAway,
   resolveRoundOutcome,
   monsterXpScaling,
+  combatXpDailyMultiplier,
+  combatWinsUntilNextPenalty,
 } from '../combat';
 import { COMBAT } from '../constants';
 import type { Character, EquippedGear, MonsterDef } from '@/types';
@@ -416,5 +418,66 @@ describe('monsterXpScaling', () => {
     expect(monsterXpScaling(25, 10)).toBe(2.0);
     expect(monsterXpScaling(50, 8)).toBe(2.0);
     expect(monsterXpScaling(100, 9)).toBe(2.0);
+  });
+});
+
+// ── combatXpDailyMultiplier ──────────────────────────────────────────────────
+
+describe('combatXpDailyMultiplier', () => {
+  it('returns 1.0× for the first 10 wins of the day', () => {
+    expect(combatXpDailyMultiplier(0)).toBe(1.0);
+    expect(combatXpDailyMultiplier(5)).toBe(1.0);
+    expect(combatXpDailyMultiplier(9)).toBe(1.0);
+  });
+
+  it('returns 0.5× for wins 11–20', () => {
+    expect(combatXpDailyMultiplier(10)).toBe(0.5);
+    expect(combatXpDailyMultiplier(15)).toBe(0.5);
+    expect(combatXpDailyMultiplier(19)).toBe(0.5);
+  });
+
+  it('returns 0.25× for wins 21–30', () => {
+    expect(combatXpDailyMultiplier(20)).toBe(0.25);
+    expect(combatXpDailyMultiplier(25)).toBe(0.25);
+    expect(combatXpDailyMultiplier(29)).toBe(0.25);
+  });
+
+  it('floors at 0.1× from win 31 onward', () => {
+    expect(combatXpDailyMultiplier(30)).toBe(0.1);
+    expect(combatXpDailyMultiplier(50)).toBe(0.1);
+    expect(combatXpDailyMultiplier(1000)).toBe(0.1);
+  });
+
+  it('is monotonically non-increasing', () => {
+    let prev = Infinity;
+    for (let n = 0; n <= 60; n += 1) {
+      const m = combatXpDailyMultiplier(n);
+      expect(m).toBeLessThanOrEqual(prev);
+      prev = m;
+    }
+  });
+});
+
+// ── combatWinsUntilNextPenalty ───────────────────────────────────────────────
+
+describe('combatWinsUntilNextPenalty', () => {
+  it('reports remaining wins to the 0.5× tier from a fresh day', () => {
+    expect(combatWinsUntilNextPenalty(0)).toEqual({ remaining: 10, nextMultiplier: 0.5 });
+    expect(combatWinsUntilNextPenalty(7)).toEqual({ remaining: 3, nextMultiplier: 0.5 });
+  });
+
+  it('reports remaining wins to the 0.25× tier inside the 0.5× band', () => {
+    expect(combatWinsUntilNextPenalty(10)).toEqual({ remaining: 10, nextMultiplier: 0.25 });
+    expect(combatWinsUntilNextPenalty(18)).toEqual({ remaining: 2, nextMultiplier: 0.25 });
+  });
+
+  it('reports remaining wins to the 0.1× floor inside the 0.25× band', () => {
+    expect(combatWinsUntilNextPenalty(20)).toEqual({ remaining: 10, nextMultiplier: 0.1 });
+    expect(combatWinsUntilNextPenalty(29)).toEqual({ remaining: 1, nextMultiplier: 0.1 });
+  });
+
+  it('returns null past the final tier', () => {
+    expect(combatWinsUntilNextPenalty(30)).toBeNull();
+    expect(combatWinsUntilNextPenalty(100)).toBeNull();
   });
 });
