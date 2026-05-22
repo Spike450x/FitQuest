@@ -116,6 +116,7 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
   const activityLogs = useStatsStore((s) => s.activityLogs);
   const combatLogs = useStatsStore((s) => s.combatLogs);
   const statsLoading = useStatsStore((s) => s.loading);
+  const statsRetrying = useStatsStore((s) => s.retrying);
   const statsError = useStatsStore((s) => s.error);
 
   // Quests and inventory are already loaded by other pages; read from their
@@ -292,6 +293,16 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
           </button>
         ))}
       </div>
+
+      {statsRetrying && (
+        <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+          <span
+            className="animate-spin inline-block w-3 h-3 border border-current border-t-transparent rounded-full"
+            aria-hidden="true"
+          />
+          Retrying…
+        </div>
+      )}
 
       {error || statsError ? (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
