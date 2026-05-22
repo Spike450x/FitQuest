@@ -14,11 +14,3 @@ This is separate from the **feature backlog** in CLAUDE.md, which covers game co
 | Firestore offline write UX  | `OfflineBanner` signals read-offline state but doesn't mention the pending-write queue. A "changes will sync when you reconnect" message would complete the offline story.                         | Before any mobile-first push                        |
 | IndexedDB quota on mobile   | Browser can evict the Firestore cache below ~50 MB on low-storage devices. Currently single-user; harmless until mobile audience grows.                                                            | User base grows to mobile-first                     |
 | `resource-exhausted` jitter | Retries use fixed delays (`[1_000, 3_000]`). Exponential back-off with jitter would reduce thundering-herd under concurrent load.                                                                  | Concurrent user count makes fixed delays observable |
-
----
-
-## Polish / nice-to-have
-
-| Item               | Detail                                                      |
-| ------------------ | ----------------------------------------------------------- |
-| Offline write copy | See Firestore offline write UX in the Deferred table above. |
