@@ -26,6 +26,7 @@ import {
 import { claimDungeonRunCF } from '@/lib/functions';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
 import { toastAchievement } from '@/components/ui/Toaster';
+import { fireConfetti } from '@/lib/confetti';
 import type { AchievementId } from '@/types';
 import type { ClaimDungeonRunResult } from '@/types/cloudFunctions';
 import {
@@ -573,6 +574,8 @@ export default function DungeonRunPage() {
       const result = await claimDungeonRunCF(activeRun.id, legendaryUsed, 'completed');
       await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
       await completeRun(character.uid, legendaryUsed);
+
+      fireConfetti(legendaryUsed ? 'legendary' : 'celebration');
 
       // Achievement badges + gold were awarded atomically by the CF.
       // fetchCharacter above already reflects the updated state; just fire toasts.

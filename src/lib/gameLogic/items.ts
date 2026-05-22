@@ -41,10 +41,22 @@ export const RARITY_TEXT: Record<ItemRarity, string> = {
  */
 export const RARITY_CARD: Record<ItemRarity, { header: string; border: string; glow: string }> = {
   common: { header: 'bg-gray-500', border: 'border-gray-300', glow: '' },
-  uncommon: { header: 'bg-green-600', border: 'border-green-300', glow: '' },
-  rare: { header: 'bg-blue-600', border: 'border-blue-300', glow: 'shadow-blue-100' },
-  epic: { header: 'bg-purple-600', border: 'border-purple-300', glow: 'shadow-purple-100' },
-  legendary: { header: 'bg-orange-500', border: 'border-orange-300', glow: 'shadow-orange-100' },
+  uncommon: {
+    header: 'bg-green-600',
+    border: 'border-green-300',
+    glow: 'shadow-md shadow-green-500/20',
+  },
+  rare: { header: 'bg-blue-600', border: 'border-blue-300', glow: 'shadow-lg shadow-blue-500/30' },
+  epic: {
+    header: 'bg-purple-600',
+    border: 'border-purple-300',
+    glow: 'shadow-lg shadow-purple-500/40',
+  },
+  legendary: {
+    header: 'bg-orange-500',
+    border: 'border-orange-400',
+    glow: 'shadow-xl shadow-orange-500/50',
+  },
 };
 
 // ── Item catalog ─────────────────────────────────────────────────────────────

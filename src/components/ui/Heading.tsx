@@ -5,9 +5,9 @@ import type { ReactNode } from 'react';
 type Level = 1 | 2 | 3 | 4;
 
 const SIZE_CLASSES: Record<Level, string> = {
-  1: 'text-2xl font-bold tracking-tight',
-  2: 'text-xl font-bold',
-  3: 'text-base font-semibold',
+  1: 'font-display text-3xl font-bold tracking-tight text-gray-900',
+  2: 'font-display text-xl font-semibold tracking-tight text-gray-900',
+  3: 'text-base font-semibold text-gray-900',
   4: 'text-xs font-semibold uppercase tracking-wider text-gray-500',
 };
 

@@ -5,7 +5,9 @@ export default function ActivitiesPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Log Activity</h1>
+        <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">
+          Log Activity
+        </h1>
         <p className="text-sm text-gray-500 mt-1">
           Track workouts, steps, sleep, water, and nutrition to build mastery and restore resources.
         </p>

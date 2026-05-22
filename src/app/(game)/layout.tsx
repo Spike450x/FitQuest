@@ -3,6 +3,17 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import {
+  Home,
+  Swords,
+  ClipboardList,
+  Skull,
+  ScrollText,
+  Backpack,
+  Store,
+  BarChart3,
+  type LucideIcon,
+} from 'lucide-react';
 import { logOut } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
@@ -10,15 +21,17 @@ import { XPBar } from '@/components/ui/XPBar';
 import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
 import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
 
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: '🏠' },
-  { href: '/character', label: 'Character', icon: '⚔️' },
-  { href: '/activities', label: 'Activities', icon: '📋' },
-  { href: '/combat', label: 'Combat', icon: '🐉' },
-  { href: '/quests', label: 'Quests', icon: '📜' },
-  { href: '/inventory', label: 'Inventory', icon: '🎒' },
-  { href: '/shop', label: 'Shop', icon: '🏪' },
-  { href: '/stats', label: 'Stats', icon: '📊' },
+type NavItem = { href: string; label: string; Icon: LucideIcon };
+
+const NAV_ITEMS: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard', Icon: Home },
+  { href: '/character', label: 'Character', Icon: Swords },
+  { href: '/activities', label: 'Activities', Icon: ClipboardList },
+  { href: '/combat', label: 'Combat', Icon: Skull },
+  { href: '/quests', label: 'Quests', Icon: ScrollText },
+  { href: '/inventory', label: 'Inventory', Icon: Backpack },
+  { href: '/shop', label: 'Shop', Icon: Store },
+  { href: '/stats', label: 'Stats', Icon: BarChart3 },
 ];
 
 export default function GameLayout({ children }: { children: React.ReactNode }) {
@@ -42,7 +55,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         <div className="h-full px-4 flex items-center justify-between gap-4">
           <Link
             href="/dashboard"
-            className="text-indigo-600 font-bold text-lg tracking-tight shrink-0"
+            className="font-display text-indigo-600 font-bold text-xl tracking-tight shrink-0 hover:text-indigo-700 transition-colors"
           >
             FitQuest
           </Link>
@@ -145,7 +158,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
           {/* Nav links */}
           <nav className="flex-1 py-2 px-1.5 space-y-0.5" aria-label="Primary">
-            {NAV_ITEMS.map(({ href, label, icon }) => {
+            {NAV_ITEMS.map(({ href, label, Icon }) => {
               const active = pathname === href;
               return (
                 <Link
@@ -164,9 +177,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
                     }
                   `}
                 >
-                  <span className="text-base leading-none shrink-0" aria-hidden="true">
-                    {icon}
-                  </span>
+                  <Icon className="w-4 h-4 shrink-0" aria-hidden="true" strokeWidth={2} />
                   {!collapsed && <span className="truncate">{label}</span>}
                 </Link>
               );
@@ -175,32 +186,36 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         </aside>
 
         {/* ── Main content ──────────────────────────────────────────────────── */}
-        <main id="main-content" className="flex-1 min-w-0 py-6 px-4 sm:px-6">
-          {children}
+        <main id="main-content" className="flex-1 min-w-0 py-6 px-4 sm:px-6 pb-20 md:pb-6">
+          <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
 
       {/* ── Mobile bottom nav ─────────────────────────────────────────────── */}
       <nav
-        className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t border-gray-200 z-10"
+        className="fixed bottom-0 left-0 right-0 md:hidden bg-white/95 backdrop-blur border-t border-gray-200 z-10"
         aria-label="Primary"
       >
-        <ul className="flex justify-around">
-          {NAV_ITEMS.slice(0, 5).map(({ href, label, icon }) => {
+        <ul className="flex justify-around overflow-x-auto">
+          {NAV_ITEMS.map(({ href, label, Icon }) => {
             const active = pathname === href;
             return (
-              <li key={href}>
+              <li key={href} className="flex-1 min-w-0">
                 <Link
                   href={href}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex flex-col items-center py-2 px-3 text-xs transition-colors ${
-                    active ? 'text-indigo-600' : 'text-gray-400'
+                  className={`relative flex flex-col items-center gap-0.5 py-2 px-1 text-[10px] font-medium transition-all ${
+                    active ? 'text-indigo-600 scale-105' : 'text-gray-400 hover:text-gray-600'
                   }`}
                 >
-                  <span className="text-lg" aria-hidden="true">
-                    {icon}
-                  </span>
-                  {label}
+                  {active && (
+                    <span
+                      className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 bg-indigo-600 rounded-b-full"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <Icon className="w-5 h-5" aria-hidden="true" strokeWidth={active ? 2.5 : 2} />
+                  <span className="truncate w-full text-center">{label}</span>
                 </Link>
               </li>
             );

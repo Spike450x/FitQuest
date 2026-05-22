@@ -73,7 +73,7 @@ export default function StatsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Stats</h1>
+        <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">Stats</h1>
         <p className="text-sm text-gray-500 mt-1">
           {character.name} · Level {character.level} {character.class}
         </p>
