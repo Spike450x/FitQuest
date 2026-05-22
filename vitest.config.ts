@@ -7,7 +7,7 @@ export default defineConfig({
     environment: 'node',
     // Per-file environment overrides use the // @vitest-environment jsdom docblock.
     // Hook and component tests that need the DOM declare it that way.
-    setupFiles: ['src/test-setup.ts'],
+    setupFiles: [path.resolve(__dirname, 'src/test-setup.ts')],
     // Explicit include prevents the rules tests in tests/rules/ from being
     // picked up by the regular test run (those require the Firestore emulator).
     include: ['src/**/__tests__/**/*.{ts,tsx}', 'src/**/*.{test,spec}.{ts,tsx}'],
