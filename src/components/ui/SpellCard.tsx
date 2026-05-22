@@ -76,7 +76,10 @@ function buildEffectTags(effect: SpellEffect, wisdom?: number): EffectTag[] {
   }
 
   if (effect.bypassMonsterDef) {
-    tags.push({ label: '💀 Bypasses defense', color: 'bg-gray-100 text-gray-600' });
+    tags.push({
+      label: '💀 Bypasses defense',
+      color: 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300',
+    });
   }
 
   if (effect.lifestealPct) {
@@ -185,12 +188,12 @@ export const SpellCard = memo(function SpellCard({
         </div>
 
         {/* Description */}
-        <p className="text-xs text-gray-500 text-center leading-snug">
+        <p className="text-xs text-gray-500 dark:text-slate-400 text-center leading-snug">
           {def.description.replace(/ \([^)]+only\)/, '')}
         </p>
 
         {/* Divider */}
-        <div className="border-t border-gray-200" />
+        <div className="border-t border-gray-200 dark:border-slate-700" />
 
         {/* Dice requirement */}
         <div className="bg-violet-50 border border-violet-200 rounded-lg px-2 py-1.5 text-center">

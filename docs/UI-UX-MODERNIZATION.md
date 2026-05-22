@@ -89,7 +89,7 @@ The **template to copy**: `SpellCard.tsx`, `LevelUpCelebration.tsx`, combat dice
 
 ## Larger Investments (1+ week)
 
-- [ ] **Commit to dark mode globally** — highest single-impact change. Either dark-only or proper `dark:` toggle. Aligns dungeons with the rest of the app. 1–2 weeks.
+- [x] **Commit to dark mode globally** — Tailwind `darkMode: 'class'` with proper light/dark toggle persisted to localStorage + system-preference fallback + no-flash bootstrap script. Theme toggle in header (icon) + profile settings (full label). All primitives (Card, Heading, EmptyState, Skeleton, Modal, Button, XPBar, GoldDisplay, ThemeToggle) and every screen got `dark:` variants. Recharts colors in stats page are theme-aware via `useChartColors()`. Sonner respects theme. Dungeons keep their always-dark fantasy aesthetic regardless of toggle (own `bg-slate-900` background). The audit's #1 single-impact change — shipped.
 - [ ] **Full design system overhaul** — proper Tailwind tokens for color, spacing, typography, shadow, keyframes. Migrate codebase to tokens. 1–2 weeks.
 - [ ] **Illustrated route backgrounds** — combat coliseum, dungeon caves, shop wooden shelves. SVG/CSS or commissioned. 1–2 weeks.
 - [ ] **Combat scene redesign** — render player + monster as facing avatars/sprites in an arena, framer-motion or Lottie. 2+ weeks.

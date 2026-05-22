@@ -125,7 +125,9 @@ export function Modal({
             className={[
               'relative w-full',
               SIZE_MAX_W[size],
-              bare ? '' : 'bg-white rounded-2xl shadow-2xl border border-gray-200',
+              bare
+                ? ''
+                : 'bg-white rounded-2xl shadow-2xl border border-gray-200 dark:bg-slate-900 dark:border-slate-700 dark:shadow-black/50 dark:text-slate-100',
               className,
             ]
               .filter(Boolean)

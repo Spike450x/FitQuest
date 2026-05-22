@@ -15,7 +15,7 @@ export default function CharacterPage() {
 
   if (!character) {
     return (
-      <div className="text-center py-12 text-gray-400">
+      <div className="text-center py-12 text-gray-400 dark:text-slate-500">
         No character found. Something went wrong.
       </div>
     );
@@ -25,7 +25,7 @@ export default function CharacterPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">
+      <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
         Character Sheet
       </h1>
 
@@ -35,10 +35,10 @@ export default function CharacterPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Class details */}
         <Card variant="default" padding="lg">
-          <h3 className="font-bold text-gray-900 mb-1">
+          <h3 className="font-bold text-gray-900 dark:text-slate-100 mb-1">
             {classDef.emoji} {classDef.label} — Class Bonuses
           </h3>
-          <p className="text-sm text-gray-500 mb-4">{classDef.description}</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">{classDef.description}</p>
           <div className="grid grid-cols-3 gap-3">
             {(
               [
@@ -52,11 +52,11 @@ export default function CharacterPage() {
             ).map(([stat, mult]) => (
               <div
                 key={stat}
-                className="bg-gray-50 border border-gray-100 rounded-lg p-3 text-center"
+                className="bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-lg p-3 text-center"
               >
-                <p className="text-xs text-gray-400">{stat}</p>
+                <p className="text-xs text-gray-400 dark:text-slate-500">{stat}</p>
                 <p
-                  className={`font-bold mt-0.5 ${mult > 1 ? 'text-indigo-600' : mult < 1 ? 'text-red-400' : 'text-gray-600'}`}
+                  className={`font-bold mt-0.5 ${mult > 1 ? 'text-indigo-600' : mult < 1 ? 'text-red-400' : 'text-gray-600 dark:text-slate-300'}`}
                 >
                   ×{mult.toFixed(1)}
                 </p>
@@ -67,8 +67,8 @@ export default function CharacterPage() {
 
         {/* Stats explanation */}
         <Card variant="default" padding="lg">
-          <h3 className="font-bold text-gray-900 mb-4">How Stats Work</h3>
-          <div className="space-y-3 text-sm text-gray-500">
+          <h3 className="font-bold text-gray-900 dark:text-slate-100 mb-4">How Stats Work</h3>
+          <div className="space-y-3 text-sm text-gray-500 dark:text-slate-400">
             <p>
               <span className="text-red-500 font-medium">Strength</span> — Increases from workouts.
               Powers your physical attacks in combat.

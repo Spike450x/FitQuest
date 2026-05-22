@@ -63,7 +63,7 @@ export function SubclassModal({ character }: SubclassModalProps) {
             {/* Header */}
             <div className="flex items-center gap-2 w-full">
               <span className="text-2xl">{sub.emoji}</span>
-              <span className="font-bold text-gray-900 text-base group-hover:text-violet-700 transition-colors">
+              <span className="font-bold text-gray-900 dark:text-slate-100 text-base group-hover:text-violet-700 transition-colors">
                 {sub.name}
               </span>
               {choosing === sub.id && (
@@ -78,19 +78,22 @@ export function SubclassModal({ character }: SubclassModalProps) {
 
             {/* Passives */}
             <div className="w-full">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1">
                 Passives
               </p>
               <ul className="space-y-0.5">
                 {sub.passives.map((p) => {
                   const [name, ...rest] = p.split(' — ');
                   return (
-                    <li key={p} className="text-xs text-gray-700 flex gap-1">
+                    <li key={p} className="text-xs text-gray-700 dark:text-slate-200 flex gap-1">
                       <span className="text-violet-400 shrink-0">•</span>
                       <span>
                         <span className="font-semibold">{name}</span>
                         {rest.length > 0 && (
-                          <span className="text-gray-500"> — {rest.join(' — ')}</span>
+                          <span className="text-gray-500 dark:text-slate-400">
+                            {' '}
+                            — {rest.join(' — ')}
+                          </span>
                         )}
                       </span>
                     </li>
@@ -102,12 +105,12 @@ export function SubclassModal({ character }: SubclassModalProps) {
             {/* Ability changes */}
             {sub.abilityChanges.length > 0 && (
               <div className="w-full">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1">
                   Ability Upgrades
                 </p>
                 <ul className="space-y-0.5">
                   {sub.abilityChanges.map((c) => (
-                    <li key={c} className="text-xs text-gray-700 flex gap-1">
+                    <li key={c} className="text-xs text-gray-700 dark:text-slate-200 flex gap-1">
                       <span className="text-amber-400 shrink-0">⬆</span>
                       <span>{c}</span>
                     </li>

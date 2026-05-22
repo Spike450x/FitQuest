@@ -15,6 +15,19 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Dark mode global (UI pass 4 — first large investment)
+
+- Tailwind `darkMode: 'class'` enabled. Theme toggle (`src/components/ui/ThemeToggle.tsx`) backed by `useTheme` hook (`src/hooks/useTheme.ts`) that persists to `fitquest-theme` localStorage and falls back to `prefers-color-scheme`. No-flash bootstrap script in `<html>` head sets the class before React hydrates.
+- Theme toggle wired into the game header (icon variant, hidden on small screens) and a new Appearance section in `/profile` (full label variant).
+- Sonner toaster now follows the active theme via `useTheme()`.
+- All shared primitives got `dark:` variants: `Card` (default / hero / highlight / legendary / flat — all themed), `Heading`, `EmptyState`, `Skeleton` (light tone now self-themes), `Modal`, `Button`, `XPBar`, `GoldDisplay`.
+- Game layout shell: header, sidebar, mobile bottom-nav, avatar pill, sign-out button — all theme-aware with proper backdrop-blur in dark mode.
+- Auth layout + login + register: backgrounds, inputs, labels, gradient buttons, links — all `dark:` variants. Login/register submit buttons also got the indigo→violet gradient + active-press scale.
+- Every game screen swept: dashboard, character, activities, combat, quests, inventory, shop, stats, profile. Plus character-creation. Used a Python regex sweep that's careful about modifier prefixes (rewrote `hover:text-gray-X dark:text-slate-Y` → `hover:text-gray-X dark:hover:text-slate-Y` where appropriate).
+- Recharts in `/stats` is now theme-aware via `useChartColors()` — grid lines, axis ticks, tooltip background/border/text all swap with the theme. Activity colors stay constant (semantic).
+- `globals.css` scrollbar styled for dark mode.
+- Dungeons keep their always-dark fantasy aesthetic regardless of toggle (their own `bg-slate-900` overrides the layout's themed background).
+
 ## 2026-05-22 — UI/UX modernization medium efforts (pass 3 — glass, shimmer, Card sweep)
 
 - Glass / depth pass: top header, sidebar, and mobile bottom-nav now use `backdrop-blur-xl backdrop-saturate-150` over `bg-white/70-80` with subtle shadow. `Card` hero variant got decorative blur orbs (indigo + violet radial gradients) and stronger glass treatment. `BattleResultsModal` got the same orb pattern + `backdrop-blur-md` backdrop. Cinematic `Modal` variant uses a stronger backdrop blur than the default.

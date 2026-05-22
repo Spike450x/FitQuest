@@ -189,8 +189,10 @@ export default function InventoryPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">Inventory</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
+          Inventory
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
           Equip gear for stat bonuses. Load up to 5 spells before combat.
         </p>
       </div>
@@ -207,7 +209,7 @@ export default function InventoryPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Gear loadout */}
         <Card variant="default" padding="md">
-          <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
+          <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-3 uppercase tracking-wider">
             Gear Loadout
           </p>
           <div className="grid grid-cols-3 gap-3">
@@ -216,13 +218,13 @@ export default function InventoryPage() {
               return (
                 <div
                   key={slot}
-                  className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center space-y-1"
+                  className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-3 text-center space-y-1"
                 >
                   <p className="text-xl">{SLOT_ICON[slot]}</p>
-                  <p className="text-xs text-gray-400 capitalize">{slot}</p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500 capitalize">{slot}</p>
                   {equipped ? (
                     <>
-                      <p className="text-xs font-semibold text-gray-800 leading-tight">
+                      <p className="text-xs font-semibold text-gray-800 dark:text-slate-100 leading-tight">
                         {equipped.def!.name}
                       </p>
                       <div className="flex flex-wrap justify-center gap-1 mt-1">
@@ -236,7 +238,7 @@ export default function InventoryPage() {
                       </div>
                     </>
                   ) : (
-                    <p className="text-xs text-gray-400 italic">Empty</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500 italic">Empty</p>
                   )}
                 </div>
               );
@@ -247,7 +249,7 @@ export default function InventoryPage() {
         {/* Spell loadout */}
         <Card variant="default" padding="md">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
               ✨ Spell Loadout
             </p>
             <span
@@ -268,7 +270,7 @@ export default function InventoryPage() {
           )}
 
           {equippedSpells.length === 0 ? (
-            <p className="text-xs text-gray-400 italic text-center py-3">
+            <p className="text-xs text-gray-400 dark:text-slate-500 italic text-center py-3">
               No spells equipped.{' '}
               <button
                 onClick={() => setActiveTab('spell')}
@@ -302,7 +304,7 @@ export default function InventoryPage() {
         {/* Consumable pack */}
         <Card variant="default" padding="md">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
               🧪 Combat Pack
             </p>
             <span
@@ -323,7 +325,7 @@ export default function InventoryPage() {
           )}
 
           {equippedConsumables.length === 0 ? (
-            <p className="text-xs text-gray-400 italic text-center py-3">
+            <p className="text-xs text-gray-400 dark:text-slate-500 italic text-center py-3">
               No consumables packed.{' '}
               <button
                 onClick={() => setActiveTab('consumable')}
@@ -356,7 +358,9 @@ export default function InventoryPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-xs font-semibold text-gray-800">{def.name}</span>
+                        <span className="text-xs font-semibold text-gray-800 dark:text-slate-100">
+                          {def.name}
+                        </span>
                         <span
                           className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${RARITY_BADGE[def.rarity]}`}
                         >
@@ -366,14 +370,16 @@ export default function InventoryPage() {
                           +{def.effect.amount} {effectLabel}
                         </span>
                         {invItem.quantity > 1 && (
-                          <span className="text-xs text-gray-400">×{invItem.quantity}</span>
+                          <span className="text-xs text-gray-400 dark:text-slate-500">
+                            ×{invItem.quantity}
+                          </span>
                         )}
                       </div>
                     </div>
                     <button
                       onClick={() => handleUnequipConsumable(invItem.id)}
                       disabled={!!acting}
-                      className="text-xs text-gray-400 hover:text-red-500 disabled:opacity-40 transition-colors shrink-0"
+                      className="text-xs text-gray-400 dark:text-slate-500 hover:text-red-500 disabled:opacity-40 transition-colors shrink-0"
                     >
                       {isActing ? '…' : 'Remove'}
                     </button>
@@ -387,7 +393,7 @@ export default function InventoryPage() {
       {/* end loadout row */}
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto">
+      <div className="flex gap-1 bg-gray-100 dark:bg-slate-800 rounded-xl p-1 overflow-x-auto">
         {TYPE_TABS.map(({ type, label, icon }) => (
           <button
             key={type}
@@ -398,8 +404,8 @@ export default function InventoryPage() {
             }}
             className={`flex-shrink-0 flex items-center justify-center gap-1.5 py-2 px-2 text-xs font-medium rounded-lg transition-colors ${
               activeTab === type
-                ? 'bg-white text-indigo-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white dark:bg-slate-900 text-indigo-700 shadow-sm'
+                : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
             }`}
           >
             <span>{icon}</span>
@@ -477,7 +483,7 @@ export default function InventoryPage() {
             return (
               <div
                 key={invItem.id}
-                className={`relative bg-white border-2 rounded-xl p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-lg ${rarityScheme.glow} ${
+                className={`relative bg-white dark:bg-slate-900 border-2 rounded-xl p-4 space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-lg ${rarityScheme.glow} ${
                   isEquipped
                     ? isConsumable
                       ? 'border-emerald-400 bg-emerald-50/40 ring-2 ring-emerald-200'
@@ -493,7 +499,9 @@ export default function InventoryPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-gray-900 text-sm">{def.name}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">
+                        {def.name}
+                      </h3>
                       {isNew(invItem.id) && (
                         <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-sm shadow-amber-500/40">
                           NEW
@@ -526,7 +534,9 @@ export default function InventoryPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5">{def.description}</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                      {def.description}
+                    </p>
                   </div>
                 </div>
 
@@ -567,7 +577,7 @@ export default function InventoryPage() {
                   <button
                     onClick={() => handleUnequip(invItem.id)}
                     disabled={!!acting}
-                    className="text-xs text-gray-500 hover:text-red-500 disabled:opacity-40 transition-colors font-medium"
+                    className="text-xs text-gray-500 dark:text-slate-400 hover:text-red-500 disabled:opacity-40 transition-colors font-medium"
                   >
                     {isActing ? 'Unequipping…' : 'Unequip'}
                   </button>

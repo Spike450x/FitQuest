@@ -1036,7 +1036,7 @@ export default function CombatPage() {
             <p className="font-display text-4xl font-bold text-indigo-700 tracking-wider uppercase drop-shadow-sm">
               Victory!
             </p>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
               vs. {emoji} {monster.name}
             </p>
           </div>
@@ -1047,7 +1047,7 @@ export default function CombatPage() {
             <p className="font-display text-4xl font-bold text-red-700 tracking-wider uppercase">
               You Have Fallen
             </p>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
               Defeated by {emoji} {monster.name}
             </p>
             <p className="text-sm text-amber-600 font-medium mt-2">
@@ -1061,7 +1061,7 @@ export default function CombatPage() {
             <p className="font-display text-3xl font-bold text-amber-700 tracking-wide uppercase">
               Escaped!
             </p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
               You fled from {emoji} {monster.name} with {playerHp} HP remaining.
             </p>
           </div>
@@ -1070,7 +1070,7 @@ export default function CombatPage() {
         {/* Rewards summary shown after modal is claimed */}
         {outcome === 'win' && !pendingRewards && (
           <Card variant="default" padding="md">
-            <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-3 uppercase tracking-wider">
               Rewards Claimed
             </p>
             <div className="flex gap-3">
@@ -1080,7 +1080,7 @@ export default function CombatPage() {
                   prefix="+"
                   className="text-2xl font-bold text-indigo-600"
                 />
-                <p className="text-xs text-gray-400 mt-0.5">XP</p>
+                <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">XP</p>
               </div>
               <div className="flex-1 bg-amber-50 rounded-lg p-3 text-center">
                 <AnimatedNumber
@@ -1088,12 +1088,12 @@ export default function CombatPage() {
                   prefix="+"
                   className="text-2xl font-bold text-amber-500"
                 />
-                <p className="text-xs text-gray-400 mt-0.5">Gold</p>
+                <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Gold</p>
               </div>
             </div>
             {droppedItems.length > 0 && (
               <div className="mt-3 space-y-1.5">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
                   Loot Added to Inventory
                 </p>
                 {droppedItems.map((itemId, idx) => {
@@ -1106,9 +1106,11 @@ export default function CombatPage() {
                       initial={{ opacity: 0, y: 12, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       transition={{ delay: idx * 0.18, duration: 0.4, ease: 'easeOut' }}
-                      className={`flex items-center justify-between rounded-lg px-3 py-2 border-2 ${card.border} ${card.glow ? `shadow-md ${card.glow}` : 'bg-gray-50'}`}
+                      className={`flex items-center justify-between rounded-lg px-3 py-2 border-2 ${card.border} ${card.glow ? `shadow-md ${card.glow}` : 'bg-gray-50 dark:bg-slate-900'}`}
                     >
-                      <span className="text-xs font-semibold text-gray-800">📦 {def.name}</span>
+                      <span className="text-xs font-semibold text-gray-800 dark:text-slate-100">
+                        📦 {def.name}
+                      </span>
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${RARITY_BADGE[def.rarity]}`}
                       >
@@ -1132,7 +1134,7 @@ export default function CombatPage() {
               : {}
           }
           transition={{ duration: 0.3 }}
-          className="relative bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3 overflow-visible"
+          className="relative bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-sm space-y-3 overflow-visible"
         >
           <CombatEffects bursts={bursts} onBurstExpired={expire} />
           <HpBar
@@ -1186,7 +1188,7 @@ export default function CombatPage() {
                 : 0;
               return (
                 <p
-                  className={`text-xs font-medium ${active ? 'text-orange-600' : 'text-gray-400'}`}
+                  className={`text-xs font-medium ${active ? 'text-orange-600' : 'text-gray-400 dark:text-slate-500'}`}
                 >
                   {active ? '🔥' : '🎯'} Hunting · {pity} kill{pity !== 1 ? 's' : ''}
                   {active && ` · +${boostPct}% legendary`}
@@ -1197,8 +1199,8 @@ export default function CombatPage() {
 
         {/* Last roll summary */}
         {lastEntry && (
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <p className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-2 uppercase tracking-wider">
               Last Action — Round {lastEntry.round}
             </p>
             <LastActionSummary entry={lastEntry} monster={monster} />
@@ -1207,8 +1209,8 @@ export default function CombatPage() {
 
         {/* Battle log */}
         {log.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-3 uppercase tracking-wider">
               Battle Log · {log.length} {log.length === 1 ? 'round' : 'rounds'}
             </p>
             <ul className="space-y-3 max-h-52 overflow-y-auto pr-1">
@@ -1336,7 +1338,7 @@ export default function CombatPage() {
             </div>
             {/* Spell selection panel */}
             {showSpellPanel && (
-              <div className="bg-white border border-violet-200 rounded-xl p-3 shadow-sm space-y-3">
+              <div className="bg-white dark:bg-slate-900 border border-violet-200 rounded-xl p-3 shadow-sm space-y-3">
                 <p className="text-xs font-semibold text-violet-500 uppercase tracking-wider">
                   ✨ Choose a Spell — {playerMagic} magic remaining
                 </p>
@@ -1379,8 +1381,8 @@ export default function CombatPage() {
             )}
             {/* Consumable selection panel */}
             {showItemPanel && (
-              <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm space-y-1.5">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-3 shadow-sm space-y-1.5">
+                <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
                   Choose a Consumable
                 </p>
                 {consumables.map((invItem) => {
@@ -1391,10 +1393,12 @@ export default function CombatPage() {
                       key={invItem.id}
                       onClick={() => handleUseItem(invItem.id)}
                       disabled={!!usingItem}
-                      className="w-full flex items-center justify-between bg-gray-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-300 rounded-lg px-3 py-2 text-left transition-colors disabled:opacity-40"
+                      className="w-full flex items-center justify-between bg-gray-50 dark:bg-slate-900 hover:bg-emerald-50 border border-gray-200 dark:border-slate-700 hover:border-emerald-300 rounded-lg px-3 py-2 text-left transition-colors disabled:opacity-40"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-800">🧪 {def.name}</span>
+                        <span className="text-xs font-medium text-gray-800 dark:text-slate-100">
+                          🧪 {def.name}
+                        </span>
                         <span
                           className={`text-xs px-1.5 py-0.5 rounded-full font-medium capitalize ${RARITY_BADGE[def.rarity]}`}
                         >
@@ -1443,7 +1447,7 @@ export default function CombatPage() {
             </button>
             <Link
               href="/dashboard"
-              className="bg-white border border-gray-200 hover:border-indigo-300 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors text-center"
+              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-indigo-300 text-gray-700 dark:text-slate-200 font-semibold py-2.5 rounded-lg transition-colors text-center"
             >
               Dashboard
             </Link>
@@ -1489,15 +1493,17 @@ export default function CombatPage() {
         )}
 
         {/* Collapsible ability guide */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
           <button
             onClick={() => setShowAbilityGuide((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 dark:bg-slate-900 transition-colors"
           >
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
               🎲 Ability Guide
             </p>
-            <span className="text-xs text-gray-400">{showAbilityGuide ? '▲ hide' : '▼ show'}</span>
+            <span className="text-xs text-gray-400 dark:text-slate-500">
+              {showAbilityGuide ? '▲ hide' : '▼ show'}
+            </span>
           </button>
           {showAbilityGuide && (
             <div className="px-4 pb-4">
@@ -1516,24 +1522,29 @@ export default function CombatPage() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">
+          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
             Combat Arena
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
             Current HP:{' '}
             <span
-              className={`font-semibold ${currentHp < maxHp * 0.4 ? 'text-red-500' : 'text-gray-700'}`}
+              className={`font-semibold ${currentHp < maxHp * 0.4 ? 'text-red-500' : 'text-gray-700 dark:text-slate-200'}`}
             >
               {currentHp}/{maxHp}
             </span>
             {currentHp < maxHp && (
-              <span className="text-gray-400"> — log sleep or water to recover</span>
+              <span className="text-gray-400 dark:text-slate-500">
+                {' '}
+                — log sleep or water to recover
+              </span>
             )}
           </p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-xs text-gray-500 font-medium">Today&apos;s Encounters</p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">
+            Today&apos;s Encounters
+          </p>
+          <p className="text-xs text-gray-400 dark:text-slate-500">
             Resets in {formatCountdown(rotationExpiresAt())} (UTC)
           </p>
         </div>
@@ -1558,9 +1569,9 @@ export default function CombatPage() {
           </div>
 
           {/* Ability reference card */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
                 🎲 Ability Guide · <span className="capitalize">{character.class}</span>
               </p>
               {character.subclass &&
@@ -1573,7 +1584,7 @@ export default function CombatPage() {
                   ) : null;
                 })()}
             </div>
-            <p className="text-xs text-gray-400 mb-3">
+            <p className="text-xs text-gray-400 dark:text-slate-500 mb-3">
               Roll 6d6 and spend {COMBAT.ABILITY_STAMINA_COST} stamina. Hit one of these patterns to
               unleash your class ability.
               {character.subclass && ' Subclass passives apply automatically.'}
@@ -1647,8 +1658,10 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
               </>
             )}
           </span>
-          <span className="text-gray-400"> vs </span>
-          <span className="font-mono text-gray-600">Monster rolled {entry.monsterRunRoll}</span>
+          <span className="text-gray-400 dark:text-slate-500"> vs </span>
+          <span className="font-mono text-gray-600 dark:text-slate-300">
+            Monster rolled {entry.monsterRunRoll}
+          </span>
           <span className="text-red-600 font-semibold"> · Failed to escape</span>
         </p>
         {(entry.monsterDamage ?? 0) > 0 && (
@@ -1657,7 +1670,7 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
             {entry.playerDefFailed ? (
               <span className="text-orange-500 font-semibold"> · 💥 Your DEF failed!</span>
             ) : (
-              <span className="text-gray-400"> · 🛡️ DEF held</span>
+              <span className="text-gray-400 dark:text-slate-500"> · 🛡️ DEF held</span>
             )}
           </p>
         )}
@@ -1683,20 +1696,30 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
               />
             );
           })}
-          <span className="text-xs text-gray-400 ml-1">
+          <span className="text-xs text-gray-400 dark:text-slate-500 ml-1">
             {met ? '✓ Requirement met!' : '✗ Fizzled'}
           </span>
         </div>
         <p>
-          <span className={`font-bold ${met ? 'text-violet-600' : 'text-gray-400'}`}>
+          <span
+            className={`font-bold ${met ? 'text-violet-600' : 'text-gray-400 dark:text-slate-500'}`}
+          >
             ✨ {entry.spellName}
           </span>
-          {!met && <span className="text-gray-400 font-medium"> — Fizzled (magic spent)</span>}
+          {!met && (
+            <span className="text-gray-400 dark:text-slate-500 font-medium">
+              {' '}
+              — Fizzled (magic spent)
+            </span>
+          )}
           {met && entry.monsterStunned && (
             <span className="text-amber-500 font-semibold"> · 😵 Monster stunned!</span>
           )}
           {met && (entry.playerDamage ?? 0) > 0 && (
-            <span className="text-gray-800 font-semibold"> → {entry.playerDamage} dmg</span>
+            <span className="text-gray-800 dark:text-slate-100 font-semibold">
+              {' '}
+              → {entry.playerDamage} dmg
+            </span>
           )}
           {met && (entry.healAmount ?? 0) > 0 && (
             <span className="text-emerald-600 font-semibold"> · +{entry.healAmount} HP</span>
@@ -1721,7 +1744,7 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
             {entry.playerDefFailed ? (
               <span className="text-orange-500 font-semibold"> · 💥 Your DEF failed!</span>
             ) : (
-              <span className="text-gray-400"> · 🛡️ DEF held</span>
+              <span className="text-gray-400 dark:text-slate-500"> · 🛡️ DEF held</span>
             )}
           </p>
         )}
@@ -1753,7 +1776,7 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
               />
             ));
           })()}
-          <span className="text-xs text-gray-400 ml-1">
+          <span className="text-xs text-gray-400 dark:text-slate-500 ml-1">
             {entry.abilityFizzled
               ? '— no pattern (fizzle)'
               : `— ${entry.abilityPattern?.replace(/_/g, ' ')}`}
@@ -1761,10 +1784,12 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
         </div>
         {/* Ability name + damage */}
         {entry.abilityFizzled ? (
-          <p className="text-gray-500">
+          <p className="text-gray-500 dark:text-slate-400">
             <span className="font-medium text-rose-500">Fizzle! </span>
             Basic hit for{' '}
-            <span className="font-semibold text-gray-800">{entry.playerDamage} dmg</span>
+            <span className="font-semibold text-gray-800 dark:text-slate-100">
+              {entry.playerDamage} dmg
+            </span>
           </p>
         ) : (
           <p>
@@ -1774,7 +1799,10 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
             {entry.monsterStunned && (
               <span className="text-amber-500 font-semibold"> · 😵 Monster stunned!</span>
             )}
-            <span className="text-gray-800 font-semibold"> → {entry.playerDamage} dmg</span>
+            <span className="text-gray-800 dark:text-slate-100 font-semibold">
+              {' '}
+              → {entry.playerDamage} dmg
+            </span>
             {(entry.healAmount ?? 0) > 0 && (
               <span className="text-emerald-600 font-semibold">
                 {' '}
@@ -1789,7 +1817,7 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
             {entry.playerDefFailed ? (
               <span className="text-orange-500 font-semibold"> · 💥 Your DEF failed!</span>
             ) : (
-              <span className="text-gray-400"> · 🛡️ DEF held</span>
+              <span className="text-gray-400 dark:text-slate-500"> · 🛡️ DEF held</span>
             )}
           </p>
         )}
@@ -1834,7 +1862,7 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
         >
           🎲 {entry.roll}
         </span>
-        <span className="text-gray-400"> + </span>
+        <span className="text-gray-400 dark:text-slate-500"> + </span>
         <span className="font-mono text-emerald-600">
           {entry.attackBonusLabel === 'WIS' ? '🔮' : '⚔️'} {entry.attackBonus}{' '}
           {entry.attackBonusLabel}
@@ -1843,11 +1871,16 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
           <span className="text-orange-500 font-semibold"> · 💥 DEF broke!</span>
         ) : (
           <>
-            <span className="text-gray-400"> − </span>
-            <span className="font-mono text-gray-500">🛡️ {monster.defense}</span>
+            <span className="text-gray-400 dark:text-slate-500"> − </span>
+            <span className="font-mono text-gray-500 dark:text-slate-400">
+              🛡️ {monster.defense}
+            </span>
           </>
         )}
-        <span className="text-gray-800 font-semibold"> = {entry.playerDamage} dmg</span>
+        <span className="text-gray-800 dark:text-slate-100 font-semibold">
+          {' '}
+          = {entry.playerDamage} dmg
+        </span>
       </p>
       {(entry.monsterDamage ?? 0) > 0 && (
         <p className="text-red-500">
@@ -1855,7 +1888,7 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
           {entry.playerDefFailed ? (
             <span className="text-orange-500 font-semibold"> · 💥 Your DEF failed!</span>
           ) : (
-            <span className="text-gray-400"> · 🛡️ DEF held</span>
+            <span className="text-gray-400 dark:text-slate-500"> · 🛡️ DEF held</span>
           )}
         </p>
       )}
@@ -1876,7 +1909,7 @@ function BattleLogEntry({
 }) {
   return (
     <li className="text-sm border-l-2 border-indigo-100 pl-3 space-y-0.5">
-      <p className="text-xs font-semibold text-gray-400">
+      <p className="text-xs font-semibold text-gray-400 dark:text-slate-500">
         Round {entry.round} · {entry.action === 'attack' && '⚔️ Attack'}
         {entry.action === 'magic' && '🔮 Magic'}
         {entry.action === 'run_failed' && '🏃 Run (failed)'}
@@ -1892,7 +1925,10 @@ function BattleLogEntry({
         <>
           <p>
             <span className="text-amber-600">You rolled {entry.playerRunRoll}</span>
-            <span className="text-gray-400"> vs Monster rolled {entry.monsterRunRoll}</span>
+            <span className="text-gray-400 dark:text-slate-500">
+              {' '}
+              vs Monster rolled {entry.monsterRunRoll}
+            </span>
             <span className="text-red-500 font-medium"> · Blocked</span>
           </p>
           {(entry.monsterDamage ?? 0) > 0 && (
@@ -1903,7 +1939,7 @@ function BattleLogEntry({
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
               ) : (
-                <span className="text-gray-400"> · 🛡️ held</span>
+                <span className="text-gray-400 dark:text-slate-500"> · 🛡️ held</span>
               )}
             </p>
           )}
@@ -1924,7 +1960,7 @@ function BattleLogEntry({
                 />
               );
             })}
-            <span className="text-xs text-gray-400 ml-0.5">
+            <span className="text-xs text-gray-400 dark:text-slate-500 ml-0.5">
               {entry.spellRequirementMet ? '(✓ hit)' : '(✗ fizzle)'}
             </span>
           </div>
@@ -1951,7 +1987,7 @@ function BattleLogEntry({
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
               ) : (
-                <span className="text-gray-400"> · 🛡️ held</span>
+                <span className="text-gray-400 dark:text-slate-500"> · 🛡️ held</span>
               )}
               {entry.playerHpAfter === 0 && (
                 <span className="text-red-600 font-semibold"> · You fell!</span>
@@ -1976,7 +2012,7 @@ function BattleLogEntry({
                 />
               ));
             })()}
-            <span className="text-gray-400 text-xs ml-0.5">
+            <span className="text-gray-400 dark:text-slate-500 text-xs ml-0.5">
               {entry.abilityFizzled ? '(fizzle)' : `(${entry.abilityPattern?.replace(/_/g, ' ')})`}
             </span>
           </div>
@@ -2000,7 +2036,7 @@ function BattleLogEntry({
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
               ) : (
-                <span className="text-gray-400"> · 🛡️ held</span>
+                <span className="text-gray-400 dark:text-slate-500"> · 🛡️ held</span>
               )}
               {entry.playerHpAfter === 0 && (
                 <span className="text-red-600 font-semibold"> · You fell!</span>
@@ -2043,7 +2079,7 @@ function BattleLogEntry({
             >
               🎲 {entry.roll}
             </span>
-            <span className="text-gray-400">
+            <span className="text-gray-400 dark:text-slate-500">
               {' '}
               ({entry.roll} + {entry.attackBonusLabel === 'WIS' ? '🔮' : '⚔️'}
               {entry.attackBonus}
@@ -2051,10 +2087,13 @@ function BattleLogEntry({
             {entry.monsterDefFailed ? (
               <span className="text-orange-500"> · 💥 DEF broke!</span>
             ) : (
-              <span className="text-gray-400"> − 🛡️{monster.defense}</span>
+              <span className="text-gray-400 dark:text-slate-500"> − 🛡️{monster.defense}</span>
             )}
-            <span className="text-gray-400">)</span>
-            <span className="text-gray-800 font-medium"> → {entry.playerDamage} dmg</span>
+            <span className="text-gray-400 dark:text-slate-500">)</span>
+            <span className="text-gray-800 dark:text-slate-100 font-medium">
+              {' '}
+              → {entry.playerDamage} dmg
+            </span>
             {entry.monsterHpAfter === 0 && (
               <span className="text-emerald-600 font-semibold"> · Slain!</span>
             )}
@@ -2067,7 +2106,7 @@ function BattleLogEntry({
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
               ) : (
-                <span className="text-gray-400"> · 🛡️ held</span>
+                <span className="text-gray-400 dark:text-slate-500"> · 🛡️ held</span>
               )}
               {entry.playerHpAfter === 0 && (
                 <span className="text-red-600 font-semibold"> · You fell!</span>
@@ -2098,19 +2137,19 @@ function HpBar({
   const pct = Math.max(0, Math.min(100, (current / max) * 100));
   return (
     <div>
-      <div className="flex justify-between text-xs text-gray-500 mb-1">
+      <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400 mb-1">
         <span className="font-medium">{label}</span>
-        <span className="font-mono font-semibold text-gray-700">
+        <span className="font-mono font-semibold text-gray-700 dark:text-slate-200">
           {current} / {max}
         </span>
       </div>
-      <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+      <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
         <div
           className={`h-full ${color} rounded-full transition-all duration-300`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+      {sub && <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -2171,10 +2210,12 @@ function DieFace({
 
   const v = {
     spinning: 'bg-rose-50 border-2 border-rose-300 text-rose-500 shadow-md shadow-rose-200',
-    settled: 'bg-white border-2 border-gray-200 text-gray-600',
+    settled:
+      'bg-white dark:bg-slate-900 border-2 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300',
     highlighted:
       'bg-amber-50 border-2 border-amber-400 text-amber-600 scale-110 shadow-md shadow-amber-100',
-    wildcard: 'bg-gray-50 border-2 border-dashed border-gray-200 text-gray-300',
+    wildcard:
+      'bg-gray-50 dark:bg-slate-900 border-2 border-dashed border-gray-200 dark:border-slate-700 text-gray-300 dark:text-slate-600',
   };
 
   return (
@@ -2218,31 +2259,34 @@ function D10Face({
   const colorTokens: Record<string, Record<string, string>> = {
     indigo: {
       spinning: 'bg-indigo-50 border-indigo-300 text-indigo-600 shadow-lg shadow-indigo-200',
-      settled: 'bg-white   border-indigo-300 text-indigo-700',
+      settled: 'bg-white dark:bg-slate-900   border-indigo-300 text-indigo-700',
     },
     violet: {
       spinning: 'bg-violet-50 border-violet-300 text-violet-600 shadow-lg shadow-violet-200',
-      settled: 'bg-white    border-violet-300 text-violet-700',
+      settled: 'bg-white dark:bg-slate-900    border-violet-300 text-violet-700',
     },
     amber: {
       spinning: 'bg-amber-50 border-amber-300 text-amber-600 shadow-lg shadow-amber-200',
       settled: 'bg-white   border-amber-400 text-amber-700 shadow-md shadow-amber-100',
     },
     gray: {
-      spinning: 'bg-gray-50 border-gray-300 text-gray-400',
-      settled: 'bg-white  border-gray-200 text-gray-500',
+      spinning: 'bg-gray-50 dark:bg-slate-900 border-gray-300 text-gray-400 dark:text-slate-500',
+      settled:
+        'bg-white dark:bg-slate-900  border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400',
     },
     rose: {
       spinning: 'bg-rose-50 border-rose-300 text-rose-600 shadow-lg shadow-rose-200',
-      settled: 'bg-white  border-rose-400 text-rose-700 shadow-md shadow-rose-100',
+      settled:
+        'bg-white dark:bg-slate-900  border-rose-400 text-rose-700 shadow-md shadow-rose-100',
     },
     sky: {
       spinning: 'bg-sky-50 border-sky-300 text-sky-600 shadow-lg shadow-sky-200',
-      settled: 'bg-white border-sky-300 text-sky-700 shadow-md shadow-sky-100',
+      settled: 'bg-white dark:bg-slate-900 border-sky-300 text-sky-700 shadow-md shadow-sky-100',
     },
     slate: {
       spinning: 'bg-slate-50 border-slate-300 text-slate-600 shadow-lg shadow-slate-200',
-      settled: 'bg-white  border-slate-300 text-slate-700 shadow-md shadow-slate-100',
+      settled:
+        'bg-white dark:bg-slate-900  border-slate-300 text-slate-700 shadow-md shadow-slate-100',
     },
   };
 
@@ -2393,9 +2437,11 @@ function ActionRollOverlay({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-      <div className="relative bg-white rounded-2xl px-6 py-7 shadow-2xl mx-4 max-w-xs w-full space-y-5 text-center">
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl px-6 py-7 shadow-2xl mx-4 max-w-xs w-full space-y-5 text-center">
         {/* Header */}
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{headerText}</p>
+        <p className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
+          {headerText}
+        </p>
 
         {/* Die(s) */}
         {isRun ? (
@@ -2408,14 +2454,14 @@ function ActionRollOverlay({
               />
               <p className="text-xs font-semibold text-amber-600">You</p>
             </div>
-            <p className="text-xl font-bold text-gray-300 mb-6">vs</p>
+            <p className="text-xl font-bold text-gray-300 dark:text-slate-600 mb-6">vs</p>
             <div className="flex flex-col items-center gap-1.5">
               <D10Face
                 value={monsterDie}
                 variant={phase === 'run_spin' ? 'spinning' : 'settled'}
                 color="gray"
               />
-              <p className="text-xs font-semibold text-gray-400">Monster</p>
+              <p className="text-xs font-semibold text-gray-400 dark:text-slate-500">Monster</p>
             </div>
           </div>
         ) : isMonsterPhase ? (
@@ -2442,15 +2488,17 @@ function ActionRollOverlay({
         >
           {isRun ? (
             pending.escaped ? (
-              <p className="text-sm text-gray-500">You rolled higher — flee successful</p>
+              <p className="text-sm text-gray-500 dark:text-slate-400">
+                You rolled higher — flee successful
+              </p>
             ) : (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-slate-400">
                 Monster rolled higher — hit for{' '}
                 <span className="font-semibold text-red-500">{pending.monsterDamage} dmg</span>
                 {pending.playerDefFailed ? (
                   <span className="text-orange-500"> · 💥 DEF failed</span>
                 ) : (
-                  <span className="text-gray-400"> · 🛡️ DEF held</span>
+                  <span className="text-gray-400 dark:text-slate-500"> · 🛡️ DEF held</span>
                 )}
               </p>
             )
@@ -2465,13 +2513,15 @@ function ActionRollOverlay({
                   <span className="text-orange-500 font-semibold text-sm">· 💥 DEF failed!</span>
                 ) : (
                   <>
-                    <span className="text-gray-300 font-bold">−</span>
-                    <span className="text-gray-400 text-sm">🛡️ {playerDefStat} DEF</span>
+                    <span className="text-gray-300 dark:text-slate-600 font-bold">−</span>
+                    <span className="text-gray-400 dark:text-slate-500 text-sm">
+                      🛡️ {playerDefStat} DEF
+                    </span>
                   </>
                 )}
-                <span className="text-gray-300 font-bold">=</span>
+                <span className="text-gray-300 dark:text-slate-600 font-bold">=</span>
                 <span className="text-rose-700 font-black text-2xl">{pending.monsterDamage}</span>
-                <span className="text-gray-400 text-sm">dmg</span>
+                <span className="text-gray-400 dark:text-slate-500 text-sm">dmg</span>
               </div>
               {isLoss && (
                 <p className="text-sm font-semibold text-red-600">💀 You have fallen...</p>
@@ -2488,27 +2538,29 @@ function ActionRollOverlay({
                 </span>
                 {isRest ? (
                   <>
-                    <span className="text-gray-300 font-bold">×</span>
+                    <span className="text-gray-300 dark:text-slate-600 font-bold">×</span>
                     <span className="text-sky-500 font-semibold">3</span>
-                    <span className="text-gray-300 font-bold">=</span>
+                    <span className="text-gray-300 dark:text-slate-600 font-bold">=</span>
                     <span className="text-sky-700 font-black text-2xl">
                       {pending.recoveredStamina}
                     </span>
-                    <span className="text-gray-400 text-sm">stamina</span>
+                    <span className="text-gray-400 dark:text-slate-500 text-sm">stamina</span>
                   </>
                 ) : (
                   <>
-                    <span className="text-gray-300 font-bold">+</span>
+                    <span className="text-gray-300 dark:text-slate-600 font-bold">+</span>
                     <span className="text-slate-500 font-semibold">🧠 WIS</span>
-                    <span className="text-gray-300 font-bold">=</span>
+                    <span className="text-gray-300 dark:text-slate-600 font-bold">=</span>
                     <span className="text-slate-700 font-black text-2xl">
                       {pending.recoveredMagic}
                     </span>
-                    <span className="text-gray-400 text-sm">magic</span>
+                    <span className="text-gray-400 dark:text-slate-500 text-sm">magic</span>
                   </>
                 )}
               </div>
-              <p className="text-xs text-gray-400">Monster strikes while you recover…</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500">
+                Monster strikes while you recover…
+              </p>
             </div>
           ) : (
             /* Player attack/magic result */
@@ -2519,7 +2571,7 @@ function ActionRollOverlay({
                 >
                   {playerDie}
                 </span>
-                <span className="text-gray-300 font-bold">+</span>
+                <span className="text-gray-300 dark:text-slate-600 font-bold">+</span>
                 <span
                   className={`font-semibold ${isAttack ? 'text-indigo-500' : 'text-violet-500'}`}
                 >
@@ -2529,13 +2581,17 @@ function ActionRollOverlay({
                   <span className="text-orange-500 font-semibold text-sm">· 💥 DEF broke!</span>
                 ) : (
                   <>
-                    <span className="text-gray-300 font-bold">−</span>
-                    <span className="text-gray-400 text-sm">🛡️ {monster.defense}</span>
+                    <span className="text-gray-300 dark:text-slate-600 font-bold">−</span>
+                    <span className="text-gray-400 dark:text-slate-500 text-sm">
+                      🛡️ {monster.defense}
+                    </span>
                   </>
                 )}
-                <span className="text-gray-300 font-bold">=</span>
-                <span className="text-gray-900 font-black text-2xl">{pending.playerDamage}</span>
-                <span className="text-gray-400 text-sm">dmg</span>
+                <span className="text-gray-300 dark:text-slate-600 font-bold">=</span>
+                <span className="text-gray-900 dark:text-slate-100 font-black text-2xl">
+                  {pending.playerDamage}
+                </span>
+                <span className="text-gray-400 dark:text-slate-500 text-sm">dmg</span>
               </div>
               {isWin && <p className="text-sm font-semibold text-emerald-600">🏆 Monster slain!</p>}
             </div>
@@ -2715,9 +2771,9 @@ function DiceRollOverlay({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Card */}
-      <div className="relative bg-white rounded-2xl px-6 py-7 shadow-2xl mx-4 max-w-xs w-full space-y-5 text-center">
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl px-6 py-7 shadow-2xl mx-4 max-w-xs w-full space-y-5 text-center">
         {/* Phase label */}
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+        <p className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
           {phase === 'spinning'
             ? 'Rolling dice…'
             : phase === 'settling'
@@ -2749,8 +2805,10 @@ function DiceRollOverlay({
         >
           {fizzled ? (
             <div className="space-y-1.5">
-              <p className="text-2xl font-bold text-gray-400">Fizzle!</p>
-              <p className="text-sm text-gray-400">No matching pattern — basic hit landed</p>
+              <p className="text-2xl font-bold text-gray-400 dark:text-slate-500">Fizzle!</p>
+              <p className="text-sm text-gray-400 dark:text-slate-500">
+                No matching pattern — basic hit landed
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -2877,7 +2935,7 @@ function SpellRollOverlay({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div className="relative bg-white rounded-2xl px-6 py-7 shadow-2xl mx-4 max-w-xs w-full space-y-5 text-center">
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl px-6 py-7 shadow-2xl mx-4 max-w-xs w-full space-y-5 text-center">
         <p className="text-xs font-bold text-violet-400 uppercase tracking-widest">
           {phase === 'spinning'
             ? 'Casting…'
@@ -2908,7 +2966,9 @@ function SpellRollOverlay({
         </div>
 
         {/* Requirement label */}
-        <p className="text-xs text-gray-400">{describeRequirement(sm.requirement)}</p>
+        <p className="text-xs text-gray-400 dark:text-slate-500">
+          {describeRequirement(sm.requirement)}
+        </p>
 
         {/* Result panel */}
         <div
@@ -2930,8 +2990,8 @@ function SpellRollOverlay({
             </div>
           ) : (
             <div className="space-y-1">
-              <p className="text-lg font-bold text-gray-400">Fizzled</p>
-              <p className="text-xs text-gray-400">
+              <p className="text-lg font-bold text-gray-400 dark:text-slate-500">Fizzled</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500">
                 Dice didn&apos;t meet the requirement — magic spent, no effect
               </p>
             </div>
@@ -3006,7 +3066,7 @@ function AbilityReference({ characterClass }: { characterClass: string }) {
         return (
           <div
             key={pattern}
-            className={`flex items-start gap-3 py-2.5 ${idx < ABILITY_PATTERNS.length - 1 ? 'border-b border-gray-100' : ''}`}
+            className={`flex items-start gap-3 py-2.5 ${idx < ABILITY_PATTERNS.length - 1 ? 'border-b border-gray-100 dark:border-slate-800' : ''}`}
           >
             {/* Dice example */}
             <div className="flex gap-1 shrink-0 pt-0.5">
@@ -3023,12 +3083,14 @@ function AbilityReference({ characterClass }: { characterClass: string }) {
             {/* Ability info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-xs font-bold text-gray-800">
+                <span className="text-xs font-bold text-gray-800 dark:text-slate-100">
                   {ability.emoji} {ability.name}
                 </span>
-                <span className="text-xs text-gray-400">{PATTERN_LABEL[pattern]}</span>
+                <span className="text-xs text-gray-400 dark:text-slate-500">
+                  {PATTERN_LABEL[pattern]}
+                </span>
               </div>
-              <p className="text-xs text-gray-400 mt-0.5">{requirement}</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{requirement}</p>
               <div className="flex flex-wrap gap-1 mt-1">
                 {tags.map((tag) => (
                   <span
@@ -3074,15 +3136,15 @@ function MonsterCard({
     : 0;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-indigo-200 group">
+    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-sm space-y-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-indigo-200 group">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <span className="text-3xl transition-transform group-hover:scale-110 group-hover:-rotate-3">
             {emoji}
           </span>
           <div>
-            <h3 className="font-semibold text-gray-900">{monster.name}</h3>
-            <p className="text-xs text-gray-400">
+            <h3 className="font-semibold text-gray-900 dark:text-slate-100">{monster.name}</h3>
+            <p className="text-xs text-gray-400 dark:text-slate-500">
               Level {monster.level} ·{' '}
               <span className={`font-medium ${diffColor}`}>{diffLabel}</span>
             </p>
@@ -3093,8 +3155,8 @@ function MonsterCard({
           <p className="text-xs text-amber-500 font-semibold">+{monster.goldReward} 💰</p>
         </div>
       </div>
-      <p className="text-xs text-gray-500">{monster.description}</p>
-      <div className="flex items-center gap-4 text-xs text-gray-400">
+      <p className="text-xs text-gray-500 dark:text-slate-400">{monster.description}</p>
+      <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-slate-500">
         <span>❤️ {monster.hp} HP</span>
         <span>⚔️ {monster.attack} ATK</span>
         <span>🛡️ {monster.defense} DEF</span>
@@ -3166,7 +3228,7 @@ function BattleResultsModal({
             <p className="font-display text-4xl font-bold text-indigo-700 tracking-wider uppercase drop-shadow-sm">
               Victory!
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-slate-400">
               {emoji} {pending.monster.name} defeated
             </p>
           </div>
@@ -3179,7 +3241,7 @@ function BattleResultsModal({
                 prefix="+"
                 className="text-3xl font-bold text-indigo-600"
               />
-              <p className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider font-semibold">
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 uppercase tracking-wider font-semibold">
                 XP
               </p>
               {pending.streakMultiplier > 1.0 && (
@@ -3194,7 +3256,7 @@ function BattleResultsModal({
                 prefix="+"
                 className="text-3xl font-bold text-amber-500"
               />
-              <p className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider font-semibold">
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 uppercase tracking-wider font-semibold">
                 Gold
               </p>
             </div>
@@ -3202,7 +3264,9 @@ function BattleResultsModal({
 
           {/* Loot */}
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Loot</p>
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+              Loot
+            </p>
             {pending.droppedItems.length > 0 ? (
               pending.droppedItems.map((itemId, idx) => {
                 const def = getItemById(itemId);
@@ -3215,11 +3279,13 @@ function BattleResultsModal({
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.15 + idx * 0.12, duration: 0.3, ease: 'easeOut' }}
-                    className={`flex items-center justify-between bg-white border ${card.border} ${card.glow} rounded-lg px-3 py-2 ${
+                    className={`flex items-center justify-between bg-white dark:bg-slate-900 border ${card.border} ${card.glow} rounded-lg px-3 py-2 ${
                       isLegendary ? 'animate-legendary-glow' : ''
                     }`}
                   >
-                    <span className="text-sm font-medium text-gray-800">📦 {def.name}</span>
+                    <span className="text-sm font-medium text-gray-800 dark:text-slate-100">
+                      📦 {def.name}
+                    </span>
                     <div className="flex items-center gap-1.5">
                       {def.lootOnly && (
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-600">
@@ -3236,7 +3302,9 @@ function BattleResultsModal({
                 );
               })
             ) : (
-              <p className="text-xs text-gray-400 italic">No loot dropped this time.</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 italic">
+                No loot dropped this time.
+              </p>
             )}
           </div>
 

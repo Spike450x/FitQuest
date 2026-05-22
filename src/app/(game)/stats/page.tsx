@@ -11,6 +11,7 @@ import { ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { ACTIVITY_ICONS } from '@/lib/activityIcons';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Card } from '@/components/ui/Card';
+import { useTheme } from '@/hooks/useTheme';
 import { getStreakTier, STREAK_TIERS } from '@/lib/gameLogic/streaks';
 import type { ActivityLog, ActiveQuest, InventoryItem, ActivityType, Character } from '@/types';
 import {
@@ -37,6 +38,20 @@ const ACTIVITY_COLORS: Record<ActivityType, string> = {
 };
 
 type Range = '7d' | '30d' | 'all';
+
+// Theme-aware chart colors. Recharts SVG primitives don't pick up Tailwind
+// `dark:` classes, so we read theme from the hook and feed colors as props.
+function useChartColors() {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  return {
+    grid: isDark ? '#1e293b' : '#f0f0f0',
+    tick: isDark ? '#64748b' : '#9ca3af',
+    tooltipBg: isDark ? '#0f172a' : '#ffffff',
+    tooltipBorder: isDark ? '#334155' : '#e5e7eb',
+    tooltipText: isDark ? '#e2e8f0' : '#111827',
+  };
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -75,8 +90,10 @@ export default function StatsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">Stats</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
+          Stats
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
           {character.name} · Level {character.level} {character.class}
         </p>
       </div>
@@ -255,15 +272,15 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
   return (
     <div className="space-y-5">
       {/* Range filter */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-gray-100 dark:bg-slate-800 rounded-xl p-1 w-fit">
         {RANGES.map(({ value, label }) => (
           <button
             key={value}
             onClick={() => setRange(value)}
             className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               range === value
-                ? 'bg-white text-indigo-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white dark:bg-slate-900 text-indigo-700 shadow-sm'
+                : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
             }`}
           >
             {label}
@@ -280,12 +297,14 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
       ) : (
         <>
           {range === 'all' && raw && raw.logs.length >= 500 && (
-            <p className="text-xs text-gray-400 text-right">
+            <p className="text-xs text-gray-400 dark:text-slate-500 text-right">
               Showing most recent 500 activity logs
             </p>
           )}
           {range === 'all' && raw && raw.combatLogs.length >= 1000 && (
-            <p className="text-xs text-gray-400 text-right">Showing most recent 1000 battles</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 text-right">
+              Showing most recent 1000 battles
+            </p>
           )}
           <OverviewCards stats={stats} />
           <StreakPanel character={character} />
@@ -316,7 +335,7 @@ function StreakPanel({ character }: { character: Character }) {
             Day {current}
             {tier.label ? ` — ${tier.label}` : ''}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
             Longest streak: {longest} {longest === 1 ? 'day' : 'days'}
           </p>
         </div>
@@ -325,7 +344,7 @@ function StreakPanel({ character }: { character: Character }) {
             <p className={`text-lg font-bold ${tier.color}`}>
               +{Math.round((tier.lootDropMultiplier - 1) * 100)}%
             </p>
-            <p className="text-xs text-gray-500">rare+ drops</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400">rare+ drops</p>
           </div>
         )}
       </div>
@@ -344,8 +363,8 @@ function StreakPanel({ character }: { character: Character }) {
                   isCurrentTier
                     ? `${t.bgColor} border font-semibold`
                     : isActive
-                      ? 'bg-gray-50 text-gray-500'
-                      : 'text-gray-300'
+                      ? 'bg-gray-50 dark:bg-slate-900 text-gray-500 dark:text-slate-400'
+                      : 'text-gray-300 dark:text-slate-600'
                 }`}
               >
                 <span>
@@ -373,7 +392,7 @@ function PersonalRecordsPanel({ character }: { character: Character }) {
   return (
     <ChartCard title="Personal Records">
       {!hasAny ? (
-        <p className="text-sm text-gray-400 text-center py-4">
+        <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-4">
           No personal records yet — log activities to set your bests!
         </p>
       ) : (
@@ -385,11 +404,13 @@ function PersonalRecordsPanel({ character }: { character: Character }) {
               <div
                 key={type}
                 className={`rounded-xl p-3 border text-center ${
-                  pr ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 opacity-50'
+                  pr
+                    ? 'bg-white border-gray-200 dark:border-slate-700'
+                    : 'bg-gray-50 dark:bg-slate-900 border-gray-100 dark:border-slate-800 opacity-50'
                 }`}
               >
                 <p className="text-2xl mb-1">{ACTIVITY_ICONS[type]}</p>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                   {def.label}
                 </p>
                 {pr ? (
@@ -397,8 +418,8 @@ function PersonalRecordsPanel({ character }: { character: Character }) {
                     <p className="text-xl font-bold text-indigo-600">
                       {pr.value % 1 === 0 ? pr.value : pr.value.toFixed(1)}
                     </p>
-                    <p className="text-xs text-gray-400">{pr.unit}</p>
-                    <p className="text-xs text-gray-300 mt-1">
+                    <p className="text-xs text-gray-400 dark:text-slate-500">{pr.unit}</p>
+                    <p className="text-xs text-gray-300 dark:text-slate-600 mt-1">
                       {new Date(pr.loggedAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -406,7 +427,7 @@ function PersonalRecordsPanel({ character }: { character: Character }) {
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm text-gray-300 font-medium">—</p>
+                  <p className="text-sm text-gray-300 dark:text-slate-600 font-medium">—</p>
                 )}
               </div>
             );
@@ -478,7 +499,7 @@ function OverviewCards({
             {icon}
           </div>
           <p className={`text-xl font-bold ${color}`}>{value}</p>
-          <p className="text-xs text-gray-400">{label}</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500">{label}</p>
         </Card>
       ))}
     </div>
@@ -495,7 +516,7 @@ function ActivityBreakdown({
   if (data.length === 0) {
     return (
       <ChartCard title="Activity Breakdown">
-        <p className="text-sm text-gray-400 text-center py-6">
+        <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-6">
           No activities logged in this period.
         </p>
       </ChartCard>
@@ -512,12 +533,12 @@ function ActivityBreakdown({
             <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
             <div className="flex-1">
               <div className="flex justify-between text-sm mb-1">
-                <span className="font-medium text-gray-800">{type}</span>
-                <span className="text-xs text-gray-400">
+                <span className="font-medium text-gray-800 dark:text-slate-100">{type}</span>
+                <span className="text-xs text-gray-400 dark:text-slate-500">
                   {amount} {unit} · {logs} {logs === 1 ? 'log' : 'logs'}
                 </span>
               </div>
-              <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+              <div className="flex-1 bg-gray-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
                 <div
                   className="h-1.5 rounded-full"
                   style={{
@@ -537,25 +558,34 @@ function ActivityBreakdown({
 // ── XP Over Time ──────────────────────────────────────────────────────────────
 
 function XpChart({ data }: { data: { date: string; questXp: number; combatXp: number }[] }) {
+  const c = useChartColors();
   const hasData = data.some((d) => d.questXp > 0 || d.combatXp > 0);
   return (
     <ChartCard title="XP Earned Per Day">
       {!hasData ? (
-        <p className="text-sm text-gray-400 text-center py-6">No XP earned in this period.</p>
+        <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-6">
+          No XP earned in this period.
+        </p>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tick={{ fontSize: 11, fill: c.tick }}
               tickLine={false}
               axisLine={false}
               interval="preserveStartEnd"
             />
-            <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: c.tick }} tickLine={false} axisLine={false} />
             <Tooltip
-              contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}
+              contentStyle={{
+                fontSize: 12,
+                borderRadius: 8,
+                border: `1px solid ${c.tooltipBorder}`,
+                background: c.tooltipBg,
+                color: c.tooltipText,
+              }}
               formatter={(v, name) => [`${v} XP`, name === 'questXp' ? 'Quest XP' : 'Combat XP']}
             />
             <Legend
@@ -580,34 +610,41 @@ function XpChart({ data }: { data: { date: string; questXp: number; combatXp: nu
 // ── Activity Frequency Per Day ────────────────────────────────────────────────
 
 function ActivityFrequencyChart({ data }: { data: Record<string, number | string>[] }) {
+  const c = useChartColors();
   const activityTypes = Object.keys(ACTIVITY_DEFINITIONS) as ActivityType[];
   const hasData = data.some((d) => activityTypes.some((t) => (d[t] as number) > 0));
 
   return (
     <ChartCard title="Activities Logged Per Day">
       {!hasData ? (
-        <p className="text-sm text-gray-400 text-center py-6">
+        <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-6">
           No activities logged in this period.
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tick={{ fontSize: 11, fill: c.tick }}
               tickLine={false}
               axisLine={false}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tick={{ fontSize: 11, fill: c.tick }}
               tickLine={false}
               axisLine={false}
               allowDecimals={false}
             />
             <Tooltip
-              contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}
+              contentStyle={{
+                fontSize: 12,
+                borderRadius: 8,
+                border: `1px solid ${c.tooltipBorder}`,
+                background: c.tooltipBg,
+                color: c.tooltipText,
+              }}
             />
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
@@ -633,30 +670,39 @@ function ActivityFrequencyChart({ data }: { data: Record<string, number | string
 // ── Quests Completed Per Day ──────────────────────────────────────────────────
 
 function QuestsChart({ data }: { data: { date: string; quests: number }[] }) {
+  const c = useChartColors();
   const hasData = data.some((d) => d.quests > 0);
   return (
     <ChartCard title="Quests Claimed Per Day">
       {!hasData ? (
-        <p className="text-sm text-gray-400 text-center py-6">No quests claimed in this period.</p>
+        <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-6">
+          No quests claimed in this period.
+        </p>
       ) : (
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tick={{ fontSize: 11, fill: c.tick }}
               tickLine={false}
               axisLine={false}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tick={{ fontSize: 11, fill: c.tick }}
               tickLine={false}
               axisLine={false}
               allowDecimals={false}
             />
             <Tooltip
-              contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}
+              contentStyle={{
+                fontSize: 12,
+                borderRadius: 8,
+                border: `1px solid ${c.tooltipBorder}`,
+                background: c.tooltipBg,
+                color: c.tooltipText,
+              }}
               formatter={(v) => [`${v}`, 'Quests Claimed']}
             />
             <Bar dataKey="quests" radius={[4, 4, 0, 0]} name="Quests">
@@ -676,7 +722,9 @@ function QuestsChart({ data }: { data: { date: string; quests: number }[] }) {
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Card variant="default" padding="lg">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">{title}</p>
+      <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-4">
+        {title}
+      </p>
       {children}
     </Card>
   );

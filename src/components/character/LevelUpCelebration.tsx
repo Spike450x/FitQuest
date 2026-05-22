@@ -58,18 +58,24 @@ export function LevelUpCelebration() {
         <p className="relative text-xs uppercase tracking-[0.3em] text-amber-600 font-bold">
           Level Up
         </p>
-        <p className="relative text-5xl font-black text-gray-900 my-1 tabular-nums">{showLevel}</p>
-        <p className="relative text-sm text-gray-600 mb-5">
+        <p className="relative text-5xl font-black text-gray-900 dark:text-slate-100 my-1 tabular-nums">
+          {showLevel}
+        </p>
+        <p className="relative text-sm text-gray-600 dark:text-slate-300 mb-5">
           {character.name} reached <span className="font-semibold">Level {showLevel}</span>
         </p>
 
         <div className="relative bg-white/80 border border-amber-200 rounded-xl px-4 py-3 mb-5 backdrop-blur-sm">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Earned</p>
-          <p className="text-sm font-semibold text-gray-800 mt-1">
+          <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
+            Earned
+          </p>
+          <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 mt-1">
             +{pointsGained} stat point{pointsGained !== 1 ? 's' : ''} · +{LEVEL_UP.HEALTH_PER_LEVEL}{' '}
             HP · +{LEVEL_UP.DEFENSE_PER_LEVEL} Defense
           </p>
-          <p className="text-xs text-gray-500 mt-1">All combat resources fully restored.</p>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+            All combat resources fully restored.
+          </p>
         </div>
 
         <Button variant="primary" size="lg" fullWidth onClick={() => setShowLevel(null)}>
