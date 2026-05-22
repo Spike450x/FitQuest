@@ -18,8 +18,10 @@ interface InventoryStore {
   items: InventoryItem[];
   loading: boolean;
   error: string | null;
+  lastFetchedAt: number | null;
+  lastFetchedUid: string | null;
 
-  fetchInventory: (uid: string) => Promise<void>;
+  fetchInventory: (uid: string, force?: boolean) => Promise<void>;
   /**
    * Buy an item: atomically deducts gold and adds an InventoryItem doc in a
    * single Firestore transaction. Returns true on success, false on failure.
@@ -114,16 +116,29 @@ function computeGearDelta(
   return { charUpdate, newCurrentHp, newCurrentStamina };
 }
 
+const FETCH_TTL_MS = 30_000;
+
 export const useInventoryStore = create<InventoryStore>((set, get) => ({
   items: [],
   loading: false,
   error: null,
+  lastFetchedAt: null,
+  lastFetchedUid: null,
 
-  fetchInventory: async (uid) => {
+  fetchInventory: async (uid, force = false) => {
+    const { lastFetchedAt, lastFetchedUid } = get();
+    if (
+      !force &&
+      lastFetchedUid === uid &&
+      lastFetchedAt !== null &&
+      Date.now() - lastFetchedAt < FETCH_TTL_MS
+    ) {
+      return;
+    }
     set({ loading: true, error: null });
     try {
       const items = await fetchInventoryDocs(uid);
-      set({ items, loading: false });
+      set({ items, loading: false, lastFetchedAt: Date.now(), lastFetchedUid: uid });
     } catch (e) {
       captureError('inventoryStore.fetchInventory', e);
       set({ error: (e as Error).message, loading: false });
@@ -427,5 +442,6 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     }));
   },
 
-  clear: () => set({ items: [], loading: false, error: null }),
+  clear: () =>
+    set({ items: [], loading: false, error: null, lastFetchedAt: null, lastFetchedUid: null }),
 }));

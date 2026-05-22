@@ -29,6 +29,8 @@ interface QuestStore {
   loading: boolean;
   error: string | null;
   _fetching: boolean;
+  lastFetchedAt: number | null;
+  lastFetchedUid: string | null;
   /**
    * Loads active (non-expired) quests for the user.
    * Automatically assigns 3 daily quests and 3 weekly quests (picked from the
@@ -60,14 +62,26 @@ interface QuestStore {
   clear: () => void;
 }
 
+const FETCH_TTL_MS = 30_000;
+
 export const useQuestStore = create<QuestStore>((set, get) => ({
   quests: [],
   loading: false,
   error: null,
   _fetching: false,
+  lastFetchedAt: null,
+  lastFetchedUid: null,
 
   fetchAndAssignQuests: async (uid, dateKey) => {
-    if (get()._fetching) return;
+    const { _fetching, lastFetchedAt, lastFetchedUid } = get();
+    if (_fetching) return;
+    if (
+      lastFetchedUid === uid &&
+      lastFetchedAt !== null &&
+      Date.now() - lastFetchedAt < FETCH_TTL_MS
+    ) {
+      return;
+    }
     set({ _fetching: true, loading: true, error: null });
     try {
       const now = Date.now();
@@ -151,6 +165,8 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
         quests: [...existing, ...dailyAssigned, ...weeklyAssigned],
         loading: false,
         _fetching: false,
+        lastFetchedAt: Date.now(),
+        lastFetchedUid: uid,
       });
     } catch (e) {
       captureError('questStore.fetchAndAssignQuests', e);
@@ -352,5 +368,13 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
     }
   },
 
-  clear: () => set({ quests: [], loading: false, error: null, _fetching: false }),
+  clear: () =>
+    set({
+      quests: [],
+      loading: false,
+      error: null,
+      _fetching: false,
+      lastFetchedAt: null,
+      lastFetchedUid: null,
+    }),
 }));

@@ -38,7 +38,7 @@ export interface GameData {
  */
 export function useGameData(): GameData {
   const { character, loading, error, user } = useCharacter();
-  const { logs: recentLogs, loading: logsLoading } = useRecentActivity(character?.uid);
+  const { logs: recentLogs, loading: logsLoading } = useRecentActivity();
   const todayKey = useTodayKey();
   const quests = useQuestStore((s) => s.quests);
   const questsLoading = useQuestStore((s) => s.loading);
