@@ -164,14 +164,13 @@ export const claimCombatVictory = onCall<
     if (levelsGained > 0) {
       // Mirror awardXpAndStats: auto-stat bumps + resource restore.
       const newStats = { ...charData.stats };
-      const cap = statCapForLevel(level);
       // Health auto-grows; defense auto-grows.
       newStats.health = Math.min(
-        cap,
+        statCapForLevel('health', level),
         (newStats.health ?? 0) + LEVEL_UP.HEALTH_PER_LEVEL * levelsGained,
       );
       newStats.defense = Math.min(
-        cap,
+        statCapForLevel('defense', level),
         (newStats.defense ?? 0) + LEVEL_UP.DEFENSE_PER_LEVEL * levelsGained,
       );
       updates.stats = newStats;
