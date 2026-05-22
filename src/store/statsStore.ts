@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { captureError } from '@/lib/errors';
-import { fetchWithRetry } from '@/lib/retry';
+import { fetchWithRetry, STORE_RETRY_DELAYS } from '@/lib/retry';
 import { fetchActivityLogs } from '@/lib/activityData';
 import { fetchRecentCombatLogs, type CombatLog } from '@/lib/combatData';
 import type { ActivityLog } from '@/types';
@@ -47,7 +47,7 @@ export const useStatsStore = create<StatsStore>((set, get) => ({
       let attempt = 0;
       const [activityLogs, combatLogs] = await fetchWithRetry(
         () => Promise.all([fetchActivityLogs(uid), fetchRecentCombatLogs(uid, COMBAT_LOG_LIMIT)]),
-        [1_000, 3_000],
+        STORE_RETRY_DELAYS,
         () => {
           attempt++;
           if (attempt === 1) set({ retrying: true });

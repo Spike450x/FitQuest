@@ -17,6 +17,7 @@ import {
 import { logOut } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useActivityStore } from '@/store/activityStore';
+import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { useStatsStore } from '@/store/statsStore';
@@ -56,6 +57,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
   async function handleSignOut() {
     useActivityStore.getState().clear();
+    useCharacterStore.getState().clear();
     useQuestStore.getState().clear();
     useInventoryStore.getState().clear();
     useStatsStore.getState().clear();

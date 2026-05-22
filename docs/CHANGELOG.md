@@ -15,6 +15,14 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — retry.ts hardening, sign-out store flush, dependency fixes
+
+- **`isRetryable` classifier in `retry.ts`.** Non-retryable Firebase error codes (`permission-denied`, `unauthenticated`, `invalid-argument`, `not-found`, `failed-precondition`, and 4 others) now rethrow immediately without sleeping through delays. Unknown/network errors (no `.code`) default to retryable. 9 new unit tests cover the classifier and the fast-path behaviour.
+- **`STORE_RETRY_DELAYS` constant exported from `retry.ts`.** Replaces the four hardcoded `[1_000, 3_000]` literals across all store call sites and `ActivityLogForm.refreshTodayTotal`. Single place to tune retry timing app-wide.
+- **`refreshTodayTotal` now retries on transient failure.** Cap meter fetch is consistent with all other Firestore reads; on a network blip it retries before falling back to the stale value.
+- **`characterStore.clear()` added to sign-out flush.** `GameLayout.handleSignOut` was clearing 4 stores but not `characterStore`; stale character data could briefly persist in memory between sessions.
+- **Dependency audit: 4 of 11 moderate vulnerabilities resolved** via `npm audit fix` (`brace-expansion` in `@typescript-eslint`, `qs` in `express`). Remaining 7 are `uuid` inside `firebase-tools` transitive deps — the only fix requires downgrading `firebase-tools` to 1.2.0 (breaking); deferred.
+
 ## 2026-05-22 — questStore read retry, stale spinner on error resolved
 
 - **`fetchWithRetry` on `questStore.fetchAndAssignQuests` read path.** Only the initial `fetchActiveQuests` call is retried; the conditional `addActiveQuestDoc` writes that follow are intentionally excluded — partial quest assignments can't be safely rolled back.

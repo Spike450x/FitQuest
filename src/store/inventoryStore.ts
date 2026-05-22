@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { captureError } from '@/lib/errors';
-import { fetchWithRetry } from '@/lib/retry';
+import { fetchWithRetry, STORE_RETRY_DELAYS } from '@/lib/retry';
 import { useCharacterStore } from './characterStore';
 import {
   fetchInventoryDocs,
@@ -138,7 +138,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     }
     set({ loading: true, error: null });
     try {
-      const items = await fetchWithRetry(() => fetchInventoryDocs(uid));
+      const items = await fetchWithRetry(() => fetchInventoryDocs(uid), STORE_RETRY_DELAYS);
       set({ items, loading: false, lastFetchedAt: Date.now(), lastFetchedUid: uid });
     } catch (e) {
       captureError('inventoryStore.fetchInventory', e);

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { captureError } from '@/lib/errors';
-import { fetchWithRetry } from '@/lib/retry';
+import { fetchWithRetry, STORE_RETRY_DELAYS } from '@/lib/retry';
 import { fetchActiveQuests } from '@/lib/fetchPlayerData';
 import { addActiveQuestDoc, updateActiveQuestDoc } from '@/lib/questData';
 import {
@@ -91,7 +91,9 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       // Firestore composite index. Filter the expiry check client-side instead.
       // Retry the read only — the conditional writes below must not be retried
       // blindly because partial quest assignments can't be safely rolled back.
-      const all = await fetchWithRetry(() => fetchActiveQuests(uid));
+      // While retrying (up to ~4 s), _fetching stays true: concurrent callers
+      // return early and correctly wait for this attempt to settle.
+      const all = await fetchWithRetry(() => fetchActiveQuests(uid), STORE_RETRY_DELAYS);
       const existing = all.filter((q) => q.expiresAt > now);
 
       const weekKey = dateKey ? deriveWeekKey(dateKey) : undefined;
