@@ -12,7 +12,8 @@ const SHAPE_CLASSES: Record<Shape, string> = {
 type Tone = 'light' | 'dark';
 
 const TONE_CLASSES: Record<Tone, string> = {
-  light: 'bg-gray-200/70 before:via-white/70 motion-reduce:bg-gray-200',
+  light:
+    'bg-gray-200/70 before:via-white/70 motion-reduce:bg-gray-200 dark:bg-slate-800 dark:before:via-slate-700/80 dark:motion-reduce:bg-slate-800',
   dark: 'bg-slate-800 before:via-slate-700/80 motion-reduce:bg-slate-800',
 };
 

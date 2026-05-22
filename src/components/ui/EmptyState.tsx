@@ -28,13 +28,15 @@ export function EmptyState({ icon, title, description, cta, className = '' }: Em
           {icon}
         </div>
       )}
-      <p className="text-sm font-semibold text-gray-700">{title}</p>
-      {description && <p className="text-xs text-gray-500 mt-1">{description}</p>}
+      <p className="text-sm font-semibold text-gray-700 dark:text-slate-200">{title}</p>
+      {description && (
+        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">{description}</p>
+      )}
       {cta &&
         ('href' in cta ? (
           <Link
             href={cta.href}
-            className="inline-block mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
+            className="inline-block mt-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline"
           >
             {cta.label} →
           </Link>
@@ -42,7 +44,7 @@ export function EmptyState({ icon, title, description, cta, className = '' }: Em
           <button
             type="button"
             onClick={cta.onClick}
-            className="inline-block mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
+            className="inline-block mt-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline"
           >
             {cta.label}
           </button>

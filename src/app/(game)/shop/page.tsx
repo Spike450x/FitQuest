@@ -78,8 +78,10 @@ export default function ShopPage() {
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">Shop</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
+            Shop
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
             Buy gear, consumables, and spells. Equip up to 5 spells before combat.
           </p>
         </div>
@@ -106,7 +108,7 @@ export default function ShopPage() {
 
       {/* Tabs */}
       <div
-        className="flex gap-1 bg-gray-100 rounded-xl p-1"
+        className="flex gap-1 bg-gray-100 dark:bg-slate-800 rounded-xl p-1"
         role="tablist"
         aria-label="Shop categories"
       >
@@ -119,8 +121,8 @@ export default function ShopPage() {
             onClick={() => setActiveTab(type)}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-colors ${
               activeTab === type
-                ? 'bg-white text-indigo-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white dark:bg-slate-900 text-indigo-700 shadow-sm'
+                : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
             }`}
           >
             <span aria-hidden="true">{icon}</span>
@@ -133,7 +135,10 @@ export default function ShopPage() {
       {inventoryLoading && items.length === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 h-44 space-y-3">
+            <div
+              key={i}
+              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 h-44 space-y-3"
+            >
               <Skeleton shape="line" height="h-4" width="w-2/3" />
               <Skeleton shape="line" />
               <Skeleton shape="line" width="w-3/4" />
@@ -182,7 +187,7 @@ export default function ShopPage() {
             return (
               <div
                 key={item.id}
-                className={`relative bg-white border-2 ${rarityScheme.border} ${rarityScheme.glow} rounded-xl p-4 space-y-3 transition-all hover:-translate-y-0.5 hover:shadow-xl ${
+                className={`relative bg-white dark:bg-slate-900 border-2 ${rarityScheme.border} ${rarityScheme.glow} rounded-xl p-4 space-y-3 transition-all hover:-translate-y-0.5 hover:shadow-xl ${
                   isLegendary ? 'animate-legendary-glow' : ''
                 }`}
               >
@@ -194,21 +199,23 @@ export default function ShopPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900 text-sm">{item.name}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">
+                        {item.name}
+                      </h3>
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-medium ${RARITY_BADGE[item.rarity]}`}
                       >
                         {item.rarity}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5 capitalize">
+                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 capitalize">
                       {item.type} · Tier {item.tier}
                     </p>
                   </div>
                   <p className="text-amber-500 font-bold text-sm shrink-0">{item.price} 💰</p>
                 </div>
 
-                <p className="text-xs text-gray-500">{item.description}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400">{item.description}</p>
 
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(item.statBonuses)

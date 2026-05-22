@@ -47,13 +47,20 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-lg">
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Begin your journey</h2>
-      <p className="text-gray-400 text-sm mb-6">Create your account to start adventuring</p>
+    <div className="bg-white dark:bg-slate-900/80 backdrop-blur-sm border border-gray-200 dark:border-slate-700 rounded-2xl p-8 shadow-lg dark:shadow-black/40">
+      <h2 className="font-display text-xl font-bold text-gray-900 dark:text-slate-100 mb-1">
+        Begin your journey
+      </h2>
+      <p className="text-gray-400 dark:text-slate-500 text-sm mb-6">
+        Create your account to start adventuring
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-600 mb-1">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-600 dark:text-slate-300 mb-1"
+          >
             Email
           </label>
           <input
@@ -63,13 +70,16 @@ export default function RegisterPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            className="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
             placeholder="hero@example.com"
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-600 mb-1">
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-600 dark:text-slate-300 mb-1"
+          >
             Password
           </label>
           <input
@@ -79,7 +89,7 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="new-password"
-            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            className="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
             placeholder="••••••••"
           />
         </div>
@@ -87,7 +97,7 @@ export default function RegisterPage() {
         <div>
           <label
             htmlFor="confirm-password"
-            className="block text-sm font-medium text-gray-600 mb-1"
+            className="block text-sm font-medium text-gray-600 dark:text-slate-300 mb-1"
           >
             Confirm Password
           </label>
@@ -98,13 +108,13 @@ export default function RegisterPage() {
             onChange={(e) => setConfirm(e.target.value)}
             required
             autoComplete="new-password"
-            className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            className="w-full bg-white dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
             placeholder="••••••••"
           />
         </div>
 
         {error && (
-          <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <p className="text-red-600 dark:text-red-300 text-sm bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 rounded-lg px-3 py-2">
             {error}
           </p>
         )}
@@ -112,17 +122,17 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg transition-colors"
+          className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 hover:shadow-lg hover:shadow-indigo-500/40 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none text-white font-bold py-2.5 rounded-lg transition-all active:scale-[0.98]"
         >
           {loading ? 'Creating account...' : 'Create Account'}
         </button>
       </form>
 
-      <p className="text-center text-gray-400 text-sm mt-6">
+      <p className="text-center text-gray-400 dark:text-slate-500 text-sm mt-6">
         Already have an account?{' '}
         <Link
           href="/login"
-          className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+          className="text-indigo-600 dark:text-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-200 font-medium transition-colors"
         >
           Sign in
         </Link>

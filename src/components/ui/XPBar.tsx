@@ -33,13 +33,13 @@ export function XPBar({ xp, level, xpToNextLevel }: XPBarProps) {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between text-xs text-indigo-600 mb-1 font-medium tabular-nums">
+      <div className="flex justify-between text-xs text-indigo-600 dark:text-indigo-300 mb-1 font-medium tabular-nums">
         <span className="font-display tracking-wide">Level {level}</span>
         <span>
           {xp.toLocaleString()} / {xpToNextLevel.toLocaleString()} XP
         </span>
       </div>
-      <div className="relative w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+      <div className="relative w-full bg-gray-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
         <div
           className={`h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-700 ease-out ${
             flash ? 'shadow-[0_0_12px_rgba(99,102,241,0.7)]' : ''

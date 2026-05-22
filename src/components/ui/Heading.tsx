@@ -5,10 +5,10 @@ import type { ReactNode } from 'react';
 type Level = 1 | 2 | 3 | 4;
 
 const SIZE_CLASSES: Record<Level, string> = {
-  1: 'font-display text-3xl font-bold tracking-tight text-gray-900',
-  2: 'font-display text-xl font-semibold tracking-tight text-gray-900',
-  3: 'text-base font-semibold text-gray-900',
-  4: 'text-xs font-semibold uppercase tracking-wider text-gray-500',
+  1: 'font-display text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-100',
+  2: 'font-display text-xl font-semibold tracking-tight text-gray-900 dark:text-slate-100',
+  3: 'text-base font-semibold text-gray-900 dark:text-slate-100',
+  4: 'text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400',
 };
 
 interface HeadingProps {

@@ -114,7 +114,7 @@ export default function DashboardPage() {
             <p className="text-indigo-400 text-sm font-medium">
               {classDef.emoji} {classDef.label}
             </p>
-            <h2 className="font-display text-3xl font-bold text-gray-900 tracking-tight">
+            <h2 className="font-display text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
               {character.name}
             </h2>
             <p className="text-indigo-600 text-sm mt-0.5 font-medium">
@@ -130,7 +130,7 @@ export default function DashboardPage() {
                   {streakTier.label ? ` · ${streakTier.label}` : ''}
                 </span>
                 {streakTier.lootDropMultiplier > 1 && (
-                  <span className="text-xs text-gray-400 font-medium">
+                  <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">
                     +{Math.round((streakTier.lootDropMultiplier - 1) * 100)}% rare drops
                   </span>
                 )}
@@ -146,7 +146,9 @@ export default function DashboardPage() {
             )}
             {/* Shield hint when streak exists but no shield is held */}
             {currentStreak > 0 && (character.streakData?.shields ?? 0) === 0 && (
-              <p className="text-xs text-gray-400 mt-1">🛡️ No shield — refills next week</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                🛡️ No shield — refills next week
+              </p>
             )}
           </div>
           <GoldDisplay amount={character.gold} size="lg" />
@@ -156,16 +158,19 @@ export default function DashboardPage() {
         {/* Stamina bar */}
         <div className="space-y-1 mt-3">
           <div className="flex justify-between items-center text-sm">
-            <span className="flex items-center gap-1.5 text-gray-700">
+            <span className="flex items-center gap-1.5 text-gray-700 dark:text-slate-200">
               <span>⚡</span>
               <span className="font-medium text-sm">Stamina</span>
             </span>
-            <span className="text-gray-700 font-semibold text-sm tabular-nums">
+            <span className="text-gray-700 dark:text-slate-200 font-semibold text-sm tabular-nums">
               {currentStamina}
-              <span className="text-gray-400 font-normal text-xs"> / {maxStamina}</span>
+              <span className="text-gray-400 dark:text-slate-500 font-normal text-xs">
+                {' '}
+                / {maxStamina}
+              </span>
             </span>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-amber-400 to-amber-500"
               style={{ width: `${Math.min((currentStamina / maxStamina) * 100, 100)}%` }}
@@ -176,7 +181,7 @@ export default function DashboardPage() {
 
       {/* Quick actions */}
       <div>
-        <h3 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-3 uppercase tracking-wider">
           Quick Actions
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -184,13 +189,13 @@ export default function DashboardPage() {
             <Link
               key={href}
               href={href}
-              className="bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.02] rounded-xl p-4 text-center transition-all duration-200 group"
+              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-indigo-300 hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.02] rounded-xl p-4 text-center transition-all duration-200 group"
             >
               <div className="text-2xl mb-2 transition-transform group-hover:scale-110">{icon}</div>
-              <p className="text-sm font-medium text-gray-800 group-hover:text-indigo-600 transition-colors">
+              <p className="text-sm font-medium text-gray-800 dark:text-slate-100 group-hover:text-indigo-600 transition-colors">
                 {label}
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{desc}</p>
             </Link>
           ))}
         </div>
@@ -200,7 +205,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Stats overview */}
         <Card variant="default" padding="lg">
-          <h3 className="text-xs font-semibold text-gray-400 mb-4 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-4 uppercase tracking-wider">
             Stats
           </h3>
           <div className="space-y-3">
@@ -227,7 +232,7 @@ export default function DashboardPage() {
 
         {/* Recent activity feed */}
         <Card variant="default" padding="lg">
-          <h3 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-3 uppercase tracking-wider">
             📋 Recent Activity
           </h3>
           {logsLoading ? (
@@ -241,7 +246,9 @@ export default function DashboardPage() {
               <div className="text-2xl mb-1" aria-hidden="true">
                 📭
               </div>
-              <p className="text-sm font-medium text-gray-600">No activities yet</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-slate-300">
+                No activities yet
+              </p>
               <Link
                 href="/activities"
                 className="inline-block mt-1 text-xs font-semibold text-indigo-600 hover:underline"
@@ -283,8 +290,10 @@ function ActivityFeedItem({ log }: { log: ActivityLog }) {
     <li className="flex items-center gap-3 text-sm">
       <span className="text-lg w-7 text-center">{icon}</span>
       <div className="flex-1 min-w-0">
-        <span className="font-medium text-gray-800 capitalize">{def.label}</span>
-        <span className="text-gray-400 ml-1.5">
+        <span className="font-medium text-gray-800 dark:text-slate-100 capitalize">
+          {def.label}
+        </span>
+        <span className="text-gray-400 dark:text-slate-500 ml-1.5">
           {amount} {def.unit}
         </span>
       </div>
@@ -292,10 +301,10 @@ function ActivityFeedItem({ log }: { log: ActivityLog }) {
         {log.xpGained > 0 && (
           <>
             <span className="text-indigo-600 font-semibold">+{log.xpGained} XP</span>
-            <span className="text-gray-300">·</span>
+            <span className="text-gray-300 dark:text-slate-600">·</span>
           </>
         )}
-        <span className="text-gray-400 text-xs">{timeAgo(log.loggedAt)}</span>
+        <span className="text-gray-400 dark:text-slate-500 text-xs">{timeAgo(log.loggedAt)}</span>
       </div>
     </li>
   );
@@ -307,7 +316,7 @@ function ActiveQuestsWidget({ quests, loading }: { quests: ActiveQuest[]; loadin
   return (
     <Card variant="default" padding="lg">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
           📜 Daily Quests
         </h3>
         <Link href="/quests" className="text-xs font-semibold text-indigo-600 hover:underline">
@@ -328,7 +337,7 @@ function ActiveQuestsWidget({ quests, loading }: { quests: ActiveQuest[]; loadin
           <div className="text-2xl mb-1" aria-hidden="true">
             🗺️
           </div>
-          <p className="text-sm font-medium text-gray-600">No active quests</p>
+          <p className="text-sm font-medium text-gray-600 dark:text-slate-300">No active quests</p>
           <Link
             href="/quests"
             className="inline-block mt-1 text-xs font-semibold text-indigo-600 hover:underline"
@@ -380,7 +389,9 @@ function QuestProgressRow({ quest }: { quest: ActiveQuest }) {
   return (
     <li className="space-y-1">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-gray-700 truncate">{def.name}</span>
+        <span className="text-xs font-medium text-gray-700 dark:text-slate-200 truncate">
+          {def.name}
+        </span>
         {isClaimed ? (
           <span className="text-xs text-emerald-600 font-medium shrink-0">Claimed</span>
         ) : isComplete ? (
@@ -391,14 +402,14 @@ function QuestProgressRow({ quest }: { quest: ActiveQuest }) {
             Claim! →
           </Link>
         ) : isMultiTarget ? (
-          <span className="text-xs text-gray-400 shrink-0">
+          <span className="text-xs text-gray-400 dark:text-slate-500 shrink-0">
             {doneTargets}/{totalTargets} done
           </span>
         ) : (
-          <span className="text-xs text-gray-400 shrink-0">{pct}%</span>
+          <span className="text-xs text-gray-400 dark:text-slate-500 shrink-0">{pct}%</span>
         )}
       </div>
-      <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+      <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
         <div
           className={`h-1.5 rounded-full transition-all duration-500 ${
             isClaimed ? 'bg-emerald-400' : isComplete ? 'bg-amber-400' : 'bg-indigo-500'
@@ -406,7 +417,7 @@ function QuestProgressRow({ quest }: { quest: ActiveQuest }) {
           style={{ width: `${bottleneckPct}%` }}
         />
       </div>
-      <span className="text-xs text-gray-400">
+      <span className="text-xs text-gray-400 dark:text-slate-500">
         {isMultiTarget && (
           <span className="font-medium capitalize">{def.requirement.activityType}: </span>
         )}

@@ -5,20 +5,22 @@ export default function ActivitiesPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">
+        <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
           Log Activity
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
           Track workouts, steps, sleep, water, and nutrition to build mastery and restore resources.
         </p>
       </div>
 
       {/* Apple Health sync — Post-MVP */}
-      <div className="flex items-start gap-3 bg-gray-50 border border-dashed border-gray-300 rounded-xl px-4 py-3">
+      <div className="flex items-start gap-3 bg-gray-50 dark:bg-slate-900 border border-dashed border-gray-300 dark:border-slate-700 rounded-xl px-4 py-3">
         <span className="text-xl mt-0.5">🍎</span>
         <div>
-          <p className="text-sm font-medium text-gray-600">Apple Health sync — Post-MVP</p>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-sm font-medium text-gray-600 dark:text-slate-300">
+            Apple Health sync — Post-MVP
+          </p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
             Explore live-syncing steps, sleep, and workouts directly from Apple Health so logging
             happens automatically.
           </p>

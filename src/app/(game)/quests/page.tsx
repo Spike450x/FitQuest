@@ -46,14 +46,16 @@ function ProgressBar({
         : 'bg-indigo-500';
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-xs text-gray-500">
+      <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400">
         <span className="capitalize">
-          {label && <span className="font-medium text-gray-600 mr-1">{label}:</span>}
+          {label && (
+            <span className="font-medium text-gray-600 dark:text-slate-300 mr-1">{label}:</span>
+          )}
           {current.toLocaleString()} / {target.toLocaleString()} {unit}
         </span>
         <span>{pct}%</span>
       </div>
-      <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+      <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
         <div
           className={`h-2 rounded-full transition-all duration-500 ${barColor}`}
           style={{ width: `${pct}%` }}
@@ -85,19 +87,19 @@ function QuestCard({
 
   return (
     <div
-      className={`bg-white border rounded-xl p-4 shadow-sm space-y-3 transition-colors ${
+      className={`bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-sm space-y-3 transition-colors ${
         isClaimed
           ? 'border-emerald-200 opacity-60'
           : isComplete
             ? 'border-amber-300 bg-amber-50/30'
-            : 'border-gray-200'
+            : 'border-gray-200 dark:border-slate-700'
       }`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-gray-900 text-sm">{def.name}</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">{def.name}</h3>
             {isClaimed && (
               <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700">
                 Claimed
@@ -109,7 +111,7 @@ function QuestCard({
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">{def.description}</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{def.description}</p>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <div className="flex items-center gap-1.5">
@@ -124,7 +126,9 @@ function QuestCard({
             <span className="text-xs text-amber-500 font-semibold">+{def.rewards.gold} 💰</span>
           </div>
           {!isClaimed && (
-            <p className="text-xs text-gray-400">{timeUntilExpiry(quest.expiresAt)}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">
+              {timeUntilExpiry(quest.expiresAt)}
+            </p>
           )}
         </div>
       </div>
@@ -202,9 +206,11 @@ function QuestSection({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xl">{icon}</span>
-          <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">{title}</h2>
+          <h2 className="text-sm font-bold text-gray-700 dark:text-slate-200 uppercase tracking-wider">
+            {title}
+          </h2>
         </div>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-400 dark:text-slate-500">
           {completed}/{quests.length} claimed
         </p>
       </div>
@@ -282,8 +288,10 @@ export default function QuestsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-bold text-gray-900 tracking-tight">Quests</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
+          Quests
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
           Complete fitness goals to earn bonus XP and gold. Log activities to make progress.
         </p>
       </div>

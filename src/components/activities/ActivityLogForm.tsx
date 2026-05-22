@@ -243,7 +243,7 @@ export function ActivityLogForm() {
   return (
     <Card variant="default" padding="none" className="overflow-hidden">
       {/* Tabs */}
-      <div className="flex border-b border-gray-100">
+      <div className="flex border-b border-gray-100 dark:border-slate-800">
         {TABS.map(({ type, icon, label }) => (
           <button
             key={type}
@@ -255,7 +255,7 @@ export function ActivityLogForm() {
             className={`flex-1 py-3 text-xs font-medium transition-colors ${
               activeTab === type
                 ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-50 dark:bg-slate-900'
             }`}
           >
             <span className="block text-xl mb-0.5">{icon}</span>
@@ -266,12 +266,12 @@ export function ActivityLogForm() {
 
       {/* Form body */}
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
-        <p className="text-sm text-gray-500">{def.description}</p>
+        <p className="text-sm text-gray-500 dark:text-slate-400">{def.description}</p>
 
         <div>
           <label
             htmlFor="activity-amount"
-            className="block text-sm font-medium text-gray-700 mb-1 capitalize"
+            className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-1 capitalize"
           >
             {def.unit}
           </label>
@@ -285,7 +285,7 @@ export function ActivityLogForm() {
             step={inputCfg.step}
             placeholder={inputCfg.placeholder}
             required
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
 
@@ -436,7 +436,9 @@ function MasteryResult({ result }: { result: MasteryResult }) {
       {/* Mastery count */}
       <div>
         <p className="text-5xl font-bold text-indigo-600">{result.newCount}</p>
-        <p className="text-gray-400 text-sm mt-1">{result.activityLabel} sessions logged</p>
+        <p className="text-gray-400 dark:text-slate-500 text-sm mt-1">
+          {result.activityLabel} sessions logged
+        </p>
       </div>
 
       {/* Progress to next milestone */}
@@ -460,9 +462,11 @@ function RestoreResult({ result }: { result: RestoreResult }) {
       {result.alreadyFull ? (
         <div className="space-y-3">
           <p className="text-4xl">✅</p>
-          <p className="text-lg font-semibold text-gray-700">{result.activityLabel} Logged</p>
-          <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-            <p className="text-sm text-gray-500">
+          <p className="text-lg font-semibold text-gray-700 dark:text-slate-200">
+            {result.activityLabel} Logged
+          </p>
+          <div className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg px-4 py-3">
+            <p className="text-sm text-gray-500 dark:text-slate-400">
               {rl.icon} {rl.label} was already full — nothing restored.
             </p>
           </div>
@@ -484,9 +488,9 @@ function RestoreResult({ result }: { result: RestoreResult }) {
             >
               +{result.restored}
             </p>
-            <p className="text-gray-400 text-sm mt-1">{rl.label} restored</p>
+            <p className="text-gray-400 dark:text-slate-500 text-sm mt-1">{rl.label} restored</p>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-slate-400">
             Logged {result.restored} {rl.label.toLowerCase()} from{' '}
             {result.activityLabel.toLowerCase()}.
           </p>

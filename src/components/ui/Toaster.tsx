@@ -4,6 +4,7 @@ import { Toaster as SonnerToaster, toast } from 'sonner';
 import type { ItemRarity } from '@/types';
 import { RARITY_BADGE } from '@/lib/gameLogic/items';
 import { fireConfetti } from '@/lib/confetti';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * Global toast renderer. Mounted once in the root layout.
@@ -12,12 +13,14 @@ import { fireConfetti } from '@/lib/confetti';
  * of importing `sonner` directly so styling stays centralized.
  */
 export function Toaster() {
+  const { theme } = useTheme();
   return (
     <SonnerToaster
       position="top-center"
       duration={3500}
       closeButton={false}
       richColors
+      theme={theme}
       toastOptions={{
         className: 'rounded-xl shadow-lg border text-sm font-medium [&_[data-icon]]:text-base',
       }}

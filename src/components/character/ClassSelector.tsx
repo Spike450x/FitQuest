@@ -27,16 +27,18 @@ export function ClassSelector({ selected, onSelect }: ClassSelectorProps) {
               ${
                 isSelected
                   ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                  : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm'
+                  : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-indigo-300 hover:shadow-sm'
               }
             `}
           >
             <div className="text-2xl mb-2">{def.emoji}</div>
-            <div className="font-bold text-gray-900 mb-1">{def.label}</div>
-            <p className="text-xs text-gray-500 leading-relaxed">{def.description}</p>
+            <div className="font-bold text-gray-900 dark:text-slate-100 mb-1">{def.label}</div>
+            <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
+              {def.description}
+            </p>
 
             {/* Starting stats preview */}
-            <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-1">
+            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-800 grid grid-cols-2 gap-1">
               {(
                 [
                   ['STR', def.startingStats.strength],
@@ -46,8 +48,10 @@ export function ClassSelector({ selected, onSelect }: ClassSelectorProps) {
                 ] as [string, number][]
               ).map(([label, val]) => (
                 <div key={label} className="flex justify-between text-xs">
-                  <span className="text-gray-400">{label}</span>
-                  <span className="text-gray-700 font-mono font-medium">{val}</span>
+                  <span className="text-gray-400 dark:text-slate-500">{label}</span>
+                  <span className="text-gray-700 dark:text-slate-200 font-mono font-medium">
+                    {val}
+                  </span>
                 </div>
               ))}
             </div>

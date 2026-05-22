@@ -53,7 +53,7 @@ export function CharacterCard({ character }: CharacterCardProps) {
   const currentStamina = character.currentStamina ?? maxStamina;
 
   return (
-    <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+    <div className="relative bg-white border border-gray-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
       {/* Themed top banner */}
       <div
         className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-br ${theme.gradient} opacity-80`}
@@ -74,18 +74,20 @@ export function CharacterCard({ character }: CharacterCardProps) {
           >
             {classDef.emoji}
             <span
-              className={`absolute -bottom-1 right-0 bg-white border border-gray-200 rounded-full px-1.5 py-0.5 text-[10px] font-display font-bold tabular-nums shadow-sm ${theme.accent}`}
+              className={`absolute -bottom-1 right-0 bg-white border border-gray-200 dark:border-slate-700 rounded-full px-1.5 py-0.5 text-[10px] font-display font-bold tabular-nums shadow-sm ${theme.accent}`}
             >
               Lv {character.level}
             </span>
           </div>
 
           <div className="flex-1 min-w-0 pt-1">
-            <h2 className="font-display text-2xl font-bold text-gray-900 tracking-tight truncate">
+            <h2 className="font-display text-2xl font-bold text-gray-900 dark:text-slate-100 tracking-tight truncate">
               {character.name}
             </h2>
             <p className={`text-sm mt-0.5 font-semibold ${theme.accent}`}>{classDef.label}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{classDef.description.split('.')[0]}.</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+              {classDef.description.split('.')[0]}.
+            </p>
           </div>
 
           <GoldDisplay amount={character.gold} size="md" />
@@ -97,16 +99,19 @@ export function CharacterCard({ character }: CharacterCardProps) {
         {/* Stamina bar */}
         <div className="space-y-1">
           <div className="flex justify-between items-center text-sm">
-            <span className="flex items-center gap-1.5 text-gray-700">
+            <span className="flex items-center gap-1.5 text-gray-700 dark:text-slate-200">
               <span>⚡</span>
               <span className="font-medium">Stamina</span>
             </span>
-            <span className="text-gray-700 font-semibold text-sm tabular-nums">
+            <span className="text-gray-700 dark:text-slate-200 font-semibold text-sm tabular-nums">
               {currentStamina}
-              <span className="text-gray-400 font-normal text-xs"> / {maxStamina}</span>
+              <span className="text-gray-400 dark:text-slate-500 font-normal text-xs">
+                {' '}
+                / {maxStamina}
+              </span>
             </span>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-amber-400 to-amber-500"
               style={{ width: `${Math.min((currentStamina / maxStamina) * 100, 100)}%` }}
@@ -115,8 +120,10 @@ export function CharacterCard({ character }: CharacterCardProps) {
         </div>
 
         {/* Primary stat bars */}
-        <div className="space-y-3 pt-1 border-t border-gray-100">
-          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider pt-1">Stats</p>
+        <div className="space-y-3 pt-1 border-t border-gray-100 dark:border-slate-800">
+          <p className="text-xs text-gray-400 dark:text-slate-500 font-semibold uppercase tracking-wider pt-1">
+            Stats
+          </p>
           {STAT_CONFIG.map(({ key, label, icon, color }) => {
             const base = character.stats[key] ?? 0;
             const bonus = gearBonuses[key] ?? 0;
@@ -135,8 +142,8 @@ export function CharacterCard({ character }: CharacterCardProps) {
         </div>
 
         {/* Equipped gear summary */}
-        <div className="pt-1 border-t border-gray-100">
-          <p className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wider">
+        <div className="pt-1 border-t border-gray-100 dark:border-slate-800">
+          <p className="text-xs text-gray-400 dark:text-slate-500 mb-2 font-semibold uppercase tracking-wider">
             Equipped
           </p>
           <div className="grid grid-cols-3 gap-2 text-center text-xs">
@@ -149,16 +156,20 @@ export function CharacterCard({ character }: CharacterCardProps) {
                   className={`rounded-lg p-2 border transition-colors ${
                     equipped
                       ? 'bg-white border-indigo-200 shadow-sm'
-                      : 'bg-gray-50 border-dashed border-gray-300'
+                      : 'bg-gray-50 dark:bg-slate-900 border-dashed border-gray-300 dark:border-slate-700'
                   }`}
                 >
                   <div className="text-lg leading-none" aria-hidden="true">
                     {SLOT_ICON[slot]}
                   </div>
-                  <p className="text-[10px] text-gray-400 capitalize mt-1">{slot}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-slate-500 capitalize mt-1">
+                    {slot}
+                  </p>
                   <p
                     className={`text-xs mt-0.5 truncate font-medium ${
-                      equipped ? RARITY_TEXT[equipped.rarity] : 'text-gray-400 italic'
+                      equipped
+                        ? RARITY_TEXT[equipped.rarity]
+                        : 'text-gray-400 dark:text-slate-500 italic'
                     }`}
                     title={equipped?.name ?? 'empty'}
                   >
