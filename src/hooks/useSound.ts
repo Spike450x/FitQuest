@@ -58,9 +58,15 @@ export function playSound(key: SoundKey): void {
  * Chrome / Safari's autoplay policy.
  */
 export function useSound() {
-  const [enabled, setEnabled] = useState(readEnabled);
+  const [enabled, setEnabled] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Sync from localStorage after mount — server always renders as disabled
+    // (false) to match the SSR default; this corrects it client-side.
+    setEnabled(readEnabled());
+    setMounted(true);
+
     function onStorage(e: StorageEvent) {
       if (e.key === STORAGE_KEY) setEnabled(e.newValue === 'true');
     }
@@ -92,7 +98,7 @@ export function useSound() {
     [enabled],
   );
 
-  return { enabled, setSoundEnabled, play };
+  return { enabled, setSoundEnabled, play, mounted };
 }
 
 export type { SoundKey };
