@@ -32,17 +32,17 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 ### Balance & engine fixes (from game-systems-audit spec — fix before adding features)
 
-- **P0-1** — Unify monster counter-attack formula: all monsters use flat damage (not % of player health); S effort
-- **P0-2** — Monster XP scaling cliff at level 10: add level-scaling multiplier so XP doesn't stall post-10; M effort
+- ~~**P0-1** — Unify monster counter-attack formula~~ — verified already flat (`monster.attack − effectivePlayerDef`); no change needed
+- ~~**P0-2** — Monster XP scaling cliff at level 10~~ — shipped: `monsterXpScaling(playerLevel, monsterLevel)` adds +8%/level over the monster for top-tier (level ≥ 8) monsters, capped at 2.0×
 - **P0-3** — Daily combat XP cap / diminishing returns: prevent farm loops after ~10 battles/day; M effort
-- **P1-1** — Steepen quest XP scaler to `0.4 + 0.6 * sqrt(level)` — quests fall behind monster XP at high levels; S effort
-- **P1-2** — Raise Blessed tier streak XP multiplier 1.25× → 1.50× — current bonus undersells the habit streak; S effort
+- ~~**P1-1** — Steepen quest XP scaler~~ — shipped: `0.4 + 0.6·√l` (was `0.6 + 0.4·√l`); level-10 lifts 1.86× → 2.30×
+- ~~**P1-2** — Raise Blessed tier streak XP multiplier 1.25× → 1.50×~~ — shipped
 - **P1-3** — Gold endgame sinks: quest reroll (100g) and dungeon entry fees — gold accumulates with nothing to spend it on; S–M effort
-- **P1-4** — Fizzle stamina refund: return 5 stamina on failed ability roll (currently 10 — too generous); S effort
-- **P1-5** — Add level-9 monster (Lich King) to fill the gap between level-8 Vampire and level-10 Dragon; S effort
+- ~~**P1-4** — Fizzle stamina refund~~ — shipped: `COMBAT.FIZZLE_STAMINA_REFUND = 5` returned on failed ability roll
+- ~~**P1-5** — Add level-9 monster (Lich King)~~ — shipped: HP 150 / atk 28 / def 9 / xp 220 / gold 110 with necromancer loot table
 - **P1-6** — Dungeon resource persistence: HP/Stamina/Magic carry between rooms (currently reset); L effort
 - **P2-1** — Wisdom-from-steps mastery tooltip: surface the stat link on the log form; S effort
-- **P2-2** — Wizard starting stats: +2 health or stamina to compensate for low base; S effort
+- ~~**P2-2** — Wizard starting stats~~ — shipped: starting health 6 → 8
 - **P2-3** — Activity cap proximity indicator on the log form (e.g., "68% of daily cap used"); M effort
 - **P2-4** — Quest pool expansion + reroll mechanic (100g per reroll); S–M effort
 

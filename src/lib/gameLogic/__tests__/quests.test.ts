@@ -10,12 +10,12 @@ describe('scaleQuestRewards', () => {
     expect(r.gold).toBe(15);
   });
 
-  it('returns ~1.86× at level 10', () => {
+  it('returns ~2.30× at level 10 (steeper than the old 0.6+0.4·√l curve)', () => {
     const r = scaleQuestRewards(base, 10);
-    // 0.6 + 0.4 * sqrt(10) ≈ 1.8649
-    expect(r.xp).toBe(Math.round(50 * (0.6 + 0.4 * Math.sqrt(10))));
-    expect(r.xp).toBeGreaterThan(90);
-    expect(r.xp).toBeLessThan(100);
+    // 0.4 + 0.6 * sqrt(10) ≈ 2.2974
+    expect(r.xp).toBe(Math.round(50 * (0.4 + 0.6 * Math.sqrt(10))));
+    expect(r.xp).toBeGreaterThan(110);
+    expect(r.xp).toBeLessThan(120);
   });
 
   it('scales monotonically with level', () => {

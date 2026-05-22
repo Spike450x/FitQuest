@@ -32,7 +32,9 @@ export const CLASS_DEFINITIONS: Record<
     description:
       'Glass cannon in cloth robes. Lowest defense in the game — kill fast with magic or die. Wisdom grows rapidly from nutrition and mindfulness.',
     emoji: '🧙',
-    startingStats: { strength: 3, stamina: 5, agility: 6, health: 6, wisdom: 8, defense: 1 },
+    // +2 health vs the original (6→8) — the lowest-defense class needed a
+    // small HP cushion so early-game encounters aren't one-shot reset tickets.
+    startingStats: { strength: 3, stamina: 5, agility: 6, health: 8, wisdom: 8, defense: 1 },
     statMultipliers: {
       strength: 0.8,
       stamina: 1.0,
@@ -187,6 +189,12 @@ export const COMBAT = {
   STAMINA_PER_STAT: 5,
   /** Stamina cost to trigger a special class ability. */
   ABILITY_STAMINA_COST: 10,
+  /**
+   * Stamina refunded when an ability roll fizzles (no dice pattern matched).
+   * Half the full cost — the player is still penalized for the failed gambit
+   * but not so harshly that abilities feel disposable.
+   */
+  FIZZLE_STAMINA_REFUND: 5,
   // ── Magic (spell system) ───────────────────────────────────────────────────
   /** Base magic pool before wisdom bonuses. */
   BASE_MAGIC: 20,

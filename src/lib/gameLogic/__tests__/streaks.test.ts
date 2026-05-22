@@ -150,9 +150,9 @@ describe('getStreakXpMultiplier', () => {
     expect(getStreakXpMultiplier(3)).toBe(1.05);
   });
 
-  it('caps at 1.25 for very long streaks', () => {
-    expect(getStreakXpMultiplier(30)).toBe(1.25);
-    expect(getStreakXpMultiplier(365)).toBe(1.25);
+  it('caps at 1.5 for very long streaks (Blessed tier)', () => {
+    expect(getStreakXpMultiplier(30)).toBe(1.5);
+    expect(getStreakXpMultiplier(365)).toBe(1.5);
   });
 
   it('is monotonically non-decreasing', () => {
