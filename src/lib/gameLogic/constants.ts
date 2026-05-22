@@ -143,6 +143,16 @@ export function xpToNextLevel(level: number): number {
 /** Flat cap for primary combat stats: Strength, Wisdom, Agility. */
 export const PRIMARY_STAT_CAP = 50;
 
+// ─── Quests ───────────────────────────────────────────────────────────────────
+
+/**
+ * Gold cost to reroll a single quest. Replaces the quest with a new pick from
+ * the appropriate pool (daily/weekly), excluding the player's currently-active
+ * questDefIds so they get genuine variety. Gold sink + variety pressure-valve
+ * for players who roll a quest they can't complete today.
+ */
+export const QUEST_REROLL_COST = 100;
+
 /**
  * Level-scaled cap for secondary stats: Stamina, Health, Defense.
  * Formula: level × 5 + 10 (so level 1 cap = 15, level 10 cap = 60).

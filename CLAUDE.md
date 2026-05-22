@@ -37,14 +37,14 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 - **P0-3** — Daily combat XP cap / diminishing returns: prevent farm loops after ~10 battles/day; M effort
 - ~~**P1-1** — Steepen quest XP scaler~~ — shipped: `0.4 + 0.6·√l` (was `0.6 + 0.4·√l`); level-10 lifts 1.86× → 2.30×
 - ~~**P1-2** — Raise Blessed tier streak XP multiplier 1.25× → 1.50×~~ — shipped
-- **P1-3** — Gold endgame sinks: quest reroll (100g) and dungeon entry fees — gold accumulates with nothing to spend it on; S–M effort
+- ~~**P1-3** — Gold endgame sinks~~ — shipped: 100g quest reroll mechanic on every active QuestCard (excludes currently-held questDefIds for genuine variety); dungeon entry fees verified already deducted
 - ~~**P1-4** — Fizzle stamina refund~~ — shipped: `COMBAT.FIZZLE_STAMINA_REFUND = 5` returned on failed ability roll
 - ~~**P1-5** — Add level-9 monster (Lich King)~~ — shipped: HP 150 / atk 28 / def 9 / xp 220 / gold 110 with necromancer loot table
 - **P1-6** — Dungeon resource persistence: HP/Stamina/Magic carry between rooms (currently reset); L effort
-- **P2-1** — Wisdom-from-steps mastery tooltip: surface the stat link on the log form; S effort
+- ~~**P2-1** — Mastery linked-stat hint on activity log form~~ — shipped: inline indigo callout shows the activity → stat mapping for workout / run / steps tabs
 - ~~**P2-2** — Wizard starting stats~~ — shipped: starting health 6 → 8
 - **P2-3** — Activity cap proximity indicator on the log form (e.g., "68% of daily cap used"); M effort
-- **P2-4** — Quest pool expansion + reroll mechanic (100g per reroll); S–M effort
+- ~~**P2-4** — Quest reroll mechanic~~ — shipped alongside P1-3 (100g per reroll, excludes held questDefIds). Quest pool expansion deferred — current pool (28 daily / 14 weekly) already supports variety.
 
 ### Feature backlog (dependency order — each unlocks the next)
 

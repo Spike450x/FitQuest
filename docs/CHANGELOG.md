@@ -15,6 +15,13 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Balance & engine fixes pass 2 (quest reroll + mastery hint)
+
+- **P1-3 / P2-4 — Quest reroll mechanic.** New `QUEST_REROLL_COST = 100` gold constant. `questStore.rerollQuest(questId)` validates the quest is active (not complete, not claimed), validates gold, picks a new quest from the appropriate pool excluding the player's currently-held questDefIds (no rolling back into the same quest or any other quest you already hold), and writes the replacement + gold deduction atomically. Each `QuestCard` now shows a "🎲 Reroll · 100 💰" button on active quests; disabled when the player can't afford it. Toast confirms the new quest name + gold spent. Plays the dice-roll sound from `useSound`.
+- **P1-3 (dungeon entry fees)** — verified already deducted server-side via `dungeonStore.startRun()`. No change.
+- **P2-1 — Mastery linked-stat hint.** ActivityLogForm now shows an inline indigo callout on workout/run/steps tabs: "Builds {Strength | Agility | Wisdom} mastery — every 5 → 15 → 25 logs grants +1 {stat}." Surfaces the activity → stat mapping right at the log site instead of only on the side panel.
+- CLAUDE.md backlog updated with strike-throughs.
+
 ## 2026-05-22 — Balance & engine fixes pass 1
 
 Knocks out the highest-leverage items from the post-MVP balance backlog (CLAUDE.md "Next priorities"). All changes are surgical — pure game-logic edits plus targeted unit tests.
