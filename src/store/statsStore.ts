@@ -1,32 +1,19 @@
 import { create } from 'zustand';
 import { captureError } from '@/lib/errors';
+import { fetchWithRetry } from '@/lib/retry';
 import { fetchActivityLogs } from '@/lib/activityData';
 import { fetchRecentCombatLogs, type CombatLog } from '@/lib/combatData';
 import type { ActivityLog } from '@/types';
 
 const FETCH_TTL_MS = 30_000;
 const COMBAT_LOG_LIMIT = 1000;
-const RETRY_DELAYS_MS = [1_000, 3_000];
-
-async function fetchWithRetry<T>(fn: () => Promise<T>): Promise<T> {
-  let lastErr: unknown;
-  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
-    try {
-      return await fn();
-    } catch (e) {
-      lastErr = e;
-      if (attempt < RETRY_DELAYS_MS.length) {
-        await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
-      }
-    }
-  }
-  throw lastErr;
-}
 
 interface StatsStore {
   activityLogs: ActivityLog[];
   combatLogs: CombatLog[];
   loading: boolean;
+  /** True while a failed attempt is waiting before its next retry. */
+  retrying: boolean;
   error: string | null;
   lastFetchedAt: number | null;
   lastFetchedUid: string | null;
@@ -40,6 +27,7 @@ export const useStatsStore = create<StatsStore>((set, get) => ({
   activityLogs: [],
   combatLogs: [],
   loading: false,
+  retrying: false,
   error: null,
   lastFetchedAt: null,
   lastFetchedUid: null,
@@ -54,21 +42,28 @@ export const useStatsStore = create<StatsStore>((set, get) => ({
     ) {
       return;
     }
-    set({ loading: true, error: null });
+    set({ loading: true, retrying: false, error: null });
     try {
-      const [activityLogs, combatLogs] = await fetchWithRetry(() =>
-        Promise.all([fetchActivityLogs(uid), fetchRecentCombatLogs(uid, COMBAT_LOG_LIMIT)]),
+      let attempt = 0;
+      const [activityLogs, combatLogs] = await fetchWithRetry(
+        () => Promise.all([fetchActivityLogs(uid), fetchRecentCombatLogs(uid, COMBAT_LOG_LIMIT)]),
+        [1_000, 3_000],
+        () => {
+          attempt++;
+          if (attempt === 1) set({ retrying: true });
+        },
       );
       set({
         activityLogs,
         combatLogs,
         loading: false,
+        retrying: false,
         lastFetchedAt: Date.now(),
         lastFetchedUid: uid,
       });
     } catch (e) {
       captureError('statsStore.fetchStatsData', e);
-      set({ error: (e as Error).message, loading: false });
+      set({ error: (e as Error).message, loading: false, retrying: false });
     }
   },
 
@@ -77,6 +72,7 @@ export const useStatsStore = create<StatsStore>((set, get) => ({
       activityLogs: [],
       combatLogs: [],
       loading: false,
+      retrying: false,
       error: null,
       lastFetchedAt: null,
       lastFetchedUid: null,
