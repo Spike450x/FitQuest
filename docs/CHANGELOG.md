@@ -15,6 +15,14 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Dark mode polish across all pages and inputs
+
+- **`InputField` component** — canonical themed input (`dark:bg-slate-950`, consistent focus ring, `sm`/`md`/`lg` size variants) that owns all dark-mode input styling in one place; all 14 raw `<input>` elements across login, register, profile, character-creation, and ActivityLogForm migrated to it, including 3 ChangePasswordForm inputs that were previously missing `dark:bg` entirely.
+- **`dark:` variant patches on 16 files** — tinted surfaces use `950/40` opacity, card bodies use `slate-900`; covers stat alloc modal, spell cards, subclass/class selectors, combat dice faces, shop/inventory/quest/stats highlights, and level-up celebration.
+- **E2E guard** — `tests/e2e/dark-mode.test.ts` added; verifies `dark` class on `<html>` and non-white input backgrounds on `/login` and `/register` via `addInitScript`.
+
+---
+
 ## 2026-05-22 — Firestore IndexedDB offline persistence
 
 - **IndexedDB persistence enabled in `src/lib/firebase.ts`.** Uses `initializeFirestore` with `persistentLocalCache` + `persistentMultipleTabManager` so Firestore reads are served from the local cache when the device is offline or on a flaky connection. SSR/Node environments (including vitest) fall back to the memory-only default via a `typeof window` guard; hot-reload re-initialization is caught and falls through to `getFirestore`. No store or component changes required — the `db` export is a drop-in replacement.
