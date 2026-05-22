@@ -2,6 +2,7 @@
 
 import { XPBar } from '@/components/ui/XPBar';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
+import { EntityArt } from '@/components/art/EntityArt';
 import { StatBar } from './StatBar';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
@@ -68,11 +69,14 @@ export function CharacterCard({ character }: CharacterCardProps) {
         {/* Header — portrait + name + class */}
         <div className="flex items-start gap-4">
           {/* Portrait frame */}
-          <div
-            className={`relative shrink-0 w-20 h-20 rounded-full bg-white shadow-md ring-4 ${theme.ring} ring-offset-2 ring-offset-white flex items-center justify-center text-4xl`}
-            aria-hidden="true"
-          >
-            {classDef.emoji}
+          <div className="relative shrink-0">
+            <EntityArt
+              category="class"
+              id={character.class}
+              size="lg"
+              fallbackEmoji={classDef.emoji}
+              ariaLabel={`${classDef.label} portrait`}
+            />
             <span
               className={`absolute -bottom-1 right-0 bg-white border border-gray-200 dark:border-slate-700 rounded-full px-1.5 py-0.5 text-[10px] font-display font-bold tabular-nums shadow-sm ${theme.accent}`}
             >

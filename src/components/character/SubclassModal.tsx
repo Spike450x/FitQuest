@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useCharacterStore } from '@/store/characterStore';
 import { SUBCLASS_CATALOG } from '@/lib/gameLogic/passives';
+import { EntityArt } from '@/components/art/EntityArt';
 import type { Character, CharacterSubclass } from '@/types';
 
 interface SubclassModalProps {
@@ -62,7 +63,13 @@ export function SubclassModal({ character }: SubclassModalProps) {
           >
             {/* Header */}
             <div className="flex items-center gap-2 w-full">
-              <span className="text-2xl">{sub.emoji}</span>
+              <EntityArt
+                category="subclass"
+                id={sub.id}
+                size="sm"
+                fallbackEmoji={sub.emoji}
+                ariaLabel={sub.name}
+              />
               <span className="font-bold text-gray-900 dark:text-slate-100 text-base group-hover:text-violet-700 transition-colors">
                 {sub.name}
               </span>

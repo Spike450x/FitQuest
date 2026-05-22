@@ -4,6 +4,8 @@ import { memo, useMemo } from 'react';
 import type { ItemDef, SpellEffect } from '@/types';
 import { describeRequirement } from '@/lib/gameLogic/spells';
 import { RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
+import { EntityArt } from '@/components/art/EntityArt';
+import { spellEffectKey, rarityTint } from '@/lib/entityArt';
 
 // ─── Effect → emoji ───────────────────────────────────────────────────────────
 
@@ -180,11 +182,16 @@ export const SpellCard = memo(function SpellCard({
 
       {/* ── Card body ────────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col px-3 py-3 gap-2">
-        {/* Center symbol */}
-        <div className="text-center">
-          <span className="text-4xl" role="img" aria-hidden="true">
-            {emoji}
-          </span>
+        {/* Center heraldic sigil */}
+        <div className="flex justify-center">
+          <EntityArt
+            category="spell"
+            id={spellEffectKey(sm.effect)}
+            tint={rarityTint(def.rarity)}
+            size="md"
+            fallbackEmoji={emoji}
+            ariaLabel={def.name}
+          />
         </div>
 
         {/* Description */}

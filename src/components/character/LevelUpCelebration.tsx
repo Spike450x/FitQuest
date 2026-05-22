@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useCharacterStore } from '@/store/characterStore';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { EntityArt } from '@/components/art/EntityArt';
 import { fireConfetti } from '@/lib/confetti';
 import { playSound } from '@/hooks/useSound';
 import { CLASS_DEFINITIONS, LEVEL_UP } from '@/lib/gameLogic/constants';
@@ -54,9 +55,15 @@ export function LevelUpCelebration() {
         <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-200/40 rounded-full blur-3xl" />
         <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-violet-200/40 rounded-full blur-3xl" />
 
-        <p className="relative text-5xl mb-2" aria-hidden="true">
-          {classDef.emoji}
-        </p>
+        <div className="relative mb-2 flex justify-center">
+          <EntityArt
+            category="class"
+            id={character.class}
+            size="lg"
+            fallbackEmoji={classDef.emoji}
+            ariaLabel={`${classDef.label} crest`}
+          />
+        </div>
         <p className="relative text-xs uppercase tracking-[0.3em] text-amber-600 font-bold">
           Level Up
         </p>

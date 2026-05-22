@@ -9,6 +9,7 @@ import { playerMaxHp } from '@/lib/gameLogic/combat';
 import { getRecentDungeonRuns } from '@/lib/dungeonData';
 import { getItemById, RARITY_BADGE } from '@/lib/gameLogic/items';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { EntityArt } from '@/components/art/EntityArt';
 import type { DungeonTierId, DungeonRunsToday, DungeonRun } from '@/types';
 
 const TIER_ORDER: DungeonTierId[] = ['goblin-caves', 'spider-lair', 'dark-sanctum', 'dragons-keep'];
@@ -196,15 +197,22 @@ export default function DungeonLobbyPage() {
               <div
                 className={`bg-gradient-to-br ${style.gradient} border ${style.border} rounded-xl p-4`}
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className={`font-bold text-base ${style.nameColor}`}>
-                      {style.emoji} {tier.name}
-                    </div>
-                    <div className="text-slate-400 text-xs mt-0.5">
-                      Lv. {tier.recLevelMin}
-                      {tier.recLevelMax ? `–${tier.recLevelMax}` : '+'} · {tier.minRooms}–
-                      {tier.maxRooms} rooms + boss
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <EntityArt
+                      category="dungeon"
+                      id={tierId}
+                      size="md"
+                      fallbackEmoji={style.emoji}
+                      ariaLabel={tier.name}
+                    />
+                    <div className="min-w-0">
+                      <div className={`font-bold text-base ${style.nameColor}`}>{tier.name}</div>
+                      <div className="text-slate-400 text-xs mt-0.5">
+                        Lv. {tier.recLevelMin}
+                        {tier.recLevelMax ? `–${tier.recLevelMax}` : '+'} · {tier.minRooms}–
+                        {tier.maxRooms} rooms + boss
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">

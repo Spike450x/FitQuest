@@ -15,6 +15,17 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Custom art system (heraldic crests + brand refresh)
+
+- New `EntityArt` primitive (`src/components/art/EntityArt.tsx`) — single render path for every game-entity portrait. Renders a hand-authored SVG silhouette inside a `HeraldicFrame`, falling back to the supplied emoji if no silhouette is registered. Supports `monster | class | subclass | ability | spell | activity | achievement | dungeon | item` categories, `xs | sm | md | lg | xl` sizes, and per-category default tints + frame shapes.
+- `HeraldicFrame` (`src/components/art/HeraldicFrame.tsx`) — shield / sigil / medallion shapes with twelve tint variants and matched light + dark gradients. Inner figure paints via `currentColor`, so silhouettes auto-tint with the theme.
+- Hand-authored silhouettes (`src/components/art/silhouettes.tsx`) cover the full catalog: 10 monsters, 3 classes, 6 subclasses, 15 abilities, 9 effect-tier spells, 6 activities, 6 achievements, 4 dungeon tiers, and 4 item-type defaults. Zero third-party assets — all SVG primitives in code.
+- Helpers (`src/lib/entityArt.ts`): `spellEffectKey(effect)` maps a SpellEffect to the right effect-tier silhouette; `rarityTint(rarity)` maps loot rarity to frame tint.
+- `BrandMark` (`src/components/ui/BrandMark.tsx`) — FitQuest crest + Cinzel wordmark used in the game header (`size={28}`) and auth screens (`size={56}`). Replaces the text-only "FitQuest" anchors.
+- PWA icons refreshed: the placeholder sword on a flat indigo→violet square is now a proper shield-with-sword crest. Master SVG at `public/icons/icon.svg`; PNG variants (16 / 32 / 180 / 192 / 512 + maskable 192 / 512) regenerated from it.
+- Wired into high-visibility callsites: combat arena (player class portrait + monster portrait), monster select cards, `BattleResultsModal`, `SpellCard` (effect-tier sigil), profile achievement gallery, dungeon lobby tier cards, stats page personal-record cards, `CharacterCard` (class portrait with level badge overlay), `LevelUpCelebration`, `ClassSelector` (character-creation), `SubclassModal`. Every callsite passes `fallbackEmoji` so no UI ever shows a broken slot.
+- New doc: [docs/ART-ASSETS.md](ART-ASSETS.md) — how to add silhouettes, replace with commissioned art, regenerate PWA PNGs, and the future-work plan for animated assets.
+
 ## 2026-05-22 — Design token overhaul (UI pass 9 — last roadmap item)
 
 - CSS variable-backed semantic color tokens in `src/app/globals.css`:
