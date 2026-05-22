@@ -19,7 +19,6 @@ This is separate from the **feature backlog** in CLAUDE.md, which covers game co
 
 ## Polish / nice-to-have
 
-| Item                     | Detail                                                                                                                       |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| Store count in Key paths | ~~`src/store/` bullet in CLAUDE.md listed only 3 stores~~ — fixed 2026-05-22 (character, inventory, quests, stats, dungeon). |
-| Offline write copy       | See Firestore offline write UX above.                                                                                        |
+| Item               | Detail                                                      |
+| ------------------ | ----------------------------------------------------------- |
+| Offline write copy | See Firestore offline write UX in the Deferred table above. |
