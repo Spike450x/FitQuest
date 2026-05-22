@@ -20,6 +20,7 @@ import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { XPBar } from '@/components/ui/XPBar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { InstallBanner } from '@/components/ui/InstallBanner';
+import { RouteBackground } from '@/components/ui/RouteBackground';
 import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
 import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
 
@@ -48,7 +49,10 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col transition-colors">
+    <div className="relative min-h-screen text-gray-900 dark:text-slate-100 flex flex-col transition-colors">
+      {/* Per-route thematic backdrop — gradient + SVG pattern behind everything */}
+      <RouteBackground />
+
       {/* Global level-up celebration — fires whenever character.level increases */}
       <LevelUpCelebration />
 

@@ -95,6 +95,16 @@ body {
   animation: shimmer 2s linear infinite;
 }
 
+/* Combat / boss-room vignette — darkens the page edges. Tints with current
+ * theme via opacity stack: light mode = soft gray vignette, dark mode =
+ * deep black vignette. */
+.bg-radial-vignette {
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(15, 23, 42, 0.12) 100%);
+}
+.dark .bg-radial-vignette {
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.55) 100%);
+}
+
 /* Respect reduced-motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,
