@@ -5,7 +5,8 @@ import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { StatBar } from './StatBar';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
-import type { Character } from '@/types';
+import { getItemById, RARITY_TEXT } from '@/lib/gameLogic/items';
+import type { Character, CharacterClass } from '@/types';
 
 // The three primary combat stats shown as bars
 const STAT_CONFIG = [
@@ -14,84 +15,159 @@ const STAT_CONFIG = [
   { key: 'agility' as const, label: 'Agility', icon: '🌬️', color: 'bg-teal-400' },
 ];
 
+// Class-themed portrait frame palette. Keeps identity moments distinct per
+// class without commissioning per-class character art.
+const CLASS_THEME: Record<CharacterClass, { gradient: string; ring: string; accent: string }> = {
+  warrior: {
+    gradient: 'from-red-100 via-orange-50 to-amber-50',
+    ring: 'ring-red-300',
+    accent: 'text-red-600',
+  },
+  wizard: {
+    gradient: 'from-violet-100 via-indigo-50 to-blue-50',
+    ring: 'ring-violet-300',
+    accent: 'text-violet-600',
+  },
+  rogue: {
+    gradient: 'from-emerald-100 via-teal-50 to-slate-50',
+    ring: 'ring-emerald-300',
+    accent: 'text-emerald-600',
+  },
+};
+
+const SLOT_ICON: Record<'weapon' | 'armor' | 'accessory', string> = {
+  weapon: '⚔️',
+  armor: '🛡️',
+  accessory: '💍',
+};
+
 interface CharacterCardProps {
   character: Character;
 }
 
 export function CharacterCard({ character }: CharacterCardProps) {
   const classDef = CLASS_DEFINITIONS[character.class];
+  const theme = CLASS_THEME[character.class];
   const gearBonuses = totalGearBonuses(character.equippedGear);
   const maxStamina = playerMaxStamina(character);
   const currentStamina = character.currentStamina ?? maxStamina;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">{character.name}</h2>
-          <p className="text-sm text-indigo-600 mt-0.5 font-medium">
-            {classDef.emoji} {classDef.label} · Level {character.level}
-          </p>
-        </div>
-        <GoldDisplay amount={character.gold} size="md" />
-      </div>
+    <div className="relative bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+      {/* Themed top banner */}
+      <div
+        className={`absolute inset-x-0 top-0 h-28 bg-gradient-to-br ${theme.gradient} opacity-80`}
+        aria-hidden="true"
+      />
+      <div
+        className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-white/40 blur-3xl"
+        aria-hidden="true"
+      />
 
-      {/* XP Bar */}
-      <XPBar xp={character.xp} level={character.level} xpToNextLevel={character.xpToNextLevel} />
-
-      {/* Stamina bar */}
-      <div className="space-y-1">
-        <div className="flex justify-between items-center text-sm">
-          <span className="flex items-center gap-1.5 text-gray-700">
-            <span>⚡</span>
-            <span className="font-medium">Stamina</span>
-          </span>
-          <span className="text-gray-700 font-semibold text-sm tabular-nums">
-            {currentStamina}
-            <span className="text-gray-400 font-normal text-xs"> / {maxStamina}</span>
-          </span>
-        </div>
-        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+      <div className="relative p-6 space-y-5">
+        {/* Header — portrait + name + class */}
+        <div className="flex items-start gap-4">
+          {/* Portrait frame */}
           <div
-            className="h-full rounded-full transition-all duration-500 bg-amber-400"
-            style={{ width: `${Math.min((currentStamina / maxStamina) * 100, 100)}%` }}
-          />
+            className={`relative shrink-0 w-20 h-20 rounded-full bg-white shadow-md ring-4 ${theme.ring} ring-offset-2 ring-offset-white flex items-center justify-center text-4xl`}
+            aria-hidden="true"
+          >
+            {classDef.emoji}
+            <span
+              className={`absolute -bottom-1 right-0 bg-white border border-gray-200 rounded-full px-1.5 py-0.5 text-[10px] font-display font-bold tabular-nums shadow-sm ${theme.accent}`}
+            >
+              Lv {character.level}
+            </span>
+          </div>
+
+          <div className="flex-1 min-w-0 pt-1">
+            <h2 className="font-display text-2xl font-bold text-gray-900 tracking-tight truncate">
+              {character.name}
+            </h2>
+            <p className={`text-sm mt-0.5 font-semibold ${theme.accent}`}>{classDef.label}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{classDef.description.split('.')[0]}.</p>
+          </div>
+
+          <GoldDisplay amount={character.gold} size="md" />
         </div>
-      </div>
 
-      {/* Primary stat bars */}
-      <div className="space-y-3 pt-1 border-t border-gray-100">
-        <p className="text-xs text-gray-400 font-medium uppercase tracking-wide pt-1">Stats</p>
-        {STAT_CONFIG.map(({ key, label, icon, color }) => {
-          const base = character.stats[key] ?? 0;
-          const bonus = gearBonuses[key] ?? 0;
-          return (
-            <StatBar
-              key={key}
-              label={label}
-              value={base + bonus}
-              max={50}
-              color={color}
-              icon={icon}
-              suffix={bonus > 0 ? `+${bonus} gear` : undefined}
+        {/* XP Bar */}
+        <XPBar xp={character.xp} level={character.level} xpToNextLevel={character.xpToNextLevel} />
+
+        {/* Stamina bar */}
+        <div className="space-y-1">
+          <div className="flex justify-between items-center text-sm">
+            <span className="flex items-center gap-1.5 text-gray-700">
+              <span>⚡</span>
+              <span className="font-medium">Stamina</span>
+            </span>
+            <span className="text-gray-700 font-semibold text-sm tabular-nums">
+              {currentStamina}
+              <span className="text-gray-400 font-normal text-xs"> / {maxStamina}</span>
+            </span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-amber-400 to-amber-500"
+              style={{ width: `${Math.min((currentStamina / maxStamina) * 100, 100)}%` }}
             />
-          );
-        })}
-      </div>
+          </div>
+        </div>
 
-      {/* Equipped gear summary */}
-      <div className="pt-1 border-t border-gray-100">
-        <p className="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">Equipped</p>
-        <div className="grid grid-cols-3 gap-2 text-center text-xs">
-          {(['weapon', 'armor', 'accessory'] as const).map((slot) => (
-            <div key={slot} className="bg-gray-50 rounded-lg p-2 border border-gray-200">
-              <p className="text-gray-400 capitalize">{slot}</p>
-              <p className="text-gray-700 mt-0.5 truncate font-medium">
-                {character.equippedGear[slot] ?? '—'}
-              </p>
-            </div>
-          ))}
+        {/* Primary stat bars */}
+        <div className="space-y-3 pt-1 border-t border-gray-100">
+          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider pt-1">Stats</p>
+          {STAT_CONFIG.map(({ key, label, icon, color }) => {
+            const base = character.stats[key] ?? 0;
+            const bonus = gearBonuses[key] ?? 0;
+            return (
+              <StatBar
+                key={key}
+                label={label}
+                value={base + bonus}
+                max={50}
+                color={color}
+                icon={icon}
+                suffix={bonus > 0 ? `+${bonus} gear` : undefined}
+              />
+            );
+          })}
+        </div>
+
+        {/* Equipped gear summary */}
+        <div className="pt-1 border-t border-gray-100">
+          <p className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wider">
+            Equipped
+          </p>
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            {(['weapon', 'armor', 'accessory'] as const).map((slot) => {
+              const equippedId = character.equippedGear[slot];
+              const equipped = equippedId ? getItemById(equippedId) : null;
+              return (
+                <div
+                  key={slot}
+                  className={`rounded-lg p-2 border transition-colors ${
+                    equipped
+                      ? 'bg-white border-indigo-200 shadow-sm'
+                      : 'bg-gray-50 border-dashed border-gray-300'
+                  }`}
+                >
+                  <div className="text-lg leading-none" aria-hidden="true">
+                    {SLOT_ICON[slot]}
+                  </div>
+                  <p className="text-[10px] text-gray-400 capitalize mt-1">{slot}</p>
+                  <p
+                    className={`text-xs mt-0.5 truncate font-medium ${
+                      equipped ? RARITY_TEXT[equipped.rarity] : 'text-gray-400 italic'
+                    }`}
+                    title={equipped?.name ?? 'empty'}
+                  >
+                    {equipped?.name ?? 'empty'}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

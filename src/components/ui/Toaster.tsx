@@ -3,6 +3,7 @@
 import { Toaster as SonnerToaster, toast } from 'sonner';
 import type { ItemRarity } from '@/types';
 import { RARITY_BADGE } from '@/lib/gameLogic/items';
+import { fireConfetti } from '@/lib/confetti';
 
 /**
  * Global toast renderer. Mounted once in the root layout.
@@ -66,6 +67,7 @@ export function toastPersonalRecord(activityLabel: string, value: number, unit: 
 
 /** Streak milestone — reached a new tier (Spark / Blaze / Inferno / Eternal). */
 export function toastStreakTier(tierLabel: string, currentStreak: number) {
+  fireConfetti('subtle');
   toast(`🔥 ${tierLabel} streak unlocked!`, {
     description: `Day ${currentStreak} — bonus loot drops boosted.`,
     duration: 5000,
@@ -74,6 +76,7 @@ export function toastStreakTier(tierLabel: string, currentStreak: number) {
 
 /** Mastery milestone — permanent +1 stat for consistency on an activity. */
 export function toastMasteryMilestone(linkedStatLabel: string, activityLabel: string) {
+  fireConfetti('subtle');
   toast.success(`⬆️ Mastery milestone: +1 ${linkedStatLabel}`, {
     description: `Earned through consistent ${activityLabel.toLowerCase()} logs.`,
     duration: 6000,
@@ -82,6 +85,7 @@ export function toastMasteryMilestone(linkedStatLabel: string, activityLabel: st
 
 /** Achievement unlocked — shown after dungeon claim when a new badge is earned. */
 export function toastAchievement(emoji: string, name: string, goldReward: number) {
+  fireConfetti('celebration');
   toast.success(`${emoji} Achievement: ${name}`, {
     description: `+${goldReward} gold bonus`,
     duration: 6000,

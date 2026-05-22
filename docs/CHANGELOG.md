@@ -15,6 +15,17 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — UI/UX modernization medium efforts (pass 2)
+
+- New `Card` primitive (`src/components/ui/Card.tsx`) with variants `default | hero | highlight | legendary | dark | flat` plus optional `interactive` hover lift. Adopted on dashboard hero + 3-column grid panels. Replaces `bg-white border border-gray-200 rounded-xl` repetition at the most-visible sites; the remaining ~30 inline card surfaces are queued for a follow-up sweep.
+- New `fireConfetti(intensity)` helper (`src/lib/confetti.ts`) with `subtle | medium | celebration | legendary` presets — legendary uses a gold-heavy palette and 3 staggered bursts. Wired into level-up, battle victory (intensity scales with best loot rarity: subtle / celebration for epic / legendary for legendary), quest claim (subtle for daily, celebration for weekly), dungeon clear (legendary if legendary-eligible), achievement unlock, streak tier unlock, mastery milestone. All gated by document visibility + `prefers-reduced-motion`.
+- `Modal` got a `feel="cinematic"` prop — spring physics with 0.8→1→overshoot for celebratory moments. `LevelUpCelebration` now uses it.
+- `BattleResultsModal` loot list now staggers in with framer-motion (per-rarity tinted border + glow per item; legendaries get `animate-legendary-glow`).
+- Quest claim button got a chest-opening shimmer-sweep on hover with a gradient + scale-on-press.
+- `MonsterCard` got hover lift + scale/rotate on the emoji + gradient Fight button.
+- `EmptyState` (previously dead code) now adopted on inventory and quests pages, and inlined on dashboard's recent-activity and daily-quests panels.
+- `CharacterCard` rebuilt: class-themed gradient banner (red/violet/emerald for Warrior/Wizard/Rogue), ringed portrait frame, level chip in display font, rarity-tinted gear slot names with icons and empty-slot dashed borders.
+
 ## 2026-05-22 — UI/UX modernization quick wins (pass 1)
 
 - Display font: paired Cinzel (headings) + Inter (body) via `next/font`, wired through `--font-cinzel` / `--font-inter` CSS variables and Tailwind's `font-display` / `font-sans`. All page H1s, the FitQuest wordmark, and the combat Victory/Defeat banners use the display face.

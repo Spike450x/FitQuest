@@ -15,6 +15,12 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   /** When false, hides the rounded white container — use for custom-styled modals. */
   bare?: boolean;
+  /**
+   * Animation feel. `default` is the standard subtle pop. `cinematic` uses a
+   * stronger spring with overshoot — reserve it for celebratory / high-stakes
+   * moments (level up, victory, achievement unlock).
+   */
+  feel?: 'default' | 'cinematic';
   children: ReactNode;
   className?: string;
 }
@@ -38,6 +44,7 @@ export function Modal({
   ariaLabelledby,
   size = 'lg',
   bare = false,
+  feel = 'default',
   children,
   className = '',
 }: ModalProps) {
@@ -99,10 +106,20 @@ export function Modal({
             aria-modal="true"
             aria-label={ariaLabel}
             aria-labelledby={ariaLabelledby}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+            initial={
+              feel === 'cinematic' ? { opacity: 0, scale: 0.8, y: 16 } : { opacity: 0, scale: 0.95 }
+            }
+            animate={
+              feel === 'cinematic' ? { opacity: 1, scale: 1, y: 0 } : { opacity: 1, scale: 1 }
+            }
+            exit={
+              feel === 'cinematic' ? { opacity: 0, scale: 0.92, y: 8 } : { opacity: 0, scale: 0.95 }
+            }
+            transition={
+              feel === 'cinematic'
+                ? { type: 'spring', stiffness: 280, damping: 22, mass: 0.9 }
+                : { duration: 0.2, ease: 'easeOut' }
+            }
             className={[
               'relative w-full',
               SIZE_MAX_W[size],

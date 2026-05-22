@@ -7,6 +7,7 @@ import { useGameData } from '@/hooks/useGameData';
 import { XPBar } from '@/components/ui/XPBar';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { Card } from '@/components/ui/Card';
 import { StatBar } from '@/components/character/StatBar';
 import { CLASS_DEFINITIONS, ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
@@ -106,7 +107,7 @@ export default function DashboardPage() {
       )}
 
       {/* Hero banner */}
-      <div className="bg-gradient-to-br from-indigo-50 via-white to-violet-50 border border-indigo-100 rounded-xl p-6">
+      <Card variant="hero" padding="lg">
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-indigo-400 text-sm font-medium">
@@ -165,12 +166,12 @@ export default function DashboardPage() {
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-500 bg-amber-400"
+              className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-amber-400 to-amber-500"
               style={{ width: `${Math.min((currentStamina / maxStamina) * 100, 100)}%` }}
             />
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Quick actions */}
       <div>
@@ -197,7 +198,7 @@ export default function DashboardPage() {
       {/* Lower three-column grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Stats overview */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <Card variant="default" padding="lg">
           <h3 className="text-xs font-semibold text-gray-400 mb-4 uppercase tracking-wider">
             Stats
           </h3>
@@ -218,14 +219,16 @@ export default function DashboardPage() {
               );
             })}
           </div>
-        </div>
+        </Card>
 
         {/* Active quests widget */}
         <ActiveQuestsWidget quests={dailyQuests} loading={questsLoading} />
 
         {/* Recent activity feed */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h3 className="font-medium text-gray-700 mb-3">📋 Recent Activity</h3>
+        <Card variant="default" padding="lg">
+          <h3 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
+            📋 Recent Activity
+          </h3>
           {logsLoading ? (
             <div className="space-y-2 animate-pulse">
               {[1, 2, 3].map((i) => (
@@ -233,12 +236,18 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : logs.length === 0 ? (
-            <p className="text-sm text-gray-400">
-              No activities logged yet.{' '}
-              <Link href="/activities" className="text-indigo-500 hover:underline">
-                Log your first one!
+            <div className="text-center py-4">
+              <div className="text-2xl mb-1" aria-hidden="true">
+                📭
+              </div>
+              <p className="text-sm font-medium text-gray-600">No activities yet</p>
+              <Link
+                href="/activities"
+                className="inline-block mt-1 text-xs font-semibold text-indigo-600 hover:underline"
+              >
+                Log your first one →
               </Link>
-            </p>
+            </div>
           ) : (
             <ul className="space-y-2">
               {logs.map((log) => (
@@ -246,7 +255,7 @@ export default function DashboardPage() {
               ))}
             </ul>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );
@@ -295,10 +304,12 @@ function ActivityFeedItem({ log }: { log: ActivityLog }) {
 
 function ActiveQuestsWidget({ quests, loading }: { quests: ActiveQuest[]; loading: boolean }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+    <Card variant="default" padding="lg">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-medium text-gray-700">📜 Daily Quests</h3>
-        <Link href="/quests" className="text-xs text-indigo-500 hover:underline">
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          📜 Daily Quests
+        </h3>
+        <Link href="/quests" className="text-xs font-semibold text-indigo-600 hover:underline">
           View all →
         </Link>
       </div>
@@ -312,12 +323,18 @@ function ActiveQuestsWidget({ quests, loading }: { quests: ActiveQuest[]; loadin
           ))}
         </div>
       ) : quests.length === 0 ? (
-        <p className="text-sm text-gray-400">
-          <Link href="/quests" className="text-indigo-500 hover:underline">
-            Visit quests
-          </Link>{' '}
-          to get today&apos;s goals.
-        </p>
+        <div className="text-center py-4">
+          <div className="text-2xl mb-1" aria-hidden="true">
+            🗺️
+          </div>
+          <p className="text-sm font-medium text-gray-600">No active quests</p>
+          <Link
+            href="/quests"
+            className="inline-block mt-1 text-xs font-semibold text-indigo-600 hover:underline"
+          >
+            Visit the quest board →
+          </Link>
+        </div>
       ) : (
         <ul className="space-y-3">
           {quests.map((q) => (
@@ -325,7 +342,7 @@ function ActiveQuestsWidget({ quests, loading }: { quests: ActiveQuest[]; loadin
           ))}
         </ul>
       )}
-    </div>
+    </Card>
   );
 }
 

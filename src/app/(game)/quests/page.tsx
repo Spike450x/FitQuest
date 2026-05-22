@@ -5,7 +5,9 @@ import { useGameData } from '@/hooks/useGameData';
 import { useQuestStore } from '@/store/questStore';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { toast, toastReward } from '@/components/ui/Toaster';
+import { fireConfetti } from '@/lib/confetti';
 import type { ActiveQuest } from '@/types';
 
 function timeUntilExpiry(expiresAt: number): string {
@@ -161,9 +163,16 @@ function QuestCard({
         <button
           onClick={() => onClaim(quest.id)}
           disabled={!!claiming}
-          className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold py-2 rounded-lg transition-colors"
+          className="relative w-full overflow-hidden bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 hover:shadow-lg hover:shadow-amber-500/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none text-white text-xs font-bold py-2 rounded-lg transition-all active:scale-[0.98] group"
         >
-          {isClaiming ? 'Claiming…' : `Claim +${def.rewards.xp} XP & +${def.rewards.gold} 💰`}
+          {/* Shimmer sweep */}
+          <span
+            className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent transition-transform duration-700"
+            aria-hidden="true"
+          />
+          <span className="relative">
+            {isClaiming ? 'Claiming…' : `Claim +${def.rewards.xp} XP & +${def.rewards.gold} 💰`}
+          </span>
         </button>
       )}
     </div>
@@ -199,9 +208,11 @@ function QuestSection({
         </p>
       </div>
       {quests.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 text-center shadow-sm">
-          <p className="text-gray-400 text-sm">No quests available.</p>
-        </div>
+        <EmptyState
+          icon="📜"
+          title="No quests available"
+          description="New quests roll in daily and weekly — check back soon, adventurer."
+        />
       ) : (
         <div className="space-y-3">
           {quests.map((q) => (
@@ -255,6 +266,7 @@ export default function QuestsPage() {
     const result = await claimReward(questId);
     setClaiming(null);
     if (result && def) {
+      fireConfetti(def.type === 'weekly' ? 'celebration' : 'subtle');
       toastReward({
         emoji: '📜',
         title: `${def.name} claimed!`,

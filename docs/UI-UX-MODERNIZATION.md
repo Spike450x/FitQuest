@@ -75,14 +75,15 @@ The **template to copy**: `SpellCard.tsx`, `LevelUpCelebration.tsx`, combat dice
 
 ## Medium Efforts (1–3 days)
 
-- [ ] **Real `Card` component with variants** (`default | hero | legendary | dungeon-dark`) — centralizes background, border, shadow, hover. 2 days.
-- [ ] **`useConfetti({ trigger, intensity })` hook** — extract from `LevelUpCelebration`, fire on quest claim, dungeon clear, achievement unlock, legendary loot. 1 day.
-- [ ] **Cinematic `BattleResultsModal`** (`combat/page.tsx:3106`) — slow-fade monster emoji, animated XP/Gold counters, rarity-tinted backdrop, shimmer claim button. 1.5 days.
+- [x] **Real `Card` component with variants** — created `src/components/ui/Card.tsx` with `default | hero | highlight | legendary | dark | flat` variants and `interactive` hover lift. Adopted on dashboard hero + 3-column grid (Stats / Daily Quests / Recent Activity). Full migration of remaining 30+ sites is a follow-up sweep.
+- [x] **`fireConfetti(intensity)` helper** — new `src/lib/confetti.ts` with `subtle | medium | celebration | legendary` presets (legendary uses gold-heavy palette, 3 staggered bursts). Wired into `LevelUpCelebration`, `BattleResultsModal` (rarity-scaled), quest claim (subtle for daily, celebration for weekly), dungeon clear (legendary if legendary-eligible), `toastAchievement`, `toastStreakTier`, `toastMasteryMilestone`. All gated by document visibility + `prefers-reduced-motion`.
+- [x] **Cinematic Modal variant** — `Modal` now takes `feel="cinematic"` for celebratory moments (spring physics with 0.8→1.0→1 overshoot, longer easing). Adopted in `LevelUpCelebration`.
+- [x] **Loot reveal animation upgrade** — `BattleResultsModal` loot list now uses staggered framer-motion entrance (`delay: 0.15 + idx * 0.12`), with rarity-tinted border + glow per item and `animate-legendary-glow` on legendaries.
+- [x] **Themed empty states** — `EmptyState` adopted on inventory page (no items / no spells) and quests page (no quests). Dashboard recent-activity + daily-quests panels got themed empty-state markup inline.
+- [x] **Character portrait / class frame** — `CharacterCard` rebuilt with class-themed gradient banner (red/violet/emerald for Warrior/Wizard/Rogue), ringed portrait frame, level chip in display font, rarity-tinted gear slot names with icons + empty-slot dashed borders.
 - [ ] **Glass / depth pass** — `backdrop-blur-xl` + semi-transparent backgrounds on nav header, modals, hero. 1 day.
-- [ ] **Loot reveal animation upgrade** — per-rarity entrance (spring for common, slow-zoom + screen-flash for legendary), gold-particle burst on legendary. 1.5 days.
-- [ ] **Themed empty states** — adopt `EmptyState` everywhere, build 6–8 illustrated variants. 1 day.
 - [ ] **Shimmer skeletons** — replace `animate-pulse` skeletons with linear-gradient shimmer via `<Skeleton>` component. 1 day.
-- [ ] **Character portrait / class frame** — `CharacterCard.tsx:31-34` needs a class-themed portrait frame (Warrior/Wizard/Rogue distinct). 1 day.
+- [ ] **Card primitive full rollout** — remaining ~30 inline card sites should migrate to `Card`. (Quick win #10 from pass 1, rescoped to medium.)
 
 ---
 

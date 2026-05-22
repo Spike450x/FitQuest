@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import confetti from 'canvas-confetti';
 import { motion } from 'framer-motion';
 import { useCharacterStore } from '@/store/characterStore';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { fireConfetti } from '@/lib/confetti';
 import { CLASS_DEFINITIONS, LEVEL_UP } from '@/lib/gameLogic/constants';
 
 /**
@@ -31,14 +31,7 @@ export function LevelUpCelebration() {
     }
     if (character.level > previousLevel.current) {
       setShowLevel(character.level);
-      if (document.visibilityState === 'visible') {
-        confetti({
-          particleCount: 120,
-          spread: 70,
-          origin: { y: 0.4 },
-          colors: ['#fbbf24', '#a78bfa', '#34d399', '#60a5fa'],
-        });
-      }
+      fireConfetti('celebration');
     }
     previousLevel.current = character.level;
   }, [character]);
@@ -49,7 +42,7 @@ export function LevelUpCelebration() {
   const pointsGained = LEVEL_UP.STAT_POINTS_PER_LEVEL;
 
   return (
-    <Modal open={true} onClose={() => setShowLevel(null)} bare size="md">
+    <Modal open={true} onClose={() => setShowLevel(null)} bare size="md" feel="cinematic">
       <motion.div
         initial={{ y: 8 }}
         animate={{ y: 0 }}

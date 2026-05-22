@@ -8,6 +8,7 @@ import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
 import { SpellCard } from '@/components/ui/SpellCard';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { toast } from '@/components/ui/Toaster';
 import { useInventoryNewMarkers } from '@/hooks/useInventoryNewMarkers';
 import { COMBAT } from '@/lib/gameLogic/constants';
@@ -413,14 +414,13 @@ export default function InventoryPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center shadow-sm">
-          <p className="text-gray-400 text-sm">
-            {activeTab === 'spell' ? 'No spells in your bag yet.' : 'No items here yet.'}
-          </p>
-          <Link href="/shop" className="text-indigo-500 hover:underline text-sm mt-1 inline-block">
-            Visit the shop →
-          </Link>
-        </div>
+        <EmptyState
+          icon={activeTab === 'spell' ? '✨' : '🎒'}
+          title={activeTab === 'spell' ? 'No spells in your bag yet' : 'No items here yet'}
+          description="Buy gear in the shop or defeat monsters to fill your inventory."
+          cta={{ label: 'Visit the shop', href: '/shop' }}
+          className="p-8"
+        />
       ) : activeTab === 'spell' ? (
         /* Spell tab: playing card grid */
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">

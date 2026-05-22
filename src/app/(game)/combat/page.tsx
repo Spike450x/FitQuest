@@ -86,6 +86,7 @@ import {
 import { SpellCard } from '@/components/ui/SpellCard';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { CombatEffects } from '@/components/combat/CombatEffects';
+import { fireConfetti } from '@/lib/confetti';
 import { useCombatBursts } from '@/hooks/useCombatBursts';
 import { useTodayKey } from '@/hooks/useTodayKey';
 import { toast, toastReward, toastLoot } from '@/components/ui/Toaster';
@@ -266,6 +267,18 @@ export default function CombatPage() {
     'attack' | 'magic' | 'run' | 'ability' | 'rest' | 'meditate' | null
   >(null);
   const [pendingRewards, setPendingRewards] = useState<PendingRewards | null>(null);
+
+  // Fire confetti when a victory modal appears. Intensity escalates with the
+  // best dropped rarity so legendary kills feel meaningfully different.
+  useEffect(() => {
+    if (!pendingRewards) return;
+    const rarities = pendingRewards.droppedItems
+      .map((id) => getItemById(id)?.rarity)
+      .filter((r): r is NonNullable<typeof r> => !!r);
+    const hasLegendary = rarities.includes('legendary');
+    const hasEpic = rarities.includes('epic');
+    fireConfetti(hasLegendary ? 'legendary' : hasEpic ? 'celebration' : 'subtle');
+  }, [pendingRewards]);
   const [claiming, setClaiming] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [showItemPanel, setShowItemPanel] = useState(false);
@@ -3060,10 +3073,12 @@ function MonsterCard({
     : 0;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3">
+    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-indigo-200 group">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{emoji}</span>
+          <span className="text-3xl transition-transform group-hover:scale-110 group-hover:-rotate-3">
+            {emoji}
+          </span>
           <div>
             <h3 className="font-semibold text-gray-900">{monster.name}</h3>
             <p className="text-xs text-gray-400">
@@ -3110,7 +3125,7 @@ function MonsterCard({
       )}
       <button
         onClick={() => onFight(monster)}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 hover:shadow-md hover:shadow-indigo-500/40 text-white text-sm font-bold py-2 rounded-lg transition-all active:scale-[0.98]"
       >
         Fight!
       </button>
@@ -3178,13 +3193,20 @@ function BattleResultsModal({
         <div className="space-y-1.5">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Loot</p>
           {pending.droppedItems.length > 0 ? (
-            pending.droppedItems.map((itemId) => {
+            pending.droppedItems.map((itemId, idx) => {
               const def = getItemById(itemId);
               if (!def) return null;
+              const card = RARITY_CARD[def.rarity];
+              const isLegendary = def.rarity === 'legendary';
               return (
-                <div
+                <motion.div
                   key={itemId}
-                  className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2"
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 + idx * 0.12, duration: 0.3, ease: 'easeOut' }}
+                  className={`flex items-center justify-between bg-white border ${card.border} ${card.glow} rounded-lg px-3 py-2 ${
+                    isLegendary ? 'animate-legendary-glow' : ''
+                  }`}
                 >
                   <span className="text-sm font-medium text-gray-800">📦 {def.name}</span>
                   <div className="flex items-center gap-1.5">
@@ -3199,7 +3221,7 @@ function BattleResultsModal({
                       {def.rarity}
                     </span>
                   </div>
-                </div>
+                </motion.div>
               );
             })
           ) : (
