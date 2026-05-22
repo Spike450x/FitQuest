@@ -14,11 +14,11 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 - `src/app/(auth)/` — login / register
 - `src/components/` — shared UI components
 - `src/lib/` — Firebase init + game logic utilities
-- `src/store/` — Zustand stores (character, inventory, quests)
+- `src/store/` — Zustand stores (character, inventory, quests, stats, dungeon)
 - `src/types/` — TypeScript definitions
 - `src/hooks/` — custom React hooks
 - `src/middleware.ts` — route protection
-- `docs/` — engineering references: [ARCHITECTURE](docs/ARCHITECTURE.md), [FIRESTORE](docs/FIRESTORE.md), [CI](docs/CI.md), [GAME-LOGIC](docs/GAME-LOGIC.md), [SECURITY-SETUP](docs/SECURITY-SETUP.md), [SMOKE-TEST](docs/SMOKE-TEST.md), [CHANGELOG](docs/CHANGELOG.md), [UI-UX-MODERNIZATION](docs/UI-UX-MODERNIZATION.md), [ART-ASSETS](docs/ART-ASSETS.md)
+- `docs/` — engineering references: [ARCHITECTURE](docs/ARCHITECTURE.md), [FIRESTORE](docs/FIRESTORE.md), [CI](docs/CI.md), [GAME-LOGIC](docs/GAME-LOGIC.md), [SECURITY-SETUP](docs/SECURITY-SETUP.md), [SMOKE-TEST](docs/SMOKE-TEST.md), [CHANGELOG](docs/CHANGELOG.md), [UI-UX-MODERNIZATION](docs/UI-UX-MODERNIZATION.md), [ART-ASSETS](docs/ART-ASSETS.md), [BACKLOG](docs/BACKLOG.md)
 
 ---
 
