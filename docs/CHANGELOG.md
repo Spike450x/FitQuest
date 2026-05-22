@@ -15,6 +15,22 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — UI/UX modernization medium efforts (pass 3 — glass, shimmer, Card sweep)
+
+- Glass / depth pass: top header, sidebar, and mobile bottom-nav now use `backdrop-blur-xl backdrop-saturate-150` over `bg-white/70-80` with subtle shadow. `Card` hero variant got decorative blur orbs (indigo + violet radial gradients) and stronger glass treatment. `BattleResultsModal` got the same orb pattern + `backdrop-blur-md` backdrop. Cinematic `Modal` variant uses a stronger backdrop blur than the default.
+- New `Skeleton` primitive (`src/components/ui/Skeleton.tsx`) with `line | block | circle | card` shapes and `light | dark` tones. Uses an absolute `before:` pseudo-element with a translating gradient via the new `shimmer-sweep` keyframe in `globals.css`. `motion-reduce` collapses to a static block. Adopted on dashboard, character, inventory, quests, shop, stats, and dungeons (dark tone). Legendary loot in dungeon-run page also switched from `animate-pulse` to `animate-legendary-glow`.
+- `Card` adoption sweep (15 of 22 inline-card sites migrated):
+  - `EmptyState` now wraps `Card` internally.
+  - Dashboard: hero + 3-column grid panels (Stats / Daily Quests / Recent Activity) + loading skeleton.
+  - Activities: `ActivityLogForm` (main panel + result card), `ActivitySidePanel` (mastery + resources).
+  - Profile: achievement gallery + settings sections.
+  - Character: class bonuses + how-stats-work panels.
+  - Inventory: gear loadout + spell loadout + consumable pack.
+  - Stats: 5 KPI cards + `ChartCard` wrapper.
+  - Combat: rewards-claimed summary card.
+  - Remaining 6 combat sites are deeply nested in framer-motion wrappers; left for a follow-up sweep where a wider combat refactor can be more comprehensive.
+- `ActivityLogForm` "Log Activity" + "Log Another Activity" buttons got the indigo→violet gradient + active-press scale.
+
 ## 2026-05-22 — UI/UX modernization medium efforts (pass 2)
 
 - New `Card` primitive (`src/components/ui/Card.tsx`) with variants `default | hero | highlight | legendary | dark | flat` plus optional `interactive` hover lift. Adopted on dashboard hero + 3-column grid panels. Replaces `bg-white border border-gray-200 rounded-xl` repetition at the most-visible sites; the remaining ~30 inline card surfaces are queued for a follow-up sweep.

@@ -6,6 +6,7 @@ import { updateUserEmail, updateUserPassword } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
+import { Card } from '@/components/ui/Card';
 import type { Character } from '@/types';
 
 export default function ProfilePage() {
@@ -40,7 +41,7 @@ function AchievementGallery({ character }: { character: Character }) {
   const unlockedCount = all.filter((a) => unlocked.has(a.id)).length;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+    <Card variant="default" padding="lg">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-gray-900 text-sm">Achievements</h3>
@@ -90,7 +91,7 @@ function AchievementGallery({ character }: { character: Character }) {
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -309,12 +310,12 @@ function SettingsCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+    <Card variant="default" padding="lg">
       <div className="mb-4">
         <h3 className="font-semibold text-gray-900 text-sm">{title}</h3>
         <p className="text-xs text-gray-400 mt-0.5">{description}</p>
       </div>
       {children}
-    </div>
+    </Card>
   );
 }

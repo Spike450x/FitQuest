@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { Card } from './Card';
 
 interface EmptyStateProps {
   /** Decorative emoji or icon. Wrapped in `aria-hidden`. */
@@ -21,9 +22,7 @@ interface EmptyStateProps {
  */
 export function EmptyState({ icon, title, description, cta, className = '' }: EmptyStateProps) {
   return (
-    <div
-      className={`bg-white border border-gray-200 rounded-xl p-6 text-center shadow-sm ${className}`}
-    >
+    <Card variant="default" padding="lg" className={`text-center ${className}`}>
       {icon !== undefined && (
         <div className="text-3xl mb-2" aria-hidden="true">
           {icon}
@@ -48,6 +47,6 @@ export function EmptyState({ icon, title, description, cta, className = '' }: Em
             {cta.label}
           </button>
         ))}
-    </div>
+    </Card>
   );
 }

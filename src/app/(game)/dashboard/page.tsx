@@ -8,6 +8,7 @@ import { XPBar } from '@/components/ui/XPBar';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { Card } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { StatBar } from '@/components/character/StatBar';
 import { CLASS_DEFINITIONS, ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
@@ -230,9 +231,9 @@ export default function DashboardPage() {
             📋 Recent Activity
           </h3>
           {logsLoading ? (
-            <div className="space-y-2 animate-pulse">
+            <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-10 bg-gray-100 rounded-lg" />
+                <Skeleton key={i} height="h-10" />
               ))}
             </div>
           ) : logs.length === 0 ? (
@@ -314,11 +315,11 @@ function ActiveQuestsWidget({ quests, loading }: { quests: ActiveQuest[]; loadin
         </Link>
       </div>
       {loading ? (
-        <div className="space-y-3 animate-pulse">
+        <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="space-y-1.5">
-              <div className="h-3 bg-gray-100 rounded w-3/4" />
-              <div className="h-1.5 bg-gray-100 rounded w-full" />
+              <Skeleton shape="line" width="w-3/4" />
+              <Skeleton shape="line" height="h-1.5" />
             </div>
           ))}
         </div>
@@ -428,14 +429,16 @@ function QuestProgressRow({ quest }: { quest: ActiveQuest }) {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
-      <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
-        <div className="h-7 bg-gray-100 rounded w-40" />
-        <div className="h-2.5 bg-gray-100 rounded w-full" />
-      </div>
+    <div className="space-y-6">
+      <Card variant="default" padding="lg">
+        <div className="space-y-4">
+          <Skeleton shape="line" height="h-7" width="w-40" />
+          <Skeleton shape="line" height="h-2.5" />
+        </div>
+      </Card>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 h-24" />
+          <Skeleton key={i} shape="card" height="h-24" />
         ))}
       </div>
     </div>

@@ -85,6 +85,7 @@ import {
 } from '@/lib/gameLogic/passives';
 import { SpellCard } from '@/components/ui/SpellCard';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+import { Card } from '@/components/ui/Card';
 import { CombatEffects } from '@/components/combat/CombatEffects';
 import { fireConfetti } from '@/lib/confetti';
 import { useCombatBursts } from '@/hooks/useCombatBursts';
@@ -1068,7 +1069,7 @@ export default function CombatPage() {
 
         {/* Rewards summary shown after modal is claimed */}
         {outcome === 'win' && !pendingRewards && (
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+          <Card variant="default" padding="md">
             <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
               Rewards Claimed
             </p>
@@ -1118,7 +1119,7 @@ export default function CombatPage() {
                 })}
               </div>
             )}
-          </div>
+          </Card>
         )}
 
         {/* HP + Stamina + Magic bars */}
@@ -3147,96 +3148,107 @@ function BattleResultsModal({
   const emoji = MONSTER_EMOJI[pending.monster.id] ?? '👾';
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-white via-indigo-50/40 to-violet-50/60 border border-indigo-100 rounded-2xl shadow-2xl shadow-indigo-500/30 w-full max-w-sm space-y-4 p-6 animate-[fadeIn_0.3s_ease-out]">
-        {/* Header */}
-        <div className="text-center space-y-1">
-          <p className="text-5xl drop-shadow-md">⚔️</p>
-          <p className="font-display text-4xl font-bold text-indigo-700 tracking-wider uppercase drop-shadow-sm">
-            Victory!
-          </p>
-          <p className="text-sm text-gray-500">
-            {emoji} {pending.monster.name} defeated
-          </p>
-        </div>
-
-        {/* XP + Gold */}
-        <div className="flex gap-3">
-          <div className="flex-1 bg-indigo-50 border border-indigo-100 rounded-xl p-3 text-center shadow-sm">
-            <AnimatedNumber
-              value={pending.xpReward}
-              prefix="+"
-              className="text-3xl font-bold text-indigo-600"
-            />
-            <p className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider font-semibold">
-              XP
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div className="relative bg-gradient-to-br from-white via-indigo-50/40 to-violet-50/60 backdrop-blur-sm border border-indigo-100 rounded-2xl shadow-2xl shadow-indigo-500/30 w-full max-w-sm p-6 animate-[fadeIn_0.3s_ease-out] overflow-hidden">
+        {/* Decorative blur orbs */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-16 -right-12 w-40 h-40 rounded-full bg-indigo-300/30 blur-3xl"
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-16 -left-12 w-40 h-40 rounded-full bg-violet-300/30 blur-3xl"
+        />
+        <div className="relative space-y-4">
+          {/* Header */}
+          <div className="text-center space-y-1">
+            <p className="text-5xl drop-shadow-md">⚔️</p>
+            <p className="font-display text-4xl font-bold text-indigo-700 tracking-wider uppercase drop-shadow-sm">
+              Victory!
             </p>
-            {pending.streakMultiplier > 1.0 && (
-              <p className="text-xs text-emerald-600 font-medium mt-1">
-                🔥 ×{pending.streakMultiplier.toFixed(2)} streak
+            <p className="text-sm text-gray-500">
+              {emoji} {pending.monster.name} defeated
+            </p>
+          </div>
+
+          {/* XP + Gold */}
+          <div className="flex gap-3">
+            <div className="flex-1 bg-indigo-50 border border-indigo-100 rounded-xl p-3 text-center shadow-sm">
+              <AnimatedNumber
+                value={pending.xpReward}
+                prefix="+"
+                className="text-3xl font-bold text-indigo-600"
+              />
+              <p className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider font-semibold">
+                XP
               </p>
+              {pending.streakMultiplier > 1.0 && (
+                <p className="text-xs text-emerald-600 font-medium mt-1">
+                  🔥 ×{pending.streakMultiplier.toFixed(2)} streak
+                </p>
+              )}
+            </div>
+            <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl p-3 text-center shadow-sm">
+              <AnimatedNumber
+                value={pending.goldReward}
+                prefix="+"
+                className="text-3xl font-bold text-amber-500"
+              />
+              <p className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider font-semibold">
+                Gold
+              </p>
+            </div>
+          </div>
+
+          {/* Loot */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Loot</p>
+            {pending.droppedItems.length > 0 ? (
+              pending.droppedItems.map((itemId, idx) => {
+                const def = getItemById(itemId);
+                if (!def) return null;
+                const card = RARITY_CARD[def.rarity];
+                const isLegendary = def.rarity === 'legendary';
+                return (
+                  <motion.div
+                    key={itemId}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.15 + idx * 0.12, duration: 0.3, ease: 'easeOut' }}
+                    className={`flex items-center justify-between bg-white border ${card.border} ${card.glow} rounded-lg px-3 py-2 ${
+                      isLegendary ? 'animate-legendary-glow' : ''
+                    }`}
+                  >
+                    <span className="text-sm font-medium text-gray-800">📦 {def.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      {def.lootOnly && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-600">
+                          ✦ Drop Only
+                        </span>
+                      )}
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${RARITY_BADGE[def.rarity]}`}
+                      >
+                        {def.rarity}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })
+            ) : (
+              <p className="text-xs text-gray-400 italic">No loot dropped this time.</p>
             )}
           </div>
-          <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl p-3 text-center shadow-sm">
-            <AnimatedNumber
-              value={pending.goldReward}
-              prefix="+"
-              className="text-3xl font-bold text-amber-500"
-            />
-            <p className="text-xs text-gray-400 mt-0.5 uppercase tracking-wider font-semibold">
-              Gold
-            </p>
-          </div>
-        </div>
 
-        {/* Loot */}
-        <div className="space-y-1.5">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Loot</p>
-          {pending.droppedItems.length > 0 ? (
-            pending.droppedItems.map((itemId, idx) => {
-              const def = getItemById(itemId);
-              if (!def) return null;
-              const card = RARITY_CARD[def.rarity];
-              const isLegendary = def.rarity === 'legendary';
-              return (
-                <motion.div
-                  key={itemId}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.15 + idx * 0.12, duration: 0.3, ease: 'easeOut' }}
-                  className={`flex items-center justify-between bg-white border ${card.border} ${card.glow} rounded-lg px-3 py-2 ${
-                    isLegendary ? 'animate-legendary-glow' : ''
-                  }`}
-                >
-                  <span className="text-sm font-medium text-gray-800">📦 {def.name}</span>
-                  <div className="flex items-center gap-1.5">
-                    {def.lootOnly && (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-600">
-                        ✦ Drop Only
-                      </span>
-                    )}
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${RARITY_BADGE[def.rarity]}`}
-                    >
-                      {def.rarity}
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })
-          ) : (
-            <p className="text-xs text-gray-400 italic">No loot dropped this time.</p>
-          )}
+          {/* Claim button */}
+          <button
+            onClick={onClaim}
+            disabled={claiming}
+            className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 hover:shadow-lg hover:shadow-indigo-500/40 disabled:opacity-50 disabled:hover:shadow-none text-white font-bold py-3 rounded-xl transition-all active:scale-[0.98]"
+          >
+            {claiming ? 'Claiming…' : 'Claim Rewards'}
+          </button>
         </div>
-
-        {/* Claim button */}
-        <button
-          onClick={onClaim}
-          disabled={claiming}
-          className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 hover:shadow-lg hover:shadow-indigo-500/40 disabled:opacity-50 disabled:hover:shadow-none text-white font-bold py-3 rounded-xl transition-all active:scale-[0.98]"
-        >
-          {claiming ? 'Claiming…' : 'Claim Rewards'}
-        </button>
       </div>
     </div>
   );

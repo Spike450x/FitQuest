@@ -7,11 +7,11 @@ type Padding = 'none' | 'sm' | 'md' | 'lg';
 
 const VARIANT_CLASSES: Record<Variant, string> = {
   default: 'bg-white border border-gray-200 shadow-sm',
-  hero: 'bg-gradient-to-br from-indigo-50 via-white to-violet-50 border border-indigo-100 shadow-md shadow-indigo-500/10',
+  hero: 'relative overflow-hidden bg-gradient-to-br from-indigo-100/80 via-white/90 to-violet-100/80 backdrop-blur-sm border border-indigo-200/80 shadow-lg shadow-indigo-500/10',
   highlight: 'bg-indigo-50/40 border border-indigo-200',
   legendary:
     'bg-gradient-to-br from-orange-50 via-amber-50/70 to-white border-2 border-orange-300 shadow-lg shadow-orange-500/30',
-  dark: 'bg-slate-900 border border-slate-700 text-slate-100 shadow-lg shadow-black/30',
+  dark: 'bg-slate-900/95 backdrop-blur border border-slate-700 text-slate-100 shadow-lg shadow-black/30',
   flat: 'bg-white border border-gray-200',
 };
 
@@ -56,7 +56,19 @@ export function Card({
         .join(' ')}
       {...rest}
     >
-      {children}
+      {variant === 'hero' && (
+        <>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-16 -right-12 w-48 h-48 rounded-full bg-indigo-300/30 blur-3xl"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-20 -left-12 w-48 h-48 rounded-full bg-violet-300/30 blur-3xl"
+          />
+        </>
+      )}
+      {variant === 'hero' ? <div className="relative">{children}</div> : children}
     </div>
   );
 }

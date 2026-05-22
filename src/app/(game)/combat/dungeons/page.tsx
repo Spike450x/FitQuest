@@ -8,6 +8,7 @@ import { DUNGEON_TIERS } from '@/lib/gameLogic/dungeons';
 import { playerMaxHp } from '@/lib/gameLogic/combat';
 import { getRecentDungeonRuns } from '@/lib/dungeonData';
 import { getItemById, RARITY_BADGE } from '@/lib/gameLogic/items';
+import { Skeleton } from '@/components/ui/Skeleton';
 import type { DungeonTierId, DungeonRunsToday, DungeonRun } from '@/types';
 
 const TIER_ORDER: DungeonTierId[] = ['goblin-caves', 'spider-lair', 'dark-sanctum', 'dragons-keep'];
@@ -158,7 +159,7 @@ export default function DungeonLobbyPage() {
 
       {/* Resume banner or skeleton */}
       {!pageReady ? (
-        <div className="bg-slate-800 rounded-xl h-16 mb-4 animate-pulse" />
+        <Skeleton shape="card" tone="dark" height="h-16" className="mb-4" />
       ) : activeRun ? (
         <div className="bg-blue-950 border border-blue-700 rounded-xl p-4 mb-4 flex items-center justify-between">
           <div>
@@ -246,7 +247,7 @@ export default function DungeonLobbyPage() {
           Recent Runs
         </div>
         {!pageReady ? (
-          <div className="bg-slate-800 rounded-xl h-24 animate-pulse" />
+          <Skeleton shape="card" tone="dark" height="h-24" />
         ) : recentRuns.length === 0 ? (
           <div className="bg-slate-800 rounded-xl p-4 text-center text-slate-500 text-sm">
             No completed runs yet. Enter a dungeon to begin.

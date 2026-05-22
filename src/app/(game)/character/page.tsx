@@ -2,6 +2,8 @@
 
 import { useCharacter } from '@/hooks/useCharacter';
 import { CharacterCard } from '@/components/character/CharacterCard';
+import { Card } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 
 export default function CharacterPage() {
@@ -32,7 +34,7 @@ export default function CharacterPage() {
       {/* Lower two-column row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Class details */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+        <Card variant="default" padding="lg">
           <h3 className="font-bold text-gray-900 mb-1">
             {classDef.emoji} {classDef.label} — Class Bonuses
           </h3>
@@ -61,10 +63,10 @@ export default function CharacterPage() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Stats explanation */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+        <Card variant="default" padding="lg">
           <h3 className="font-bold text-gray-900 mb-4">How Stats Work</h3>
           <div className="space-y-3 text-sm text-gray-500">
             <p>
@@ -94,7 +96,7 @@ export default function CharacterPage() {
               round.
             </p>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
@@ -102,17 +104,19 @@ export default function CharacterPage() {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
-      <div className="h-8 bg-gray-100 rounded w-48" />
-      <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
-        <div className="h-6 bg-gray-100 rounded w-32" />
-        <div className="h-2.5 bg-gray-100 rounded w-full" />
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-4 bg-gray-100 rounded" />
-          ))}
+    <div className="space-y-6">
+      <Skeleton shape="line" height="h-8" width="w-48" />
+      <Card variant="default" padding="lg">
+        <div className="space-y-4">
+          <Skeleton shape="line" height="h-6" width="w-32" />
+          <Skeleton shape="line" height="h-2.5" />
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} shape="line" height="h-4" />
+            ))}
+          </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

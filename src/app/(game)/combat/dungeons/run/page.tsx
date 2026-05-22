@@ -161,7 +161,7 @@ function LootCard({ itemId, index }: { itemId: string; index: number }) {
     <div
       className={`flex items-center justify-between rounded-lg px-3 py-2 border-2 ${card.border} ${
         card.glow ? `shadow-md ${card.glow}` : 'bg-slate-800'
-      } ${isLegendary ? 'animate-pulse' : ''}`}
+      } ${isLegendary ? 'animate-legendary-glow' : ''}`}
       style={{ animationDelay: `${index * 150}ms` }}
     >
       <span className="text-xs font-semibold text-slate-200">📦 {def.name}</span>

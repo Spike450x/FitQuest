@@ -1,6 +1,7 @@
 'use client';
 
 import { useCharacter } from '@/hooks/useCharacter';
+import { Card } from '@/components/ui/Card';
 import { MASTERY_CONFIG, nextMasteryMilestone, RESTORE } from '@/lib/gameLogic/constants';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
 import type { MasteryActivityType } from '@/lib/gameLogic/constants';
@@ -25,7 +26,7 @@ export function ActivitySidePanel() {
   return (
     <div className="space-y-4">
       {/* Mastery Progress */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <Card variant="default" padding="lg">
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
           Mastery Progress
         </h3>
@@ -65,10 +66,10 @@ export function ActivitySidePanel() {
         <p className="text-xs text-gray-300 mt-4 border-t border-gray-100 pt-3">
           Milestones at 5 sessions, then every 10 thereafter
         </p>
-      </div>
+      </Card>
 
       {/* Current Resources */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <Card variant="default" padding="lg">
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
           Resources
         </h3>
@@ -98,7 +99,7 @@ export function ActivitySidePanel() {
             note={`+${RESTORE.MAGIC_PER_WATER_GLASS} per glass of water`}
           />
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

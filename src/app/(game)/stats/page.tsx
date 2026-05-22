@@ -9,6 +9,8 @@ import { useInventoryStore } from '@/store/inventoryStore';
 import { getItemById } from '@/lib/gameLogic/items';
 import { ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { ACTIVITY_ICONS } from '@/lib/activityIcons';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { Card } from '@/components/ui/Card';
 import { getStreakTier, STREAK_TIERS } from '@/lib/gameLogic/streaks';
 import type { ActivityLog, ActiveQuest, InventoryItem, ActivityType, Character } from '@/types';
 import {
@@ -469,10 +471,7 @@ function OverviewCards({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
       {cards.map(({ label, value, icon, color, bg }) => (
-        <div
-          key={label}
-          className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm text-center space-y-1"
-        >
+        <Card key={label} variant="default" padding="md" className="text-center space-y-1">
           <div
             className={`text-2xl w-10 h-10 flex items-center justify-center rounded-full mx-auto ${bg}`}
           >
@@ -480,7 +479,7 @@ function OverviewCards({
           </div>
           <p className={`text-xl font-bold ${color}`}>{value}</p>
           <p className="text-xs text-gray-400">{label}</p>
-        </div>
+        </Card>
       ))}
     </div>
   );
@@ -676,10 +675,10 @@ function QuestsChart({ data }: { data: { date: string; quests: number }[] }) {
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+    <Card variant="default" padding="lg">
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">{title}</p>
       {children}
-    </div>
+    </Card>
   );
 }
 
@@ -687,18 +686,14 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 
 function StatsLoading() {
   return (
-    <div className="space-y-4 animate-pulse">
+    <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 h-24" />
+          <Skeleton key={i} shape="card" height="h-24" />
         ))}
       </div>
       {[200, 200, 200, 180].map((h, i) => (
-        <div
-          key={i}
-          className="bg-white border border-gray-200 rounded-xl p-5"
-          style={{ height: h }}
-        />
+        <Skeleton key={i} shape="card" style={{ height: h }} />
       ))}
     </div>
   );
