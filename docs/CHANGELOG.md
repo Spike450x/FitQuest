@@ -15,6 +15,24 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Illustrated route backgrounds (UI pass 7)
+
+- New `RouteBackground` component (`src/components/ui/RouteBackground.tsx`) reads the current pathname and paints a per-route gradient + inline SVG pattern behind all content. Mount lives in `(game)/layout.tsx`; game layout's outer div dropped its solid `bg-gray-50` / `dark:bg-slate-950` so the gradient is visible (body keeps the fallback color).
+- Nine themed schemes:
+  - **Dashboard** — indigo→violet gradient + compass-rose pattern (town-square feel)
+  - **Character** — amber/stone gradient + scroll pattern (sigil sheet feel)
+  - **Activities** — sky→emerald gradient + sunburst rays (dawn / morning workout)
+  - **Combat** — rose→slate gradient + colosseum-arch pattern + radial vignette darkening (arena feel)
+  - **Quests** — amber/yellow gradient + scroll pattern (parchment ledger)
+  - **Inventory** — stone→amber gradient + crosshatch pattern (leather satchel)
+  - **Shop** — amber→orange gradient + wood-grain pattern (warm shopkeeper feel)
+  - **Stats** — slate→indigo gradient + grid pattern (graph paper)
+  - **Profile** — indigo gradient + sigil pattern (player crest)
+- Theme-aware via Tailwind `currentColor` — patterns swap stroke color with the light/dark toggle and gradient stops have explicit light + dark variants.
+- New `bg-radial-vignette` utility in `globals.css` (light + dark variants) — used only on combat for the boss-room feel.
+- Zero asset pipeline: pure CSS gradients + inline SVG with `patternUnits="userSpaceOnUse"` tiling. No bundle bloat, no image requests, fully scalable.
+- Dungeons keep their dedicated `bg-slate-900` aesthetic — RouteBackground no-ops on `/combat/dungeons*`.
+
 ## 2026-05-22 — Sound design (UI pass 6)
 
 - `src/lib/sounds.ts` — Web Audio API synth functions (zero bundle cost, no licensing). Generates retro-RPG audio on the fly via oscillators + noise buffers + ADSR envelopes. 15 recipes: `playClick`, `playDiceRoll`, `playAttack`, `playMagic`, `playHit`, `playCrit`, `playFail`, `playClaim`, `playLoot`, `playLevelUp`, `playVictory`, `playLegendary`, `playAchievement`, `playStreak`, `playPersonalRecord`.
