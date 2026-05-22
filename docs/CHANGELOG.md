@@ -15,6 +15,26 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Balance & engine fixes pass 4 (P0-3 daily combat XP cap — backlog cleared)
+
+Closes **P0-3** and clears the final outstanding item from the post-MVP balance backlog. After today, the "Balance & engine fixes" section in CLAUDE.md is complete — focus shifts to the feature backlog (Achievements page → Reputation/Wanted Board → Champions → …).
+
+- **P0-3 — Daily combat XP diminishing returns.** New `claimCombatVictory` Cloud Function in `functions/src/claimCombatVictory.ts` is now the authoritative path for awarding combat-win XP and gold. The CF counts the player's combat wins so far today (UTC day) via an aggregate query on `combatLogs` and applies a tiered multiplier to the XP before it lands on the character:
+  - wins 1–9: **1.0×** (no penalty)
+  - wins 10–19: **0.5×**
+  - wins 20–29: **0.25×**
+  - wins 30+: **0.1×** (floor)
+- Gold is **never** diminished — only XP. Farming the same monster for gold to fund quest rerolls / dungeon entry fees stays viable; what gets nerfed is XP grinding through one-shot encounters.
+- The CF reads + writes the character doc inside a single Firestore transaction (XP application, level-up bookkeeping, resource refill on level-up, `pendingStatPoints` stamping) and writes the combat log doc after the transaction with the final XP, multiplier, and `winsTodayAfter`. The combat log doc id is `${uid}_${idempotencyKey}` so network retries are safe — the second call either no-ops on the doc write or re-fetches the existing doc and returns the same result.
+- Client wiring: `src/lib/functions.ts` gets a `claimCombatVictoryCF` wrapper; `src/types/cloudFunctions.ts` carries the shared input/output interfaces. The combat page (`src/app/(game)/combat/page.tsx`) calls the CF from `handleClaimRewards`, replacing the direct `addCombatLogDoc` + local `awardXpAndStats(xpReward)` sequence. `awardXpAndStats(finalXp, {})` runs after the CF returns so the in-memory store still mirrors the authoritative server award.
+- **Player-facing transparency:** the combat page now fetches today's wins on mount (`fetchRecentCombatLogs` filtered by UTC day) and shows a "Daily combat XP" badge next to the Today's Encounters block — tinted emerald (no penalty), amber (within 5 wins of the next penalty), or rose (already at a reduced multiplier). On every claimed win the badge updates to the server-authoritative `winsTodayAfter`. When `multiplier < 1.0`, a toast warns "Daily combat XP at {N}% — win #{N} today".
+- Two new pure helpers in `src/lib/gameLogic/combat.ts`:
+  - `combatXpDailyMultiplier(winsToday)` — returns `1.0 | 0.5 | 0.25 | 0.1`
+  - `combatWinsUntilNextPenalty(winsToday)` — returns `{ remaining, nextMultiplier } | null` for the badge copy
+- **Parity safety.** The CF can't import client-side TypeScript path aliases, so `combatXpDailyMultiplier` is duplicated into `functions/src/gameLogic/combat.ts` with a prominent "PARITY" comment. A new test (`functions/src/__tests__/combatXp.test.ts`) imports both copies and asserts they agree for win counts 0–100. Pattern matches the existing `activityCaps-parity` and `achievements-parity` tests.
+- Tests: 9 new client unit tests (5 cases for `combatXpDailyMultiplier`, 4 cases for `combatWinsUntilNextPenalty`) + 5 new function tests (CF logic + parity loop). 388 client tests + 21 function tests pass.
+- CI: the existing CI step 16 deploys `claimCombatVictory` alongside `logActivity` and `claimDungeonRun` on master push when `functions/` files change — no workflow edit required.
+
 ## 2026-05-22 — Balance & engine fixes pass 3 (daily cap indicator)
 
 - **P2-3 — Activity cap proximity indicator.** `ActivityLogForm` now subscribes to the last 50 activity logs (via `useRecentActivity`, count bumped from default 5 specifically for accurate same-day aggregation), computes today's total for the active tab via UTC-day filter, and shows a coloured cap meter above the input. Reads "Today: X / Y unit" + percentage; progress bar tints emerald → amber at 70% → rose when exhausted. When the cap is reached, the meter reads "⚠️ Daily cap reached for {activity}". Display-only — the Cloud Function still enforces the cap server-side.

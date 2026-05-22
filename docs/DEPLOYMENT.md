@@ -51,7 +51,7 @@ This script (`package.json` → `"deploy:prod"`) runs in order:
 2. `npx firebase deploy --only firestore:indexes,firestore:rules` — indexes and rules first
 3. `npx firebase deploy --only functions --force` — Cloud Functions second (`--force` suppresses `minInstances` billing prompt)
 
-**The ordering is not optional.** The `logActivity` Cloud Function queries a composite index (`uid, type, loggedAt`). If you deploy the function before the index is ready, it will throw `FAILED_PRECONDITION` on every call until the index finishes building (which can take several minutes on an active dataset).
+**The ordering is not optional.** The Cloud Functions query composite indexes — `logActivity` uses `(uid, type, loggedAt)` and `claimCombatVictory` uses `(uid, loggedAt DESC)` on `combatLogs`. If you deploy a function before the index it depends on is ready, it will throw `FAILED_PRECONDITION` on every call until the index finishes building (which can take several minutes on an active dataset).
 
 ### Rules-only (hotfix path)
 
@@ -78,7 +78,7 @@ Build the functions first to catch TypeScript errors before they go to productio
 
 ## Post-deploy verification
 
-After any function deploy, confirm the `logActivity` function is healthy:
+After any function deploy, confirm all three callable functions are healthy:
 
 ```bash
 npx firebase functions:log --project fitness-rpg-claude --limit 20
@@ -90,7 +90,11 @@ Or via the Firebase MCP in Claude Code:
 firebase functions get_logs
 ```
 
-Look for: no `INTERNAL` or `FAILED_PRECONDITION` errors in the first 1–2 minutes after deploy. If you see `FAILED_PRECONDITION`, the composite index is still building — wait and recheck.
+Look for: no `INTERNAL` or `FAILED_PRECONDITION` errors in the first 1–2 minutes after deploy. If you see `FAILED_PRECONDITION`, the composite index is still building — wait and recheck. Currently deployed callables:
+
+- `logActivity` — server-authoritative activity log + daily cap enforcement + mastery / restore writes
+- `claimDungeonRun` — atomic dungeon-run XP/gold/item award + achievement gold
+- `claimCombatVictory` — server-authoritative combat-win XP/gold award with diminishing-returns multiplier (P0-3)
 
 Run the manual smoke test ([SMOKE-TEST.md](SMOKE-TEST.md)) after any deploy that touches the auth flow or a Cloud Function the UI calls.
 

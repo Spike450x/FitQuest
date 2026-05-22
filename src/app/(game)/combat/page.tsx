@@ -65,6 +65,8 @@ import {
   LEGENDARY_PITY_THRESHOLD,
   resolveRoundOutcome,
   monsterXpScaling,
+  combatXpDailyMultiplier,
+  combatWinsUntilNextPenalty,
 } from '@/lib/gameLogic/combat';
 import { getStreakLootMultiplier, getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
@@ -96,7 +98,8 @@ import { playSound } from '@/hooks/useSound';
 import { useCombatBursts } from '@/hooks/useCombatBursts';
 import { useTodayKey } from '@/hooks/useTodayKey';
 import { toast, toastReward, toastLoot } from '@/components/ui/Toaster';
-import { addCombatLogDoc } from '@/lib/combatData';
+import { claimCombatVictoryCF } from '@/lib/functions';
+import { fetchRecentCombatLogs } from '@/lib/combatData';
 import { COMBAT, CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 import type { MonsterDef, ItemDef, SpellDiceRequirement } from '@/types';
 import type { DicePattern, AbilityDef } from '@/lib/gameLogic/abilities';
@@ -289,6 +292,27 @@ export default function CombatPage() {
   }, [pendingRewards]);
   const [claiming, setClaiming] = useState(false);
   const [resetting, setResetting] = useState(false);
+  // Today's combat win count — drives the diminishing-returns badge. Loaded
+  // once on mount; incremented locally on each claim so the UI updates
+  // immediately without an extra round-trip. Server is the source of truth
+  // (see claimCombatVictory CF) — this is display-only.
+  const [winsToday, setWinsToday] = useState<number>(0);
+  useEffect(() => {
+    let cancelled = false;
+    if (!character?.uid) return;
+    const startOfDay = Date.UTC(
+      new Date().getUTCFullYear(),
+      new Date().getUTCMonth(),
+      new Date().getUTCDate(),
+    );
+    fetchRecentCombatLogs(character.uid, 50).then((logs) => {
+      if (cancelled) return;
+      setWinsToday(logs.filter((l) => l.loggedAt >= startOfDay).length);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [character?.uid]);
   const [showItemPanel, setShowItemPanel] = useState(false);
   const [usingItem, setUsingItem] = useState<string | null>(null);
   const [showAbilityGuide, setShowAbilityGuide] = useState(false);
@@ -889,23 +913,48 @@ export default function CombatPage() {
       return def?.rarity === 'legendary';
     });
     try {
-      await awardXpAndStats(xpReward, {});
+      // ── Server-authoritative XP cap + combat-log persistence ─────────────
+      // claimCombatVictory queries today's combatLogs server-side, applies the
+      // diminishing-returns multiplier (1.0× → 0.5× at 11+ wins → 0.25× at 21+
+      // → 0.1× at 31+), and writes the combat-log doc with the actually-
+      // awarded XP. We use the returned `finalXp` for the local store + toast
+      // so the player sees the same number that was persisted.
+      const claim = await claimCombatVictoryCF({
+        xpReward,
+        goldReward,
+        monsterId: defeated.id,
+        monsterName: defeated.name,
+        idempotencyKey: crypto.randomUUID(),
+      });
+      const { finalXp, multiplier, winsTodayAfter } = claim;
+      setWinsToday(winsTodayAfter);
+
+      // The CF already wrote to the character doc (XP + gold + level bookkeeping),
+      // but our local Zustand store still holds the pre-claim state. Update it
+      // here so the dashboard / nav refresh immediately. The CF and the local
+      // helpers apply the same level-up math, so the numbers match.
+      await awardXpAndStats(finalXp, {});
       await awardGold(goldReward);
       await awardLoot(pendingRewards.uid, droppedItems);
       await updateMonsterPity(defeated.id, gotLegendary);
-      await addCombatLogDoc(pendingRewards.uid, {
-        monsterId: defeated.id,
-        monsterName: defeated.name,
-        xp: xpReward,
-        gold: goldReward,
-      });
       setPendingRewards(null);
       toastReward({
         emoji: '⚔️',
         title: `Defeated ${defeated.name}!`,
-        xp: xpReward,
+        xp: finalXp,
         gold: goldReward,
       });
+      // Surface the diminishing-returns penalty when it actually bites so the
+      // player understands why their XP came in low.
+      if (multiplier < 1.0) {
+        toast.warning(
+          `Daily combat XP at ${Math.round(multiplier * 100)}% — win #${winsTodayAfter} today`,
+          {
+            description: `Take a break or log activities to keep XP gains meaningful.`,
+            duration: 6000,
+          },
+        );
+      }
       // Highlight epic/legendary drops with their own dedicated toasts
       for (const itemId of droppedItems) {
         const def = getItemById(itemId);
@@ -1569,13 +1618,48 @@ export default function CombatPage() {
             )}
           </p>
         </div>
-        <div className="text-right shrink-0">
-          <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">
-            Today&apos;s Encounters
-          </p>
-          <p className="text-xs text-gray-400 dark:text-slate-500">
-            Resets in {formatCountdown(rotationExpiresAt())} (UTC)
-          </p>
+        <div className="text-right shrink-0 space-y-2">
+          <div>
+            <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">
+              Today&apos;s Encounters
+            </p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">
+              Resets in {formatCountdown(rotationExpiresAt())} (UTC)
+            </p>
+          </div>
+          {/* Daily combat XP cap badge — surfaces the diminishing-returns
+              multiplier before the player commits to a fight. */}
+          {(() => {
+            const mult = combatXpDailyMultiplier(winsToday);
+            const next = combatWinsUntilNextPenalty(winsToday);
+            const tint =
+              mult >= 1.0
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-200'
+                : mult >= 0.5
+                  ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-200'
+                  : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-200';
+            return (
+              <div
+                className={`inline-flex flex-col items-end gap-0.5 rounded-lg border px-2.5 py-1.5 text-[11px] ${tint}`}
+                title="Daily combat XP cap — diminishing returns past 10 wins/day"
+              >
+                <span className="font-semibold">
+                  XP gain: <span className="tabular-nums">×{mult.toFixed(2)}</span>
+                  <span className="ml-1.5 opacity-70 tabular-nums">
+                    ({winsToday} win{winsToday !== 1 ? 's' : ''} today)
+                  </span>
+                </span>
+                {next ? (
+                  <span className="opacity-80">
+                    <span className="tabular-nums">{next.remaining}</span> until ×
+                    {next.nextMultiplier.toFixed(2)}
+                  </span>
+                ) : (
+                  <span className="opacity-80">Daily floor reached</span>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
 

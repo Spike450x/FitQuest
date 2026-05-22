@@ -21,6 +21,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 export { claimDungeonRun } from './claimDungeonRun';
+export { claimCombatVictory } from './claimCombatVictory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

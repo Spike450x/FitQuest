@@ -55,7 +55,7 @@ graph TD
 | `lib/combatData.ts`       | Firestore write helpers for `combatLogs/{id}` documents (per-day combat XP tracking).                                                                                                                           |
 | `lib/dungeonData.ts`      | Firestore read/write helpers for `dungeonRuns/{runId}` documents (`createDungeonRunDoc`, `getActiveDungeonRun`, `updateDungeonRunProgress`, `finalizeDungeonRun`, `getRecentDungeonRuns`).                      |
 | `lib/errors.ts`           | Shared error types / helpers used across lib wrappers for consistent error propagation.                                                                                                                         |
-| `lib/functions.ts`        | Cloud Functions callable wrappers (`logActivityFn`, `claimDungeonRunCF`). Components import from here — never instantiate `httpsCallable` directly.                                                             |
+| `lib/functions.ts`        | Cloud Functions callable wrappers (`logActivityFn`, `claimDungeonRunCF`, `claimCombatVictoryCF`). Components import from here — never instantiate `httpsCallable` directly.                                     |
 | `lib/auth.ts`             | Firebase Auth wrappers (`signIn`, `signUp`, `logOut`). Auth pages import from here — never import Firebase Auth SDK directly.                                                                                   |
 | `middleware.ts`           | Next.js middleware — checks the Firebase `__session` cookie and redirects.                                                                                                                                      |
 
@@ -165,6 +165,42 @@ sequenceDiagram
 - **Result card is immediate.** `setResult()` fires as soon as the function responds. Quest-progress and streak writes are fire-and-forget — a Firestore hiccup there doesn't block the player from seeing their reward.
 - **Local state stays consistent.** `applyMasteryLocal` mirrors the function's write to the Zustand store with zero extra Firestore reads. Both use `Math.min(stat + 1, statCap(linkedStat, level))`.
 - **Restore writes are server-side (R4-StageC).** The function computes the formula-derived max (`playerMaxHp/Stamina/Magic`) using a minimal gear-stat lookup in `functions/src/gameLogic/combat.ts` and writes `currentHp/Stamina/Magic` atomically with the activity log. The client receives `restored.newValue` and mirrors it to Zustand via `applyRestoreLocal` — no client Firestore write occurs.
+
+---
+
+## Data flow — claiming a combat victory
+
+End-to-end walkthrough of what happens when the player clicks "Claim rewards" on the victory modal. The `claimCombatVictory` Cloud Function (P0-3) owns the authoritative XP/gold award path — the client never writes the combat log doc or the character XP directly.
+
+```mermaid
+sequenceDiagram
+    participant UI as combat/page.tsx (victory modal)
+    participant CF as claimCombatVictory (Cloud Function)
+    participant CS as characterStore
+    participant FS as Firestore
+
+    UI->>UI: User clicks Claim Rewards (computes xpReward, goldReward from store + streak + monster scaling)
+    UI->>CF: claimCombatVictoryCF({xpReward, goldReward, monsterId, monsterName, idempotencyKey})
+    CF->>FS: get(combatLogs/{uid}_{idempotencyKey}) — short-circuit if retry
+    CF->>FS: getDocs(combatLogs where uid+loggedAt≥startOfUTCDay) — count today's wins
+    CF->>CF: combatXpDailyMultiplier(winsTodayBefore) → finalXp = round(xpReward × multiplier)
+    CF->>FS: txn.get(characters/{uid})
+    CF->>CF: applyXp(level, xp, finalXp) → may level up
+    CF->>FS: txn.update(characters/{uid}, {level, xp, gold, stats?, currentHp?, currentStamina?, currentMagic?, pendingStatPoints?})
+    CF->>FS: combatLogs/{uid}_{idempotencyKey}.set({xp:finalXp, gold, multiplier, winsTodayAfter, ...})
+    CF-->>UI: {finalXp, multiplier, winsTodayBefore, winsTodayAfter, leveledUp}
+    UI->>CS: awardXpAndStats(finalXp, {}) — mirrors server XP to Zustand for instant UI
+    UI->>UI: setWinsToday(winsTodayAfter) — updates the "Daily combat XP" badge
+    UI->>UI: toast.warning() if multiplier < 1.0
+```
+
+**Key properties of this design:**
+
+- **Server-authoritative cap.** The diminishing-returns multiplier (`1.0 → 0.5 → 0.25 → 0.1` at 10 / 20 / 30 wins) is applied inside the CF. A forged client cannot fake the win count because it doesn't control the documents being counted.
+- **Idempotent retries.** The combat log doc id is `${uid}_${idempotencyKey}` where the key is a client-generated UUID. A retry hits the same doc id; the CF detects it and returns the previously-awarded amounts instead of double-awarding.
+- **Gold is not capped.** Only XP is diminished — gold flows through at full value. This preserves combat as a viable gold sink for quest rerolls and dungeon entry fees while removing the XP grind incentive.
+- **Atomic character write.** Level-up bookkeeping (stats, resource refill, `pendingStatPoints`) happens inside a Firestore transaction with the XP/gold update. Combat log write is post-transaction (no character-write contention) and idempotent.
+- **Parity-tested multiplier.** `combatXpDailyMultiplier` is duplicated in `functions/src/gameLogic/combat.ts` (the CF can't import `@/` aliases). A parity test in `functions/src/__tests__/combatXp.test.ts` cross-checks the client and server copies for 0–100 wins.
 
 ---
 
