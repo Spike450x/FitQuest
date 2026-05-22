@@ -6,6 +6,22 @@ import type { ActivityLog } from '@/types';
 
 const FETCH_TTL_MS = 30_000;
 const COMBAT_LOG_LIMIT = 1000;
+const RETRY_DELAYS_MS = [1_000, 3_000];
+
+async function fetchWithRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      if (attempt < RETRY_DELAYS_MS.length) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+      }
+    }
+  }
+  throw lastErr;
+}
 
 interface StatsStore {
   activityLogs: ActivityLog[];
@@ -40,10 +56,9 @@ export const useStatsStore = create<StatsStore>((set, get) => ({
     }
     set({ loading: true, error: null });
     try {
-      const [activityLogs, combatLogs] = await Promise.all([
-        fetchActivityLogs(uid),
-        fetchRecentCombatLogs(uid, COMBAT_LOG_LIMIT),
-      ]);
+      const [activityLogs, combatLogs] = await fetchWithRetry(() =>
+        Promise.all([fetchActivityLogs(uid), fetchRecentCombatLogs(uid, COMBAT_LOG_LIMIT)]),
+      );
       set({
         activityLogs,
         combatLogs,

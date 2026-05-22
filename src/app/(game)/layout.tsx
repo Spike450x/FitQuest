@@ -74,9 +74,6 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
       {/* PWA install nudge — appears after ~12 s of activity if installable */}
       <InstallBanner />
 
-      {/* Network status — shows when browser loses connectivity */}
-      <OfflineBanner />
-
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <header className="border-b border-gray-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl backdrop-saturate-150 sticky top-0 z-20 h-14 shadow-sm shadow-gray-900/5 dark:shadow-black/30">
         <div className="h-full px-4 flex items-center justify-between gap-4">
@@ -154,6 +151,10 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
       </header>
+
+      {/* Network status — in document flow so it pushes content down without
+          a hardcoded pixel offset tied to the header height */}
+      <OfflineBanner />
 
       {/* ── Body ────────────────────────────────────────────────────────────── */}
       <div className="flex flex-1">
