@@ -245,8 +245,12 @@ export const SpellCard = memo(function SpellCard({
           <button
             onClick={onAction}
             disabled={disabled || acting}
-            className={`w-full py-2 text-xs font-semibold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed
-              ${scheme.header} text-white hover:opacity-90`}
+            className={`w-full py-2 text-xs font-semibold rounded-xl transition-colors
+              ${
+                disabled || acting
+                  ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                  : `${scheme.header} text-white hover:opacity-90 cursor-pointer`
+              }`}
           >
             {acting ? '…' : actionLabel}
           </button>

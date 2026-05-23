@@ -15,6 +15,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-22 — Combat bug fixes: claim flow, spell button, dark mode
+
+- **B1 — Claim reward isolation** — `handleClaimRewards` now uses per-step try/catch; modal closes immediately after the Cloud Function succeeds, eliminating the retry→double-XP/gold window; loot-only failures surface a warning toast instead of keeping the modal open
+- **B2 — Spell button light mode** — disabled spell action buttons now use explicit slate colours instead of `opacity-40` on the rarity header; common-rarity spells are visible again in light mode
+- **B3 — Dark mode modal** — `BattleResultsModal` and the in-battle victory banner had white-gradient backgrounds with no `dark:` variants; fixed alongside the "Drop Only" badge, "Victory!" heading, and `BattleLogEntry` left border
+
 ## 2026-05-22 — Dark mode polish across all pages and inputs
 
 - **`InputField` component** — canonical themed input (`dark:bg-slate-950`, consistent focus ring, `sm`/`md`/`lg` size variants) that owns all dark-mode input styling in one place; all 14 raw `<input>` elements across login, register, profile, character-creation, and ActivityLogForm migrated to it, including 3 ChangePasswordForm inputs that were previously missing `dark:bg` entirely.

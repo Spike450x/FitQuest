@@ -904,66 +904,97 @@ export default function CombatPage() {
     if (!pendingRewards) return;
     playSound('claim');
     setClaiming(true);
-    // xpReward is already streak-boosted (captured at kill-time via getStreakBoost) so
-    // the modal, toast, and awardXpAndStats all use the same pre-computed value.
-    const { xpReward, goldReward, droppedItems, monster: defeated } = pendingRewards;
-    // Pity bookkeeping: did this kill yield a legendary from this monster's table?
+
+    const { xpReward, goldReward, droppedItems, monster: defeated, uid } = pendingRewards;
     const gotLegendary = droppedItems.some((id) => {
       const def = getItemById(id);
       return def?.rarity === 'legendary';
     });
+
+    // Step 1 — server-authoritative claim (idempotent CF — safe to retry if this throws)
+    let claim: Awaited<ReturnType<typeof claimCombatVictoryCF>>;
     try {
-      // ── Server-authoritative XP cap + combat-log persistence ─────────────
-      // claimCombatVictory queries today's combatLogs server-side, applies the
-      // diminishing-returns multiplier (1.0× → 0.5× at 11+ wins → 0.25× at 21+
-      // → 0.1× at 31+), and writes the combat-log doc with the actually-
-      // awarded XP. We use the returned `finalXp` for the local store + toast
-      // so the player sees the same number that was persisted.
-      const claim = await claimCombatVictoryCF({
+      claim = await claimCombatVictoryCF({
         xpReward,
         goldReward,
         monsterId: defeated.id,
         monsterName: defeated.name,
         idempotencyKey: crypto.randomUUID(),
       });
-      const { finalXp, multiplier, winsTodayAfter } = claim;
-      setWinsToday(winsTodayAfter);
+    } catch {
+      toast.error("Couldn't reach the server — tap Claim Rewards again", {
+        description: 'Nothing was awarded yet. Your rewards are waiting.',
+      });
+      setClaiming(false);
+      return; // keep modal open — retry is safe
+    }
 
-      // The CF already wrote to the character doc (XP + gold + level bookkeeping),
-      // but our local Zustand store still holds the pre-claim state. Update it
-      // here so the dashboard / nav refresh immediately. The CF and the local
-      // helpers apply the same level-up math, so the numbers match.
-      await awardXpAndStats(finalXp, {});
-      await awardGold(goldReward);
-      await awardLoot(pendingRewards.uid, droppedItems);
-      await updateMonsterPity(defeated.id, gotLegendary);
-      setPendingRewards(null);
+    const { finalXp, multiplier, winsTodayAfter } = claim;
+    setWinsToday(winsTodayAfter);
+
+    // CF succeeded — dismiss modal now. No double-award possible from here on.
+    setPendingRewards(null);
+
+    let lootSyncFailed = false;
+
+    try {
+      // Step 2 — local store sync (best-effort; CF already persisted to Firestore)
+      // Note: awardXpAndStats/awardGold swallow errors internally — catch kept for safety if that changes
+      try {
+        await awardXpAndStats(finalXp, {});
+        await awardGold(goldReward);
+      } catch (err) {
+        console.error('[handleClaimRewards] local stat sync failed:', err);
+      }
+
+      // Step 3 — loot (best-effort; flag failure so inventory reconciles on next load)
+      try {
+        await awardLoot(uid, droppedItems);
+      } catch (err) {
+        console.error('[handleClaimRewards] loot sync failed:', err);
+        lootSyncFailed = true;
+      }
+
+      // Step 4 — pity bookkeeping (silent; non-critical)
+      try {
+        await updateMonsterPity(defeated.id, gotLegendary);
+      } catch (err) {
+        console.error('[handleClaimRewards] pity update failed:', err);
+      }
+
+      // Surface result
       toastReward({
         emoji: '⚔️',
         title: `Defeated ${defeated.name}!`,
         xp: finalXp,
         gold: goldReward,
       });
-      // Surface the diminishing-returns penalty when it actually bites so the
-      // player understands why their XP came in low.
+
+      if (lootSyncFailed) {
+        toast.warning('Inventory sync failed — refresh inventory to see your drop', {
+          description: 'Your XP and gold were awarded.',
+          duration: 8000,
+        });
+      }
+
       if (multiplier < 1.0) {
         toast.warning(
           `Daily combat XP at ${Math.round(multiplier * 100)}% — win #${winsTodayAfter} today`,
           {
-            description: `Take a break or log activities to keep XP gains meaningful.`,
+            description: 'Take a break or log activities to keep XP gains meaningful.',
             duration: 6000,
           },
         );
       }
-      // Highlight epic/legendary drops with their own dedicated toasts
-      for (const itemId of droppedItems) {
-        const def = getItemById(itemId);
-        if (def && (def.rarity === 'epic' || def.rarity === 'legendary')) {
-          toastLoot(def.name, def.rarity);
+
+      if (!lootSyncFailed) {
+        for (const itemId of droppedItems) {
+          const def = getItemById(itemId);
+          if (def && (def.rarity === 'epic' || def.rarity === 'legendary')) {
+            toastLoot(def.name, def.rarity);
+          }
         }
       }
-    } catch {
-      toast.error('Failed to claim rewards — please try again.');
     } finally {
       setClaiming(false);
     }
@@ -1110,9 +1141,9 @@ export default function CombatPage() {
       <div className="space-y-4">
         {/* Outcome banner */}
         {outcome === 'win' && (
-          <div className="rounded-xl p-6 text-center bg-gradient-to-br from-indigo-100 via-violet-50 to-amber-50 border border-indigo-200 shadow-lg shadow-indigo-500/10">
+          <div className="rounded-xl p-6 text-center bg-gradient-to-br from-indigo-100 dark:from-indigo-950/60 via-violet-50 dark:via-violet-950/40 to-amber-50 dark:to-amber-950/30 border border-indigo-200 dark:border-indigo-800 shadow-lg shadow-indigo-500/10">
             <p className="text-5xl mb-2 drop-shadow-md">⚔️</p>
-            <p className="font-display text-4xl font-bold text-indigo-700 tracking-wider uppercase drop-shadow-sm">
+            <p className="font-display text-4xl font-bold text-indigo-700 dark:text-indigo-300 tracking-wider uppercase drop-shadow-sm">
               Victory!
             </p>
             <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
@@ -1121,23 +1152,23 @@ export default function CombatPage() {
           </div>
         )}
         {outcome === 'loss' && (
-          <div className="rounded-xl p-6 text-center bg-gradient-to-br from-red-100 via-red-50 to-gray-100 border border-red-300 shadow-lg shadow-red-500/20">
+          <div className="rounded-xl p-6 text-center bg-gradient-to-br from-red-100 dark:from-red-950/60 via-red-50 dark:via-red-950/30 to-gray-100 dark:to-slate-900 border border-red-300 dark:border-red-900 shadow-lg shadow-red-500/20">
             <p className="text-5xl mb-2 grayscale-[30%]">💀</p>
-            <p className="font-display text-4xl font-bold text-red-700 tracking-wider uppercase">
+            <p className="font-display text-4xl font-bold text-red-700 dark:text-red-400 tracking-wider uppercase">
               You Have Fallen
             </p>
             <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
               Defeated by {emoji} {monster.name}
             </p>
-            <p className="text-sm text-amber-600 font-medium mt-2">
+            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium mt-2">
               Your level and stats have been reset.
             </p>
           </div>
         )}
         {outcome === 'fled' && (
-          <div className="rounded-xl p-5 text-center bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200">
+          <div className="rounded-xl p-5 text-center bg-gradient-to-br from-amber-50 dark:from-amber-950/40 to-yellow-50 dark:to-amber-950/20 border border-amber-200 dark:border-amber-900">
             <p className="text-4xl mb-1">🏃</p>
-            <p className="font-display text-3xl font-bold text-amber-700 tracking-wide uppercase">
+            <p className="font-display text-3xl font-bold text-amber-700 dark:text-amber-400 tracking-wide uppercase">
               Escaped!
             </p>
             <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
@@ -2021,7 +2052,7 @@ function BattleLogEntry({
   emoji: string;
 }) {
   return (
-    <li className="text-sm border-l-2 border-indigo-100 pl-3 space-y-0.5">
+    <li className="text-sm border-l-2 border-indigo-100 dark:border-indigo-900 pl-3 space-y-0.5">
       <p className="text-xs font-semibold text-gray-400 dark:text-slate-500">
         Round {entry.round} · {entry.action === 'attack' && '⚔️ Attack'}
         {entry.action === 'magic' && '🔮 Magic'}
@@ -3355,7 +3386,7 @@ function BattleResultsModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="relative bg-gradient-to-br from-white via-indigo-50/40 to-violet-50/60 backdrop-blur-sm border border-indigo-100 rounded-2xl shadow-2xl shadow-indigo-500/30 w-full max-w-sm p-6 animate-[fadeIn_0.3s_ease-out] overflow-hidden">
+      <div className="relative bg-gradient-to-br from-white dark:from-slate-900 via-indigo-50/40 dark:via-indigo-950/30 to-violet-50/60 dark:to-violet-950/20 backdrop-blur-sm border border-indigo-100 dark:border-indigo-900 rounded-2xl shadow-2xl shadow-indigo-500/30 w-full max-w-sm p-6 animate-[fadeIn_0.3s_ease-out] overflow-hidden">
         {/* Decorative blur orbs */}
         <span
           aria-hidden="true"
@@ -3376,7 +3407,7 @@ function BattleResultsModal({
               ariaLabel={`Defeated ${pending.monster.name}`}
               className="drop-shadow-md"
             />
-            <p className="font-display text-4xl font-bold text-indigo-700 tracking-wider uppercase drop-shadow-sm">
+            <p className="font-display text-4xl font-bold text-indigo-700 dark:text-indigo-300 tracking-wider uppercase drop-shadow-sm">
               Victory!
             </p>
             <p className="text-sm text-gray-500 dark:text-slate-400">
@@ -3439,7 +3470,7 @@ function BattleResultsModal({
                     </span>
                     <div className="flex items-center gap-1.5">
                       {def.lootOnly && (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-600">
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400">
                           ✦ Drop Only
                         </span>
                       )}
