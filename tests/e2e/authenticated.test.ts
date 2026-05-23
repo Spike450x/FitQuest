@@ -29,7 +29,11 @@ test.describe('authenticated game screens — structure smoke tests', () => {
 
   test('quests renders heading', async ({ page }) => {
     await page.goto('/quests');
-    await expect(page.getByRole('heading', { name: /quests/i })).toBeVisible({ timeout: 10_000 });
+    // Strict-mode-safe: page also has "Daily Quests" / "Weekly Quests" h2s,
+    // so match the top-level "Quests" h1 exactly.
+    await expect(page.getByRole('heading', { name: 'Quests', exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('character renders heading', async ({ page }) => {
