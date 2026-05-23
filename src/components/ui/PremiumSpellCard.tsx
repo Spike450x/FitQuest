@@ -26,6 +26,7 @@ type PremiumSpellCardProps = ComponentProps<typeof SpellCard>;
 export function PremiumSpellCard({ def, className = '', ...rest }: PremiumSpellCardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const shimmerRef = useRef<HTMLDivElement>(null);
+  const willChangeCleanupRef = useRef<(() => void) | null>(null);
 
   const { tint, restShadow, hoverShadow } = useMemo(() => {
     const t = SHIMMER_TINT[def.rarity];
@@ -40,6 +41,11 @@ export function PremiumSpellCard({ def, className = '', ...rest }: PremiumSpellC
   function handleMouseEnter() {
     const el = wrapperRef.current;
     if (!el) return;
+    // Cancel any pending willChange cleanup from a prior mouseleave
+    if (willChangeCleanupRef.current) {
+      willChangeCleanupRef.current();
+      willChangeCleanupRef.current = null;
+    }
     el.style.willChange = 'transform';
     el.style.transition = 'none';
   }
@@ -69,13 +75,12 @@ export function PremiumSpellCard({ def, className = '', ...rest }: PremiumSpellC
     el.style.transform = 'translateY(0px)';
     el.style.boxShadow = restShadow;
     sh.style.background = 'none';
-    el.addEventListener(
-      'transitionend',
-      () => {
-        el.style.willChange = 'auto';
-      },
-      { once: true },
-    );
+    const cleanup = () => {
+      el.style.willChange = 'auto';
+      willChangeCleanupRef.current = null;
+    };
+    willChangeCleanupRef.current = () => el.removeEventListener('transitionend', cleanup);
+    el.addEventListener('transitionend', cleanup, { once: true });
   }
 
   return (
