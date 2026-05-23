@@ -15,6 +15,17 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-23 — Stability-to-A: offline UX, authenticated E2E, audit script, bundle split
+
+Closes four scorecard gaps (Offline UX B+ → A, E2E B → A, Vulnerabilities B- → A, Bundle B → A) tracked in `docs/superpowers/plans/2026-05-23-stability-to-a.md`.
+
+- **Offline UX:** `OfflineBanner` now reads "queued changes will sync automatically when you reconnect" — Firestore's `persistentLocalCache` queues writes and replays them on reconnect, so the previous "may not save" wording understated the guarantees.
+- **Authenticated E2E coverage:** Added `tests/e2e/global-setup.ts` that seeds a test user + character document via the Auth and Firestore emulator REST APIs, drives the login form, and saves Playwright `storageState`. New `tests/e2e/authenticated.test.ts` smoke-tests dashboard, shop, inventory, quests, character, combat, stats, profile, and dungeons. `playwright.config.ts` gained a `globalSetup` pointer and a second `authenticated` project that applies the saved storage state. CI now starts the auth + firestore emulators (with a 60 s readiness poll) before the E2E step and passes `NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true`. Task 2 from the plan (firebase.ts emulator wiring) was already shipped in the prior sprint and was confirmed in place — no change required.
+- **Vulnerability audit:** `scripts/audit-check.mjs` parses `npm audit --json` and exits non-zero on any high/critical advisory; moderates are logged as warnings. Replaces the two `continue-on-error: true` audit steps so a genuine high-severity advisory now blocks the build. Known devDep advisories (firebase-tools transitive uuid<9 chain) are documented in `docs/SECURITY-SETUP.md § Known devDependency vulnerabilities`.
+- **Bundle / code-split:** `@next/bundle-analyzer` wired up behind `npm run analyze` (`ANALYZE=true`). The 55-entry `ITEM_SILHOUETTES` map plus its 55 SVG functions moved out of `src/components/art/silhouettes.tsx` into a new `src/components/art/item-silhouettes.tsx` (1,043 lines), and `EntityArt.tsx` imports it from the new file. Non-item routes (combat, character, dashboard) should no longer pay the item-silhouette cost in their shared chunk.
+
+---
+
 ## 2026-05-23 — CSP fix, Die3D unification, Firebase emulator complete
 
 - **Fix: CSP `connect-src` blocked all Cloud Functions** — `https://*.cloudfunctions.net` was missing from the allowlist in `next.config.mjs`; every call to `claimCombatVictory` and `logActivity` was rejected by the browser before reaching the network, causing the "Couldn't reach the server" toast on reward claims, "Failed to log activity" errors, and the daily-XP badge being stuck at 0 wins. Also added `worker-src blob:` to clear the canvas-confetti web-worker CSP violation on victory screens.
