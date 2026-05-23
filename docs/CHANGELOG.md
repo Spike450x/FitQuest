@@ -15,6 +15,16 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## [Unreleased] — 2026-05-22
+
+### feat/3d-dice — 3D tumbling dice + phased roll sounds
+
+**V1 — Die3D component:** Replaced flat `DieFace` with a true CSS 3D cube (`src/components/ui/Die3D.tsx`). Six faces with correct pip layouts; internal `useEffect` drives spin animation (75ms interval, random rotations) and settles to the correct face via `FACE_ROTATIONS` with a 500ms CSS transition. Props identical to the removed `DieFace` — drop-in replacement at all 7 callsites in `combat/page.tsx`.
+
+**V2 — Phased dice sounds:** Split the single `playDiceRoll` sound into two: `playDiceRolling` (1.125s rolling rattle, fires when any roll overlay opens) and `playDiceSettle` (sharp clack, fires when the first die locks in). Both are Web Audio synth — no audio files added.
+
+---
+
 ## 2026-05-22 — Combat bug fixes: claim flow, spell button, dark mode
 
 - **B1 — Claim reward isolation** — `handleClaimRewards` now uses per-step try/catch; modal closes immediately after the Cloud Function succeeds, eliminating the retry→double-XP/gold window; loot-only failures surface a warning toast instead of keeping the modal open
