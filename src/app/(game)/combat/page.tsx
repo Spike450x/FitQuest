@@ -938,6 +938,7 @@ export default function CombatPage() {
     let lootSyncFailed = false;
 
     // Step 2 — local store sync (best-effort; CF already persisted to Firestore)
+    // Note: awardXpAndStats/awardGold swallow errors internally — catch kept for safety if that changes
     try {
       await awardXpAndStats(finalXp, {});
       await awardGold(goldReward);
@@ -961,17 +962,17 @@ export default function CombatPage() {
     }
 
     // Surface result
+    toastReward({
+      emoji: '⚔️',
+      title: `Defeated ${defeated.name}!`,
+      xp: finalXp,
+      gold: goldReward,
+    });
+
     if (lootSyncFailed) {
-      toast.warning(
-        'Rewards claimed · inventory sync failed — refresh inventory to see your drop',
-        { description: 'Your XP and gold were awarded.', duration: 8000 },
-      );
-    } else {
-      toastReward({
-        emoji: '⚔️',
-        title: `Defeated ${defeated.name}!`,
-        xp: finalXp,
-        gold: goldReward,
+      toast.warning('Inventory sync failed — refresh inventory to see your drop', {
+        description: 'Your XP and gold were awarded.',
+        duration: 8000,
       });
     }
 
@@ -985,10 +986,12 @@ export default function CombatPage() {
       );
     }
 
-    for (const itemId of droppedItems) {
-      const def = getItemById(itemId);
-      if (def && (def.rarity === 'epic' || def.rarity === 'legendary')) {
-        toastLoot(def.name, def.rarity);
+    if (!lootSyncFailed) {
+      for (const itemId of droppedItems) {
+        const def = getItemById(itemId);
+        if (def && (def.rarity === 'epic' || def.rarity === 'legendary')) {
+          toastLoot(def.name, def.rarity);
+        }
       }
     }
 
