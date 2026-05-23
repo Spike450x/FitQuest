@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+import bundleAnalyzer from '@next/bundle-analyzer';
 
 // Hosts that must be reachable from the browser:
 //   - *.googleapis.com           — Firebase Auth, Firestore, Identity Toolkit
@@ -61,4 +62,7 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// Wrap with bundle analyzer. Only active when ANALYZE=true — zero overhead in
+// normal dev and production builds.
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === 'true' });
+export default withBundleAnalyzer(nextConfig);
