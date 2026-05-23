@@ -324,7 +324,7 @@ export default function CombatPage() {
   // Fire dice-rattle sound whenever any roll overlay opens.
   useEffect(() => {
     if (pendingAction || pendingAbility || pendingSpell) {
-      playSound('diceRoll');
+      playSound('diceRolling');
     }
   }, [pendingAction, pendingAbility, pendingSpell]);
 

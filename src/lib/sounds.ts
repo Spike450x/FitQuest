@@ -152,6 +152,28 @@ export function playDiceRoll(): void {
   tone(ctx, 660, t + 0.4, 0.18, { type: 'triangle', volume: 0.2 });
 }
 
+export function playDiceRolling(): void {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // 15 noise blips over 1.125s — simulates continuous tumbling
+  for (let i = 0; i < 15; i += 1) {
+    noise(ctx, t + i * 0.075, 0.06, {
+      volume: 0.09,
+      bandpass: { freq: 2000 - i * 50, q: 3 },
+    });
+  }
+}
+
+export function playDiceSettle(): void {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Sharp wooden clack: high-freq noise burst + short thud
+  noise(ctx, t, 0.04, { volume: 0.3, bandpass: { freq: 2800, q: 1.5 } });
+  tone(ctx, 180, t, 0.07, { type: 'sine', volume: 0.35 });
+}
+
 export function playAttack(): void {
   const ctx = getCtx();
   if (!ctx) return;

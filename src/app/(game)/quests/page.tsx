@@ -345,7 +345,7 @@ export default function QuestsPage() {
     const result = await rerollQuest(questId);
     setRerolling(null);
     if (result) {
-      playSound('diceRoll');
+      playSound('diceRolling');
       const newDef = getQuestDef(result.newQuestDefId);
       toast.success(`Quest rerolled — ${newDef?.name ?? 'new quest assigned'}`, {
         description: `−${result.cost} gold`,

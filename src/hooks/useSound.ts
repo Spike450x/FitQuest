@@ -9,7 +9,8 @@ type SoundKey = keyof typeof PLAY_FUNCS;
 
 const PLAY_FUNCS = {
   click: sounds.playClick,
-  diceRoll: sounds.playDiceRoll,
+  diceRolling: sounds.playDiceRolling,
+  diceSettle: sounds.playDiceSettle,
   attack: sounds.playAttack,
   magic: sounds.playMagic,
   hit: sounds.playHit,
