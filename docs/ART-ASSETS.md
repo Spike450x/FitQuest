@@ -4,7 +4,7 @@
 
 ## Overview
 
-Every game entity has a slot in the art system. `EntityArt` looks up the silhouette by `(category, id)`, drops it inside a `HeraldicFrame`, and renders the framed crest. If no silhouette is registered for that id, the supplied `fallbackEmoji` renders instead — so the UI never breaks while new art is added.
+Every game entity has a slot in the art system. `EntityArt` looks up the silhouette by `(category, id)`, drops it inside a `HeraldicFrame`, and renders the framed crest. If no silhouette is registered for that id, the supplied `fallbackEmoji` renders instead — so the UI never breaks while new art is added. For `category="item"` specifically, a dev-time `console.warn` fires when an item id has no registered silhouette, catching catalog additions early.
 
 ```tsx
 <EntityArt
@@ -29,17 +29,17 @@ Every game entity has a slot in the art system. `EntityArt` looks up the silhoue
 
 ## Categories
 
-| `category`    | Source map                        | Default frame | Default tint                                      |
-| ------------- | --------------------------------- | ------------- | ------------------------------------------------- |
-| `monster`     | `MONSTER_SILHOUETTES`             | medallion     | tier-based (green / blue / purple / rose / slate) |
-| `class`       | `CLASS_SILHOUETTES`               | shield        | rose / violet / emerald (per class)               |
-| `subclass`    | `SUBCLASS_SILHOUETTES`            | shield        | rose / violet / emerald (per parent class)        |
-| `ability`     | `ABILITY_SILHOUETTES`             | sigil         | amber                                             |
-| `spell`       | `SPELL_SILHOUETTES` (effect-tier) | sigil         | violet — usually overridden by `rarityTint`       |
-| `activity`    | `ACTIVITY_SILHOUETTES`            | medallion     | sky                                               |
-| `achievement` | `ACHIEVEMENT_SILHOUETTES`         | medallion     | amber                                             |
-| `dungeon`     | `DUNGEON_SILHOUETTES`             | shield        | green / blue / purple / orange (per tier)         |
-| `item`        | `ITEM_SILHOUETTES` (by type)      | medallion     | caller-provided rarity tint                       |
+| `category`    | Source map                                                                                       | Default frame                                                | Default tint                                      |
+| ------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------- |
+| `monster`     | `MONSTER_SILHOUETTES`                                                                            | medallion                                                    | tier-based (green / blue / purple / rose / slate) |
+| `class`       | `CLASS_SILHOUETTES`                                                                              | shield                                                       | rose / violet / emerald (per class)               |
+| `subclass`    | `SUBCLASS_SILHOUETTES`                                                                           | shield                                                       | rose / violet / emerald (per parent class)        |
+| `ability`     | `ABILITY_SILHOUETTES`                                                                            | sigil                                                        | amber                                             |
+| `spell`       | `SPELL_SILHOUETTES` (effect-tier)                                                                | sigil                                                        | violet — usually overridden by `rarityTint`       |
+| `activity`    | `ACTIVITY_SILHOUETTES`                                                                           | medallion                                                    | sky                                               |
+| `achievement` | `ACHIEVEMENT_SILHOUETTES`                                                                        | medallion                                                    | amber                                             |
+| `dungeon`     | `DUNGEON_SILHOUETTES`                                                                            | shield                                                       | green / blue / purple / orange (per tier)         |
+| `item`        | `ITEM_SILHOUETTES` (by item id; type-level fallbacks: `weapon`/`armor`/`accessory`/`consumable`) | shield (weapons/armor) / medallion (accessories/consumables) | caller-provided rarity tint                       |
 
 ## Adding a new silhouette
 
@@ -52,7 +52,7 @@ Every game entity has a slot in the art system. `EntityArt` looks up the silhoue
 
 - Use `fill="currentColor"` on the parent `<g>` — the heraldic frame's `color` is set to the tint's text-color, so silhouettes auto-tint with the theme.
 - Sparingly add explicit colors via Tailwind utility classes (`className="fill-amber-300"` etc.) for highlights.
-- Avoid strokes — keep silhouettes filled. The frame ring is the only outline.
+- Prefer filled shapes; use strokes sparingly and only for internal detail (e.g., web lines, potion ridges). The frame ring is the only structural outline.
 - Keep paths simple. Each silhouette ships as inline JSX, so complex artwork bloats the bundle.
 
 ## Replacing an icon
@@ -91,5 +91,5 @@ All silhouettes in this pass are hand-authored, no third-party assets used. When
 ## Future work
 
 - **Commissioned art** — replace the geometric silhouettes with bespoke painted portraits. The system supports drop-in replacement: change one function or swap to a `<img>` route, no callsite changes.
-- **Per-item art** — items currently bucket by `type` (weapon / armor / accessory / consumable). Eventually each of the 76 items gets a unique silhouette. The `ITEM_SILHOUETTES` map already accepts arbitrary ids; just register a new function and add a per-item lookup if needed.
+- **Per-item art** ✅ — All 55 non-spell items now have unique per-`id` silhouettes (18 weapons, 13 armor, 14 accessories, 10 consumables). The 21 spells use the `SPELL_SILHOUETTES` map by spell effect key. Type-level fallbacks (`weapon`/`armor`/`accessory`/`consumable`) remain in `ITEM_SILHOUETTES` as safety nets for any catalog additions before a dedicated silhouette is authored.
 - **Animated assets** — Lottie / SMIL animations for legendary loot reveals and boss intros. `EntityArt` would gain an optional `motion` prop pointing to a Lottie file.
