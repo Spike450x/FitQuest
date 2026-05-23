@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const DIE_PIPS: Record<number, [number, number][]> = {
   1: [[1, 1]],
@@ -80,24 +80,14 @@ export function Die3D({
   const gridPad = size === 'lg' ? 'p-2' : 'p-1';
 
   const [cubeTransform, setCubeTransform] = useState(randomRotation);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (isSpinning) {
-      intervalRef.current = setInterval(() => {
-        setCubeTransform(randomRotation());
-      }, 75);
-      return () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-      };
+    if (!isSpinning) {
+      if (!isWildcard) setCubeTransform(FACE_ROTATIONS[value] ?? FACE_ROTATIONS[1]);
+      return;
     }
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (!isWildcard) {
-      setCubeTransform(FACE_ROTATIONS[value] ?? FACE_ROTATIONS[1]);
-    }
+    const id = setInterval(() => setCubeTransform(randomRotation()), 75);
+    return () => clearInterval(id);
   }, [isSpinning, isWildcard, value]);
 
   const faceClass = isWildcard
