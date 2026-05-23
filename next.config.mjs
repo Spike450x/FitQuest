@@ -6,6 +6,7 @@
 //   - *.firebaseapp.com          — auth iframe / OAuth redirects
 //   - wss://*.firebaseio.com     — Firestore long-polling fallback
 //   - https://firestore.googleapis.com — Firestore REST + Listen
+//   - *.cloudfunctions.net       — Firebase Cloud Functions v2 callable endpoints
 const FIREBASE_CONNECT = [
   'https://*.googleapis.com',
   'https://*.firebaseio.com',
@@ -14,6 +15,7 @@ const FIREBASE_CONNECT = [
   'https://firestore.googleapis.com',
   'https://identitytoolkit.googleapis.com',
   'https://securetoken.googleapis.com',
+  'https://*.cloudfunctions.net',
 ].join(' ');
 
 // 'unsafe-inline' / 'unsafe-eval' on script-src are required by Next.js's
@@ -26,6 +28,7 @@ const cspDirectives = [
   `style-src 'self' 'unsafe-inline'`,
   `img-src 'self' data: blob: https:`,
   `font-src 'self' data:`,
+  `worker-src blob:`,
   `connect-src 'self' ${FIREBASE_CONNECT}`,
   `frame-src 'self' https://*.firebaseapp.com`,
   `frame-ancestors 'none'`,
