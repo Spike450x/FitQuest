@@ -2853,7 +2853,7 @@ function DiceRollOverlay({
         </p>
 
         {/* Dice row */}
-        <div className="flex justify-center gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           {displayDice.map((d, i) => {
             const isSettled = settled[i];
             const isHighlighted = isSettled && highlighted.includes(i);
