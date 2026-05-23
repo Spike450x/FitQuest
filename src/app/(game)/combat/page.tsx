@@ -1152,23 +1152,23 @@ export default function CombatPage() {
           </div>
         )}
         {outcome === 'loss' && (
-          <div className="rounded-xl p-6 text-center bg-gradient-to-br from-red-100 via-red-50 to-gray-100 border border-red-300 shadow-lg shadow-red-500/20">
+          <div className="rounded-xl p-6 text-center bg-gradient-to-br from-red-100 dark:from-red-950/60 via-red-50 dark:via-red-950/30 to-gray-100 dark:to-slate-900 border border-red-300 dark:border-red-900 shadow-lg shadow-red-500/20">
             <p className="text-5xl mb-2 grayscale-[30%]">💀</p>
-            <p className="font-display text-4xl font-bold text-red-700 tracking-wider uppercase">
+            <p className="font-display text-4xl font-bold text-red-700 dark:text-red-400 tracking-wider uppercase">
               You Have Fallen
             </p>
             <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
               Defeated by {emoji} {monster.name}
             </p>
-            <p className="text-sm text-amber-600 font-medium mt-2">
+            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium mt-2">
               Your level and stats have been reset.
             </p>
           </div>
         )}
         {outcome === 'fled' && (
-          <div className="rounded-xl p-5 text-center bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200">
+          <div className="rounded-xl p-5 text-center bg-gradient-to-br from-amber-50 dark:from-amber-950/40 to-yellow-50 dark:to-amber-950/20 border border-amber-200 dark:border-amber-900">
             <p className="text-4xl mb-1">🏃</p>
-            <p className="font-display text-3xl font-bold text-amber-700 tracking-wide uppercase">
+            <p className="font-display text-3xl font-bold text-amber-700 dark:text-amber-400 tracking-wide uppercase">
               Escaped!
             </p>
             <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
