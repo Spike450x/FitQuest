@@ -140,7 +140,7 @@ async function seedCharacter({ localId: uid, idToken }: AuthEmuTokens): Promise<
         fields: {
           currentStreak: { integerValue: '0' },
           longestStreak: { integerValue: '0' },
-          lastLogDate: { stringValue: '' },
+          lastLogDate: { stringValue: new Date().toISOString().slice(0, 10) },
           shields: { integerValue: '0' },
         },
       },
