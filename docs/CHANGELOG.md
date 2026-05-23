@@ -15,6 +15,19 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-23 — Test coverage expansion: stores, hooks, lib helpers, components
+
+Adds 24 new vitest files (215 new tests, 438 → 653 total) covering the runtime-critical code that previously had no unit coverage. Suite still runs in ~12 s.
+
+- **Stores (3 new files, 70 tests):** `characterStore` (41 — fetch TTL, level-up bonuses, stat-allocation caps, subclass gating, monster pity, mastery local-apply, restore local-apply, name updates), `dungeonStore` (19 — fetchActiveRun legacy-claim cleanup, startRun gating on HP/gold/daily limit, advanceRoom accumulation, completeRun CF-finalized fast-path, abandonRun), `statsStore` (10 — TTL cache, retry flag, error capture).
+- **Hooks (4 new files, 23 tests):** `useCharacter` (auth gating + clear-on-logout), `useOnlineStatus` (initial nav.onLine read, online/offline event handlers, listener cleanup on unmount), `useCombatBursts` (round-key dedup, crit/block/heal aggregation, expire by id), `useRecentActivity` (store passthrough).
+- **Lib helpers (7 new files, 56 tests):** `characterData.normalizeCharacter` (required-field validation, post-MVP field defaults), `questData.normalizeActiveQuest`, `inventoryData.normalizeInventoryItem`, `combatData` (addCombatLogDoc + fetchRecentCombatLogs query shape), `dungeonData` (all 7 exports — collection name, doc lifecycle, claim stamp), `auth` (signIn / signUp / logOut / verifyBeforeUpdateEmail / updatePassword / updateProfile no-op when not signed in), `functions.claimDungeonRunCF` (functions/already-exists idempotent no-op vs. propagate other errors), `errors.captureError`.
+- **Components (9 new files, 66 tests):** `InputField`, `Button`, `XPBar`, `EmptyState`, `ErrorBanner`, `OfflineBanner`, `Heading`, `Card`, `Modal` — variant classes, a11y attrs (`role`, `aria-busy`, `aria-modal`, `aria-live`), keyboard behaviour (Escape closes Modal), body-scroll lock, CTA link vs. button branching.
+- **Coverage scope broadened:** `vitest.config.ts` `coverage.include` now covers `src/lib/**`, `src/store/**`, `src/hooks/**`, `src/components/**/*.{ts,tsx}` instead of only `src/lib/gameLogic/**`. Thresholds remain gated only on `src/lib/gameLogic/**` (80/80/70/80) so new files become visible in `npm run test:coverage` without blocking PRs on coverage of any specific subtree.
+- **JSX in tests:** added `@vitejs/plugin-react` as a devDependency and registered it in `vitest.config.ts` (vitest 4 / rolldown doesn't parse JSX without an explicit plugin).
+
+---
+
 ## 2026-05-23 — Stability-to-A: offline UX, authenticated E2E, audit script, bundle split
 
 Closes four scorecard gaps (Offline UX B+ → A, E2E B → A, Vulnerabilities B- → A, Bundle B → A) tracked in `docs/superpowers/plans/2026-05-23-stability-to-a.md`.
