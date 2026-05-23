@@ -904,69 +904,95 @@ export default function CombatPage() {
     if (!pendingRewards) return;
     playSound('claim');
     setClaiming(true);
-    // xpReward is already streak-boosted (captured at kill-time via getStreakBoost) so
-    // the modal, toast, and awardXpAndStats all use the same pre-computed value.
-    const { xpReward, goldReward, droppedItems, monster: defeated } = pendingRewards;
-    // Pity bookkeeping: did this kill yield a legendary from this monster's table?
+
+    const { xpReward, goldReward, droppedItems, monster: defeated, uid } = pendingRewards;
     const gotLegendary = droppedItems.some((id) => {
       const def = getItemById(id);
       return def?.rarity === 'legendary';
     });
+
+    // Step 1 — server-authoritative claim (idempotent CF — safe to retry if this throws)
+    let claim: Awaited<ReturnType<typeof claimCombatVictoryCF>>;
     try {
-      // ── Server-authoritative XP cap + combat-log persistence ─────────────
-      // claimCombatVictory queries today's combatLogs server-side, applies the
-      // diminishing-returns multiplier (1.0× → 0.5× at 11+ wins → 0.25× at 21+
-      // → 0.1× at 31+), and writes the combat-log doc with the actually-
-      // awarded XP. We use the returned `finalXp` for the local store + toast
-      // so the player sees the same number that was persisted.
-      const claim = await claimCombatVictoryCF({
+      claim = await claimCombatVictoryCF({
         xpReward,
         goldReward,
         monsterId: defeated.id,
         monsterName: defeated.name,
         idempotencyKey: crypto.randomUUID(),
       });
-      const { finalXp, multiplier, winsTodayAfter } = claim;
-      setWinsToday(winsTodayAfter);
+    } catch {
+      toast.error("Couldn't reach the server — tap Claim Rewards again", {
+        description: 'Nothing was awarded yet. Your rewards are waiting.',
+      });
+      setClaiming(false);
+      return; // keep modal open — retry is safe
+    }
 
-      // The CF already wrote to the character doc (XP + gold + level bookkeeping),
-      // but our local Zustand store still holds the pre-claim state. Update it
-      // here so the dashboard / nav refresh immediately. The CF and the local
-      // helpers apply the same level-up math, so the numbers match.
+    const { finalXp, multiplier, winsTodayAfter } = claim;
+    setWinsToday(winsTodayAfter);
+
+    // CF succeeded — dismiss modal now. No double-award possible from here on.
+    setPendingRewards(null);
+
+    let lootSyncFailed = false;
+
+    // Step 2 — local store sync (best-effort; CF already persisted to Firestore)
+    try {
       await awardXpAndStats(finalXp, {});
       await awardGold(goldReward);
-      await awardLoot(pendingRewards.uid, droppedItems);
+    } catch (err) {
+      console.error('[handleClaimRewards] local stat sync failed:', err);
+    }
+
+    // Step 3 — loot (best-effort; flag failure so inventory reconciles on next load)
+    try {
+      await awardLoot(uid, droppedItems);
+    } catch (err) {
+      console.error('[handleClaimRewards] loot sync failed:', err);
+      lootSyncFailed = true;
+    }
+
+    // Step 4 — pity bookkeeping (silent; non-critical)
+    try {
       await updateMonsterPity(defeated.id, gotLegendary);
-      setPendingRewards(null);
+    } catch (err) {
+      console.error('[handleClaimRewards] pity update failed:', err);
+    }
+
+    // Surface result
+    if (lootSyncFailed) {
+      toast.warning(
+        'Rewards claimed · inventory sync failed — refresh inventory to see your drop',
+        { description: 'Your XP and gold were awarded.', duration: 8000 },
+      );
+    } else {
       toastReward({
         emoji: '⚔️',
         title: `Defeated ${defeated.name}!`,
         xp: finalXp,
         gold: goldReward,
       });
-      // Surface the diminishing-returns penalty when it actually bites so the
-      // player understands why their XP came in low.
-      if (multiplier < 1.0) {
-        toast.warning(
-          `Daily combat XP at ${Math.round(multiplier * 100)}% — win #${winsTodayAfter} today`,
-          {
-            description: `Take a break or log activities to keep XP gains meaningful.`,
-            duration: 6000,
-          },
-        );
-      }
-      // Highlight epic/legendary drops with their own dedicated toasts
-      for (const itemId of droppedItems) {
-        const def = getItemById(itemId);
-        if (def && (def.rarity === 'epic' || def.rarity === 'legendary')) {
-          toastLoot(def.name, def.rarity);
-        }
-      }
-    } catch {
-      toast.error('Failed to claim rewards — please try again.');
-    } finally {
-      setClaiming(false);
     }
+
+    if (multiplier < 1.0) {
+      toast.warning(
+        `Daily combat XP at ${Math.round(multiplier * 100)}% — win #${winsTodayAfter} today`,
+        {
+          description: 'Take a break or log activities to keep XP gains meaningful.',
+          duration: 6000,
+        },
+      );
+    }
+
+    for (const itemId of droppedItems) {
+      const def = getItemById(itemId);
+      if (def && (def.rarity === 'epic' || def.rarity === 'legendary')) {
+        toastLoot(def.name, def.rarity);
+      }
+    }
+
+    setClaiming(false);
   }
 
   async function handleBeginAgain() {
