@@ -86,6 +86,7 @@ import {
   getEffectiveSpellCost,
   canBloodPact,
 } from '@/lib/gameLogic/passives';
+import { Die3D } from '@/components/ui/Die3D';
 import { SpellCard } from '@/components/ui/SpellCard';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Card } from '@/components/ui/Card';
@@ -324,7 +325,7 @@ export default function CombatPage() {
   // Fire dice-rattle sound whenever any roll overlay opens.
   useEffect(() => {
     if (pendingAction || pendingAbility || pendingSpell) {
-      playSound('diceRoll');
+      playSound('diceRolling');
     }
   }, [pendingAction, pendingAbility, pendingSpell]);
 
@@ -1832,7 +1833,7 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
               ? getHighlightedSpellDiceIndices(entry.spellDice ?? [], entry.spellDiceReq)
               : [];
             return (
-              <DieFace
+              <Die3D
                 key={i}
                 value={d}
                 size="sm"
@@ -1912,7 +1913,7 @@ function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: Mon
               entry.abilityPattern ?? null,
             );
             return (entry.abilityDice ?? []).map((d, i) => (
-              <DieFace
+              <Die3D
                 key={i}
                 value={d}
                 size="sm"
@@ -2096,7 +2097,7 @@ function BattleLogEntry({
                 ? getHighlightedSpellDiceIndices(entry.spellDice ?? [], entry.spellDiceReq)
                 : [];
               return (
-                <DieFace
+                <Die3D
                   key={i}
                   value={d}
                   size="sm"
@@ -2148,7 +2149,7 @@ function BattleLogEntry({
                 entry.abilityPattern ?? null,
               );
               return (entry.abilityDice ?? []).map((d, i) => (
-                <DieFace
+                <Die3D
                   key={i}
                   value={d}
                   size="sm"
@@ -2294,95 +2295,6 @@ function HpBar({
         />
       </div>
       {sub && <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{sub}</p>}
-    </div>
-  );
-}
-
-// ─── Die Face ────────────────────────────────────────────────────────────────
-// Renders a physical die pip layout for values 1–6; value 0 = wildcard slot.
-
-const DIE_PIPS: Record<number, [number, number][]> = {
-  1: [[1, 1]],
-  2: [
-    [0, 2],
-    [2, 0],
-  ],
-  3: [
-    [0, 2],
-    [1, 1],
-    [2, 0],
-  ],
-  4: [
-    [0, 0],
-    [0, 2],
-    [2, 0],
-    [2, 2],
-  ],
-  5: [
-    [0, 0],
-    [0, 2],
-    [1, 1],
-    [2, 0],
-    [2, 2],
-  ],
-  6: [
-    [0, 0],
-    [1, 0],
-    [2, 0],
-    [0, 2],
-    [1, 2],
-    [2, 2],
-  ],
-};
-
-function DieFace({
-  value,
-  variant = 'settled',
-  size = 'sm',
-}: {
-  value: number;
-  variant?: 'spinning' | 'settled' | 'highlighted' | 'wildcard';
-  size?: 'sm' | 'lg';
-}) {
-  const isWildcard = value === 0 || variant === 'wildcard';
-  const pips = isWildcard ? [] : (DIE_PIPS[value] ?? DIE_PIPS[1]);
-
-  const s =
-    size === 'lg'
-      ? { die: 'w-14 h-14 rounded-2xl', grid: 'p-2', pip: 'w-3 h-3' }
-      : { die: 'w-7 h-7 rounded-xl', grid: 'p-1', pip: 'w-1.5 h-1.5' };
-
-  const v = {
-    spinning:
-      'bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-700 text-rose-500 dark:text-rose-400 shadow-md shadow-rose-200 dark:shadow-rose-900',
-    settled:
-      'bg-white dark:bg-slate-900 border-2 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300',
-    highlighted:
-      'bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-400 dark:border-amber-600 text-amber-600 dark:text-amber-400 scale-110 shadow-md shadow-amber-100 dark:shadow-amber-900',
-    wildcard:
-      'bg-gray-50 dark:bg-slate-900 border-2 border-dashed border-gray-200 dark:border-slate-700 text-gray-300 dark:text-slate-600',
-  };
-
-  return (
-    <div
-      className={`relative transition-all duration-150 shrink-0 ${s.die} ${v[isWildcard ? 'wildcard' : variant]}`}
-    >
-      {isWildcard ? (
-        <div className="flex items-center justify-center w-full h-full text-xs font-bold">?</div>
-      ) : (
-        <div className={`grid grid-cols-3 grid-rows-3 w-full h-full ${s.grid}`}>
-          {Array.from({ length: 9 }, (_, idx) => {
-            const row = Math.floor(idx / 3);
-            const col = idx % 3;
-            const hasPip = pips.some(([r, c]) => r === row && c === col);
-            return (
-              <div key={idx} className="flex items-center justify-center">
-                {hasPip && <div className={`rounded-full bg-current ${s.pip}`} />}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -2890,6 +2802,7 @@ function DiceRollOverlay({
     dice.forEach((val, i) => {
       timers.push(
         setTimeout(() => {
+          if (i === 0) playSound('diceSettle');
           setDisplayDice((prev) => {
             const next = [...prev];
             next[i] = val;
@@ -2945,7 +2858,7 @@ function DiceRollOverlay({
             const isSettled = settled[i];
             const isHighlighted = isSettled && highlighted.includes(i);
             return (
-              <DieFace
+              <Die3D
                 key={i}
                 value={d}
                 size="lg"
@@ -3051,6 +2964,7 @@ function SpellRollOverlay({
     dice.forEach((val, i) => {
       timers.push(
         setTimeout(() => {
+          if (i === 0) playSound('diceSettle');
           setDisplayDice((prev) => {
             const next = [...prev];
             next[i] = val;
@@ -3115,7 +3029,7 @@ function SpellRollOverlay({
             const isSettled = settled[i];
             const isHighlighted = isSettled && highlighted.includes(i);
             return (
-              <DieFace
+              <Die3D
                 key={i}
                 value={d}
                 size="lg"
@@ -3231,12 +3145,7 @@ function AbilityReference({ characterClass }: { characterClass: string }) {
             {/* Dice example */}
             <div className="flex gap-1 shrink-0 pt-0.5">
               {diceExample.map((d, i) => (
-                <DieFace
-                  key={i}
-                  value={d}
-                  variant={d === 0 ? 'wildcard' : 'highlighted'}
-                  size="sm"
-                />
+                <Die3D key={i} value={d} variant={d === 0 ? 'wildcard' : 'highlighted'} size="sm" />
               ))}
             </div>
 
