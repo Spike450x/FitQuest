@@ -1,12 +1,13 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import {
   initializeFirestore,
   getFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
+  connectFirestoreEmulator,
 } from 'firebase/firestore';
-import { getFunctions } from 'firebase/functions';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,6 +18,8 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+const USE_EMULATOR = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true';
+
 // Prevent re-initializing on hot reload in development
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
@@ -25,12 +28,13 @@ export const functions = getFunctions(app);
 
 // Enable IndexedDB persistence so reads are served from the local cache when
 // offline or on a slow connection (PWA offline support).
-// - SSR / Node (vitest): window is undefined — fall back to the default
-//   memory-only Firestore instance so tests are unaffected.
-// - Hot reload: initializeFirestore throws if already called for this app —
-//   catch and fall through to getFirestore which returns the existing instance.
+// Skipped in emulator mode — emulator data is ephemeral and persistence
+// causes stale reads between test runs.
+// SSR / Node (vitest): window is undefined — fall back to memory-only instance.
+// Hot reload: initializeFirestore throws if already called — catch and fall through.
 function buildDb() {
   if (typeof window === 'undefined') return getFirestore(app);
+  if (USE_EMULATOR) return getFirestore(app);
   try {
     return initializeFirestore(app, {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
@@ -40,3 +44,23 @@ function buildDb() {
   }
 }
 export const db = buildDb();
+
+// Connect to local emulators when NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true.
+// Guards prevent double-connection on hot reload.
+if (USE_EMULATOR && typeof window !== 'undefined') {
+  try {
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  } catch {
+    // already connected on hot reload
+  }
+  try {
+    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  } catch {
+    // already connected on hot reload
+  }
+  try {
+    connectFunctionsEmulator(functions, '127.0.0.1', 5001);
+  } catch {
+    // already connected on hot reload
+  }
+}

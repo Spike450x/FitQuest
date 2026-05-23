@@ -15,6 +15,14 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-23 — CSP fix, Die3D unification, Firebase emulator complete
+
+- **Fix: CSP `connect-src` blocked all Cloud Functions** — `https://*.cloudfunctions.net` was missing from the allowlist in `next.config.mjs`; every call to `claimCombatVictory` and `logActivity` was rejected by the browser before reaching the network, causing the "Couldn't reach the server" toast on reward claims, "Failed to log activity" errors, and the daily-XP badge being stuck at 0 wins. Also added `worker-src blob:` to clear the canvas-confetti web-worker CSP violation on victory screens.
+- **`Die3D` unified for all combat dice** — extended `Die3D` with `format='number'` (large numeral on every cube face, supports d10 values 1–10), `size='xl'` (80 px), and a `color` prop (indigo/sky/slate/amber/rose/gray/violet per action type). `ActionRollOverlay` migrated from the removed flat `D10Face` to `Die3D` — basic attack, rest, meditate, and run-away rolls now use the same 3D tumbling cube animation as spells and abilities.
+- **Firebase emulator support complete** — `src/lib/firebase.ts` now connects Auth (9099), Firestore (8080), and Functions (5001) to local emulators when `NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true`. Enables authenticated E2E tests to exercise the full Cloud Function path without touching production data.
+
+---
+
 ## 2026-05-23 — Full per-item art system + docs sync
 
 ### chore/docs — Documentation sync (PR #104)

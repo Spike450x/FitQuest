@@ -2301,73 +2301,6 @@ function HpBar({
 
 // ─── Dice roll overlay ────────────────────────────────────────────────────────
 
-// ─── D10 Face ─────────────────────────────────────────────────────────────────
-// D10s show numbers, not pips. Rounded square with large numeral + "d10" label.
-
-function D10Face({
-  value,
-  variant = 'settled',
-  color = 'indigo',
-}: {
-  value: number;
-  variant?: 'spinning' | 'settled';
-  color?: 'indigo' | 'violet' | 'amber' | 'gray' | 'rose' | 'sky' | 'slate';
-}) {
-  const colorTokens: Record<string, Record<string, string>> = {
-    indigo: {
-      spinning:
-        'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 shadow-lg shadow-indigo-200 dark:shadow-indigo-900',
-      settled:
-        'bg-white dark:bg-slate-900 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300',
-    },
-    violet: {
-      spinning:
-        'bg-violet-50 dark:bg-violet-950/40 border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 shadow-lg shadow-violet-200 dark:shadow-violet-900',
-      settled:
-        'bg-white dark:bg-slate-900 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300',
-    },
-    amber: {
-      spinning:
-        'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 shadow-lg shadow-amber-200 dark:shadow-amber-900',
-      settled:
-        'bg-white dark:bg-slate-900 border-amber-400 dark:border-amber-700 text-amber-700 dark:text-amber-300 shadow-md shadow-amber-100 dark:shadow-amber-900',
-    },
-    gray: {
-      spinning:
-        'bg-gray-50 dark:bg-slate-900 border-gray-300 dark:border-slate-600 text-gray-400 dark:text-slate-500',
-      settled:
-        'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400',
-    },
-    rose: {
-      spinning:
-        'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 shadow-lg shadow-rose-200 dark:shadow-rose-900',
-      settled:
-        'bg-white dark:bg-slate-900 border-rose-400 dark:border-rose-700 text-rose-700 dark:text-rose-300 shadow-md shadow-rose-100 dark:shadow-rose-900',
-    },
-    sky: {
-      spinning:
-        'bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-700 text-sky-600 dark:text-sky-400 shadow-lg shadow-sky-200 dark:shadow-sky-900',
-      settled:
-        'bg-white dark:bg-slate-900 border-sky-300 dark:border-sky-700 text-sky-700 dark:text-sky-300 shadow-md shadow-sky-100 dark:shadow-sky-900',
-    },
-    slate: {
-      spinning:
-        'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 shadow-lg shadow-slate-200 dark:shadow-slate-900',
-      settled:
-        'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 shadow-md shadow-slate-100 dark:shadow-slate-900',
-    },
-  };
-
-  return (
-    <div
-      className={`w-20 h-20 rounded-2xl border-2 flex flex-col items-center justify-center transition-all duration-200 select-none ${colorTokens[color][variant]}`}
-    >
-      <span className="text-4xl font-black leading-none">{value}</span>
-      <span className="text-xs font-semibold opacity-40 mt-1 tracking-widest">d10</span>
-    </div>
-  );
-}
-
 // ─── Action Roll Overlay ──────────────────────────────────────────────────────
 // Two-phase for attack/magic/rest/meditate: player roll → Continue → monster → Continue → apply
 // Single-phase for run: both dice shown together.
@@ -2515,37 +2448,45 @@ function ActionRollOverlay({
         {isRun ? (
           <div className="flex justify-center items-end gap-6">
             <div className="flex flex-col items-center gap-1.5">
-              <D10Face
+              <Die3D
                 value={playerDie}
-                variant={phase === 'run_spin' ? 'spinning' : 'settled'}
+                format="number"
+                size="xl"
                 color="amber"
+                variant={phase === 'run_spin' ? 'spinning' : 'settled'}
               />
               <p className="text-xs font-semibold text-amber-600">You</p>
             </div>
             <p className="text-xl font-bold text-gray-300 dark:text-slate-600 mb-6">vs</p>
             <div className="flex flex-col items-center gap-1.5">
-              <D10Face
+              <Die3D
                 value={monsterDie}
-                variant={phase === 'run_spin' ? 'spinning' : 'settled'}
+                format="number"
+                size="xl"
                 color="gray"
+                variant={phase === 'run_spin' ? 'spinning' : 'settled'}
               />
               <p className="text-xs font-semibold text-gray-400 dark:text-slate-500">Monster</p>
             </div>
           </div>
         ) : isMonsterPhase ? (
           <div className="flex justify-center">
-            <D10Face
+            <Die3D
               value={monsterDie}
-              variant={phase === 'monster_spin' ? 'spinning' : 'settled'}
+              format="number"
+              size="xl"
               color="rose"
+              variant={phase === 'monster_spin' ? 'spinning' : 'settled'}
             />
           </div>
         ) : (
           <div className="flex justify-center">
-            <D10Face
+            <Die3D
               value={playerDie}
-              variant={phase === 'player_spin' ? 'spinning' : 'settled'}
+              format="number"
+              size="xl"
               color={dieColor}
+              variant={phase === 'player_spin' ? 'spinning' : 'settled'}
             />
           </div>
         )}
