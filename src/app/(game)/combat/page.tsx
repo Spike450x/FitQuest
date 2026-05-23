@@ -937,65 +937,67 @@ export default function CombatPage() {
 
     let lootSyncFailed = false;
 
-    // Step 2 — local store sync (best-effort; CF already persisted to Firestore)
-    // Note: awardXpAndStats/awardGold swallow errors internally — catch kept for safety if that changes
     try {
-      await awardXpAndStats(finalXp, {});
-      await awardGold(goldReward);
-    } catch (err) {
-      console.error('[handleClaimRewards] local stat sync failed:', err);
-    }
+      // Step 2 — local store sync (best-effort; CF already persisted to Firestore)
+      // Note: awardXpAndStats/awardGold swallow errors internally — catch kept for safety if that changes
+      try {
+        await awardXpAndStats(finalXp, {});
+        await awardGold(goldReward);
+      } catch (err) {
+        console.error('[handleClaimRewards] local stat sync failed:', err);
+      }
 
-    // Step 3 — loot (best-effort; flag failure so inventory reconciles on next load)
-    try {
-      await awardLoot(uid, droppedItems);
-    } catch (err) {
-      console.error('[handleClaimRewards] loot sync failed:', err);
-      lootSyncFailed = true;
-    }
+      // Step 3 — loot (best-effort; flag failure so inventory reconciles on next load)
+      try {
+        await awardLoot(uid, droppedItems);
+      } catch (err) {
+        console.error('[handleClaimRewards] loot sync failed:', err);
+        lootSyncFailed = true;
+      }
 
-    // Step 4 — pity bookkeeping (silent; non-critical)
-    try {
-      await updateMonsterPity(defeated.id, gotLegendary);
-    } catch (err) {
-      console.error('[handleClaimRewards] pity update failed:', err);
-    }
+      // Step 4 — pity bookkeeping (silent; non-critical)
+      try {
+        await updateMonsterPity(defeated.id, gotLegendary);
+      } catch (err) {
+        console.error('[handleClaimRewards] pity update failed:', err);
+      }
 
-    // Surface result
-    toastReward({
-      emoji: '⚔️',
-      title: `Defeated ${defeated.name}!`,
-      xp: finalXp,
-      gold: goldReward,
-    });
-
-    if (lootSyncFailed) {
-      toast.warning('Inventory sync failed — refresh inventory to see your drop', {
-        description: 'Your XP and gold were awarded.',
-        duration: 8000,
+      // Surface result
+      toastReward({
+        emoji: '⚔️',
+        title: `Defeated ${defeated.name}!`,
+        xp: finalXp,
+        gold: goldReward,
       });
-    }
 
-    if (multiplier < 1.0) {
-      toast.warning(
-        `Daily combat XP at ${Math.round(multiplier * 100)}% — win #${winsTodayAfter} today`,
-        {
-          description: 'Take a break or log activities to keep XP gains meaningful.',
-          duration: 6000,
-        },
-      );
-    }
+      if (lootSyncFailed) {
+        toast.warning('Inventory sync failed — refresh inventory to see your drop', {
+          description: 'Your XP and gold were awarded.',
+          duration: 8000,
+        });
+      }
 
-    if (!lootSyncFailed) {
-      for (const itemId of droppedItems) {
-        const def = getItemById(itemId);
-        if (def && (def.rarity === 'epic' || def.rarity === 'legendary')) {
-          toastLoot(def.name, def.rarity);
+      if (multiplier < 1.0) {
+        toast.warning(
+          `Daily combat XP at ${Math.round(multiplier * 100)}% — win #${winsTodayAfter} today`,
+          {
+            description: 'Take a break or log activities to keep XP gains meaningful.',
+            duration: 6000,
+          },
+        );
+      }
+
+      if (!lootSyncFailed) {
+        for (const itemId of droppedItems) {
+          const def = getItemById(itemId);
+          if (def && (def.rarity === 'epic' || def.rarity === 'legendary')) {
+            toastLoot(def.name, def.rarity);
+          }
         }
       }
+    } finally {
+      setClaiming(false);
     }
-
-    setClaiming(false);
   }
 
   async function handleBeginAgain() {
