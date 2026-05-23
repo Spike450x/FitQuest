@@ -7,6 +7,8 @@ const PROJECT_ID = 'demo-fitness-rpg';
 const AUTH_EMU = 'http://127.0.0.1:9099';
 const FS_EMU = 'http://127.0.0.1:8080';
 
+type AuthEmuTokens = { localId: string; idToken: string };
+
 export default async function globalSetup(_config: FullConfig) {
   if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR !== 'true') {
     console.log('[global-setup] Emulator not enabled — skipping authenticated setup');
@@ -28,7 +30,7 @@ export default async function globalSetup(_config: FullConfig) {
     },
   );
 
-  let uid: string;
+  let tokens: AuthEmuTokens;
   if (!signUpResp.ok) {
     // User may already exist from a previous run — try to sign in instead.
     const signInResp = await fetch(
@@ -43,13 +45,16 @@ export default async function globalSetup(_config: FullConfig) {
         }),
       },
     );
-    if (!signInResp.ok) throw new Error('[global-setup] Failed to create or sign in test user');
-    ({ localId: uid } = (await signInResp.json()) as { localId: string });
+    if (!signInResp.ok) {
+      const body = await signInResp.text();
+      throw new Error(`[global-setup] Failed to create or sign in test user: ${body}`);
+    }
+    tokens = (await signInResp.json()) as AuthEmuTokens;
   } else {
-    ({ localId: uid } = (await signUpResp.json()) as { localId: string });
+    tokens = (await signUpResp.json()) as AuthEmuTokens;
   }
 
-  await seedCharacter(uid);
+  await seedCharacter(tokens);
 
   // 2. Log in via browser to capture storage state. The Playwright webServer
   // must be running at this point (it starts before globalSetup).
@@ -71,34 +76,50 @@ export default async function globalSetup(_config: FullConfig) {
   console.log('[global-setup] Auth state saved to', AUTH_FILE);
 }
 
-// Firestore emulator document seed. Uses the Firestore REST API (no SDK
-// needed — avoids import issues in setup context). Field encoding follows the
-// Firestore REST API typed-value format.
-async function seedCharacter(uid: string): Promise<void> {
-  const url = `${FS_EMU}/v1/projects/${PROJECT_ID}/databases/(default)/documents/characters/${uid}`;
+// Firestore emulator document seed. Goes through the REST API authenticated
+// with the user's emulator idToken so the production `characters/{uid}` rules
+// (isSignedIn + isOwner + level == 1 on create) pass without any test-only
+// rule relaxation. Idempotent: re-runs against an already-seeded user simply
+// no-op since the doc exists and we never PATCH again.
+async function seedCharacter({ localId: uid, idToken }: AuthEmuTokens): Promise<void> {
+  const docUrl = `${FS_EMU}/v1/projects/${PROJECT_ID}/databases/(default)/documents/characters/${uid}`;
+  const authHeaders = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${idToken}`,
+  };
 
+  // Skip if the character already exists — keeps re-runs clean and avoids
+  // running into the immutable-fields update rules (uid/class/createdAt).
+  const existingResp = await fetch(docUrl, { headers: authHeaders });
+  if (existingResp.ok) {
+    console.log('[global-setup] Character already seeded for', uid);
+    return;
+  }
+
+  // Create path: rules require level == 1, all stat/gear fields present, and
+  // no `subclass` field. Stats use the warrior starter spread.
   const fields = {
     uid: { stringValue: uid },
     name: { stringValue: 'TestHero' },
     class: { stringValue: 'warrior' },
-    level: { integerValue: '5' },
-    xp: { integerValue: '400' },
-    xpToNextLevel: { integerValue: '500' },
-    gold: { integerValue: '250' },
+    level: { integerValue: '1' },
+    xp: { integerValue: '0' },
+    xpToNextLevel: { integerValue: '100' },
+    gold: { integerValue: '50' },
     createdAt: { integerValue: String(Date.now()) },
     pendingStatPoints: { integerValue: '0' },
-    currentHp: { integerValue: '100' },
-    currentStamina: { integerValue: '100' },
-    currentMagic: { integerValue: '100' },
+    currentHp: { integerValue: '50' },
+    currentStamina: { integerValue: '20' },
+    currentMagic: { integerValue: '20' },
     stats: {
       mapValue: {
         fields: {
-          strength: { integerValue: '8' },
-          stamina: { integerValue: '7' },
-          agility: { integerValue: '6' },
-          health: { integerValue: '7' },
-          wisdom: { integerValue: '5' },
-          defense: { integerValue: '6' },
+          strength: { integerValue: '5' },
+          stamina: { integerValue: '4' },
+          agility: { integerValue: '3' },
+          health: { integerValue: '4' },
+          wisdom: { integerValue: '2' },
+          defense: { integerValue: '3' },
         },
       },
     },
@@ -117,18 +138,18 @@ async function seedCharacter(uid: string): Promise<void> {
     streakData: {
       mapValue: {
         fields: {
-          currentStreak: { integerValue: '3' },
-          longestStreak: { integerValue: '7' },
-          lastLogDate: { stringValue: new Date().toISOString().slice(0, 10) },
-          shields: { integerValue: '1' },
+          currentStreak: { integerValue: '0' },
+          longestStreak: { integerValue: '0' },
+          lastLogDate: { stringValue: '' },
+          shields: { integerValue: '0' },
         },
       },
     },
   };
 
-  const resp = await fetch(url, {
+  const resp = await fetch(docUrl, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders,
     body: JSON.stringify({ fields }),
   });
 
