@@ -1141,9 +1141,9 @@ export default function CombatPage() {
       <div className="space-y-4">
         {/* Outcome banner */}
         {outcome === 'win' && (
-          <div className="rounded-xl p-6 text-center bg-gradient-to-br from-indigo-100 via-violet-50 to-amber-50 border border-indigo-200 shadow-lg shadow-indigo-500/10">
+          <div className="rounded-xl p-6 text-center bg-gradient-to-br from-indigo-100 dark:from-indigo-950/60 via-violet-50 dark:via-violet-950/40 to-amber-50 dark:to-amber-950/30 border border-indigo-200 dark:border-indigo-800 shadow-lg shadow-indigo-500/10">
             <p className="text-5xl mb-2 drop-shadow-md">⚔️</p>
-            <p className="font-display text-4xl font-bold text-indigo-700 tracking-wider uppercase drop-shadow-sm">
+            <p className="font-display text-4xl font-bold text-indigo-700 dark:text-indigo-300 tracking-wider uppercase drop-shadow-sm">
               Victory!
             </p>
             <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
@@ -2052,7 +2052,7 @@ function BattleLogEntry({
   emoji: string;
 }) {
   return (
-    <li className="text-sm border-l-2 border-indigo-100 pl-3 space-y-0.5">
+    <li className="text-sm border-l-2 border-indigo-100 dark:border-indigo-900 pl-3 space-y-0.5">
       <p className="text-xs font-semibold text-gray-400 dark:text-slate-500">
         Round {entry.round} · {entry.action === 'attack' && '⚔️ Attack'}
         {entry.action === 'magic' && '🔮 Magic'}
@@ -3386,7 +3386,7 @@ function BattleResultsModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="relative bg-gradient-to-br from-white via-indigo-50/40 to-violet-50/60 backdrop-blur-sm border border-indigo-100 rounded-2xl shadow-2xl shadow-indigo-500/30 w-full max-w-sm p-6 animate-[fadeIn_0.3s_ease-out] overflow-hidden">
+      <div className="relative bg-gradient-to-br from-white dark:from-slate-900 via-indigo-50/40 dark:via-indigo-950/30 to-violet-50/60 dark:to-violet-950/20 backdrop-blur-sm border border-indigo-100 dark:border-indigo-900 rounded-2xl shadow-2xl shadow-indigo-500/30 w-full max-w-sm p-6 animate-[fadeIn_0.3s_ease-out] overflow-hidden">
         {/* Decorative blur orbs */}
         <span
           aria-hidden="true"
@@ -3407,7 +3407,7 @@ function BattleResultsModal({
               ariaLabel={`Defeated ${pending.monster.name}`}
               className="drop-shadow-md"
             />
-            <p className="font-display text-4xl font-bold text-indigo-700 tracking-wider uppercase drop-shadow-sm">
+            <p className="font-display text-4xl font-bold text-indigo-700 dark:text-indigo-300 tracking-wider uppercase drop-shadow-sm">
               Victory!
             </p>
             <p className="text-sm text-gray-500 dark:text-slate-400">
@@ -3470,7 +3470,7 @@ function BattleResultsModal({
                     </span>
                     <div className="flex items-center gap-1.5">
                       {def.lootOnly && (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-600">
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400">
                           ✦ Drop Only
                         </span>
                       )}
