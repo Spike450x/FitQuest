@@ -75,12 +75,14 @@ export function PremiumSpellCard({ def, className = '', ...rest }: PremiumSpellC
     el.style.transform = 'translateY(0px)';
     el.style.boxShadow = restShadow;
     sh.style.background = 'none';
-    const cleanup = () => {
+    const cleanup = (e: TransitionEvent) => {
+      if (e.propertyName !== 'transform') return;
       el.style.willChange = 'auto';
+      el.removeEventListener('transitionend', cleanup);
       willChangeCleanupRef.current = null;
     };
     willChangeCleanupRef.current = () => el.removeEventListener('transitionend', cleanup);
-    el.addEventListener('transitionend', cleanup, { once: true });
+    el.addEventListener('transitionend', cleanup);
   }
 
   return (
