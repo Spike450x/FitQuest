@@ -39,17 +39,20 @@ export function XPBar({ xp, level, xpToNextLevel }: XPBarProps) {
           {xp.toLocaleString()} / {xpToNextLevel.toLocaleString()} XP
         </span>
       </div>
-      <div className="relative w-full bg-gray-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+      <div
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Experience: level ${level}, ${xp} of ${xpToNextLevel} XP`}
+        className="relative w-full bg-gray-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden"
+      >
         <div
-          role="progressbar"
-          aria-valuenow={pct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label={`Experience: level ${level}, ${xp} of ${xpToNextLevel} XP`}
           className={`h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-700 ease-out ${
             flash ? 'shadow-[0_0_12px_rgba(99,102,241,0.7)]' : ''
           }`}
           style={{ width: `${pct}%` }}
+          aria-hidden="true"
         />
         {/* Shimmer pass on flash */}
         {flash && !reduce && (
