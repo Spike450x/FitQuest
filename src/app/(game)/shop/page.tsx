@@ -12,12 +12,21 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { toast } from '@/components/ui/Toaster';
 import { useTodayKey } from '@/hooks/useTodayKey';
 import type { ItemDef, ItemType } from '@/types';
+import { EntityArt } from '@/components/art/EntityArt';
+import { rarityTint } from '@/lib/entityArt';
 
 // Gear + consumables rotate daily (8 items); spells have their own fixed pool.
 const GEAR_SHOP_COUNT = 8;
 // Stable pools — item catalog never changes at runtime, safe at module level.
 const PURCHASABLE_GEAR = ITEM_CATALOG.filter((i) => !i.lootOnly && i.type !== 'spell');
 const PURCHASABLE_SPELLS = ITEM_CATALOG.filter((i) => !i.lootOnly && i.type === 'spell');
+
+const ITEM_TYPE_EMOJI: Partial<Record<ItemType, string>> = {
+  weapon: '⚔️',
+  armor: '🛡️',
+  accessory: '💍',
+  consumable: '🧪',
+};
 
 const TYPE_TABS: { type: ItemType | 'all'; label: string; icon: string }[] = [
   { type: 'all', label: 'All', icon: '🏪' },
@@ -196,6 +205,19 @@ export default function ShopPage() {
                   className={`absolute top-0 left-0 right-0 h-1 rounded-t-[10px] ${rarityScheme.header}`}
                   aria-hidden="true"
                 />
+
+                {/* Item silhouette portrait */}
+                <div className="flex justify-center pt-1">
+                  <EntityArt
+                    category="item"
+                    id={item.type}
+                    size="md"
+                    tint={rarityTint(item.rarity)}
+                    fallbackEmoji={ITEM_TYPE_EMOJI[item.type]}
+                    ariaLabel={item.name}
+                  />
+                </div>
+
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
