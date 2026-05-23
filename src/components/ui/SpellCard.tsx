@@ -127,6 +127,8 @@ interface SpellCardProps {
   actionLabel?: string;
   /** Handler for the primary action button. */
   onAction?: () => void;
+  /** When true, suppresses shadow-md and rarity glow — use when a wrapper component owns shadow rendering. */
+  disableShadow?: boolean;
   /** Extra classes on the outer wrapper. */
   className?: string;
 }
@@ -140,6 +142,7 @@ export const SpellCard = memo(function SpellCard({
   acting,
   actionLabel,
   onAction,
+  disableShadow,
   className = '',
 }: SpellCardProps) {
   const sm = def.spellMechanics;
@@ -156,7 +159,7 @@ export const SpellCard = memo(function SpellCard({
 
   return (
     <div
-      className={`flex flex-col rounded-2xl border-2 ${scheme.border} shadow-md ${scheme.glow ? `shadow-md ${scheme.glow}` : ''} overflow-hidden bg-white dark:bg-slate-900 ${className}`}
+      className={`flex flex-col rounded-2xl border-2 ${scheme.border} ${disableShadow ? '' : `shadow-md${scheme.glow ? ` ${scheme.glow}` : ''}`} overflow-hidden bg-white dark:bg-slate-900 ${className}`}
     >
       {/* ── Card header (colored by rarity) ───────────────────────────────── */}
       <div className={`${scheme.header} px-3 pt-3 pb-2`}>

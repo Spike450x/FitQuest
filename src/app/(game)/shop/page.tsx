@@ -6,7 +6,7 @@ import { useInventoryStore } from '@/store/inventoryStore';
 import { ITEM_CATALOG, RARITY_BADGE, RARITY_CARD, RARITY_TEXT } from '@/lib/gameLogic/items';
 import { getDailyPick, rotationExpiresAt, formatCountdown } from '@/lib/gameLogic/rotation';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
-import { SpellCard } from '@/components/ui/SpellCard';
+import { PremiumSpellCard } from '@/components/ui/PremiumSpellCard';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { toast } from '@/components/ui/Toaster';
@@ -168,7 +168,7 @@ export default function ShopPage() {
                     : `Buy for ${item.price} 💰`;
 
               return (
-                <SpellCard
+                <PremiumSpellCard
                   key={item.id}
                   def={item}
                   wisdomValue={character.stats.wisdom}

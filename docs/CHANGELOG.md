@@ -17,6 +17,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ## [Unreleased] — 2026-05-22
 
+### feat/premium-spell-cards — PremiumSpellCard with depth and shimmer
+
+**V3 — PremiumSpellCard:** New `src/components/ui/PremiumSpellCard.tsx` wraps `SpellCard` with three layered visual effects — rarity-tuned depth box-shadow at rest (unique RGB tint per rarity: gray/green/blue/purple/gold), hover lift (`translateY(-4px)` + deeper shadow), and a mouse-tracking radial-gradient shimmer overlay (`mix-blend-mode: screen`). All three effects implemented via direct DOM style mutation on `useRef` (zero `useState` re-renders on `mousemove`). `willChange: transform` is set on `mouseenter` and cleared on `mouseleave` so compositor layers are promoted only while the user is hovering. Props type is `ComponentProps<typeof SpellCard>` to eliminate manual duplication and auto-inherit future SpellCard props. All 4 callsites (combat spell panel, inventory loadout ×2, shop) swapped to `PremiumSpellCard`.
+
+---
+
 ### feat/3d-dice — 3D tumbling dice + phased roll sounds
 
 **V1 — Die3D component:** Replaced flat `DieFace` with a true CSS 3D cube (`src/components/ui/Die3D.tsx`). Six faces with correct pip layouts; internal `useEffect` drives spin animation (75ms interval, random rotations) and settles to the correct face via `FACE_ROTATIONS` with a 500ms CSS transition. Props identical to the removed `DieFace` — drop-in replacement at all 7 callsites in `combat/page.tsx`.

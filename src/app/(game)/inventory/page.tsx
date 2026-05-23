@@ -6,7 +6,7 @@ import { useCharacter } from '@/hooks/useCharacter';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
-import { SpellCard } from '@/components/ui/SpellCard';
+import { PremiumSpellCard } from '@/components/ui/PremiumSpellCard';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -285,7 +285,7 @@ export default function InventoryPage() {
                 if (!def?.spellMechanics) return null;
                 const isActing = acting === invItem.id;
                 return (
-                  <SpellCard
+                  <PremiumSpellCard
                     key={invItem.id}
                     def={def}
                     wisdomValue={character.stats.wisdom}
@@ -453,7 +453,7 @@ export default function InventoryPage() {
                     NEW
                   </span>
                 )}
-                <SpellCard
+                <PremiumSpellCard
                   def={def}
                   wisdomValue={character.stats.wisdom}
                   isEquipped={isEquipped}

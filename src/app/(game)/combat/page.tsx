@@ -87,7 +87,7 @@ import {
   canBloodPact,
 } from '@/lib/gameLogic/passives';
 import { Die3D } from '@/components/ui/Die3D';
-import { SpellCard } from '@/components/ui/SpellCard';
+import { PremiumSpellCard } from '@/components/ui/PremiumSpellCard';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Card } from '@/components/ui/Card';
 import { CombatEffects } from '@/components/combat/CombatEffects';
@@ -1475,7 +1475,7 @@ export default function CombatPage() {
                           ? 'Not enough magic'
                           : 'Cast Spell';
                     return (
-                      <SpellCard
+                      <PremiumSpellCard
                         key={invItem.id}
                         def={def}
                         wisdomValue={character.stats.wisdom}
