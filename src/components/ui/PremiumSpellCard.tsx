@@ -57,7 +57,8 @@ export function PremiumSpellCard({ def, className = '', ...rest }: PremiumSpellC
     const rotX = -(y - 0.5) * 20;
     el.style.transform = `perspective(600px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-4px)`;
     el.style.boxShadow = hoverShadow;
-    sh.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(${tint}, 0.35) 0%, transparent 60%)`;
+    const isDark = document.documentElement.classList.contains('dark');
+    sh.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(${tint}, ${isDark ? 0.15 : 0.35}) 0%, transparent 60%)`;
   }
 
   function handleMouseLeave() {
@@ -67,8 +68,14 @@ export function PremiumSpellCard({ def, className = '', ...rest }: PremiumSpellC
     el.style.transition = 'transform 300ms ease-out, box-shadow 300ms ease-out';
     el.style.transform = 'translateY(0px)';
     el.style.boxShadow = restShadow;
-    el.style.willChange = 'auto';
     sh.style.background = 'none';
+    el.addEventListener(
+      'transitionend',
+      () => {
+        el.style.willChange = 'auto';
+      },
+      { once: true },
+    );
   }
 
   return (
@@ -80,7 +87,7 @@ export function PremiumSpellCard({ def, className = '', ...rest }: PremiumSpellC
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      <SpellCard def={def} {...rest} className="shadow-none" />
+      <SpellCard def={def} {...rest} disableShadow />
       <div
         ref={shimmerRef}
         aria-hidden="true"
