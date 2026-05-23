@@ -17,9 +17,13 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ## [Unreleased] — 2026-05-23
 
+### feat/per-item-silhouettes — Unique per-item SVG silhouettes for all gear
+
+Authored 45 unique SVG silhouettes (18 weapons, 13 armor, 14 accessories) keyed by `item.id` in `ITEM_SILHOUETTES`. Every weapon and armor now renders in a `'shield'` heraldic frame; accessories use `'medallion'`. Callsites in shop and inventory updated from `id={item.type}` to `id={item.id}` with explicit `variant` per type. Emoji fallbacks removed entirely — every non-spell item has a real silhouette. Consumables retain the shared type-level potion silhouette.
+
 ### feat/item-silhouettes — V4 item silhouette portraits
 
-Added heraldic-framed silhouette portraits to all gear and consumable item cards in the shop and inventory. `EntityArt category="item"` is now called with `id={item.type}` (keyed to existing `ITEM_SILHOUETTES`: weapon ⚔️ / armor 🛡️ / accessory 💍 / consumable 🧪) and `tint={rarityTint(item.rarity)}` so the frame colour matches item rarity. No new files or silhouettes required — the art was already authored; this PR wires it into the two card surfaces.
+Added heraldic-framed silhouette portraits to all gear and consumable item cards in the shop and inventory. `EntityArt category="item"` is now called with `id={item.type}` and `tint={rarityTint(item.rarity)}` so the frame colour matches item rarity.
 
 ---
 

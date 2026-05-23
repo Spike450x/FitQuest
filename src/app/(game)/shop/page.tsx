@@ -21,11 +21,11 @@ const GEAR_SHOP_COUNT = 8;
 const PURCHASABLE_GEAR = ITEM_CATALOG.filter((i) => !i.lootOnly && i.type !== 'spell');
 const PURCHASABLE_SPELLS = ITEM_CATALOG.filter((i) => !i.lootOnly && i.type === 'spell');
 
-const ITEM_TYPE_EMOJI: Partial<Record<ItemType, string>> = {
-  weapon: '⚔️',
-  armor: '🛡️',
-  accessory: '💍',
-  consumable: '🧪',
+const ITEM_ART_VARIANT: Partial<Record<ItemType, 'shield' | 'medallion'>> = {
+  weapon: 'shield',
+  armor: 'shield',
+  accessory: 'medallion',
+  consumable: 'medallion',
 };
 
 const TYPE_TABS: { type: ItemType | 'all'; label: string; icon: string }[] = [
@@ -210,10 +210,10 @@ export default function ShopPage() {
                 <div className="flex justify-center pt-1">
                   <EntityArt
                     category="item"
-                    id={item.type}
+                    id={item.id}
+                    variant={ITEM_ART_VARIANT[item.type]}
                     size="md"
                     tint={rarityTint(item.rarity)}
-                    fallbackEmoji={ITEM_TYPE_EMOJI[item.type]}
                     ariaLabel={item.name}
                   />
                 </div>

@@ -27,11 +27,11 @@ const TYPE_TABS: { type: ItemType | 'all'; label: string; icon: string }[] = [
   { type: 'spell', label: 'Spells', icon: '✨' },
 ];
 
-const ITEM_TYPE_EMOJI: Partial<Record<ItemType, string>> = {
-  weapon: '⚔️',
-  armor: '🛡️',
-  accessory: '💍',
-  consumable: '🧪',
+const ITEM_ART_VARIANT: Partial<Record<ItemType, 'shield' | 'medallion'>> = {
+  weapon: 'shield',
+  armor: 'shield',
+  accessory: 'medallion',
+  consumable: 'medallion',
 };
 
 const SLOT_ICON: Record<string, string> = {
@@ -509,10 +509,10 @@ export default function InventoryPage() {
                 <div className="flex justify-center pt-1">
                   <EntityArt
                     category="item"
-                    id={def.type}
+                    id={def.id}
+                    variant={ITEM_ART_VARIANT[def.type]}
                     size="md"
                     tint={rarityTint(def.rarity)}
-                    fallbackEmoji={ITEM_TYPE_EMOJI[def.type]}
                     ariaLabel={def.name}
                   />
                 </div>
