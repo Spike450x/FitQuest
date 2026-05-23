@@ -77,9 +77,23 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: E2E smoke tests
+      - name: Start Firebase emulators for E2E (auth + firestore)
+        run: |
+          npx firebase emulators:start \
+            --only auth,firestore \
+            --project demo-fitness-rpg &
+          # Poll until both emulators respond (max 60 s)
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:9099 > /dev/null 2>&1 \
+              && curl -sf http://127.0.0.1:8080 > /dev/null 2>&1 \
+              && echo "Emulators ready" && break
+            sleep 2
+          done
+
+      - name: E2E tests (unauthenticated + authenticated)
         run: npx playwright test
         env:
+          NEXT_PUBLIC_USE_FIREBASE_EMULATOR: 'true'
           NEXT_PUBLIC_FIREBASE_API_KEY: e2e-placeholder
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: demo.firebaseapp.com
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: demo-fitness-rpg
