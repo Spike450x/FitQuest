@@ -8,6 +8,10 @@ import bundleAnalyzer from '@next/bundle-analyzer';
 //   - wss://*.firebaseio.com     — Firestore long-polling fallback
 //   - https://firestore.googleapis.com — Firestore REST + Listen
 //   - *.cloudfunctions.net       — Firebase Cloud Functions v2 callable endpoints
+//   - http(s)://127.0.0.1:{9099,8080,5001} — local Firebase emulators (Auth /
+//     Firestore / Functions). Reachable only from the developer's machine and
+//     the CI runner during E2E; harmless to include in the production CSP since
+//     a real user's browser cannot reach an attacker's loopback interface.
 const FIREBASE_CONNECT = [
   'https://*.googleapis.com',
   'https://*.firebaseio.com',
@@ -17,6 +21,11 @@ const FIREBASE_CONNECT = [
   'https://identitytoolkit.googleapis.com',
   'https://securetoken.googleapis.com',
   'https://*.cloudfunctions.net',
+  'http://127.0.0.1:9099',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:5001',
+  'ws://127.0.0.1:9099',
+  'ws://127.0.0.1:8080',
 ].join(' ');
 
 // 'unsafe-inline' / 'unsafe-eval' on script-src are required by Next.js's
