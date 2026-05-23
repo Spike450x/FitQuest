@@ -41,16 +41,14 @@ jobs:
       - name: Test Cloud Functions (pure-logic unit tests)
         run: cd functions && npm test
 
-      # Non-blocking audit so a freshly-published advisory surfaces in PR
-      # checks without immediately blocking the merge. If a high-severity
-      # vuln appears, follow the workflow in docs/SECURITY-SETUP.md § 8.
-      - name: Audit dependencies (root, non-blocking)
-        continue-on-error: true
-        run: npm audit --audit-level=high
+      # Fails immediately on high/critical vulnerabilities. Moderate dev-dep
+      # vulns (e.g., firebase-tools transitive chain) are logged as warnings.
+      # See docs/SECURITY-SETUP.md § Known devDependency vulnerabilities.
+      - name: Audit production dependencies
+        run: node scripts/audit-check.mjs
 
-      - name: Audit dependencies (functions, non-blocking)
-        continue-on-error: true
-        run: cd functions && npm audit --audit-level=high
+      - name: Audit Cloud Functions production dependencies
+        run: cd functions && node ../scripts/audit-check.mjs
 
       - name: Format check
         run: npm run format:check

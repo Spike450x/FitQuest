@@ -179,3 +179,25 @@ The `FIREBASE_TOKEN` secret is a long-lived Firebase CI token used by the CI aut
 For each item below, when it ships, add a row to the Remediations Log above.
 
 - **Private vulnerability reporting** — section 7 toggle, no code required. Enable at **Settings → Code security → Private vulnerability reporting**. Once enabled, a **Report a vulnerability** button appears on the repo's Security tab alongside the `SECURITY.md` policy.
+
+---
+
+## Known devDependency Vulnerabilities
+
+These vulnerabilities are flagged by `npm audit` but **cannot be fixed without breaking changes** and **do not affect the production runtime bundle**. They are logged as warnings by `scripts/audit-check.mjs` and do not block CI.
+
+| Package                | Severity | Via                      | Status                                                           |
+| ---------------------- | -------- | ------------------------ | ---------------------------------------------------------------- |
+| `gaxios`               | moderate | `uuid < 9`               | Transitive dep of `firebase-tools` (devDep). Not in prod bundle. |
+| `google-gax`           | moderate | `retry-request` → `uuid` | Same chain.                                                      |
+| `@google-cloud/pubsub` | moderate | `google-gax`             | Same chain.                                                      |
+| `teeny-request`        | moderate | `uuid < 9`               | Same chain.                                                      |
+| `retry-request`        | moderate | `teeny-request`          | Same chain.                                                      |
+
+**Root cause:** `firebase-tools` requires `uuid@^3` or `^7` in its transitive chain. The `uuid` advisory covers versions < 9. `npm audit fix --force` would downgrade `firebase-tools` to a breaking version.
+
+**Resolution path:** Watch [firebase-tools releases](https://github.com/firebase/firebase-tools/releases). When a release notes a `uuid` bump past v9 in its transitive deps, run `npm update firebase-tools` on a branch and re-run `npm audit`.
+
+**CI behaviour:** `scripts/audit-check.mjs` (invoked in `.github/workflows/ci.yml`) blocks the build on any high/critical vulnerability and logs moderate/low ones as warnings. The script does not currently distinguish dev-only from prod-only chains (the npm audit JSON does not expose a top-level dev flag), so a high/critical vuln anywhere — including dev-only — will fail CI. This is intentionally conservative.
+
+**Last reviewed:** 2026-05-23
