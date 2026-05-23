@@ -107,7 +107,7 @@ export function Die3D({
     .join(' ');
 
   return (
-    <div className={containerClass} style={{ width: S, height: S, perspective: S * 5 }}>
+    <div className={containerClass} style={{ width: S, height: S, perspective: S * 10 }}>
       <div
         style={{
           width: S,
