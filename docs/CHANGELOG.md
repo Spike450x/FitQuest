@@ -15,15 +15,21 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
-## [Unreleased] — 2026-05-23
+## 2026-05-23 — Full per-item art system + docs sync
 
-### feat/per-item-silhouettes — Unique per-item SVG silhouettes for all gear
+### chore/docs — Documentation sync (PR #104)
 
-Authored 45 unique SVG silhouettes (18 weapons, 13 armor, 14 accessories) keyed by `item.id` in `ITEM_SILHOUETTES`. Every weapon and armor now renders in a `'shield'` heraldic frame; accessories use `'medallion'`. Callsites in shop and inventory updated from `id={item.type}` to `id={item.id}` with explicit `variant` per type. Emoji fallbacks removed entirely — every non-spell item has a real silhouette. Consumables retain the shared type-level potion silhouette.
+Updated `docs/ART-ASSETS.md`, `docs/UI-UX-MODERNIZATION.md`, and `docs/ARCHITECTURE.md` to reflect the PremiumSpellCard and per-item silhouette work shipped in PRs #101–103. Fixed stale item-category row in ART-ASSETS (now shows per-id keying + frame split), marked Per-item art as ✅ shipped, corrected stroke guidance, added PremiumSpellCard to ARCHITECTURE key primitives and UI-UX Bonus polish section.
 
-### feat/item-silhouettes — V4 item silhouette portraits
+### feat/per-item-silhouettes — Unique per-item SVG silhouettes for all 55 items (PR #103)
 
-Added heraldic-framed silhouette portraits to all gear and consumable item cards in the shop and inventory. `EntityArt category="item"` is now called with `id={item.type}` and `tint={rarityTint(item.rarity)}` so the frame colour matches item rarity.
+**Pass 1:** Authored 45 unique SVG silhouettes (18 weapons, 13 armor, 14 accessories) keyed by `item.id` in `ITEM_SILHOUETTES`. Every weapon and armor renders in a `'shield'` heraldic frame; accessories use `'medallion'`. Callsites in shop and inventory updated from `id={item.type}` to `id={item.id}` with explicit `variant` per type. Emoji fallbacks removed entirely.
+
+**Pass 2 (next-level suggestions):** Authored 10 additional consumable silhouettes (MinorHealthPotion through GreaterStaminaPotion) — HP potions as round bulbs, magic potions as angular crystals, stamina potions as cylinders/barrels, differentiated by size and detail per tier. Legendary item cards gain `ribbon="Legendary"`; loot-only inventory cards gain `ribbon="Loot Only"`. Dev-time `console.warn` added to `EntityArt` for any item id with no registered silhouette, catching catalog additions early.
+
+### feat/item-silhouettes — V4 item silhouette portraits (PR #102)
+
+Added heraldic-framed silhouette portraits to all gear and consumable item cards in the shop and inventory. `EntityArt category="item"` called with `tint={rarityTint(item.rarity)}` so the frame colour matches item rarity.
 
 ---
 
