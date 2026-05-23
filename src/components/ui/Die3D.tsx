@@ -45,14 +45,14 @@ const FACE_ROTATIONS: Record<number, string> = {
   6: 'rotateX(180deg)',
 };
 
-// [face position transform (template with HALF placeholder), pip value on this face]
-const FACES: [string, number][] = [
-  ['translateZ(HALF)', 1],
-  ['rotateY(180deg) translateZ(HALF)', 6],
-  ['rotateY(90deg) translateZ(HALF)', 2],
-  ['rotateY(-90deg) translateZ(HALF)', 5],
-  ['rotateX(-90deg) translateZ(HALF)', 4],
-  ['rotateX(90deg) translateZ(HALF)', 3],
+// [face position factory (receives half-size in px), pip value on this face]
+const FACES: [(h: number) => string, number][] = [
+  [(h) => `translateZ(${h}px)`, 1],
+  [(h) => `rotateY(180deg) translateZ(${h}px)`, 6],
+  [(h) => `rotateY(90deg) translateZ(${h}px)`, 2],
+  [(h) => `rotateY(-90deg) translateZ(${h}px)`, 5],
+  [(h) => `rotateX(-90deg) translateZ(${h}px)`, 4],
+  [(h) => `rotateX(90deg) translateZ(${h}px)`, 3],
 ];
 
 function randomRotation(): string {
@@ -124,7 +124,7 @@ export function Die3D({
             style={{
               position: 'absolute',
               inset: 0,
-              transform: faceTx.replace(/HALF/g, `${half}px`),
+              transform: faceTx(half),
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               borderRadius,
