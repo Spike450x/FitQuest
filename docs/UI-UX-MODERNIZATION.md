@@ -70,6 +70,8 @@ The **template to copy**: `SpellCard.tsx`, `LevelUpCelebration.tsx`, combat dice
 - `XPBar` now flashes/glows for ~700ms when XP changes — closes the level-up feedback gap.
 - "NEW" pill updated from `animate-pulse` to gradient + ring + colored shadow.
 - Shop "Buy" button got the same amber-to-orange gradient + active-press feel.
+- **`PremiumSpellCard`** (`src/components/ui/PremiumSpellCard.tsx`) — wraps `SpellCard` with rarity-depth `box-shadow`, hover lift, and a mouse-tracking shimmer via `mix-blend-mode: screen`. All state mutations go through a DOM ref — zero React re-renders on `mousemove`; `willChange: transform` promoted only on hover to avoid compositor overhead. All 4 `SpellCard` callsites (shop, inventory, dungeon-run, combat) swapped.
+- **Per-item SVG portraits** (`src/components/art/silhouettes.tsx`) — 55 unique silhouette functions covering every non-spell item: 18 weapons, 13 armor, 14 accessories, 10 consumables. Each registered in `ITEM_SILHOUETTES` by `item.id`. Weapons/armor use `'shield'` frame; accessories/consumables use `'medallion'` frame. Rarity tint applied via `rarityTint(item.rarity)`. Legendary items get a `ribbon="Legendary"` overlay; loot-only items get `ribbon="Loot Only"`. Dev-time `console.warn` fires in `EntityArt` when an item id has no registered silhouette. No emoji fallbacks remain.
 
 ---
 
