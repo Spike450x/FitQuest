@@ -15,6 +15,8 @@ import { toast } from '@/components/ui/Toaster';
 import { useInventoryNewMarkers } from '@/hooks/useInventoryNewMarkers';
 import { COMBAT } from '@/lib/gameLogic/constants';
 import type { ItemType } from '@/types';
+import { EntityArt } from '@/components/art/EntityArt';
+import { rarityTint } from '@/lib/entityArt';
 
 const TYPE_TABS: { type: ItemType | 'all'; label: string; icon: string }[] = [
   { type: 'all', label: 'All', icon: '🎒' },
@@ -24,6 +26,13 @@ const TYPE_TABS: { type: ItemType | 'all'; label: string; icon: string }[] = [
   { type: 'consumable', label: 'Consumables', icon: '🧪' },
   { type: 'spell', label: 'Spells', icon: '✨' },
 ];
+
+const ITEM_TYPE_EMOJI: Partial<Record<ItemType, string>> = {
+  weapon: '⚔️',
+  armor: '🛡️',
+  accessory: '💍',
+  consumable: '🧪',
+};
 
 const SLOT_ICON: Record<string, string> = {
   weapon: '⚔️',
@@ -496,6 +505,17 @@ export default function InventoryPage() {
                   className={`absolute top-0 left-0 right-0 h-1 rounded-t-[10px] ${rarityScheme.header}`}
                   aria-hidden="true"
                 />
+                {/* Item silhouette portrait */}
+                <div className="flex justify-center pt-1">
+                  <EntityArt
+                    category="item"
+                    id={def.type}
+                    size="md"
+                    tint={rarityTint(def.rarity)}
+                    fallbackEmoji={ITEM_TYPE_EMOJI[def.type]}
+                    ariaLabel={def.name}
+                  />
+                </div>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
