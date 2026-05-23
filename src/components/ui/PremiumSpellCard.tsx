@@ -74,7 +74,7 @@ export function PremiumSpellCard({ def, className = '', ...rest }: PremiumSpellC
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      <SpellCard def={def} {...rest} />
+      <SpellCard def={def} {...rest} className="shadow-none" />
       <div
         ref={shimmerRef}
         aria-hidden="true"
