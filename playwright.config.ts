@@ -11,10 +11,26 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
   },
+  // Runs once before all tests: creates the emulator test user + seeds Firestore.
+  // No-ops when NEXT_PUBLIC_USE_FIREBASE_EMULATOR is not 'true'.
+  globalSetup: './tests/e2e/global-setup.ts',
   projects: [
+    // Unauthenticated — no stored auth needed
     {
-      name: 'chromium',
+      name: 'unauthenticated',
+      testMatch: ['**/smoke.test.ts', '**/dark-mode.test.ts'],
       use: { ...devices['Desktop Chrome'] },
+    },
+    // Authenticated — applies saved emulator auth state. Only meaningful when
+    // NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true (global setup must have populated
+    // tests/e2e/.auth/user.json first).
+    {
+      name: 'authenticated',
+      testMatch: '**/authenticated.test.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'tests/e2e/.auth/user.json',
+      },
     },
   ],
   webServer: {
@@ -24,8 +40,6 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       // Placeholder Firebase config so the SDK initializes without throwing.
-      // E2E tests target unauthenticated pages/redirects — no actual Firebase
-      // API calls are made, so placeholder values are sufficient.
       NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? 'e2e-test-key',
       NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:
         process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? 'demo.firebaseapp.com',
@@ -37,6 +51,8 @@ export default defineConfig({
         process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? '123456789',
       NEXT_PUBLIC_FIREBASE_APP_ID:
         process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? '1:123456789:web:abcdef',
+      // Passed through to the Next.js dev server so firebase.ts connects to emulators
+      NEXT_PUBLIC_USE_FIREBASE_EMULATOR: process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR ?? 'false',
     },
   },
 });

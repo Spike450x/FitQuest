@@ -18,14 +18,15 @@ Every game entity has a slot in the art system. `EntityArt` looks up the silhoue
 
 ## File map
 
-| Path                                   | Purpose                                                                                |
-| -------------------------------------- | -------------------------------------------------------------------------------------- |
-| `src/components/art/EntityArt.tsx`     | The render primitive. Routes `(category, id)` to the right silhouette + frame.         |
-| `src/components/art/HeraldicFrame.tsx` | Shield / sigil / medallion frame shapes with light + dark gradients and tint variants. |
-| `src/components/art/silhouettes.tsx`   | All hand-authored SVG silhouettes — one map per category.                              |
-| `src/lib/entityArt.ts`                 | Helpers: `spellEffectKey(effect)`, `rarityTint(rarity)`.                               |
-| `src/components/ui/BrandMark.tsx`      | FitQuest crest + wordmark used in header and auth screens.                             |
-| `public/icons/icon.svg`                | PWA icon master — regenerate PNGs from this with `rsvg-convert`.                       |
+| Path                                      | Purpose                                                                                                                                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/components/art/EntityArt.tsx`        | The render primitive. Routes `(category, id)` to the right silhouette + frame.                                                                                                 |
+| `src/components/art/HeraldicFrame.tsx`    | Shield / sigil / medallion frame shapes with light + dark gradients and tint variants.                                                                                         |
+| `src/components/art/silhouettes.tsx`      | Hand-authored SVG silhouettes for monsters, classes, subclasses, abilities, spells, activities, achievements, and dungeons.                                                    |
+| `src/components/art/item-silhouettes.tsx` | Hand-authored SVG silhouettes for the 55 items in `ITEM_SILHOUETTES` — split out so non-item routes (combat / character / dashboard) don't pay the cost in their shared chunk. |
+| `src/lib/entityArt.ts`                    | Helpers: `spellEffectKey(effect)`, `rarityTint(rarity)`.                                                                                                                       |
+| `src/components/ui/BrandMark.tsx`         | FitQuest crest + wordmark used in header and auth screens.                                                                                                                     |
+| `public/icons/icon.svg`                   | PWA icon master — regenerate PNGs from this with `rsvg-convert`.                                                                                                               |
 
 ## Categories
 
@@ -43,9 +44,9 @@ Every game entity has a slot in the art system. `EntityArt` looks up the silhoue
 
 ## Adding a new silhouette
 
-1. Open `src/components/art/silhouettes.tsx`.
+1. Open `src/components/art/silhouettes.tsx` for non-item categories, or `src/components/art/item-silhouettes.tsx` for items.
 2. Add a new `function MyEntity()` returning JSX with `<g fill="currentColor">` and SVG primitives inside the `0–100` viewBox. Aim for the silhouette to fill the central 60×60 area so it reads at all sizes.
-3. Register it in the appropriate map (e.g. `MONSTER_SILHOUETTES['new-id'] = MyEntity`).
+3. Register it in the appropriate map (e.g. `MONSTER_SILHOUETTES['new-id'] = MyEntity`, or `ITEM_SILHOUETTES['new-item-id'] = MyEntity`).
 4. Done — every site already using `<EntityArt category="monster" id="new-id" />` lights up automatically.
 
 ### Style guide
@@ -59,7 +60,7 @@ Every game entity has a slot in the art system. `EntityArt` looks up the silhoue
 
 Three options:
 
-1. **Edit the silhouette function in `silhouettes.tsx`** — fastest, ships in a normal PR.
+1. **Edit the silhouette function in `silhouettes.tsx` (or `item-silhouettes.tsx` for items)** — fastest, ships in a normal PR.
 2. **Replace with a static SVG file** — drop it under `public/art/{category}/` and update `EntityArt.tsx` to render an `<img>` for that id. Useful when a designer hands over polished art.
 3. **Replace with a raster image** — same as (2) but using `next/image`. Recommended only when the art is photographic.
 

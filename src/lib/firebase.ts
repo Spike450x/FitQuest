@@ -1,5 +1,10 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import {
+  getAuth,
+  connectAuthEmulator,
+  setPersistence,
+  browserLocalPersistence,
+} from 'firebase/auth';
 import {
   initializeFirestore,
   getFirestore,
@@ -63,4 +68,12 @@ if (USE_EMULATOR && typeof window !== 'undefined') {
   } catch {
     // already connected on hot reload
   }
+  // Use localStorage instead of IndexedDB for Auth persistence in emulator
+  // mode. Playwright's storageState captures localStorage but not IndexedDB,
+  // so this lets authenticated E2E tests reuse a single sign-in across runs.
+  // Fire-and-forget — Firebase internally serializes subsequent auth ops
+  // behind this promise, so onAuthStateChanged still fires correctly.
+  setPersistence(auth, browserLocalPersistence).catch(() => {
+    // ignore — emulator persistence is best-effort
+  });
 }

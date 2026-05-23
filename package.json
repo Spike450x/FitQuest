@@ -18,6 +18,7 @@
     "test:rules": "vitest run --config vitest.rules.config.ts",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
+    "analyze": "ANALYZE=true next build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky",
@@ -47,6 +48,7 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
+    "@next/bundle-analyzer": "^16.2.6",
     "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

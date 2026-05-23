@@ -8,12 +8,12 @@ import {
   ACTIVITY_SILHOUETTES,
   CLASS_SILHOUETTES,
   DUNGEON_SILHOUETTES,
-  ITEM_SILHOUETTES,
   MONSTER_SILHOUETTES,
   SPELL_SILHOUETTES,
   SUBCLASS_SILHOUETTES,
   type SpellEffectKey,
 } from './silhouettes';
+import { ITEM_SILHOUETTES } from './item-silhouettes';
 
 export type EntityCategory =
   | 'monster'
@@ -171,7 +171,7 @@ export function EntityArt({
 
   if (!Silhouette && process.env.NODE_ENV === 'development' && category === 'item') {
     console.warn(
-      `[EntityArt] No silhouette for item id="${id}". Add it to ITEM_SILHOUETTES in silhouettes.tsx.`,
+      `[EntityArt] No silhouette for item id="${id}". Add it to ITEM_SILHOUETTES in item-silhouettes.tsx.`,
     );
   }
 

@@ -56,3 +56,6 @@ next-env.d.ts
 
 # Firebase Cloud Functions — compiled output (built by predeploy hook)
 functions/lib/
+
+# Playwright auth state (contains real tokens from emulator — never commit)
+tests/e2e/.auth/user.json
