@@ -1958,6 +1958,148 @@ function DraconicSigil() {
   );
 }
 
+// ── ITEMS (per item ID — consumables) ────────────────────────────────────────
+
+function MinorHealthPotion() {
+  return (
+    <g fill="currentColor">
+      <rect x="46" y="14" width="8" height="7" rx="2" />
+      <rect x="47" y="21" width="6" height="9" />
+      <path d="M 38 52 C 38 38 42 30 50 30 C 58 30 62 38 62 52 L 62 64 C 62 72 56 78 50 78 C 44 78 38 72 38 64 Z" />
+      <path
+        d="M 42 46 C 42 40 44 36 48 34"
+        stroke="white"
+        strokeOpacity="0.4"
+        strokeWidth="2"
+        fill="none"
+      />
+    </g>
+  );
+}
+
+function HealthPotion() {
+  return (
+    <g fill="currentColor">
+      <rect x="44" y="12" width="12" height="9" rx="2" />
+      <rect x="46" y="21" width="8" height="9" />
+      <path d="M 30 56 C 30 40 38 30 50 30 C 62 30 70 40 70 56 L 70 68 C 70 78 62 84 50 84 C 38 84 30 78 30 68 Z" />
+      <rect x="47" y="48" width="6" height="20" rx="1" />
+      <rect x="40" y="55" width="20" height="6" rx="1" />
+    </g>
+  );
+}
+
+function GreaterHealthPotion() {
+  return (
+    <g fill="currentColor">
+      <rect x="42" y="12" width="16" height="9" rx="3" />
+      <rect x="44" y="21" width="12" height="7" />
+      <path d="M 22 54 C 22 36 34 28 50 28 C 66 28 78 36 78 54 L 78 68 C 78 78 66 84 50 84 C 34 84 22 78 22 68 Z" />
+      <rect x="47" y="48" width="6" height="22" rx="1" />
+      <rect x="40" y="55" width="20" height="6" rx="1" />
+      <path
+        d="M 30 48 C 28 40 30 34 36 30"
+        stroke="white"
+        strokeOpacity="0.35"
+        strokeWidth="2.5"
+        fill="none"
+      />
+    </g>
+  );
+}
+
+function ElixirOfLife() {
+  return (
+    <g fill="currentColor">
+      <circle cx="50" cy="14" r="5" />
+      <rect x="47" y="17" width="6" height="5" />
+      <rect x="43" y="22" width="14" height="5" rx="2" />
+      <rect x="46" y="27" width="8" height="6" />
+      <path d="M 36 40 C 34 34 38 33 46 33 L 54 33 C 62 33 66 34 64 40 Z" />
+      <rect x="38" y="40" width="24" height="8" rx="2" />
+      <path d="M 24 68 C 24 54 32 48 50 48 C 68 48 76 54 76 68 L 76 74 C 76 82 66 86 50 86 C 34 86 24 82 24 74 Z" />
+      <path d="M 50 76 L 40 66 C 38 64 40 60 44 60 C 46 60 48 62 50 64 C 52 62 54 60 56 60 C 60 60 62 64 60 66 Z" />
+    </g>
+  );
+}
+
+function MinorMagicPotion() {
+  return (
+    <g fill="currentColor">
+      <path d="M 50 12 L 54 18 L 50 22 L 46 18 Z" />
+      <rect x="47" y="22" width="6" height="8" />
+      <path d="M 50 30 L 64 50 L 50 70 L 36 50 Z" />
+      <path d="M 50 30 L 50 70" stroke="white" strokeOpacity="0.3" strokeWidth="1.5" fill="none" />
+      <path d="M 36 50 L 64 50" stroke="white" strokeOpacity="0.3" strokeWidth="1.5" fill="none" />
+    </g>
+  );
+}
+
+function MagicPotion() {
+  return (
+    <g fill="currentColor">
+      <path d="M 50 10 L 56 16 L 52 22 L 48 22 L 44 16 Z" />
+      <rect x="46" y="22" width="8" height="8" />
+      <path d="M 50 30 L 66 42 L 68 62 L 56 76 L 44 76 L 32 62 L 34 42 Z" />
+      <path d="M 50 30 L 50 76" stroke="white" strokeOpacity="0.25" strokeWidth="1.5" fill="none" />
+      <path d="M 34 42 L 66 42" stroke="white" strokeOpacity="0.25" strokeWidth="1.5" fill="none" />
+      <path d="M 32 62 L 68 62" stroke="white" strokeOpacity="0.25" strokeWidth="1.5" fill="none" />
+      <path d="M 50 50 L 52 46 L 54 50 L 58 50 L 55 53 L 56 57 L 50 54 L 44 57 L 45 53 L 42 50 L 46 50 L 48 46 Z" />
+    </g>
+  );
+}
+
+function GreaterMagicPotion() {
+  return (
+    <g fill="currentColor">
+      <path d="M 50 10 L 58 16 L 54 24 L 46 24 L 42 16 Z" />
+      <circle cx="50" cy="14" r="3" />
+      <rect x="45" y="24" width="10" height="6" />
+      <path d="M 50 30 L 72 40 L 76 64 L 60 80 L 40 80 L 24 64 L 28 40 Z" />
+      <path d="M 50 30 L 50 80" stroke="white" strokeOpacity="0.2" strokeWidth="1.5" fill="none" />
+      <path d="M 28 40 L 72 40" stroke="white" strokeOpacity="0.2" strokeWidth="1.5" fill="none" />
+      <path d="M 24 64 L 76 64" stroke="white" strokeOpacity="0.2" strokeWidth="1.5" fill="none" />
+      <path d="M 50 52 L 53 46 L 56 52 L 62 52 L 57 56 L 59 62 L 50 58 L 41 62 L 43 56 L 38 52 L 44 52 L 47 46 Z" />
+    </g>
+  );
+}
+
+function MinorStaminaPotion() {
+  return (
+    <g fill="currentColor">
+      <rect x="44" y="14" width="12" height="6" rx="2" />
+      <rect x="42" y="20" width="16" height="52" rx="4" />
+      <rect x="40" y="44" width="20" height="5" rx="2" />
+    </g>
+  );
+}
+
+function StaminaPotion() {
+  return (
+    <g fill="currentColor">
+      <rect x="42" y="12" width="16" height="8" rx="3" />
+      <rect x="38" y="20" width="24" height="60" rx="5" />
+      <rect x="36" y="36" width="28" height="5" rx="2" />
+      <rect x="36" y="46" width="28" height="5" rx="2" />
+      <rect x="36" y="56" width="28" height="5" rx="2" />
+    </g>
+  );
+}
+
+function GreaterStaminaPotion() {
+  return (
+    <g fill="currentColor">
+      <rect x="36" y="10" width="28" height="8" rx="3" />
+      <rect x="40" y="18" width="20" height="6" />
+      <path d="M 24 30 C 24 24 32 24 40 24 L 60 24 C 68 24 76 24 76 30 L 78 70 C 78 80 70 86 50 86 C 30 86 22 80 22 70 Z" />
+      <rect x="20" y="42" width="60" height="5" rx="1" />
+      <rect x="20" y="60" width="60" height="5" rx="1" />
+      <path d="M 22 50 C 16 50 16 58 22 58" fill="none" stroke="currentColor" strokeWidth="4" />
+      <path d="M 78 50 C 84 50 84 58 78 58" fill="none" stroke="currentColor" strokeWidth="4" />
+    </g>
+  );
+}
+
 export const ITEM_SILHOUETTES: Record<string, () => React.ReactNode> = {
   // Type-level fallbacks
   weapon: ItemWeapon,
@@ -2015,4 +2157,16 @@ export const ITEM_SILHOUETTES: Record<string, () => React.ReactNode> = {
   'spiderspun-tome': SpiderspunTome,
   'wraithbound-ring': WraithboundRing,
   'draconic-sigil': DraconicSigil,
+
+  // Consumables
+  'minor-health-potion': MinorHealthPotion,
+  'health-potion': HealthPotion,
+  'greater-health-potion': GreaterHealthPotion,
+  'elixir-of-life': ElixirOfLife,
+  'minor-magic-potion': MinorMagicPotion,
+  'magic-potion': MagicPotion,
+  'greater-magic-potion': GreaterMagicPotion,
+  'minor-stamina-potion': MinorStaminaPotion,
+  'stamina-potion': StaminaPotion,
+  'greater-stamina-potion': GreaterStaminaPotion,
 };

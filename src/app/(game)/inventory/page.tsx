@@ -513,6 +513,7 @@ export default function InventoryPage() {
                     variant={ITEM_ART_VARIANT[def.type]}
                     size="md"
                     tint={rarityTint(def.rarity)}
+                    ribbon={isLegendary ? 'Legendary' : def.lootOnly ? 'Loot Only' : undefined}
                     ariaLabel={def.name}
                   />
                 </div>

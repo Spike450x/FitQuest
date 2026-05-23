@@ -214,6 +214,7 @@ export default function ShopPage() {
                     variant={ITEM_ART_VARIANT[item.type]}
                     size="md"
                     tint={rarityTint(item.rarity)}
+                    ribbon={isLegendary ? 'Legendary' : undefined}
                     ariaLabel={item.name}
                   />
                 </div>
