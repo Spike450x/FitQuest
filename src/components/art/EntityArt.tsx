@@ -169,6 +169,12 @@ export function EntityArt({
     ? { role: 'img' as const, 'aria-label': ariaLabel }
     : { 'aria-hidden': true as const };
 
+  if (!Silhouette && process.env.NODE_ENV === 'development' && category === 'item') {
+    console.warn(
+      `[EntityArt] No silhouette for item id="${id}". Add it to ITEM_SILHOUETTES in silhouettes.tsx.`,
+    );
+  }
+
   if (!Silhouette) {
     // Fallback to the emoji rendered inside the same heraldic frame so the
     // layout doesn't shift between custom-art and legacy entities.
