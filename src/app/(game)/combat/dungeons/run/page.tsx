@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
@@ -21,7 +21,6 @@ import {
   bossEffectiveAtk,
   applyNecroShield,
   dragonIgnoresDef,
-  getWeekSeed,
 } from '@/lib/gameLogic/dungeons';
 import { claimDungeonRunCF } from '@/lib/functions';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
@@ -31,14 +30,24 @@ import { playSound } from '@/hooks/useSound';
 import type { AchievementId } from '@/types';
 import type { ClaimDungeonRunResult } from '@/types/cloudFunctions';
 import {
-  calculateRound,
-  rollRunAway,
   rollLoot,
   playerMaxHp,
   playerMaxStamina,
   playerMaxMagic,
+  gearDefenseBonus,
 } from '@/lib/gameLogic/combat';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
+import { CombatArena } from '@/components/combat/CombatArena';
+import { CombatActionBar } from '@/components/combat/CombatActionBar';
+import { HpBar } from '@/components/combat/HpBar';
+import { LastActionSummary } from '@/components/combat/LastActionSummary';
+import { BattleLogEntry } from '@/components/combat/BattleLogEntry';
+import { ActionRollOverlay } from '@/components/combat/overlays/ActionRollOverlay';
+import { DiceRollOverlay } from '@/components/combat/overlays/DiceRollOverlay';
+import { SpellRollOverlay } from '@/components/combat/overlays/SpellRollOverlay';
+import { useCombatEncounter } from '@/hooks/useCombatEncounter';
+import { getStreakLootMultiplier } from '@/lib/gameLogic/streaks';
+import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 import type {
   DungeonRoomType,
   MonsterDef,
@@ -46,6 +55,7 @@ import type {
   BossEnrageState,
   DungeonRoomDef,
 } from '@/types';
+import type { CombatModifiers, FightState } from '@/components/combat/types';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -79,38 +89,6 @@ function roomIcon(type: DungeonRoomType): string {
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
-
-function MiniBar({
-  value,
-  max,
-  label,
-  color,
-}: {
-  value: number;
-  max: number;
-  label: string;
-  color: string;
-}) {
-  const pct = Math.min(100, Math.round((value / max) * 100));
-  const isLow = pct < 30;
-  const isCritical = pct < 15;
-  const barColor = isCritical ? 'bg-red-500' : isLow ? 'bg-amber-400' : color;
-  return (
-    <div className="flex-1">
-      <div className="flex justify-between text-xs mb-0.5">
-        <span className="text-slate-400">{label}</span>
-        <span
-          className={`font-semibold ${isCritical ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-slate-300'}`}
-        >
-          {value}/{max}
-        </span>
-      </div>
-      <div className="bg-slate-700 rounded-full h-1.5">
-        <div className={`h-1.5 rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
 
 function ProgressChain({
   rooms,
@@ -175,6 +153,334 @@ function LootCard({ itemId, index }: { itemId: string; index: number }) {
   );
 }
 
+// ─── Combat phase shell — mounted when phase is 'combat' or 'boss' ────────────
+
+interface DungeonCombatShellProps {
+  monster: MonsterDef;
+  isBossRoom: boolean;
+  character: NonNullable<ReturnType<typeof useCharacter>['character']>;
+  maxHp: number;
+  maxStamina: number;
+  maxMagic: number;
+  initialHp: number;
+  initialStamina: number;
+  initialMagic: number;
+  /** Notified each round so the dungeon page can mirror values for the resource strip. */
+  onResourceMirror: (snapshot: { hp: number; stamina: number; magic: number }) => void;
+  onVictory: (ctx: {
+    droppedItems: string[];
+    finalHp: number;
+    finalStamina: number;
+    finalMagic: number;
+  }) => Promise<void>;
+  onDefeat: (ctx: { finalHp: number; finalStamina: number; finalMagic: number }) => void;
+  onFlee: (ctx: { finalHp: number; finalStamina: number; finalMagic: number }) => Promise<void>;
+}
+
+/**
+ * Dungeon combat encounter — full action parity with the arena, with
+ * dungeon-specific Venom DoT + boss enrage layered in via `CombatModifiers`.
+ *
+ * The shell is keyed on the active monster so per-encounter state (FightState,
+ * enrage, venom) resets cleanly between rooms.
+ */
+function DungeonCombatShell({
+  monster,
+  isBossRoom,
+  character,
+  maxHp,
+  maxStamina,
+  maxMagic,
+  initialHp,
+  initialStamina,
+  initialMagic,
+  onResourceMirror,
+  onVictory,
+  onDefeat,
+  onFlee,
+}: DungeonCombatShellProps) {
+  const inventoryItems = useInventoryStore((s) => s.items);
+  const consumeItem = useInventoryStore((s) => s.useConsumable);
+
+  const [poisoned, setPoisoned] = useState<PoisonedStatus | null>(null);
+  const [enrageState, setEnrageState] = useState<BossEnrageState>(() => initialEnrageState());
+  const [enrageBanner, setEnrageBanner] = useState<string | null>(null);
+  const [showSpellPanel, setShowSpellPanel] = useState(false);
+  const [showItemPanel, setShowItemPanel] = useState(false);
+
+  const equippedSpells = useMemo(
+    () =>
+      inventoryItems
+        .filter((i) => i.equipped)
+        .map((i) => ({ invItem: i, def: getItemById(i.itemDefId) }))
+        .filter((x) => x.def?.type === 'spell' && x.def.spellMechanics !== undefined),
+    [inventoryItems],
+  );
+  const consumables = useMemo(
+    () =>
+      inventoryItems.filter((i) => {
+        const def = getItemById(i.itemDefId);
+        return def?.type === 'consumable' && i.equipped;
+      }),
+    [inventoryItems],
+  );
+
+  // Loot multiplier (streak) — applies to monster drops inside dungeons too
+  const streakMultiplier = getStreakLootMultiplier(character.streakData?.currentStreak ?? 0);
+  // Dungeons don't use the legendary-pity counter (loot is filtered by tier),
+  // so always return 0.
+  const getPityFor = useCallback(() => 0, []);
+
+  // Stable reference to the latest state slices for the modifiers closure.
+  // Modifier hooks read from these on every action — must capture latest.
+  const modifiers = useMemo<CombatModifiers>(() => {
+    const tierId = isBossRoom
+      ? (Object.keys(DUNGEON_BOSSES) as Array<keyof typeof DUNGEON_BOSSES>).find(
+          (k) => DUNGEON_BOSSES[k].id === monster.id,
+        )
+      : undefined;
+
+    return {
+      preActionTick: (state: FightState) => {
+        if (!poisoned || poisoned.roundsRemaining <= 0) return { state };
+        const { newMonsterHp, newPoisoned } = applyVenomTick(state.monsterHp, poisoned);
+        const venomDmg = state.monsterHp - newMonsterHp;
+        setPoisoned(newPoisoned.roundsRemaining > 0 ? newPoisoned : null);
+        return {
+          state: { ...state, monsterHp: newMonsterHp },
+          log: venomDmg > 0 ? `☠ Venom ticks for ${venomDmg} damage` : undefined,
+        };
+      },
+
+      effectiveMonster: (base: MonsterDef) => {
+        if (!isBossRoom || !tierId) return base;
+        const atk = bossEffectiveAtk(tierId, base.attack, enrageState);
+        const def = dragonIgnoresDef(enrageState) ? 0 : base.defense;
+        return { ...base, attack: atk, defense: def };
+      },
+
+      absorbPlayerDamage: (damage: number) => {
+        if (!isBossRoom || !enrageState.triggered || enrageState.necroShieldHp <= 0) {
+          return { damage };
+        }
+        const { absorbed, shieldHpLeft, damageToBoss } = applyNecroShield(
+          damage,
+          enrageState.necroShieldHp,
+        );
+        if (shieldHpLeft !== enrageState.necroShieldHp) {
+          setEnrageState((prev) => ({ ...prev, necroShieldHp: shieldHpLeft }));
+        }
+        return {
+          damage: damageToBoss,
+          log: absorbed > 0 ? `🛡 Shield absorbed ${absorbed} damage` : undefined,
+        };
+      },
+
+      postRoundHook: (state: FightState, ctx) => {
+        let logLine: string | undefined;
+        let banner: string | undefined;
+
+        // Venom proc — only on direct attack (matches legacy dungeon behaviour)
+        if (ctx.actionKind === 'attack' && !poisoned) {
+          const hasVenom = character.equippedGear.accessory === VENOMFANG_BRACER_ID;
+          if (checkVenomProc(hasVenom)) {
+            setPoisoned(createPoisonedStatus());
+            logLine = '🕷 Venom applied!';
+          }
+        }
+
+        // Boss enrage evaluation
+        if (isBossRoom && tierId) {
+          const { next, message } = evaluateBossEnrage(
+            tierId,
+            state.monsterHp,
+            monster.hp,
+            enrageState,
+          );
+          if (
+            next.triggered !== enrageState.triggered ||
+            next.necroShieldHp !== enrageState.necroShieldHp ||
+            next.dragonIgnoreDefRoundsLeft !== enrageState.dragonIgnoreDefRoundsLeft
+          ) {
+            setEnrageState(next);
+          }
+          if (message) {
+            banner = message;
+          }
+        }
+
+        return { state, log: logLine, bannerMessage: banner };
+      },
+
+      fleeDisabled: isBossRoom,
+    };
+  }, [isBossRoom, monster.id, monster.hp, poisoned, enrageState, character.equippedGear.accessory]);
+
+  const encounter = useCombatEncounter({
+    monster,
+    character,
+    maxHp,
+    maxStamina,
+    maxMagic,
+    initial: { hp: initialHp, stamina: initialStamina, magic: initialMagic },
+    modifiers,
+    streakMultiplier,
+    getPityFor,
+    consumeItem,
+    onResourceChange: onResourceMirror,
+    onVictory: async ({ droppedItems, finalHp, finalStamina, finalMagic }) => {
+      await onVictory({ droppedItems, finalHp, finalStamina, finalMagic });
+    },
+    onDefeat: ({ finalHp, finalStamina, finalMagic }) => {
+      onDefeat({ finalHp, finalStamina, finalMagic });
+    },
+    onFlee: async ({ finalHp, finalStamina, finalMagic }) => {
+      await onFlee({ finalHp, finalStamina, finalMagic });
+    },
+    onBannerMessage: (msg) => setEnrageBanner(msg),
+  });
+
+  const { fightState, pending, bursts, expireBurst, usingItem, rollingAction, actions } = encounter;
+  const playerEmoji = CLASS_DEFINITIONS[character.class].emoji;
+  const playerDefStat = (character.stats.defense ?? 0) + gearDefenseBonus(character);
+  const lastEntry = fightState.log[fightState.log.length - 1] ?? null;
+
+  return (
+    <div className="space-y-4">
+      {enrageBanner && (
+        <div className="bg-red-950 border border-red-700 rounded-lg px-3 py-2 text-center">
+          <span className="text-red-300 text-xs font-bold">🔥 {enrageBanner}</span>
+        </div>
+      )}
+
+      {/* Side-by-side battle portraits */}
+      <CombatArena
+        shakeKey={`${fightState.log.length}-${lastEntry?.playerDamage ?? 0}-${lastEntry?.monsterDamage ?? 0}`}
+        bursts={bursts}
+        onBurstExpired={expireBurst}
+        player={{
+          name: character.name,
+          classId: character.class,
+          emoji: playerEmoji,
+          hp: fightState.playerHp,
+          maxHp,
+          defense: playerDefStat,
+        }}
+        monster={{
+          name: isBossRoom ? `💀 ${monster.name}` : monster.name,
+          id: monster.id,
+          emoji: isBossRoom ? '🐲' : '👹',
+          hp: fightState.monsterHp,
+          maxHp: monster.hp,
+          defense: monster.defense,
+        }}
+        monsterSub={
+          poisoned && poisoned.roundsRemaining > 0 ? (
+            <span className="text-emerald-300">☠ Poisoned ({poisoned.roundsRemaining})</span>
+          ) : null
+        }
+      />
+
+      {/* Player-only resources */}
+      <div className="bg-slate-900/80 border border-slate-700 rounded-xl p-3 space-y-2">
+        <HpBar
+          label="⚡ Stamina"
+          current={fightState.playerStamina}
+          max={maxStamina}
+          color="bg-amber-400"
+        />
+        <HpBar
+          label="✨ Magic"
+          current={fightState.playerMagic}
+          max={maxMagic}
+          color="bg-violet-400"
+        />
+      </div>
+
+      {/* Last roll summary */}
+      {lastEntry && (
+        <div className="bg-slate-900 border border-slate-700 rounded-xl p-4">
+          <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">
+            Last Action — Round {lastEntry.round}
+          </p>
+          <LastActionSummary entry={lastEntry} monster={monster} />
+        </div>
+      )}
+
+      {/* Battle log */}
+      {fightState.log.length > 0 && (
+        <div className="bg-slate-900 border border-slate-700 rounded-xl p-4">
+          <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wider">
+            Battle Log · {fightState.log.length} {fightState.log.length === 1 ? 'round' : 'rounds'}
+          </p>
+          <ul className="space-y-3 max-h-52 overflow-y-auto pr-1">
+            {[...fightState.log].reverse().map((entry) => (
+              <BattleLogEntry
+                key={entry.round}
+                entry={entry}
+                monster={monster}
+                emoji={isBossRoom ? '🐲' : '👹'}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Actions — only while the encounter is live */}
+      {fightState.outcome === null && (
+        <CombatActionBar
+          character={character}
+          fightState={fightState}
+          maxStamina={maxStamina}
+          maxMagic={maxMagic}
+          equippedSpells={equippedSpells}
+          consumables={consumables}
+          rollingAction={rollingAction}
+          usingItem={usingItem}
+          showSpellPanel={showSpellPanel}
+          showItemPanel={showItemPanel}
+          setShowSpellPanel={setShowSpellPanel}
+          setShowItemPanel={setShowItemPanel}
+          onAttack={actions.attack}
+          onMagic={actions.magic}
+          onAbility={actions.rollAbility}
+          onCastSpell={actions.castSpell}
+          onRest={actions.rest}
+          onMeditate={actions.meditate}
+          onUseItem={actions.useItem}
+          onFlee={actions.flee}
+          modifiers={modifiers}
+        />
+      )}
+
+      {/* Overlays */}
+      {pending.action && (
+        <ActionRollOverlay
+          pending={pending.action}
+          monster={monster}
+          playerDefStat={playerDefStat}
+        />
+      )}
+      {pending.ability && (
+        <DiceRollOverlay
+          dice={pending.ability.dice}
+          pattern={pending.ability.pattern}
+          ability={pending.ability.ability}
+          onDismiss={pending.ability.applyResult}
+        />
+      )}
+      {pending.spell && (
+        <SpellRollOverlay
+          spellDef={pending.spell.spellDef}
+          dice={pending.spell.dice}
+          requirementMet={pending.spell.requirementMet}
+          onDismiss={pending.spell.applyResult}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DungeonRunPage() {
@@ -184,20 +490,13 @@ export default function DungeonRunPage() {
   const { fetchInventory } = useInventoryStore();
   const { activeRun, fetchActiveRun, advanceRoom, completeRun, abandonRun } = useDungeonStore();
 
-  // ── Local run state ────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<RunPhase>('loading');
   const [playerHp, setPlayerHp] = useState(0);
   const [playerStamina, setPlayerStamina] = useState(0);
   const [playerMagic, setPlayerMagic] = useState(0);
-  const [monsterHp, setMonsterHp] = useState(0);
-  const [poisoned, setPoisoned] = useState<PoisonedStatus | null>(null);
-  const [enrageState, setEnrageState] = useState<BossEnrageState>(initialEnrageState());
-  const [enrageMessage, setEnrageMessage] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [roomResult, setRoomResult] = useState<RoomResult>({ xp: 0, gold: 0, items: [] });
   const [claiming, setClaiming] = useState(false);
-  const [fleeing, setFleeing] = useState(false);
-  const [fleeFailed, setFleeFailed] = useState(false);
   const [returning, setReturning] = useState(false);
   const [acting, setActing] = useState(false);
   const [claimResult, setClaimResult] = useState<ClaimDungeonRunResult | null>(null);
@@ -218,7 +517,6 @@ export default function DungeonRunPage() {
       router.push('/combat/dungeons');
       return;
     }
-    // Sync local HP/Stamina/Magic from the persisted run
     setPlayerHp(run.currentHp);
     setPlayerStamina(run.currentStamina);
     setPlayerMagic(run.currentMagic);
@@ -236,36 +534,15 @@ export default function DungeonRunPage() {
   }, [bootstrap]);
 
   function enterRoom(type: DungeonRoomType) {
-    if (!activeRun && !useDungeonStore.getState().activeRun) return;
-    const run = activeRun ?? useDungeonStore.getState().activeRun!;
-    const room = run.rooms[run.currentRoom];
-
     setLog([]);
     setRoomResult({ xp: 0, gold: 0, items: [] });
-    setPoisoned(null);
-    setEnrageState(initialEnrageState());
-    setEnrageMessage(null);
 
-    if (type === 'combat' || type === 'boss') {
-      const monsterId = room.monsterId;
-      const monsterDef =
-        type === 'boss'
-          ? DUNGEON_BOSSES[run.tierId]
-          : monsterId
-            ? getMonsterById(monsterId)
-            : undefined;
-      if (monsterDef) {
-        setMonsterHp(monsterDef.hp);
-      }
-      setPhase(type === 'boss' ? 'boss' : 'combat');
-    } else if (type === 'stat-check') {
-      setPhase('stat-check');
-    } else {
-      setPhase('rest');
-    }
+    if (type === 'combat') setPhase('combat');
+    else if (type === 'boss') setPhase('boss');
+    else if (type === 'stat-check') setPhase('stat-check');
+    else setPhase('rest');
   }
 
-  // ── Combat helpers ─────────────────────────────────────────────────────────
   function getCurrentMonster(): MonsterDef | undefined {
     const run = activeRun ?? useDungeonStore.getState().activeRun;
     if (!run) return undefined;
@@ -274,106 +551,39 @@ export default function DungeonRunPage() {
     return room.monsterId ? getMonsterById(room.monsterId) : undefined;
   }
 
-  async function handleAttack() {
-    if (!character || !activeRun || acting) return;
-    const run = activeRun;
-    const room = run.rooms[run.currentRoom];
-    const isBossRoom = room.type === 'boss';
-    const monsterBase = getCurrentMonster();
-    if (!monsterBase) return;
+  // ── Encounter callbacks (passed into DungeonCombatShell) ──────────────────
 
-    setActing(true);
+  const handleCombatVictory = useCallback(
+    async (ctx: {
+      droppedItems: string[];
+      finalHp: number;
+      finalStamina: number;
+      finalMagic: number;
+    }) => {
+      const run = useDungeonStore.getState().activeRun;
+      if (!character || !run) return;
+      const room = run.rooms[run.currentRoom];
+      const isBossRoom = room.type === 'boss';
+      const monsterBase = isBossRoom
+        ? DUNGEON_BOSSES[run.tierId]
+        : room.monsterId
+          ? getMonsterById(room.monsterId)
+          : undefined;
+      if (!monsterBase) return;
 
-    let curMonsterHp = monsterHp;
-    let curPoisoned = poisoned;
-    let curEnrage = enrageState;
-    let newLog = [...log];
-
-    // Venom tick at start of round
-    if (curPoisoned && curPoisoned.roundsRemaining > 0) {
-      const { newMonsterHp, newPoisoned } = applyVenomTick(curMonsterHp, curPoisoned);
-      const venomDmg = curMonsterHp - newMonsterHp;
-      curMonsterHp = newMonsterHp;
-      curPoisoned = newPoisoned.roundsRemaining > 0 ? newPoisoned : null;
-      if (venomDmg > 0) {
-        newLog = [`☠ Venom ticks for ${venomDmg} damage`, ...newLog];
-      }
-    }
-
-    // Boss enrage: apply effective ATK
-    const effectiveMonster: MonsterDef = isBossRoom
-      ? { ...monsterBase, attack: bossEffectiveAtk(run.tierId, monsterBase.attack, curEnrage) }
-      : monsterBase;
-
-    // Dragon ignore-DEF: pass defense=0 to calculateRound
-    const monsterForCalc: MonsterDef =
-      isBossRoom && dragonIgnoresDef(curEnrage)
-        ? { ...effectiveMonster, defense: 0 }
-        : effectiveMonster;
-
-    const roundResult = calculateRound(character, monsterForCalc, 'attack');
-    let playerDmgToMonster = roundResult.playerDamage;
-
-    // Necro shield: absorb incoming player damage
-    let shieldNote = '';
-    if (isBossRoom && curEnrage.triggered && curEnrage.necroShieldHp > 0) {
-      const { absorbed, shieldHpLeft, damageToBoss } = applyNecroShield(
-        playerDmgToMonster,
-        curEnrage.necroShieldHp,
-      );
-      playerDmgToMonster = damageToBoss;
-      curEnrage = { ...curEnrage, necroShieldHp: shieldHpLeft };
-      if (absorbed > 0) shieldNote = ` (${absorbed} absorbed by shield)`;
-    }
-
-    const newMonsterHp = Math.max(0, curMonsterHp - playerDmgToMonster);
-    const monsterDmgToPlayer = roundResult.monsterDamage;
-    const newPlayerHp = Math.max(0, playerHp - monsterDmgToPlayer);
-
-    // Venom proc after player attack
-    if (!curPoisoned) {
-      const hasVenom = character.equippedGear.accessory === VENOMFANG_BRACER_ID;
-      if (checkVenomProc(hasVenom)) {
-        curPoisoned = createPoisonedStatus();
-        newLog = ['🕷 Venom applied!', ...newLog];
-      }
-    }
-
-    // Boss enrage evaluation after damage
-    if (isBossRoom) {
-      const { next, message } = evaluateBossEnrage(
-        run.tierId,
-        newMonsterHp,
-        monsterBase.hp,
-        curEnrage,
-      );
-      curEnrage = next;
-      if (message) setEnrageMessage(message);
-    }
-
-    newLog = [
-      `⚔ You deal ${playerDmgToMonster} dmg${shieldNote} · Monster hits for ${monsterDmgToPlayer} dmg`,
-      ...newLog,
-    ];
-
-    setMonsterHp(newMonsterHp);
-    setPlayerHp(newPlayerHp);
-    setPoisoned(curPoisoned);
-    setEnrageState(curEnrage);
-    setLog(newLog);
-
-    if (newMonsterHp <= 0) {
-      // Monster dead — roll loot
+      // Tier-multiplied XP. Boss loot table is in the boss def; non-boss uses the monster's table.
       const tier = DUNGEON_TIERS[run.tierId];
       const rawLootTable = isBossRoom
         ? DUNGEON_BOSSES[run.tierId].bossLootTable
         : monsterBase.lootTable;
-      // Strip legendaries from boss loot when the player is on their 2nd run today
       const lootTable =
         isBossRoom && !run.legendaryEligible
           ? rawLootTable.filter(({ itemId }) => getItemById(itemId)?.rarity !== 'legendary')
           : rawLootTable;
-      const dropped = rollLoot(lootTable);
+      // Re-roll loot from the room's loot table — the hook drops items from the
+      // monster's own table (typically empty for dungeon mobs), so we override
+      // with the tier-aware boss/room table here. This matches legacy behaviour.
+      const dropped = ctx.droppedItems.length > 0 ? ctx.droppedItems : rollLoot(lootTable);
       const xp = Math.round(monsterBase.xpReward * tier.xpMultiplier);
       const gold = monsterBase.goldReward;
 
@@ -385,9 +595,9 @@ export default function DungeonRunPage() {
 
       await advanceRoom({
         clearedRooms: updatedRooms,
-        newHp: newPlayerHp,
-        newStamina: playerStamina,
-        newMagic: playerMagic,
+        newHp: ctx.finalHp,
+        newStamina: ctx.finalStamina,
+        newMagic: ctx.finalMagic,
         xpEarned: xp,
         goldEarned: gold,
         itemsDropped: dropped,
@@ -400,20 +610,55 @@ export default function DungeonRunPage() {
       setCumulativeGold(newCumGold);
       setAllItems(newAllItems);
       setRoomResult({ xp, gold, items: dropped });
+      setPlayerHp(ctx.finalHp);
+      setPlayerStamina(ctx.finalStamina);
+      setPlayerMagic(ctx.finalMagic);
 
-      if (isBossRoom) {
-        setPhase('victory');
-      } else {
-        setPhase('transition');
-      }
-    } else if (newPlayerHp <= 0) {
-      // Don't call abandonRun here — that nulls activeRun and prevents the
-      // defeat screen from rendering. Move cleanup to the "Return" button.
+      if (isBossRoom) setPhase('victory');
+      else setPhase('transition');
+    },
+    [character, advanceRoom, cumulativeXp, cumulativeGold, allItems],
+  );
+
+  const handleCombatDefeat = useCallback(
+    (ctx: { finalHp: number; finalStamina: number; finalMagic: number }) => {
+      setPlayerHp(ctx.finalHp);
+      setPlayerStamina(ctx.finalStamina);
+      setPlayerMagic(ctx.finalMagic);
       setPhase('defeat');
-    }
+    },
+    [],
+  );
 
-    setActing(false);
-  }
+  const handleCombatFlee = useCallback(
+    async (ctx: { finalHp: number; finalStamina: number; finalMagic: number }) => {
+      if (!character) return;
+      setPlayerHp(ctx.finalHp);
+      setPlayerStamina(ctx.finalStamina);
+      setPlayerMagic(ctx.finalMagic);
+      const run = useDungeonStore.getState().activeRun;
+      if (!run) {
+        router.push('/combat/dungeons');
+        return;
+      }
+      try {
+        if (!run.claimed) {
+          const result = await claimDungeonRunCF(run.id, false, 'completed');
+          if (result.inventoryPartial) {
+            toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
+          }
+          await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
+        }
+        await completeRun(character.uid, false);
+        router.push('/combat/dungeons');
+      } catch (err) {
+        console.error('[dungeon flee] claim failed', err);
+      }
+    },
+    [character, fetchCharacter, fetchInventory, completeRun, router],
+  );
+
+  // ── Non-combat room handlers ───────────────────────────────────────────────
 
   async function handleStatCheckPass() {
     if (!character || !activeRun || acting) return;
@@ -453,8 +698,6 @@ export default function DungeonRunPage() {
     );
 
     if (newHp <= 0) {
-      // Don't call abandonRun here — that nulls activeRun and prevents the
-      // defeat screen from rendering. Move cleanup to the "Return" button.
       setPhase('defeat');
       setActing(false);
       return;
@@ -512,7 +755,6 @@ export default function DungeonRunPage() {
     const run = useDungeonStore.getState().activeRun;
     if (!run) return;
     const nextRoom = run.rooms[run.currentRoom];
-    // currentRoom was already bumped by advanceRoom in the store
     enterRoom(nextRoom.type);
   }
 
@@ -536,39 +778,6 @@ export default function DungeonRunPage() {
     }
   }
 
-  async function handleFlee() {
-    if (!character || !activeRun || acting || claiming || fleeing) return;
-    const monster = getCurrentMonster();
-    if (!monster) return;
-
-    const { escaped, monsterDamage } = rollRunAway(character, monster);
-
-    if (!escaped) {
-      const newHp = Math.max(0, playerHp - monsterDamage);
-      setPlayerHp(newHp);
-      setLog([`💨 Flee failed! ${monster.name} strikes for ${monsterDamage} dmg.`, ...log]);
-      setFleeFailed(true);
-      setTimeout(() => setFleeFailed(false), 700);
-      if (newHp <= 0) setPhase('defeat');
-      return;
-    }
-
-    setFleeing(true);
-    try {
-      if (!activeRun.claimed) {
-        const result = await claimDungeonRunCF(activeRun.id, false, 'completed');
-        if (result.inventoryPartial) {
-          toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
-        }
-        await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
-      }
-      await completeRun(character.uid, false);
-      router.push('/combat/dungeons');
-    } finally {
-      setFleeing(false);
-    }
-  }
-
   async function handleClaimVictory() {
     if (!character || !activeRun || claiming) return;
     if (activeRun.claimed) {
@@ -588,8 +797,6 @@ export default function DungeonRunPage() {
       fireConfetti(legendaryUsed ? 'legendary' : 'celebration');
       playSound(legendaryUsed ? 'legendary' : 'victory');
 
-      // Achievement badges + gold were awarded atomically by the CF.
-      // fetchCharacter above already reflects the updated state; just fire toasts.
       for (const id of result.newAchievements) {
         const def = ACHIEVEMENTS[id as AchievementId];
         if (def) toastAchievement(def.emoji, def.name, def.goldReward);
@@ -694,7 +901,6 @@ export default function DungeonRunPage() {
           <div className="text-orange-400 text-xs mt-1">{tier.name}</div>
         </div>
 
-        {/* Run summary */}
         <div className="bg-slate-800 rounded-xl p-4 mb-4">
           <div className="text-slate-400 text-xs font-semibold uppercase tracking-wide mb-3">
             Run Summary
@@ -716,7 +922,6 @@ export default function DungeonRunPage() {
             </div>
           </div>
 
-          {/* Gold breakdown — visible after claiming when achievements added bonus gold */}
           {claimResult != null && claimResult.achievementGold > 0 && (
             <div className="flex items-center justify-center gap-2 text-xs mb-3 border-t border-slate-700 pt-2">
               <span className="text-slate-500">
@@ -745,7 +950,6 @@ export default function DungeonRunPage() {
           )}
         </div>
 
-        {/* Legendary eligibility */}
         <div className="bg-slate-800 rounded-xl p-3 mb-4 text-center">
           {run.legendaryEligible ? (
             <span className="text-yellow-400 text-sm font-semibold">
@@ -758,7 +962,6 @@ export default function DungeonRunPage() {
           )}
         </div>
 
-        {/* Level-up banner — shown after claiming if the run triggered a level-up */}
         {claimResult?.leveledUp && (
           <div className="bg-gradient-to-br from-yellow-900 to-amber-950 border-2 border-yellow-500 rounded-xl p-5 mb-4 text-center">
             <div className="text-4xl mb-1">⬆</div>
@@ -789,116 +992,61 @@ export default function DungeonRunPage() {
 
   // ── Active run view ────────────────────────────────────────────────────────
   const monster = phase === 'combat' || phase === 'boss' ? getCurrentMonster() : undefined;
+  const isBossRoom = currentRoom.type === 'boss';
 
   return (
     <div className="min-h-screen bg-slate-900 p-4 pb-24">
-      {/* Progress chain */}
       <ProgressChain rooms={run.rooms} currentRoom={run.currentRoom} phase={phase} />
 
-      {/* Room context strip */}
       <div className="text-center text-slate-400 text-xs mb-1">
         Room {run.currentRoom + 1} of {run.rooms.length} · {tier.name}
       </div>
 
-      {/* Enrage strip */}
-      {enrageMessage && (
-        <div className="bg-red-950 border border-red-700 rounded-lg px-3 py-2 text-center mb-2">
-          <span className="text-red-300 text-xs font-bold">🔥 {enrageMessage}</span>
-        </div>
-      )}
-
-      {/* Resource bars */}
+      {/* Resource bars (HP/Stamina/Magic) — shown above combat shell */}
       <div className="bg-slate-800 rounded-xl p-3 mb-4 flex gap-3">
-        <MiniBar value={playerHp} max={maxHp} label="❤ HP" color="bg-red-500" />
-        <MiniBar value={playerStamina} max={maxSta} label="⚡ STA" color="bg-orange-500" />
-        <MiniBar value={playerMagic} max={maxMag} label="✨ MAG" color="bg-indigo-500" />
+        <HpBar variant="mini" label="❤ HP" current={playerHp} max={maxHp} color="bg-red-500" />
+        <HpBar
+          variant="mini"
+          label="⚡ STA"
+          current={playerStamina}
+          max={maxSta}
+          color="bg-orange-500"
+        />
+        <HpBar
+          variant="mini"
+          label="✨ MAG"
+          current={playerMagic}
+          max={maxMag}
+          color="bg-indigo-500"
+        />
       </div>
 
-      {/* ── Combat / Boss room ─────────────────────────────────────────────────── */}
+      {/* ── Combat / Boss room ───────────────────────────────────────────── */}
       {(phase === 'combat' || phase === 'boss') && monster && (
-        <div className="space-y-4">
-          {/* Monster card */}
-          <div
-            className={`rounded-xl p-4 border ${
-              phase === 'boss'
-                ? 'bg-gradient-to-br from-orange-950 to-slate-900 border-orange-800'
-                : 'bg-slate-800 border-slate-700'
-            }`}
-          >
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <div
-                  className={`font-bold text-sm ${phase === 'boss' ? 'text-orange-300' : 'text-slate-200'}`}
-                >
-                  {phase === 'boss' ? '💀 BOSS · ' : ''}
-                  {monster.name}
-                </div>
-                <div className="text-slate-500 text-xs">Lv. {monster.level}</div>
-              </div>
-              {poisoned && poisoned.roundsRemaining > 0 && (
-                <span className="text-green-400 text-xs bg-green-950 px-2 py-0.5 rounded-full border border-green-800">
-                  ☠ Poisoned ({poisoned.roundsRemaining})
-                </span>
-              )}
-            </div>
-            {/* Monster HP bar */}
-            <div className="mb-1 flex justify-between text-xs">
-              <span className="text-slate-400">HP</span>
-              <span className="text-slate-400">
-                {monsterHp}/{monster.hp}
-              </span>
-            </div>
-            <div className="bg-slate-700 rounded-full h-2.5">
-              <div
-                className="h-2.5 rounded-full bg-slate-400 transition-all"
-                style={{ width: `${Math.min(100, Math.round((monsterHp / monster.hp) * 100))}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Battle log */}
-          {log.length > 0 && (
-            <div className="bg-slate-800 border border-slate-700 rounded-xl p-3 max-h-32 overflow-y-auto">
-              {log.map((entry, i) => (
-                <div key={i} className="text-slate-400 text-xs py-0.5">
-                  {entry}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Combat actions */}
-          <div className={phase === 'boss' ? '' : 'grid grid-cols-2 gap-3'}>
-            <button
-              onClick={handleAttack}
-              disabled={acting || fleeing}
-              className={`py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-base transition-colors ${phase === 'boss' ? 'w-full' : ''}`}
-            >
-              {acting ? 'Rolling…' : '⚔ Attack'}
-            </button>
-            {phase !== 'boss' && (
-              <button
-                onClick={handleFlee}
-                disabled={acting || fleeing}
-                className={`py-4 rounded-xl disabled:opacity-50 font-semibold text-sm transition-all duration-200 ${
-                  fleeFailed
-                    ? 'bg-red-900 ring-2 ring-red-500 text-red-300'
-                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                }`}
-              >
-                {fleeing ? 'Fleeing…' : '💨 Flee'}
-              </button>
-            )}
-          </div>
-          {phase !== 'boss' && (
-            <p className="text-slate-600 text-xs text-center -mt-1">
-              Flee uses Agility — may fail, monster gets a hit
-            </p>
-          )}
-        </div>
+        <DungeonCombatShell
+          // key on monster id + room index so per-encounter state cleanly resets
+          key={`${monster.id}-${run.currentRoom}`}
+          monster={monster}
+          isBossRoom={isBossRoom}
+          character={character}
+          maxHp={maxHp}
+          maxStamina={maxSta}
+          maxMagic={maxMag}
+          initialHp={playerHp}
+          initialStamina={playerStamina}
+          initialMagic={playerMagic}
+          onResourceMirror={({ hp, stamina, magic }) => {
+            setPlayerHp(hp);
+            setPlayerStamina(stamina);
+            setPlayerMagic(magic);
+          }}
+          onVictory={handleCombatVictory}
+          onDefeat={handleCombatDefeat}
+          onFlee={handleCombatFlee}
+        />
       )}
 
-      {/* ── Stat check room ───────────────────────────────────────────────────── */}
+      {/* ── Stat check room ──────────────────────────────────────────────── */}
       {phase === 'stat-check' && character && (
         <div className="space-y-4">
           <div className="bg-slate-800 border border-amber-900 rounded-xl p-4">
@@ -967,7 +1115,7 @@ export default function DungeonRunPage() {
         </div>
       )}
 
-      {/* ── Rest room ─────────────────────────────────────────────────────────── */}
+      {/* ── Rest room ────────────────────────────────────────────────────── */}
       {phase === 'rest' && (
         <div className="space-y-4">
           <div className="bg-slate-800 border border-green-900 rounded-xl p-5 text-center">
@@ -997,7 +1145,7 @@ export default function DungeonRunPage() {
         </div>
       )}
 
-      {/* ── Transition interstitial ───────────────────────────────────────────── */}
+      {/* ── Transition interstitial ──────────────────────────────────────── */}
       {phase === 'transition' && (
         <div className="space-y-4">
           <div className="bg-slate-800 rounded-xl p-4">
@@ -1005,7 +1153,6 @@ export default function DungeonRunPage() {
               ✓ Room Cleared
             </div>
 
-            {/* Room result */}
             {(roomResult.xp > 0 || roomResult.gold > 0) && (
               <div className="flex gap-3 mb-3">
                 {roomResult.xp > 0 && (
@@ -1023,7 +1170,6 @@ export default function DungeonRunPage() {
               </div>
             )}
 
-            {/* Loot from this room */}
             {roomResult.items.length > 0 && (
               <div className="space-y-1.5 mb-3">
                 {roomResult.items.map((itemId, i) => (
@@ -1032,7 +1178,6 @@ export default function DungeonRunPage() {
               </div>
             )}
 
-            {/* Log note (e.g. stat check failure damage) */}
             {log.length > 0 && (
               <div className="bg-slate-900 rounded-lg px-3 py-2 mb-3">
                 {log.map((entry, i) => (
@@ -1043,20 +1188,11 @@ export default function DungeonRunPage() {
               </div>
             )}
 
-            {/* Running totals */}
             <div className="text-slate-500 text-xs text-center mb-1">
               Run total: {cumulativeXp} XP · {cumulativeGold} Gold
             </div>
           </div>
 
-          {/* HP/Stamina/Magic mini-bars */}
-          <div className="bg-slate-800 rounded-xl p-3 flex gap-3">
-            <MiniBar value={playerHp} max={maxHp} label="❤ HP" color="bg-red-500" />
-            <MiniBar value={playerStamina} max={maxSta} label="⚡ STA" color="bg-orange-500" />
-            <MiniBar value={playerMagic} max={maxMag} label="✨ MAG" color="bg-indigo-500" />
-          </div>
-
-          {/* Actions */}
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={handleRetreat}
