@@ -246,7 +246,10 @@ export const SpellCard = memo(function SpellCard({
       {actionLabel && (
         <div className="px-3 pb-3">
           <button
-            onClick={onAction}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAction?.();
+            }}
             disabled={disabled || acting}
             className={`w-full py-2 text-xs font-semibold rounded-xl transition-colors
               ${

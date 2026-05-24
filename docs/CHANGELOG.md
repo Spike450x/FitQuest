@@ -15,6 +15,18 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-24 — Spell cards get an MTG-style flippable front/back
+
+Spell cards now have two faces: the existing rarity-themed front (image, title, description, effects) and a uniform "FitQuest Spellbook" back inspired by Magic: The Gathering's iconic shared card back. Players click the card body to flip; the action button (Buy / Equip / Cast) stays on the front and never triggers a flip.
+
+- **New `SpellCardBack` component** (`src/components/ui/SpellCardBack.tsx`) — rarity-tinted shell that matches the front's silhouette (header band, body, footer plate), with a central `HeraldicFrame` sigil bearing a sword-and-spark mark and five colored magic-school orbs (heal / defense / stun / damage / lifesteal) arranged in an MTG-pentagon ring.
+- **`PremiumSpellCard` becomes the flip host** — adds CSS 3D-flip (`perspective` + `transform-style: preserve-3d` + `backface-visibility: hidden`) composed with the existing hover-tilt math on a single inner element, so tilt and shimmer survive the refactor. Public API unchanged — all 4 callsites (shop, inventory loadout × 2, combat selector) get the flip for free.
+- **A11y + reduced motion** — wrapper is `role="button"` with `aria-pressed` reflecting flip state and an `aria-label` that announces the visible face. Enter/Space toggle the flip when the card is focused. `useReducedMotion` from framer-motion disables the 600 ms flip transition for users who prefer reduced motion.
+- **`SpellCard` action button** stops click propagation so Buy / Equip / Cast can never accidentally trigger a flip.
+- **8 new vitest specs** in `PremiumSpellCard.test.tsx` cover the default front face, click flip, second-click un-flip, action-button isolation, Enter/Space keyboard flip, back-face content, and `aria-hidden` toggling per face.
+
+---
+
 ## 2026-05-24 — Dungeon combat parity with arena via shared combat layer
 
 Dungeon rooms now expose the full arena action set — Attack, Magic, Roll Ability (6d6 patterns), Cast Spell, Rest, Meditate, Use Item, Flee — with full integration of subclass passives, crit, lifesteal, execute, momentum, and per-round restores. Previously, dungeon combat was attack-and-flee only, and even basic attacks skipped `applyOutgoingPassives`, `resolveLifesteal`, and `checkExecute`, leaving subclass builds effectively inert inside dungeons.
