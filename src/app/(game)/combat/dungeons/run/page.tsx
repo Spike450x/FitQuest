@@ -25,7 +25,7 @@ import {
 } from '@/lib/gameLogic/dungeons';
 import { claimDungeonRunCF } from '@/lib/functions';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
-import { toastAchievement } from '@/components/ui/Toaster';
+import { toast, toastAchievement } from '@/components/ui/Toaster';
 import { fireConfetti } from '@/lib/confetti';
 import { playSound } from '@/hooks/useSound';
 import type { AchievementId } from '@/types';
@@ -524,7 +524,10 @@ export default function DungeonRunPage() {
     }
     setClaiming(true);
     try {
-      await claimDungeonRunCF(activeRun.id, false, 'completed');
+      const result = await claimDungeonRunCF(activeRun.id, false, 'completed');
+      if (result.inventoryPartial) {
+        toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
+      }
       await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
       await completeRun(character.uid, false);
       router.push('/combat/dungeons');
@@ -553,7 +556,10 @@ export default function DungeonRunPage() {
     setFleeing(true);
     try {
       if (!activeRun.claimed) {
-        await claimDungeonRunCF(activeRun.id, false, 'completed');
+        const result = await claimDungeonRunCF(activeRun.id, false, 'completed');
+        if (result.inventoryPartial) {
+          toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
+        }
         await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
       }
       await completeRun(character.uid, false);
@@ -573,6 +579,9 @@ export default function DungeonRunPage() {
     const legendaryUsed = activeRun.legendaryEligible;
     try {
       const result = await claimDungeonRunCF(activeRun.id, legendaryUsed, 'completed');
+      if (result.inventoryPartial) {
+        toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
+      }
       await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
       await completeRun(character.uid, legendaryUsed);
 
@@ -649,7 +658,10 @@ export default function DungeonRunPage() {
             setReturning(true);
             try {
               if (!activeRun?.claimed) {
-                await claimDungeonRunCF(activeRun!.id, false, 'abandoned');
+                const result = await claimDungeonRunCF(activeRun!.id, false, 'abandoned');
+                if (result.inventoryPartial) {
+                  toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
+                }
                 await Promise.all([
                   fetchCharacter(character.uid, true),
                   fetchInventory(character.uid),

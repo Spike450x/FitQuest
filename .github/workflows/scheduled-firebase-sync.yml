@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   sync:
@@ -56,3 +57,40 @@ jobs:
           --token "$FIREBASE_TOKEN"
           --non-interactive
           --force
+
+      - name: IAM smoke test — verify callable functions are publicly reachable
+        # Hits live production Cloud Run URLs. A 401 means IAM is working (Firebase
+        # auth required). A 403 means the allUsers → run.invoker binding is missing.
+        run: |
+          sleep 15
+          FUNCTIONS="claimDungeonRun claimCombatVictory logActivity"
+          REGION="us-central1"
+          PROJECT="fitness-rpg-claude"
+          FAILED=""
+          for fn in $FUNCTIONS; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST \
+              -H "Content-Type: application/json" \
+              -d '{}' \
+              "https://${REGION}-${PROJECT}.cloudfunctions.net/${fn}")
+            if [ "$STATUS" = "403" ]; then
+              echo "IAM FAIL: $fn returned HTTP 403 — allUsers invoker binding is missing"
+              FAILED="$FAILED $fn"
+            else
+              echo "IAM OK: $fn returned HTTP $STATUS"
+            fi
+          done
+          if [ -n "$FAILED" ]; then
+            echo "IAM smoke test failed for:$FAILED"
+            exit 1
+          fi
+
+      - name: Alert on failure — open GitHub issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Scheduled Firebase sync failed — $(date -u +'%Y-%m-%d')" \
+            --body "The weekly Firebase sync workflow failed. Check the [run logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details. Possible causes: IAM binding drift, deploy token expired, or index validation error." \
+            --label "ops,incident"

@@ -28,6 +28,12 @@ export interface ClaimDungeonRunResult {
   leveledUp: boolean;
   /** Achievement IDs earned by this run. Awarded server-side (gold included in `gold`). */
   newAchievements: string[];
+  /**
+   * True when the post-transaction inventory write failed after XP/gold were already awarded.
+   * The run is marked claimed so rewards won't double-award, but items may be missing.
+   * Client should show a warning toast prompting the player to re-claim from the dungeon menu.
+   */
+  inventoryPartial?: boolean;
 }
 
 export interface LogActivityInput {
