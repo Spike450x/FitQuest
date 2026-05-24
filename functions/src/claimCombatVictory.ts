@@ -57,7 +57,7 @@ interface ClaimCombatVictoryResult {
 export const claimCombatVictory = onCall<
   ClaimCombatVictoryInput,
   Promise<ClaimCombatVictoryResult>
->({ minInstances: 1 }, async (request) => {
+>({ minInstances: 1, invoker: 'public' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Must be signed in.');
   }
