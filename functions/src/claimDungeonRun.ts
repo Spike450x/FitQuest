@@ -240,32 +240,41 @@ export const claimDungeonRun = onCall<ClaimDungeonRunInput, Promise<ClaimDungeon
     // These writes happen outside the transaction intentionally — the run is already
     // marked claimed, so a partial failure here won't cause double-XP/gold. Callers
     // should call fetchInventory() after the CF returns to refresh local state.
+    // On failure we set inventoryPartial so the client can warn the player.
+    let inventoryPartial = false;
     if (droppedItems.length > 0) {
-      const inventoryRef = db.collection('inventory');
+      try {
+        const inventoryRef = db.collection('inventory');
 
-      // Fetch only this player's inventory to check what they already own
-      const existingSnap = await inventoryRef.where('uid', '==', uid).get();
-      const ownedDefIds = new Set<string>(
-        existingSnap.docs.map((d) => d.data().itemDefId as string),
-      );
-
-      // Deduplicate drops (same item can't realistically appear twice in one run,
-      // but guard against it anyway)
-      const newItems = [...new Set(droppedItems)].filter((id) => !ownedDefIds.has(id));
-
-      if (newItems.length > 0) {
-        const acquiredAt = Date.now();
-        await Promise.all(
-          newItems.map((itemDefId) =>
-            inventoryRef.add({
-              uid,
-              itemDefId,
-              quantity: 1,
-              equipped: false,
-              acquiredAt,
-            }),
-          ),
+        // Fetch only this player's inventory to check what they already own
+        const existingSnap = await inventoryRef.where('uid', '==', uid).get();
+        const ownedDefIds = new Set<string>(
+          existingSnap.docs.map((d) => d.data().itemDefId as string),
         );
+
+        // Deduplicate drops (same item can't realistically appear twice in one run,
+        // but guard against it anyway)
+        const newItems = [...new Set(droppedItems)].filter((id) => !ownedDefIds.has(id));
+
+        if (newItems.length > 0) {
+          const acquiredAt = Date.now();
+          await Promise.all(
+            newItems.map((itemDefId) =>
+              inventoryRef.add({
+                uid,
+                itemDefId,
+                quantity: 1,
+                equipped: false,
+                acquiredAt,
+              }),
+            ),
+          );
+        }
+      } catch (err) {
+        // XP and gold are already committed — don't fail the whole call.
+        // Signal to the client that items may be missing so it can prompt a retry.
+        console.error('claimDungeonRun: inventory write failed after transaction', err);
+        inventoryPartial = true;
       }
     }
 
@@ -276,6 +285,7 @@ export const claimDungeonRun = onCall<ClaimDungeonRunInput, Promise<ClaimDungeon
       items: droppedItems,
       leveledUp: didLevelUp,
       newAchievements: earnedAchievements,
+      ...(inventoryPartial && { inventoryPartial: true }),
     };
   },
 );
