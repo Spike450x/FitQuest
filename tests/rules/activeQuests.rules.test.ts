@@ -73,6 +73,16 @@ describe('activeQuests — create', () => {
     await assertSucceeds(ctx.firestore().collection('activeQuests').add(validQuest(uid)));
   });
 
+  it('denies unauthenticated create', async () => {
+    const ctx = testEnv.unauthenticatedContext();
+    await assertFails(ctx.firestore().collection('activeQuests').add(validQuest('anyone')));
+  });
+
+  it('denies create when uid mismatches the authenticated user', async () => {
+    const ctx = testEnv.authenticatedContext('realuser');
+    await assertFails(ctx.firestore().collection('activeQuests').add(validQuest('otheruser')));
+  });
+
   it('denies creating a quest with completedAt already set', async () => {
     const uid = 'user1';
     const ctx = testEnv.authenticatedContext(uid);
@@ -94,6 +104,28 @@ describe('activeQuests — create', () => {
         .add({ ...validQuest(uid), claimedAt: Date.now() }),
     );
   });
+
+  it('denies creating a quest with expiresAt of 0 (must be > 0)', async () => {
+    const uid = 'user1';
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx
+        .firestore()
+        .collection('activeQuests')
+        .add({ ...validQuest(uid), expiresAt: 0 }),
+    );
+  });
+
+  it('denies creating a quest with negative progress', async () => {
+    const uid = 'user1';
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx
+        .firestore()
+        .collection('activeQuests')
+        .add({ ...validQuest(uid), progress: -1 }),
+    );
+  });
 });
 
 describe('activeQuests — update (two-step claim enforcement)', () => {
@@ -109,6 +141,21 @@ describe('activeQuests — update (two-step claim enforcement)', () => {
     const ctx = testEnv.authenticatedContext(uid);
     await assertSucceeds(
       ctx.firestore().collection('activeQuests').doc('q1').update({ progress: 10 }),
+    );
+  });
+
+  it('denies a progress delta exceeding 100 000 (anti-cheat cap)', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    // Quest starts at progress: 0; writing 100001 is a delta of 100001 > 100000
+    await assertFails(
+      ctx.firestore().collection('activeQuests').doc('q1').update({ progress: 100001 }),
+    );
+  });
+
+  it('denies setting progress to a negative value', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx.firestore().collection('activeQuests').doc('q1').update({ progress: -1 }),
     );
   });
 
