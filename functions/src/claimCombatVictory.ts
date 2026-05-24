@@ -8,6 +8,8 @@ import {
   combatXpDailyMultiplier,
 } from './gameLogic/combat';
 
+const db = admin.firestore();
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ClaimCombatVictoryInput {
@@ -80,7 +82,6 @@ export const claimCombatVictory = onCall<
     throw new HttpsError('invalid-argument', 'idempotencyKey invalid.');
   }
 
-  const db = admin.firestore();
   const now = Date.now();
   const startOfDayMs = Date.UTC(
     new Date(now).getUTCFullYear(),

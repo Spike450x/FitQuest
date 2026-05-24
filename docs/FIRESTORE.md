@@ -225,16 +225,9 @@ interface CombatLog {
 
 **Document ID convention:** under the `claimCombatVictory` CF the document ID is `${uid}_${idempotencyKey}` (client-generated UUID). This makes retries idempotent — the CF short-circuits on an existing doc rather than double-awarding XP. Legacy combat logs (pre-P0-3) used auto-generated IDs; both still satisfy the `uid == request.auth.uid` rule.
 
-### Validation — create
+### Validation — create / update / delete
 
-- `uid == request.auth.uid`.
-- `monsterId` non-empty string.
-- `xp` and `gold` each between 0 and 10,000.
-- `loggedAt` falls within `[request.time − 2m, request.time + 2m]` (same anti-backdating window as activity logs).
-
-### Validation — update / delete
-
-**Always denied.** Combat logs are append-only. The stats page reads them in aggregate; individual corrections are not supported.
+**Always denied for clients.** All combat logs are written by the `claimCombatVictory` Cloud Function using the admin SDK, which bypasses security rules. Locking client creates prevents a rogue client from forging logs that would artificially inflate `winsToday` (reducing the player's own XP multiplier) or polluting analytics.
 
 ### Why the 10,000 cap
 
@@ -244,7 +237,7 @@ The highest single-combat XP reward in the game (Ancient Dragon, level 100 gear)
 
 Combat-win XP and gold are awarded server-side via the `claimCombatVictory` callable Cloud Function in `functions/src/claimCombatVictory.ts` (shipped 2026-05-22, P0-3). The CF:
 
-1. Aggregate-queries `combatLogs` for the player's wins today (UTC day, uses the `uid ASC, loggedAt DESC` index).
+1. Aggregate-queries `combatLogs` for the player's wins today (UTC day range query — uses the `uid ASC, loggedAt ASC` index; the DESC index covers ORDER BY reads but not `>=` range scans).
 2. Computes `combatXpDailyMultiplier(winsTodayBefore)` — the tiered diminishing-returns curve (`1.0 → 0.5 → 0.25 → 0.1` at thresholds 10 / 20 / 30).
 3. Inside a Firestore transaction: reads the character doc, applies the level-scaled XP via `applyXp`, handles level-up bookkeeping (stat auto-grants, resource refill, `pendingStatPoints` increment), writes the character update.
 4. After the transaction: writes the combat log doc with the **final** XP (post-multiplier), the multiplier, and `winsTodayAfter`.
@@ -321,19 +314,25 @@ firebase deploy --only firestore:indexes
 
 ### Active composite indexes
 
-| Collection     | Fields (in order)                         | Purpose                                                                                                                                                                                                     |
-| -------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `activityLogs` | `uid ASC`, `type ASC`, `loggedAt ASC`     | 3-field query in `logActivity` Cloud Function — aggregate today's logged amount for daily-cap enforcement.                                                                                                  |
-| `activityLogs` | `uid ASC`, `loggedAt DESC`                | Stats page — fetch the player's most recent activity logs for the XP-over-time chart and activity breakdown.                                                                                                |
-| `combatLogs`   | `uid ASC`, `loggedAt DESC`                | Stats page — fetch the player's most recent combat logs for battles-won count and combat XP stacked bars. Also used by the `claimCombatVictory` Cloud Function for the today's-wins aggregate query (P0-3). |
-| `dungeonRuns`  | `uid ASC`, `status ASC`, `startedAt DESC` | Dungeon store — query for the player's active run on lobby load.                                                                                                                                            |
-| `dungeonRuns`  | `uid ASC`, `startedAt DESC`               | Dungeon lobby — fetch recent run history (all statuses) ordered by start date.                                                                                                                              |
+| Collection     | Fields (in order)                         | Purpose                                                                                                                    |
+| -------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `activityLogs` | `uid ASC`, `type ASC`, `loggedAt ASC`     | 3-field range query in `logActivity` CF — aggregate today's logged amount by type for daily-cap enforcement.               |
+| `activityLogs` | `uid ASC`, `loggedAt DESC`                | Stats page — fetch the player's most recent activity logs for the XP-over-time chart and activity breakdown.               |
+| `combatLogs`   | `uid ASC`, `loggedAt ASC`                 | `claimCombatVictory` CF — range query (`loggedAt >= startOfDay`) for today's win count. ASC required for `>=` range scans. |
+| `combatLogs`   | `uid ASC`, `loggedAt DESC`                | Stats page — fetch the player's most recent combat logs for battles-won count and combat XP stacked bars.                  |
+| `dungeonRuns`  | `uid ASC`, `status ASC`, `startedAt DESC` | Dungeon store — query for the player's active run on lobby load.                                                           |
+| `dungeonRuns`  | `uid ASC`, `startedAt DESC`               | Dungeon lobby — fetch recent run history (all statuses) ordered by start date.                                             |
+
+> **Index direction matters for range queries.** A `loggedAt DESC` index supports ORDER BY reads efficiently but cannot serve `loggedAt >= X` range scans — Firestore requires the range field to be ASCENDING for those. The two `combatLogs` indexes are intentionally separate for this reason.
 
 The `questStore` deliberately avoids composite queries for `activeQuests` — it filters by `uid` only and applies the `expiresAt` check client-side. No index needed there.
 
 ### Drift protection
 
-`scripts/validate-firestore-indexes.mjs` validates the schema of `firestore.indexes.json` (required shape, valid `order`/`arrayConfig` values) and runs in CI before any deploy step. A failing validation blocks the CI run before any code is type-checked, linted, or tested.
+`scripts/validate-firestore-indexes.mjs` validates `firestore.indexes.json` on two levels and runs in CI before any deploy step:
+
+1. **Structure** — required shape, valid `order`/`arrayConfig` values.
+2. **Coverage** — a hardcoded table of 6 known required indexes (one per composite query in `functions/src/` and `src/lib/`) is checked against the file. A missing index fails CI before any code is type-checked, linted, or tested. When a new composite query is introduced, add a corresponding entry to the `REQUIRED_INDEXES` table in the script.
 
 ---
 

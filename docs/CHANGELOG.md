@@ -15,6 +15,19 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-23 — Fix Cloud Function failures + harden Firebase infrastructure
+
+Fixes two production outages (logActivity CORS, claimCombatVictory 500) and closes several infrastructure gaps identified in a Firebase setup audit.
+
+- **logActivity CORS:** Cloud Run lost the `allUsers → roles/run.invoker` IAM binding during a failed May-17 deployment, so OPTIONS preflight was rejected before the function ran. Fix: redeploy (resets binding) + weekly `scheduled-firebase-sync.yml` workflow so IAM drift self-heals.
+- **claimCombatVictory 500:** daily-wins query (`combatLogs where uid == X and loggedAt >= today`) needs `(uid ASC, loggedAt ASC)`. Only the DESC variant existed. Added the ASC index to `firestore.indexes.json`.
+- **claimDungeonRun inventory recovery:** if the CF crashed after the transaction committed but before the inventory write completed, a retry hit `already-exists` and items were permanently lost. The already-claimed path now recovers unawarded items from `allDroppedItems` on the run doc before rethrowing.
+- **combatLogs rule tightened:** create rule changed to `if false` — all writes come from the admin SDK; client create was an unnecessary attack surface.
+- **Dead code removed:** `addCombatLogDoc` (pre-CF client write path, no longer called anywhere) removed from `combatData.ts`.
+- **Index coverage validation:** `validate-firestore-indexes.mjs` now checks 6 required indexes by query coverage, not just file structure. CI catches a missing composite index before it reaches production.
+
+---
+
 ## 2026-05-23 — Test coverage expansion: stores, hooks, lib helpers, components
 
 Adds 24 new vitest files (215 new tests, 438 → 653 total) covering the runtime-critical code that previously had no unit coverage. Suite still runs in ~12 s.

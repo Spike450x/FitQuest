@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@/lib/firebase', () => ({ db: {}, auth: {}, functions: {} }));
 vi.mock('@/lib/errors', () => ({ captureError: vi.fn() }));
@@ -113,6 +113,15 @@ describe('dungeonStore.fetchActiveRun', () => {
 });
 
 describe('dungeonStore.startRun — gating', () => {
+  // Freeze time so todayUTCDate() matches the date hardcoded in test fixtures.
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-23T12:00:00Z'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('refuses when HP is below 50% of max', async () => {
     const ch = baseCharacter({ currentHp: 5 });
     const id = await useDungeonStore.getState().startRun('goblin-caves', ch);

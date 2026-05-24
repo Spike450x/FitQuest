@@ -298,21 +298,14 @@ service cloud.firestore {
     // ══════════════════════════════════════════════════════════════════════════
     // COMBAT LOGS — /combatLogs/{docId}
     //
-    // Written client-side at claim-rewards time. Immutable once created.
-    // xp and gold ceilings are generous multiples of the highest legitimate
-    // combat reward (boss max ~320 XP × 1.5× streak ≈ 480 XP).
+    // Written exclusively by the claimCombatVictory Cloud Function (admin SDK,
+    // which bypasses these rules). No client write path exists — create is
+    // locked so a rogue client cannot forge logs and inflate winsToday.
     // ══════════════════════════════════════════════════════════════════════════
 
     match /combatLogs/{docId} {
-      allow read:          if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow create:        if isSignedIn()
-          && request.resource.data.uid         == request.auth.uid
-          && request.resource.data.monsterId   is string && request.resource.data.monsterId.size() > 0
-          && request.resource.data.monsterName is string && request.resource.data.monsterName.size() > 0
-          && request.resource.data.xp          is int && request.resource.data.xp  >= 0 && request.resource.data.xp  <= 10000
-          && request.resource.data.gold        is int && request.resource.data.gold >= 0 && request.resource.data.gold <= 10000
-          && request.resource.data.loggedAt    is int && isRecentTimestamp(request.resource.data.loggedAt);
-      allow update, delete: if false;
+      allow read:               if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create, update, delete: if false;
     }
 
 
