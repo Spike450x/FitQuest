@@ -202,6 +202,17 @@ describe('dungeonRuns — create', () => {
         .add(validRunCreate(uid, { legendaryEligible: 'yes' })),
     );
   });
+
+  it('denies create with startedAt of 0 (must be > 0)', async () => {
+    const uid = 'user1';
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx
+        .firestore()
+        .collection('dungeonRuns')
+        .add(validRunCreate(uid, { startedAt: 0 })),
+    );
+  });
 });
 
 describe('dungeonRuns — update (progress)', () => {
