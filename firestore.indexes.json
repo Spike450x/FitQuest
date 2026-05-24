@@ -26,6 +26,14 @@
       ]
     },
     {
+      "collectionGroup": "combatLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "loggedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "dungeonRuns",
       "queryScope": "COLLECTION",
       "fields": [

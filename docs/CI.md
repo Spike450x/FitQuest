@@ -96,6 +96,20 @@ All third-party actions are pinned to a **commit SHA** with a trailing `# vX.Y.Z
 
 Tags can be moved; commits cannot. Pinning to a SHA defends against an attacker compromising a tag and pushing a malicious workflow into our run. Dependabot reads the trailing tag comment to know what version to bump us to (see Dependabot section below).
 
+### Scheduled Firebase Sync (`.github/workflows/scheduled-firebase-sync.yml`)
+
+A separate workflow that redeploys Cloud Functions and Firestore rules/indexes on a recurring schedule, independent of feature pushes.
+
+**Trigger:** Every Monday at 06:00 UTC, plus `workflow_dispatch` for on-demand runs.
+
+**Why it exists:** Cloud Run IAM policies (specifically the `allUsers → roles/run.invoker` binding that allows public callable invocation) can drift if a Firebase deployment fails mid-way and the Cloud Run service is left in a partially configured state. Without a scheduled redeploy, this drift is invisible until the next push that touches `functions/`, which could be weeks. The scheduled workflow self-heals within one week of any drift.
+
+**Steps:** install deps → validate Firestore indexes (coverage check included) → deploy `firestore:rules,firestore:indexes` → deploy functions (unconditional, no diff check).
+
+**Authentication:** uses the same `FIREBASE_TOKEN` secret as the CI deploy steps. The workflow does not require branch protection status — it is not a PR gate.
+
+**Do not add this workflow as a required status check** — it runs on a schedule, not on PRs, so adding it as a required check would permanently block all merges.
+
 ### CodeQL (`.github/workflows/codeql.yml`)
 
 A separate `CodeQL` workflow runs the `security-extended` query suite (JavaScript/TypeScript) on every PR and push to `master`, plus a weekly scheduled scan. It uses `codeql-action@v4` (Node 24-compatible) with SHA-pinned `actions/checkout`.

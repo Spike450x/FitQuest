@@ -71,6 +71,11 @@ export const claimDungeonRun = onCall<ClaimDungeonRunInput, Promise<ClaimDungeon
     let didLevelUp = false;
     let earnedAchievements: string[] = [];
 
+    // Captured inside the transaction when the run is already claimed.
+    // Used to recover inventory items that may have been lost if the CF crashed
+    // after the transaction committed but before the post-transaction write completed.
+    let alreadyClaimedDrops: string[] | null = null;
+
     // ── Transaction: stamp run + update character atomically ──────────────────
     await db.runTransaction(async (txn) => {
       const [runSnap, charSnap] = await Promise.all([txn.get(runRef), txn.get(charRef)]);
@@ -89,9 +94,13 @@ export const claimDungeonRun = onCall<ClaimDungeonRunInput, Promise<ClaimDungeon
         throw new HttpsError('permission-denied', 'You do not own this dungeon run.');
       }
 
-      // Idempotency guard — already claimed; caller should treat this as success
+      // Idempotency guard — already claimed. Capture allDroppedItems so the
+      // post-transaction block can recover any items that were not written if
+      // the previous call crashed between the transaction commit and the
+      // inventory write. Return without writes (read-only transaction).
       if (runData.claimed === true) {
-        throw new HttpsError('already-exists', 'Dungeon run rewards have already been claimed.');
+        alreadyClaimedDrops = (runData.allDroppedItems as string[]) ?? [];
+        return;
       }
 
       // Only active runs can be claimed — if already finalized, refuse
@@ -193,6 +202,35 @@ export const claimDungeonRun = onCall<ClaimDungeonRunInput, Promise<ClaimDungeon
 
       txn.update(charRef, charUpdates);
     });
+
+    // ── Already-claimed path: recover any unawarded inventory items ───────────
+    // If a previous call succeeded in the transaction (claimed=true, XP/gold
+    // awarded) but crashed before finishing the inventory write, the items in
+    // allDroppedItems were never granted. Re-attempt the write using the same
+    // skip-already-owned logic so re-runs are safe. Then throw already-exists
+    // so the client treats the call as a no-op (XP/gold are not re-awarded).
+    if (alreadyClaimedDrops !== null) {
+      // TypeScript loses track of let mutations made inside async callbacks;
+      // the cast is safe — alreadyClaimedDrops is always string[] here.
+      const drops = alreadyClaimedDrops as string[];
+      if (drops.length > 0) {
+        const inventoryRef = db.collection('inventory');
+        const existingSnap = await inventoryRef.where('uid', '==', uid).get();
+        const ownedDefIds = new Set<string>(
+          existingSnap.docs.map((d) => d.data().itemDefId as string),
+        );
+        const newItems = [...new Set(drops)].filter((id) => !ownedDefIds.has(id));
+        if (newItems.length > 0) {
+          const acquiredAt = Date.now();
+          await Promise.all(
+            newItems.map((itemDefId) =>
+              inventoryRef.add({ uid, itemDefId, quantity: 1, equipped: false, acquiredAt }),
+            ),
+          );
+        }
+      }
+      throw new HttpsError('already-exists', 'Dungeon run rewards have already been claimed.');
+    }
 
     // ── Post-transaction: award inventory items ────────────────────────────────
     // Dungeon loot is exclusively equipment items (no consumables in boss/room
