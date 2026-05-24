@@ -205,17 +205,13 @@ describe('dungeonRuns — update (progress)', () => {
     await seedRun(uid);
     const ctx = testEnv.authenticatedContext(uid);
     await assertSucceeds(
-      ctx
-        .firestore()
-        .collection('dungeonRuns')
-        .doc('run1')
-        .update({
-          status: 'completed',
-          completedAt: Date.now(),
-          currentRoom: 5,
-          cumulativeXp: 500,
-          cumulativeGold: 200,
-        }),
+      ctx.firestore().collection('dungeonRuns').doc('run1').update({
+        status: 'completed',
+        completedAt: Date.now(),
+        currentRoom: 5,
+        cumulativeXp: 500,
+        cumulativeGold: 200,
+      }),
     );
   });
 
