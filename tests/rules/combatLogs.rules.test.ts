@@ -66,10 +66,10 @@ describe('combatLogs — read', () => {
 });
 
 describe('combatLogs — create', () => {
-  it('allows owner to create a valid combat log', async () => {
+  it('denies owner from creating a combat log (admin SDK only)', async () => {
     const uid = 'user1';
     const ctx = testEnv.authenticatedContext(uid);
-    await assertSucceeds(ctx.firestore().collection('combatLogs').add(validCombatLog(uid)));
+    await assertFails(ctx.firestore().collection('combatLogs').add(validCombatLog(uid)));
   });
 
   it('denies create when unauthenticated', async () => {
