@@ -180,6 +180,28 @@ describe('dungeonRuns — create', () => {
         .add(validRunCreate(uid, { currentHp: -1 })),
     );
   });
+
+  it('denies create with weekSeed of 0 (must be > 0)', async () => {
+    const uid = 'user1';
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx
+        .firestore()
+        .collection('dungeonRuns')
+        .add(validRunCreate(uid, { weekSeed: 0 })),
+    );
+  });
+
+  it('denies create when legendaryEligible is not a boolean', async () => {
+    const uid = 'user1';
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx
+        .firestore()
+        .collection('dungeonRuns')
+        .add(validRunCreate(uid, { legendaryEligible: 'yes' })),
+    );
+  });
 });
 
 describe('dungeonRuns — update (progress)', () => {
@@ -279,6 +301,15 @@ describe('dungeonRuns — update (progress)', () => {
     const ctx = testEnv.authenticatedContext(uid);
     await assertFails(
       ctx.firestore().collection('dungeonRuns').doc('run1').update({ weekSeed: 99999 }),
+    );
+  });
+
+  it('allows a no-op status self-update (active → active)', async () => {
+    const uid = 'user1';
+    await seedRun(uid);
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertSucceeds(
+      ctx.firestore().collection('dungeonRuns').doc('run1').update({ status: 'active' }),
     );
   });
 
