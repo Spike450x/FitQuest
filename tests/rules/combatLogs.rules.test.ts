@@ -27,14 +27,14 @@ afterAll(async () => {
   await testEnv.cleanup();
 });
 
-function validCombatLog(uid: string, loggedAt = Date.now()) {
+function validCombatLog(uid: string) {
   return {
     uid,
     monsterId: 'goblin',
     monsterName: 'Goblin',
     xp: 120,
     gold: 30,
-    loggedAt,
+    loggedAt: Date.now(),
   };
 }
 
@@ -65,74 +65,20 @@ describe('combatLogs — read', () => {
   });
 });
 
-describe('combatLogs — create', () => {
-  it('denies owner from creating a combat log (admin SDK only)', async () => {
+// combatLogs are written exclusively by the claimCombatVictory Cloud Function
+// via the admin SDK (which bypasses these rules). No client write path exists —
+// the rule is `if false` for all creates. These tests verify the blanket deny,
+// not per-field validation (there is none).
+describe('combatLogs — create (always denied — admin SDK only)', () => {
+  it('denies an authenticated owner from creating a combat log', async () => {
     const uid = 'user1';
     const ctx = testEnv.authenticatedContext(uid);
     await assertFails(ctx.firestore().collection('combatLogs').add(validCombatLog(uid)));
   });
 
-  it('denies create when unauthenticated', async () => {
+  it('denies an unauthenticated create', async () => {
     const ctx = testEnv.unauthenticatedContext();
     await assertFails(ctx.firestore().collection('combatLogs').add(validCombatLog('anyuid')));
-  });
-
-  it('denies create when uid mismatches the authenticated user', async () => {
-    const ctx = testEnv.authenticatedContext('realuser');
-    await assertFails(
-      ctx.firestore().collection('combatLogs').add(validCombatLog('differentuser')),
-    );
-  });
-
-  it('denies a log with a stale timestamp (backdated more than 2 minutes)', async () => {
-    const uid = 'user1';
-    const ctx = testEnv.authenticatedContext(uid);
-    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-    await assertFails(
-      ctx.firestore().collection('combatLogs').add(validCombatLog(uid, fiveMinutesAgo)),
-    );
-  });
-
-  it('denies a log with a future timestamp (more than 2 minutes ahead)', async () => {
-    const uid = 'user1';
-    const ctx = testEnv.authenticatedContext(uid);
-    const fiveMinutesAhead = Date.now() + 5 * 60 * 1000;
-    await assertFails(
-      ctx.firestore().collection('combatLogs').add(validCombatLog(uid, fiveMinutesAhead)),
-    );
-  });
-
-  it('denies a log with xp exceeding the cap (> 10 000)', async () => {
-    const uid = 'user1';
-    const ctx = testEnv.authenticatedContext(uid);
-    await assertFails(
-      ctx
-        .firestore()
-        .collection('combatLogs')
-        .add({ ...validCombatLog(uid), xp: 10001 }),
-    );
-  });
-
-  it('denies a log with gold exceeding the cap (> 10 000)', async () => {
-    const uid = 'user1';
-    const ctx = testEnv.authenticatedContext(uid);
-    await assertFails(
-      ctx
-        .firestore()
-        .collection('combatLogs')
-        .add({ ...validCombatLog(uid), gold: 10001 }),
-    );
-  });
-
-  it('denies a log with an empty monsterId', async () => {
-    const uid = 'user1';
-    const ctx = testEnv.authenticatedContext(uid);
-    await assertFails(
-      ctx
-        .firestore()
-        .collection('combatLogs')
-        .add({ ...validCombatLog(uid), monsterId: '' }),
-    );
   });
 });
 
