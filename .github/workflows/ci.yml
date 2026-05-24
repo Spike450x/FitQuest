@@ -135,13 +135,13 @@ jobs:
           --non-interactive
           --force # suppresses Artifact Registry cleanup-policy prompt in CI
 
-      - name: IAM smoke test — verify callable functions are publicly reachable
+      - name: IAM smoke test - verify callable functions are publicly reachable
         if: >-
           github.ref == 'refs/heads/master' &&
           github.event_name == 'push' &&
           steps.functions-changed.outputs.changed == 'true'
         # Hits live production Cloud Run URLs. A 401 means IAM is working (Firebase
-        # auth required). A 403 means the allUsers → run.invoker binding is missing.
+        # auth required). A 403 means the allUsers -> run.invoker binding is missing.
         run: |
           sleep 15
           FUNCTIONS="claimDungeonRun claimCombatVictory logActivity"
@@ -155,7 +155,7 @@ jobs:
               -d '{}' \
               "https://${REGION}-${PROJECT}.cloudfunctions.net/${fn}")
             if [ "$STATUS" = "403" ]; then
-              echo "IAM FAIL: $fn returned HTTP 403 — allUsers invoker binding is missing"
+              echo "IAM FAIL: $fn returned HTTP 403 - allUsers invoker binding is missing"
               FAILED="$FAILED $fn"
             else
               echo "IAM OK: $fn returned HTTP $STATUS"

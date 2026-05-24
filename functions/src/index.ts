@@ -75,7 +75,7 @@ interface LogActivityResult {
 // they are counters and timestamps, not permanent stat or resource awards).
 
 export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
-  { minInstances: 1 },
+  { minInstances: 1, invoker: 'public' },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError('unauthenticated', 'Must be signed in.');
