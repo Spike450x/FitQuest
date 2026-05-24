@@ -87,14 +87,26 @@ import { toast, toastReward, toastLoot } from '@/components/ui/Toaster';
 import { claimCombatVictoryCF } from '@/lib/functions';
 import { fetchRecentCombatLogs } from '@/lib/combatData';
 import { COMBAT, CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
-import type { MonsterDef } from '@/types';
+import type { Character, MonsterDef } from '@/types';
 import type { PendingRewards } from '@/components/combat/types';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Thin wrapper that handles the loading-state null guard before mounting the
+ * body. `useCombatEncounter` reads `character.currentHp` in its initializer,
+ * which would crash during static prerender or before the auth state resolves
+ * — keeping the hook inside `CombatPageBody` (mounted only when character is
+ * non-null) avoids that.
+ */
 export default function CombatPage() {
-  const router = useRouter();
   const { character } = useCharacter();
+  if (!character) return null;
+  return <CombatPageBody character={character} />;
+}
+
+function CombatPageBody({ character }: { character: Character }) {
+  const router = useRouter();
 
   const todayKey = useTodayKey();
   const dailyMonsters = useMemo(() => getDailyPick(MONSTER_CATALOG, 4, todayKey), [todayKey]);
@@ -214,7 +226,7 @@ export default function CombatPage() {
   // ─── Encounter hook — only mounted when a monster is active ────────────────
   const encounter = useCombatEncounter({
     monster: activeMonster ?? dailyMonsters[0],
-    character: character!,
+    character,
     maxHp,
     maxStamina,
     maxMagic,
@@ -237,7 +249,7 @@ export default function CombatPage() {
         goldReward: monster.goldReward,
         droppedItems,
         monster,
-        uid: character!.uid,
+        uid: character.uid,
       });
     },
     onDefeat: async ({ finalHp, finalStamina, finalMagic }) => {
@@ -257,8 +269,6 @@ export default function CombatPage() {
   useEffect(() => {
     if (fightOutcome === 'loss') playSound('fail');
   }, [fightOutcome]);
-
-  if (!character) return null;
 
   function enterFight(monster: MonsterDef) {
     setActiveMonster(monster);
