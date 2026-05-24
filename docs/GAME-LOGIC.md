@@ -118,6 +118,35 @@ Tested in [`__tests__/spells.test.ts`](../src/lib/gameLogic/__tests__/spells.tes
 
 ---
 
+## `combatActions.ts` — pure action resolvers
+
+Tested in [`__tests__/combatActions.test.ts`](../src/lib/gameLogic/__tests__/combatActions.test.ts).
+
+Pure resolver layer that wraps `combat.ts` / `abilities.ts` / `spells.ts` / `passives.ts`. Each `resolveXAction` takes a `state + character + modifiers` input and returns `{ nextState, logEntry, pending, bannerMessage? }` — no React, no Firestore. Consumed by `useCombatEncounter` (`src/hooks/useCombatEncounter.ts`) in both the arena page and the dungeon run page.
+
+| Export                                            | Purpose                                                                                                                                                    |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ActionInput`                                     | Inputs for every resolver: `state, character, maxHp, maxStamina, maxMagic, streakMultiplier, getPityFor, modifiers?`.                                      |
+| `ActionResolution`                                | Output: `nextState`, `logEntry`, `pending` (overlay payload — `'action' \| 'ability' \| 'spell' \| 'none'`), `bannerMessage?` surfaced by `postRoundHook`. |
+| `resolveAttackAction(input, 'attack' \| 'magic')` | Standard d10 attack. Applies outgoing passives, Soul Drain, `resolveRoundOutcome`. Runs all four `CombatModifiers` hooks in order.                         |
+| `resolveAbilityAction(input)`                     | 6d6 class ability roll. Applies subclass mods, Lethal Opener, lifesteal, Execute, Momentum stamina restore, fizzle refund.                                 |
+| `resolveSpellAction(input, spellDef)`             | Spell cast. Resolves dice requirement, applies Archmage discount + Blood Pact, defense boost, monster stun.                                                |
+| `resolveMeditateAction(input)`                    | Roll d10 + WIS magic restore. Monster gets a free attack (defense bypassed).                                                                               |
+| `resolveRestAction(input)`                        | Roll d10 × 3 stamina restore. Monster gets a free attack (defense bypassed).                                                                               |
+| `resolveFleeAction(input)`                        | AGI roll vs monster. On escape → `outcome: 'fled'`. On failure → monster strikes (defense bypassed).                                                       |
+| `resolveUseItemAction(input, hp, sta, mag)`       | Synchronous consumable apply — clamps gained values and returns `pending.kind = 'none'` (no overlay). Caller awaits `useConsumable` before invoking.       |
+
+The `CombatModifiers` seam (declared in `src/components/combat/types.ts`) fires at four fixed slots inside each offensive resolver:
+
+1. `preActionTick(state)` — venom DoT (mutates monster HP before the round).
+2. `effectiveMonster(base, state)` — swap monster ATK/DEF (boss enrage, Dragon ignore-DEF).
+3. `absorbPlayerDamage(damage, state)` — Necro Shield absorbs raw player damage.
+4. `postRoundHook(state, ctx)` — re-evaluate enrage, fire venom proc, surface banner message.
+
+Arena passes `modifiers: undefined` and every hook short-circuits to identity. Dungeon delegates to the unchanged helpers in `dungeons.ts` (`checkVenomProc`, `bossEffectiveAtk`, `applyNecroShield`, `evaluateBossEnrage`, `dragonIgnoresDef`).
+
+---
+
 ## `passives.ts` — subclass passive system
 
 Largest file by export count. Read the source for the actual passive descriptions; the table below is a navigation aid.

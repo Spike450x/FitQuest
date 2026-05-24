@@ -1,0 +1,316 @@
+'use client';
+
+import { COMBAT } from '@/lib/gameLogic/constants';
+import { gearAttackBonus } from '@/lib/gameLogic/combat';
+import {
+  canBloodPact,
+  getAbilityStaminaCost,
+  getEffectiveSpellCost,
+} from '@/lib/gameLogic/passives';
+import { getItemById, RARITY_BADGE } from '@/lib/gameLogic/items';
+import { PremiumSpellCard } from '@/components/ui/PremiumSpellCard';
+import { ActionButton } from './ActionButton';
+import type { Character, ItemDef, InventoryItem } from '@/types';
+import type { CombatModifiers, FightState } from './types';
+
+export interface EquippedSpellEntry {
+  invItem: InventoryItem;
+  def: ItemDef | undefined;
+}
+
+/**
+ * Player action bar — Attack / Magic / Roll Ability / Cast Spell / Rest /
+ * Meditate / Use Item / Flee. Shared between arena and dungeon combat.
+ *
+ * `modifiers.fleeDisabled` hides Flee (boss rooms). `modifiers.recoveryDisabled`
+ * hides Rest + Meditate (reserved).
+ */
+export function CombatActionBar({
+  character,
+  fightState,
+  maxStamina,
+  maxMagic,
+  equippedSpells,
+  consumables,
+  rollingAction,
+  usingItem,
+  showSpellPanel,
+  showItemPanel,
+  setShowSpellPanel,
+  setShowItemPanel,
+  onAttack,
+  onMagic,
+  onAbility,
+  onCastSpell,
+  onRest,
+  onMeditate,
+  onUseItem,
+  onFlee,
+  modifiers,
+  showMagicButton = false,
+}: {
+  character: Character;
+  fightState: FightState;
+  maxStamina: number;
+  maxMagic: number;
+  equippedSpells: EquippedSpellEntry[];
+  consumables: InventoryItem[];
+  rollingAction: 'attack' | 'magic' | 'run' | 'ability' | 'rest' | 'meditate' | null;
+  usingItem: string | null;
+  showSpellPanel: boolean;
+  showItemPanel: boolean;
+  setShowSpellPanel: (next: boolean) => void;
+  setShowItemPanel: (next: boolean) => void;
+  onAttack: () => void;
+  onMagic: () => void;
+  onAbility: () => void;
+  onCastSpell: (spellDef: ItemDef) => void;
+  onRest: () => void;
+  onMeditate: () => void;
+  onUseItem: (invItemId: string) => void;
+  onFlee: () => void;
+  modifiers?: CombatModifiers;
+  /** Show a dedicated Magic-attack button alongside Attack (optional — arena currently bundles magic into ability/spell flow only). */
+  showMagicButton?: boolean;
+}) {
+  const isRolling = rollingAction !== null;
+  const fleeDisabled = modifiers?.fleeDisabled ?? false;
+  const recoveryDisabled = modifiers?.recoveryDisabled ?? false;
+  const { playerHp, playerStamina, playerMagic } = fightState;
+
+  const staCost = getAbilityStaminaCost(
+    character,
+    COMBAT.ABILITY_STAMINA_COST,
+    fightState.isFirstAbility,
+  );
+  const canAbility = playerStamina >= staCost;
+
+  return (
+    <div className="space-y-2">
+      {/* Row 1: Attack (and optional Magic) */}
+      {showMagicButton ? (
+        <div className="grid grid-cols-2 gap-2">
+          <ActionButton
+            label="⚔️ Attack"
+            sublabel={(() => {
+              const stat = Math.floor(character.stats.strength * COMBAT.STRENGTH_ATTACK_FACTOR);
+              const gear = gearAttackBonus(character, 'attack');
+              return gear > 0 ? `d10 + ${stat} STR + ${gear} gear` : `d10 + ${stat} STR`;
+            })()}
+            onClick={onAttack}
+            loading={rollingAction === 'attack'}
+            disabled={isRolling}
+            color="indigo"
+          />
+          <ActionButton
+            label="🔮 Magic"
+            sublabel={(() => {
+              const stat = Math.floor(character.stats.wisdom * COMBAT.WISDOM_ATTACK_FACTOR);
+              const gear = gearAttackBonus(character, 'magic');
+              return gear > 0 ? `d10 + ${stat} WIS + ${gear} gear` : `d10 + ${stat} WIS`;
+            })()}
+            onClick={onMagic}
+            loading={rollingAction === 'magic'}
+            disabled={isRolling}
+            color="violet"
+          />
+        </div>
+      ) : (
+        <ActionButton
+          label="⚔️ Attack"
+          sublabel={(() => {
+            const stat = Math.floor(character.stats.strength * COMBAT.STRENGTH_ATTACK_FACTOR);
+            const gear = gearAttackBonus(character, 'attack');
+            return gear > 0 ? `d10 + ${stat} STR + ${gear} gear` : `d10 + ${stat} STR`;
+          })()}
+          onClick={onAttack}
+          loading={rollingAction === 'attack'}
+          disabled={isRolling}
+          color="indigo"
+          fullWidth
+        />
+      )}
+
+      {/* Row 2: Roll Ability + Cast Spell */}
+      <div className="grid grid-cols-2 gap-2">
+        <ActionButton
+          label="🎲 Roll Ability"
+          sublabel={
+            !canAbility
+              ? `Not enough stamina (need ${staCost})`
+              : staCost === 0
+                ? 'FREE this roll · 6d6 class ability'
+                : `Costs ${staCost} sta · 6d6 class ability`
+          }
+          onClick={onAbility}
+          loading={rollingAction === 'ability'}
+          disabled={isRolling || !canAbility}
+          color="rose"
+        />
+        <ActionButton
+          label="✨ Cast Spell"
+          sublabel={
+            equippedSpells.length === 0
+              ? 'No spells equipped'
+              : `${equippedSpells.length} spell${equippedSpells.length !== 1 ? 's' : ''} · ${playerMagic}✨ left`
+          }
+          onClick={() => {
+            setShowSpellPanel(!showSpellPanel);
+            setShowItemPanel(false);
+          }}
+          loading={false}
+          disabled={isRolling || equippedSpells.length === 0}
+          color="violet"
+        />
+      </div>
+
+      {/* Row 3: Rest + Meditate */}
+      {!recoveryDisabled && (
+        <div className="grid grid-cols-2 gap-2">
+          <ActionButton
+            label="🛌 Rest"
+            sublabel={
+              playerStamina >= maxStamina
+                ? 'Stamina already full'
+                : `Roll d10 × 3 sta · monster free attack`
+            }
+            onClick={onRest}
+            loading={rollingAction === 'rest'}
+            disabled={isRolling || playerStamina >= maxStamina}
+            color="sky"
+          />
+          <ActionButton
+            label="🧘 Meditate"
+            sublabel={
+              playerMagic >= maxMagic
+                ? 'Magic already full'
+                : `Roll d10 + WIS magic · monster free attack`
+            }
+            onClick={onMeditate}
+            loading={rollingAction === 'meditate'}
+            disabled={isRolling || playerMagic >= maxMagic}
+            color="slate"
+          />
+        </div>
+      )}
+
+      {/* Row 4: Use Item + Run Away */}
+      <div className={`grid gap-2 ${fleeDisabled ? 'grid-cols-1' : 'grid-cols-2'}`}>
+        <ActionButton
+          label={usingItem ? 'Using…' : '🧪 Use Item'}
+          sublabel={consumables.length === 0 ? 'None in pack' : `${consumables.length} in pack`}
+          onClick={() => {
+            setShowItemPanel(!showItemPanel);
+            setShowSpellPanel(false);
+          }}
+          loading={!!usingItem}
+          disabled={isRolling || consumables.length === 0}
+          color="emerald"
+          fullWidth={fleeDisabled}
+        />
+        {!fleeDisabled && (
+          <ActionButton
+            label="🏃 Run Away"
+            sublabel={(() => {
+              const agi = Math.floor((character.stats.agility ?? 0) * COMBAT.AGILITY_ESCAPE_FACTOR);
+              return agi > 0 ? `d10 + ${agi} AGI vs monster` : 'd10 vs monster to flee';
+            })()}
+            onClick={onFlee}
+            loading={rollingAction === 'run'}
+            disabled={isRolling}
+            color="amber"
+          />
+        )}
+      </div>
+
+      {/* Spell selection panel */}
+      {showSpellPanel && (
+        <div className="bg-white dark:bg-slate-900 border border-violet-200 rounded-xl p-3 shadow-sm space-y-3">
+          <p className="text-xs font-semibold text-violet-500 uppercase tracking-wider">
+            ✨ Choose a Spell — {playerMagic} magic remaining
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {equippedSpells.map(({ invItem, def }) => {
+              if (!def?.spellMechanics) return null;
+              const sm = def.spellMechanics;
+              const effectiveCost = getEffectiveSpellCost(character, sm.magicCost);
+              const affordable = playerMagic >= effectiveCost;
+              const bloodPactAvail = canBloodPact(character, effectiveCost, playerMagic, playerHp);
+              const classOk =
+                sm.classRestriction === 'all' || sm.classRestriction === character.class;
+              const canCast = (affordable || bloodPactAvail) && classOk;
+              const actionLabel = !classOk
+                ? `${sm.classRestriction} only`
+                : bloodPactAvail
+                  ? 'Cast (Blood Pact −10 HP)'
+                  : !affordable
+                    ? 'Not enough magic'
+                    : 'Cast Spell';
+              return (
+                <PremiumSpellCard
+                  key={invItem.id}
+                  def={def}
+                  wisdomValue={character.stats.wisdom}
+                  affordable={affordable || bloodPactAvail}
+                  disabled={!canCast || isRolling}
+                  actionLabel={actionLabel}
+                  onAction={() => canCast && onCastSpell(def)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Consumable selection panel */}
+      {showItemPanel && (
+        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-3 shadow-sm space-y-1.5">
+          <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+            Choose a Consumable
+          </p>
+          {consumables.map((invItem) => {
+            const def = getItemById(invItem.itemDefId);
+            if (!def?.effect) return null;
+            return (
+              <button
+                key={invItem.id}
+                onClick={() => onUseItem(invItem.id)}
+                disabled={!!usingItem}
+                className="w-full flex items-center justify-between bg-gray-50 dark:bg-slate-900 hover:bg-emerald-50 border border-gray-200 dark:border-slate-700 hover:border-emerald-300 rounded-lg px-3 py-2 text-left transition-colors disabled:opacity-40"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-gray-800 dark:text-slate-100">
+                    🧪 {def.name}
+                  </span>
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded-full font-medium capitalize ${RARITY_BADGE[def.rarity]}`}
+                  >
+                    {def.rarity}
+                  </span>
+                </div>
+                <span
+                  className="text-xs font-semibold shrink-0"
+                  style={{
+                    color:
+                      def.effect.type === 'restore_stamina'
+                        ? '#d97706'
+                        : def.effect.type === 'restore_magic'
+                          ? '#7c3aed'
+                          : '#059669',
+                  }}
+                >
+                  +{def.effect.amount}{' '}
+                  {def.effect.type === 'restore_stamina'
+                    ? 'Stamina'
+                    : def.effect.type === 'restore_magic'
+                      ? 'Magic'
+                      : 'HP'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

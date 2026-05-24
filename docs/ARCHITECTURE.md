@@ -41,7 +41,8 @@ graph TD
 | `app/layout.tsx`          | Root layout, global providers, font setup.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `app/page.tsx`            | Landing redirect.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `components/`             | Shared UI building blocks (forms, cards, modals, bars). Key primitives: `Card` (variant system), `InputField` (canonical themed input — use instead of raw `<input>`), `Button`, `Modal`, `Skeleton`, `XPBar`, `GoldDisplay`, `SpellCard`, `PremiumSpellCard` (rarity shimmer wrapper for `SpellCard`), `EntityArt` (heraldic-framed silhouette renderer for all game entities).                                                                                                                                                                                                                                                       |
-| `hooks/`                  | Reusable client hooks (`useAuth`, `useCharacter`, `useRecentActivity`, `useCombatBursts`, `useInventoryNewMarkers`, `useTodayKey`). All hooks live here — none in component files.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `components/combat/`      | Shared combat-UI surface — `CombatArena`, `CombatEffects`, `CombatActionBar`, `HpBar`, `LastActionSummary`, `BattleLogEntry`, `BattleResultsModal`, `MonsterCard`, `AbilityReference`, plus overlays under `components/combat/overlays/` (`ActionRollOverlay`, `DiceRollOverlay`, `SpellRollOverlay`). Shared between the arena page (`/combat`) and the dungeon run page (`/combat/dungeons/run`). `types.ts` exports `FightState`, `RoundEntry`, `PendingAction/Ability/Spell`, and `CombatModifiers` (the dungeon plug-in seam).                                                                                                    |
+| `hooks/`                  | Reusable client hooks (`useAuth`, `useCharacter`, `useRecentActivity`, `useCombatBursts`, `useCombatEncounter`, `useInventoryNewMarkers`, `useTodayKey`). All hooks live here — none in component files.                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `lib/firebase.ts`         | Firebase SDK init. Reads env vars; exports `app`, `auth`, `db`, `functions`. Enables Firestore IndexedDB offline persistence (`persistentLocalCache` + `persistentMultipleTabManager`) with an SSR guard (`typeof window === 'undefined'` falls back to the in-memory instance) and a hot-reload guard (try/catch around `initializeFirestore` falls through to `getFirestore`). When `NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true`, connects all three services to local emulators — Auth (9099), Firestore (8080), Functions (5001) — and skips IndexedDB persistence (emulator data is ephemeral). The only Firebase wiring in the repo. |
 | `lib/retry.ts`            | Generic async retry utility. Exports `fetchWithRetry<T>(fn, delaysMs, onRetry?)`, `isRetryable(error)`, and `STORE_RETRY_DELAYS = [1_000, 3_000]`. `isRetryable` fast-paths non-transient Firebase errors (permission-denied, unauthenticated, not-found, etc.) so they throw immediately without burning delay slots. All store fetch actions (`characterStore`, `inventoryStore`, `questStore` read path, `statsStore`) wrap their Firestore reads in `fetchWithRetry`.                                                                                                                                                              |
 | `lib/gameLogic/`          | Pure deterministic logic — combat, spells, XP, streaks, items, monsters, quests. Unit-tested.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -167,6 +168,43 @@ sequenceDiagram
 - **Result card is immediate.** `setResult()` fires as soon as the function responds. Quest-progress and streak writes are fire-and-forget — a Firestore hiccup there doesn't block the player from seeing their reward.
 - **Local state stays consistent.** `applyMasteryLocal` mirrors the function's write to the Zustand store with zero extra Firestore reads. Both use `Math.min(stat + 1, statCap(linkedStat, level))`.
 - **Restore writes are server-side (R4-StageC).** The function computes the formula-derived max (`playerMaxHp/Stamina/Magic`) using a minimal gear-stat lookup in `functions/src/gameLogic/combat.ts` and writes `currentHp/Stamina/Magic` atomically with the activity log. The client receives `restored.newValue` and mirrors it to Zustand via `applyRestoreLocal` — no client Firestore write occurs.
+
+---
+
+## Data flow — combat round (arena or dungeon)
+
+Every combat action (attack, magic, roll ability, cast spell, rest, meditate, use item, flee) flows through the same shared pipeline. The arena page and the dungeon run page differ only in (a) the modifiers they pass and (b) what they do when the encounter ends.
+
+```mermaid
+sequenceDiagram
+    participant Page as combat/page.tsx or dungeons/run/page.tsx
+    participant Hook as useCombatEncounter
+    participant Resolver as combatActions.ts
+    participant Modifiers as CombatModifiers (dungeon only)
+
+    Page->>Hook: actions.attack() (or .magic / .rollAbility / .castSpell / …)
+    Hook->>Resolver: resolveAttackAction({state, character, modifiers, …})
+    Resolver->>Modifiers: preActionTick(state) — venom DoT
+    Resolver->>Resolver: calculateRound(character, effectiveMonster)
+    Resolver->>Resolver: applyOutgoingPassives (Battle-Hardened, Bloodlust, Eagle Eye)
+    Resolver->>Modifiers: absorbPlayerDamage(rawDmg) — Necro Shield
+    Resolver->>Resolver: resolveRoundOutcome (Iron Will, Divine Aegis, Mana Barrier, loot)
+    Resolver->>Modifiers: postRoundHook(newState, {actionKind}) — venom proc, boss enrage
+    Resolver-->>Hook: { nextState, logEntry, pending, bannerMessage }
+    Hook->>Page: set pendingAction overlay
+    Page->>Page: render <ActionRollOverlay/> (animates dice)
+    Page->>Hook: overlay's Continue button → pending.applyResult()
+    Hook->>Page: onResourceChange({hp, stamina, magic}) — local mirror only
+    Hook->>Page: onVictory({…}) | onDefeat({…}) | onFlee({…})
+```
+
+**Key properties of this design:**
+
+- **Pure resolvers.** `src/lib/gameLogic/combatActions.ts` exports `resolveAttackAction` / `resolveAbilityAction` / `resolveSpellAction` / `resolveMeditateAction` / `resolveRestAction` / `resolveFleeAction` / `resolveUseItemAction` — no React, no Firestore. Faithful inline-extract of the legacy arena handlers.
+- **Modifier seam.** `CombatModifiers` (`src/components/combat/types.ts`) hooks fire at four fixed slots: `preActionTick` → `effectiveMonster` → `absorbPlayerDamage` → `postRoundHook`. Arena passes `undefined`, every hook short-circuits to identity. Dungeon passes a memoised modifier that delegates to the unchanged helpers in `src/lib/gameLogic/dungeons.ts` (`checkVenomProc`, `bossEffectiveAtk`, `applyNecroShield`, `evaluateBossEnrage`, `dragonIgnoresDef`).
+- **`onResourceChange` is a local mirror, never a persistence hook.** The hook calls it on every applied result so the page can update an in-memory Zustand slice (arena) or per-room view state (dungeon). Firestore writes happen exactly once per encounter inside `onVictory` / `onDefeat` / `onFlee`. Per-round writes would burn Firestore quota.
+- **`useCombatEncounter` never calls a Cloud Function.** Arena's `onVictory` calls `claimCombatVictoryCF`; dungeon's `onVictory` calls `advanceRoom(...)` (and the boss-victory screen later calls `claimDungeonRunCF`). The hook is store-agnostic — both wirings live in the page callbacks.
+- **Boss rooms hide Flee via `modifiers.fleeDisabled = true`.** `CombatActionBar` reads the modifier flag and stretches Use Item to fill the row.
 
 ---
 

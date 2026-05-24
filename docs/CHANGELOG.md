@@ -15,6 +15,19 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-24 — Dungeon combat parity with arena via shared combat layer
+
+Dungeon rooms now expose the full arena action set — Attack, Magic, Roll Ability (6d6 patterns), Cast Spell, Rest, Meditate, Use Item, Flee — with full integration of subclass passives, crit, lifesteal, execute, momentum, and per-round restores. Previously, dungeon combat was attack-and-flee only, and even basic attacks skipped `applyOutgoingPassives`, `resolveLifesteal`, and `checkExecute`, leaving subclass builds effectively inert inside dungeons.
+
+- **New shared combat layer.** `src/components/combat/` now owns the overlays (`ActionRollOverlay`, `DiceRollOverlay`, `SpellRollOverlay`), the action bar (`CombatActionBar`), and presentational components (`MonsterCard`, `AbilityReference`, `HpBar`, `LastActionSummary`, `BattleLogEntry`, `BattleResultsModal`). The 3,356-line arena page consumes them via `useCombatEncounter` and shrank by ~1,000 lines.
+- **New pure resolver layer.** `src/lib/gameLogic/combatActions.ts` exposes `resolveAttackAction`, `resolveAbilityAction`, `resolveSpellAction`, `resolveMeditateAction`, `resolveRestAction`, `resolveFleeAction`, `resolveUseItemAction` — pure functions that wrap the existing `combat.ts` / `abilities.ts` / `spells.ts` / `passives.ts` exports, plus a `CombatModifiers` seam for dungeon-only mechanics.
+- **`useCombatEncounter` hook** (`src/hooks/useCombatEncounter.ts`) owns `FightState`, pending-overlay state, and the `actions.*` API. Both arena and dungeon mount the hook. The hook never touches Firestore or Cloud Functions — the page wires `onVictory` / `onDefeat` / `onFlee` to whichever claim path it needs.
+- **Dungeon mechanics preserved** via `CombatModifiers`: Venom DoT (Venomfang Bracer), Necro Shield (Dark Sanctum boss), Dragon ignore-DEF (Dragon's Keep boss), Broodmother +5 ATK, plus `fleeDisabled` on boss rooms — all delegate to the unchanged helpers in `src/lib/gameLogic/dungeons.ts`.
+- **Boss Flee remains disabled** — UX framing unchanged. Stat-check and Rest rooms are still rendered by the dungeon page (the hook only mounts during combat/boss phases).
+- **15 new unit tests** in `combatActions.test.ts` cover each resolver and every modifier hook slot, including an arena-equivalence check that confirms `modifiers: undefined` produces identical state deltas to the legacy inline handlers.
+
+---
+
 ## 2026-05-23 — Fix Cloud Function failures + harden Firebase infrastructure
 
 Fixes two production outages (logActivity CORS, claimCombatVictory 500) and closes several infrastructure gaps identified in a Firebase setup audit.
