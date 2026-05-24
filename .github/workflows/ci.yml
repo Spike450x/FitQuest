@@ -135,6 +135,67 @@ jobs:
           --non-interactive
           --force # suppresses Artifact Registry cleanup-policy prompt in CI
 
+      - name: Restore Cloud Run IAM bindings
+        if: >-
+          github.ref == 'refs/heads/master' &&
+          github.event_name == 'push' &&
+          steps.functions-changed.outputs.changed == 'true'
+        # Firebase CLI only sets the allUsers -> roles/run.invoker binding on first
+        # deploy; subsequent updates silently drop it. This step re-applies the binding
+        # via the Cloud Run REST API so callable functions remain publicly reachable.
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          ACCESS_TOKEN=$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -d "grant_type=refresh_token" \
+            -d "refresh_token=${FIREBASE_TOKEN}" \
+            -d "client_id=563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+          SERVICES="logactivity claimcombatvictory claimdungeonrun"
+          REGION="us-central1"
+          PROJECT="fitness-rpg-claude"
+          BASE="https://run.googleapis.com/v2/projects/${PROJECT}/locations/${REGION}/services"
+          for svc in $SERVICES; do
+            POLICY=$(curl -s -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+              "${BASE}/${svc}:getIamPolicy")
+            HAS_BINDING=$(echo "$POLICY" | python3 -c "
+          import sys, json
+          p = json.load(sys.stdin)
+          bindings = p.get('bindings', [])
+          for b in bindings:
+              if b.get('role') == 'roles/run.invoker' and 'allUsers' in b.get('members', []):
+                  print('yes')
+                  sys.exit(0)
+          print('no')
+          ")
+            if [ "$HAS_BINDING" = "no" ]; then
+              echo "Adding allUsers invoker binding to ${svc}"
+              UPDATED=$(echo "$POLICY" | python3 -c "
+          import sys, json
+          p = json.load(sys.stdin)
+          bindings = p.get('bindings', [])
+          found = False
+          for b in bindings:
+              if b.get('role') == 'roles/run.invoker':
+                  if 'allUsers' not in b['members']:
+                      b['members'].append('allUsers')
+                  found = True
+          if not found:
+              bindings.append({'role': 'roles/run.invoker', 'members': ['allUsers']})
+          p['bindings'] = bindings
+          print(json.dumps({'policy': p}))
+          ")
+              curl -s -X POST \
+                -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d "$UPDATED" \
+                "${BASE}/${svc}:setIamPolicy"
+              echo "IAM binding restored for ${svc}"
+            else
+              echo "IAM binding already present for ${svc}"
+            fi
+          done
+
       - name: IAM smoke test - verify callable functions are publicly reachable
         if: >-
           github.ref == 'refs/heads/master' &&
