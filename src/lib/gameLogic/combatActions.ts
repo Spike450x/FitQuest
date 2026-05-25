@@ -368,6 +368,7 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
         dice: resolution.dice,
         pattern: resolution.pattern,
         ability: resolution.ability,
+        formulaBreakdown: resolution.formulaBreakdown,
       },
     },
   };

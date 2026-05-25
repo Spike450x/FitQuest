@@ -10,15 +10,28 @@ import { getHighlightedDiceIndices, PATTERN_LABEL, abilityTags } from '../Abilit
  * Ability roll overlay — animates 6d6 then reveals matched pattern (or fizzle).
  * Calls `onDismiss` when the player taps Continue.
  */
+interface FormulaBreakdown {
+  avgRoll: number;
+  statBonus: number;
+  gearBonus: number;
+  baseHit: number;
+  damageMultiplier: number;
+  rawDamage: number;
+  monsterDef: number;
+}
+
 export function DiceRollOverlay({
   dice,
   pattern,
   ability,
+  formulaBreakdown,
   onDismiss,
 }: {
   dice: number[];
   pattern: DicePattern | null;
   ability: AbilityDef | null;
+  /** Damage formula intermediates — shown when an ability hit resolves. */
+  formulaBreakdown?: FormulaBreakdown;
   onDismiss: () => Promise<void>;
 }) {
   const [phase, setPhase] = useState<'spinning' | 'settling' | 'result'>('spinning');
@@ -145,6 +158,53 @@ export function DiceRollOverlay({
                   </span>
                 ))}
               </div>
+              {formulaBreakdown && (
+                <div className="text-left rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/60 px-3 py-2.5 space-y-0.5">
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">
+                    Damage formula
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">
+                    avg 6d6{' '}
+                    <span className="font-semibold text-gray-700 dark:text-slate-200">
+                      {formulaBreakdown.avgRoll}
+                    </span>{' '}
+                    + stat{' '}
+                    <span className="font-semibold text-gray-700 dark:text-slate-200">
+                      {formulaBreakdown.statBonus}
+                    </span>
+                    {formulaBreakdown.gearBonus > 0 && (
+                      <>
+                        {' '}
+                        + gear{' '}
+                        <span className="font-semibold text-gray-700 dark:text-slate-200">
+                          {formulaBreakdown.gearBonus}
+                        </span>
+                      </>
+                    )}{' '}
+                    ={' '}
+                    <span className="font-semibold text-indigo-600 dark:text-indigo-300">
+                      {formulaBreakdown.baseHit}
+                    </span>{' '}
+                    base
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">
+                    ×{formulaBreakdown.damageMultiplier.toFixed(1)} ={' '}
+                    <span className="font-semibold text-gray-700 dark:text-slate-200">
+                      {formulaBreakdown.rawDamage}
+                    </span>{' '}
+                    raw
+                    {formulaBreakdown.monsterDef > 0 && (
+                      <>
+                        {' '}
+                        − DEF{' '}
+                        <span className="font-semibold text-gray-700 dark:text-slate-200">
+                          {formulaBreakdown.monsterDef}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

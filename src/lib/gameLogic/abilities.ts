@@ -35,6 +35,16 @@ export interface AbilityResolution {
   playerDefFailed: boolean;
   /** Flat HP healed at end of this round — Paladin subclass bonuses (shield-slam, unstoppable). */
   flatPassiveHeal: number;
+  /** Formula intermediates — only set on the ability hit path (not fizzle). */
+  formulaBreakdown?: {
+    avgRoll: number;
+    statBonus: number;
+    gearBonus: number;
+    baseHit: number;
+    damageMultiplier: number;
+    rawDamage: number;
+    monsterDef: number;
+  };
 }
 
 // ─── Ability catalog ──────────────────────────────────────────────────────────
@@ -370,6 +380,15 @@ export function resolveAbility(
     monsterStunned: ability.stunMonster,
     playerDefFailed,
     flatPassiveHeal: ability.flatHeal,
+    formulaBreakdown: {
+      avgRoll,
+      statBonus,
+      gearBonus,
+      baseHit,
+      damageMultiplier: ability.damageMultiplier * extraMultiplier,
+      rawDamage,
+      monsterDef: ability.bypassMonsterDef ? 0 : monster.defense,
+    },
   };
 }
 

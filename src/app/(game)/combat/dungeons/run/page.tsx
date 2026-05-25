@@ -11,6 +11,7 @@ import {
   DUNGEON_BOSSES,
   VENOMFANG_BRACER_ID,
   resolveStatCheckOptions,
+  resolveStatCheckFlavor,
   statCheckFailureDamage,
   checkVenomProc,
   applyVenomTick,
@@ -467,6 +468,7 @@ function DungeonCombatShell({
           dice={pending.ability.dice}
           pattern={pending.ability.pattern}
           ability={pending.ability.ability}
+          formulaBreakdown={pending.ability.formulaBreakdown}
           onDismiss={pending.ability.applyResult}
         />
       )}
@@ -1075,10 +1077,19 @@ export default function DungeonRunPage() {
       {phase === 'stat-check' && character && (
         <div className="space-y-4">
           <div className="bg-slate-800 border border-amber-900 rounded-xl p-4">
-            <div className="text-amber-400 text-sm font-bold mb-1">🔍 Stat Check</div>
-            <div className="text-slate-400 text-xs mb-4">
-              Choose your path. Passing requires meeting the stat threshold.
-            </div>
+            <div className="text-amber-400 text-sm font-bold mb-2">🔍 Stat Check</div>
+            {(() => {
+              const flavor = resolveStatCheckFlavor(
+                run.tierId,
+                run.currentRoom * 100 + run.weekSeed,
+              );
+              return (
+                <div className="mb-4 space-y-1">
+                  <p className="text-slate-200 text-sm leading-relaxed">{flavor.intro}</p>
+                  <p className="text-amber-400/70 text-xs italic">{flavor.hint}</p>
+                </div>
+              );
+            })()}
 
             <div className="space-y-2">
               {resolveStatCheckOptions(

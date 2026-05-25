@@ -106,6 +106,16 @@ export interface PendingAbility {
   dice: number[];
   pattern: DicePattern | null;
   ability: AbilityDef | null;
+  /** Formula intermediates for the overlay breakdown — only present on ability hit (not fizzle). */
+  formulaBreakdown?: {
+    avgRoll: number;
+    statBonus: number;
+    gearBonus: number;
+    baseHit: number;
+    damageMultiplier: number;
+    rawDamage: number;
+    monsterDef: number;
+  };
   applyResult: () => Promise<void>;
 }
 

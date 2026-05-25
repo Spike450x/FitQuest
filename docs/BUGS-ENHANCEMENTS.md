@@ -219,6 +219,8 @@ useEffect(() => {
 
 ### E1 — Dungeon Stat Check: add RPG narrative flavor before options
 
+**Status:** SHIPPED 2026-05-25. Added `STAT_CHECK_SCENARIOS` (3–4 thematic scenarios per tier) and `resolveStatCheckFlavor(tierId, roomSeed)` to `dungeons.ts`. The dungeon run page now renders a 2-line flavor panel (bold description + amber italic hint) above the stat-check option buttons, seeded deterministically from the same room seed.
+
 **Priority:** High — missing player immersion context.
 
 **Current state:** When a stat-check room is entered, the UI immediately renders three button options ("Force the door — STR · Need 12 · You have 9", etc.) with only a generic header: _"Choose your path. Passing requires meeting the stat threshold."_
@@ -266,6 +268,8 @@ useEffect(() => {
 ---
 
 ### E3 — Spells: fix light-mode readability and hover shimmer artifact
+
+**Status:** SHIPPED 2026-05-25. `PremiumSpellCard` shimmer now switches `mix-blend-mode` to `'overlay'` in light mode and `'screen'` in dark mode (detected via `document.documentElement.classList.contains('dark')` at hover time). Opacity also tuned: 0.25 light / 0.15 dark. Static initial value changed to `overlay` (safer default).
 
 **Priority:** Medium — cosmetic regression in light mode.
 
@@ -377,6 +381,8 @@ useEffect(() => {
 ---
 
 ### E8 — Combat Abilities: expose damage formula breakdown in UI
+
+**Status:** SHIPPED 2026-05-25. Added `formulaBreakdown` optional field to `AbilityResolution` (abilities.ts) with `avgRoll`, `statBonus`, `gearBonus`, `baseHit`, `damageMultiplier`, `rawDamage`, `monsterDef`. Threaded through `resolveAbilityAction` → `PendingAbility` type → `DiceRollOverlay` prop. Overlay renders a compact "Damage formula" panel below the ability name when an ability hits (not fizzle): `avg·stat·gear = base → ×multiplier = raw → −DEF`.
 
 **Priority:** Medium — players can't evaluate ability choices without knowing what the multiplier acts on.
 

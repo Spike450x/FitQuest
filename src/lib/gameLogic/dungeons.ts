@@ -283,6 +283,97 @@ export function generateDungeonLayout(tierId: DungeonTierId, weekSeed: number): 
 
 export type StatCheckPath = 'str' | 'wis' | 'agi';
 
+// ─── Stat check flavor scenarios ─────────────────────────────────────────────
+
+interface StatCheckScenario {
+  intro: string;
+  hint: string;
+}
+
+const STAT_CHECK_SCENARIOS: Record<DungeonTierId, StatCheckScenario[]> = {
+  'goblin-caves': [
+    {
+      intro:
+        'A heavy iron door blocks the tunnel ahead. Crude goblin runes warn of traps on the other side.',
+      hint: 'The lock looks breakable, but the runes might reveal a safer way through.',
+    },
+    {
+      intro:
+        'A rope bridge sways over a foul-smelling pit. One plank is missing and the far anchor looks loose.',
+      hint: 'Brute strength could drag you across, but nimble feet might make the crossing easier.',
+    },
+    {
+      intro:
+        'A cackling goblin shaman has sealed the passage with a ward of crackling green energy.',
+      hint: 'The ward hums with simple magic — someone clever might unravel it without touching the bars.',
+    },
+  ],
+  'spider-lair': [
+    {
+      intro:
+        'Thick webbing seals a crevice in the stone. A faint glow beyond suggests a path forward.',
+      hint: 'Raw force could tear through — or a careful eye might spot a natural gap.',
+    },
+    {
+      intro:
+        'A narrow ledge skirts a chasm. Silken threads crisscross the path like invisible tripwires.',
+      hint: 'One wrong step and the threads snap the alarm — but knowledge of spider patterns helps.',
+    },
+    {
+      intro:
+        'A nest of eggs blocks the passage. Disturbing them would wake the brood — but there may be another way.',
+      hint: 'Clearing them by force is obvious; understanding what repels spiders is subtler.',
+    },
+  ],
+  'dark-sanctum': [
+    {
+      intro:
+        'Collapsed masonry chokes the corridor. The blocks are massive — this will take considerable effort.',
+      hint: 'Pure muscle could shift the debris, but precise angles and leverage matter too.',
+    },
+    {
+      intro: 'A magical ward pulses across the archway. Ancient glyphs spiral along the frame.',
+      hint: 'The ward reacts to force with a painful surge; deciphering the sequence might disable it cleanly.',
+    },
+    {
+      intro: 'A crumbling gargoyle perches over a narrow beam crossing a pit of darkness.',
+      hint: 'Balance and reflexes are essential here — the gargoyle is unstable, and the beam is narrow.',
+    },
+  ],
+  'dragons-keep': [
+    {
+      intro:
+        'Molten rock has flowed across the passage, hardening unevenly. Cracks hint at a safe route — or a fall.',
+      hint: 'Sheer force could smash a path through the crust; sharp eyes might trace a cooler channel.',
+    },
+    {
+      intro:
+        'A portcullis of draconic steel bars your path. Draconic runes glow hot along the frame.',
+      hint: 'The bars are meant to keep dragons in — you might tear them open, or decipher the release glyph.',
+    },
+    {
+      intro:
+        'A chasm splits the hallway. Fragments of stone float in the heat-shimmer above — an improvised path for the daring.',
+      hint: 'The fragments are close enough to leap between — but timing matters more than raw strength.',
+    },
+    {
+      intro:
+        'A scorched library seals the next chamber. Rows of encoded tomes line the walls; one holds the combination.',
+      hint: 'Tearing down the door is noisy and risky; reading dragon-script might be quicker.',
+    },
+  ],
+};
+
+/**
+ * Returns a seeded flavor scenario for a stat-check room.
+ * Uses the same `roomSeed` as `resolveStatCheckOptions` for determinism.
+ */
+export function resolveStatCheckFlavor(tierId: DungeonTierId, roomSeed: number): StatCheckScenario {
+  const pool = STAT_CHECK_SCENARIOS[tierId];
+  const idx = mulberry32(roomSeed + 7)(); // offset to avoid colliding with options seed
+  return pool[Math.floor(idx * pool.length)];
+}
+
 export interface StatCheckOption {
   path: StatCheckPath;
   label: string;

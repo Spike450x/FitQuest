@@ -658,6 +658,7 @@ function CombatPageBody({ character }: { character: Character }) {
             dice={pending.ability.dice}
             pattern={pending.ability.pattern}
             ability={pending.ability.ability}
+            formulaBreakdown={pending.ability.formulaBreakdown}
             onDismiss={pending.ability.applyResult}
           />
         )}

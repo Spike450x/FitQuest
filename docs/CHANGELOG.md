@@ -15,6 +15,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Dungeon stat-check flavor, spell shimmer light-mode, ability formula (E1/E3/E8)
+
+- **E1** — Added `STAT_CHECK_SCENARIOS` (3–4 per tier) + `resolveStatCheckFlavor` to `dungeons.ts`. Dungeon run page renders 2-line flavor above stat-check options.
+- **E3** — `PremiumSpellCard` shimmer now uses `mix-blend-mode: overlay` in light mode and `screen` in dark mode (detected on mousemove via classList).
+- **E8** — `AbilityResolution.formulaBreakdown` exposes `avgRoll/statBonus/gearBonus/baseHit/damageMultiplier/rawDamage/monsterDef`. `DiceRollOverlay` renders a compact "Damage formula" panel on ability hit.
+
 ## 2026-05-25 — Mobile responsiveness sweep (E10)
 
 - Mobile bottom nav touch targets raised to `min-h-[44px]` (py-3 instead of py-2).
