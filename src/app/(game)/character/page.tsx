@@ -5,6 +5,14 @@ import { CharacterCard } from '@/components/character/CharacterCard';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
+import {
+  StrengthIcon,
+  WisdomIcon,
+  AgilityIcon,
+  StaminaIcon,
+  HealthIcon,
+  DefenseIcon,
+} from '@/components/art/stat-icons';
 
 export default function CharacterPage() {
   const { character, loading } = useCharacter();
@@ -69,32 +77,56 @@ export default function CharacterPage() {
         <Card variant="default" padding="lg">
           <h3 className="font-bold text-gray-900 dark:text-slate-100 mb-4">How Stats Work</h3>
           <div className="space-y-3 text-sm text-gray-500 dark:text-slate-400">
-            <p>
-              <span className="text-red-500 font-medium">Strength</span> — Increases from workouts.
-              Powers your physical attacks in combat.
-            </p>
-            <p>
-              <span className="text-blue-500 font-medium">Wisdom</span> — Increases from nutrition.
-              Powers your magic attacks in combat.
-            </p>
-            <p>
-              <span className="text-teal-500 font-medium">Agility</span> — Increases from running
-              and steps. Adds a bonus to your escape roll when running away.
-            </p>
-            <p>
-              <span className="text-amber-500 font-medium">Stamina</span> — Increases from cardio
-              and training. Raises your max HP <em>and</em> your ability stamina pool — more uses of
-              your class abilities per fight.
-            </p>
-            <p>
-              <span className="text-pink-500 font-medium">Health</span> — Increases from sleep and
-              hydration. Raises max HP.
-            </p>
-            <p>
-              <span className="text-indigo-500 font-medium">Defense</span> — Increases from workouts
-              and sleep. Reduces damage from monster attacks. Has a 25% chance to be bypassed each
-              round.
-            </p>
+            {[
+              {
+                Icon: StrengthIcon,
+                color: 'text-red-500',
+                label: 'Strength',
+                desc: 'Increases from workouts. Powers your physical attacks in combat.',
+              },
+              {
+                Icon: WisdomIcon,
+                color: 'text-blue-500',
+                label: 'Wisdom',
+                desc: 'Increases from nutrition. Powers your magic attacks in combat.',
+              },
+              {
+                Icon: AgilityIcon,
+                color: 'text-teal-500',
+                label: 'Agility',
+                desc: 'Increases from running and steps. Adds a bonus to your escape roll when running away.',
+              },
+              {
+                Icon: StaminaIcon,
+                color: 'text-amber-500',
+                label: 'Stamina',
+                desc: (
+                  <>
+                    Increases from cardio and training. Raises your max HP <em>and</em> your ability
+                    stamina pool — more uses of your class abilities per fight.
+                  </>
+                ),
+              },
+              {
+                Icon: HealthIcon,
+                color: 'text-pink-500',
+                label: 'Health',
+                desc: 'Increases from sleep and hydration. Raises max HP.',
+              },
+              {
+                Icon: DefenseIcon,
+                color: 'text-indigo-500',
+                label: 'Defense',
+                desc: 'Increases from workouts and sleep. Reduces damage from monster attacks. Has a 25% chance to be bypassed each round.',
+              },
+            ].map(({ Icon, color, label, desc }) => (
+              <div key={label} className="flex items-start gap-2.5">
+                <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${color}`} />
+                <p>
+                  <span className={`font-medium ${color}`}>{label}</span> — {desc}
+                </p>
+              </div>
+            ))}
           </div>
         </Card>
       </div>

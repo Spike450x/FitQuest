@@ -7,13 +7,29 @@ import { StatBar } from './StatBar';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { getItemById, RARITY_TEXT } from '@/lib/gameLogic/items';
+import { StrengthIcon, WisdomIcon, AgilityIcon } from '@/components/art/stat-icons';
 import type { Character, CharacterClass } from '@/types';
 
 // The three primary combat stats shown as bars
 const STAT_CONFIG = [
-  { key: 'strength' as const, label: 'Strength', icon: '⚔️', color: 'bg-red-400' },
-  { key: 'wisdom' as const, label: 'Wisdom', icon: '🧠', color: 'bg-blue-400' },
-  { key: 'agility' as const, label: 'Agility', icon: '🌬️', color: 'bg-teal-400' },
+  {
+    key: 'strength' as const,
+    label: 'Strength',
+    icon: <StrengthIcon className="w-4 h-4 text-red-500" />,
+    color: 'bg-red-400',
+  },
+  {
+    key: 'wisdom' as const,
+    label: 'Wisdom',
+    icon: <WisdomIcon className="w-4 h-4 text-blue-500" />,
+    color: 'bg-blue-400',
+  },
+  {
+    key: 'agility' as const,
+    label: 'Agility',
+    icon: <AgilityIcon className="w-4 h-4 text-teal-500" />,
+    color: 'bg-teal-400',
+  },
 ];
 
 // Class-themed portrait frame palette. Keeps identity moments distinct per

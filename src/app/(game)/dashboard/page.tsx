@@ -15,7 +15,9 @@ import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { getStreakTier } from '@/lib/gameLogic/streaks';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
-import { getActivityIcon } from '@/lib/activityIcons';
+import { getActivityIconSvg } from '@/lib/activityIcons';
+import { LogActivityIcon, CombatIcon, QuestIcon, ShopIcon } from '@/components/art/action-icons';
+import { StrengthIcon, WisdomIcon, AgilityIcon } from '@/components/art/stat-icons';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { StatAllocModal } from '@/components/character/StatAllocModal';
 import { SubclassModal } from '@/components/character/SubclassModal';
@@ -23,16 +25,54 @@ import { getSubclassDef } from '@/lib/gameLogic/passives';
 import type { ActivityLog, ActiveQuest } from '@/types';
 
 const QUICK_ACTIONS = [
-  { href: '/activities', label: 'Log Activity', icon: '📋', desc: 'Earn XP & stats' },
-  { href: '/combat', label: 'Fight a Monster', icon: '🐉', desc: 'Win gold & loot' },
-  { href: '/quests', label: 'View Quests', icon: '📜', desc: 'Track your goals' },
-  { href: '/shop', label: 'Visit Shop', icon: '🏪', desc: 'Spend your gold' },
+  {
+    href: '/activities',
+    label: 'Log Activity',
+    icon: <LogActivityIcon className="w-8 h-8" />,
+    desc: 'Earn XP & stats',
+  },
+  {
+    href: '/combat',
+    label: 'Fight a Monster',
+    icon: <CombatIcon className="w-8 h-8" />,
+    desc: 'Win gold & loot',
+  },
+  {
+    href: '/quests',
+    label: 'View Quests',
+    icon: <QuestIcon className="w-8 h-8" />,
+    desc: 'Track your goals',
+  },
+  {
+    href: '/shop',
+    label: 'Visit Shop',
+    icon: <ShopIcon className="w-8 h-8" />,
+    desc: 'Spend your gold',
+  },
 ];
 
 const STAT_CONFIG = [
-  { key: 'strength' as const, label: 'Strength', icon: '⚔️', color: 'bg-red-400', max: 50 },
-  { key: 'wisdom' as const, label: 'Wisdom', icon: '🧠', color: 'bg-blue-400', max: 50 },
-  { key: 'agility' as const, label: 'Agility', icon: '🌬️', color: 'bg-teal-400', max: 50 },
+  {
+    key: 'strength' as const,
+    label: 'Strength',
+    icon: <StrengthIcon className="w-4 h-4 text-red-500" />,
+    color: 'bg-red-400',
+    max: 50,
+  },
+  {
+    key: 'wisdom' as const,
+    label: 'Wisdom',
+    icon: <WisdomIcon className="w-4 h-4 text-blue-500" />,
+    color: 'bg-blue-400',
+    max: 50,
+  },
+  {
+    key: 'agility' as const,
+    label: 'Agility',
+    icon: <AgilityIcon className="w-4 h-4 text-teal-500" />,
+    color: 'bg-teal-400',
+    max: 50,
+  },
 ];
 
 export default function DashboardPage() {
@@ -233,7 +273,7 @@ export default function DashboardPage() {
         {/* Recent activity feed */}
         <Card variant="default" padding="lg">
           <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-3 uppercase tracking-wider">
-            📋 Recent Activity
+            Recent Activity
           </h3>
           {logsLoading ? (
             <div className="space-y-2">
@@ -283,12 +323,14 @@ function timeAgo(ms: number): string {
 
 function ActivityFeedItem({ log }: { log: ActivityLog }) {
   const def = ACTIVITY_DEFINITIONS[log.type];
-  const icon = getActivityIcon(log.type);
+  const icon = getActivityIconSvg(log.type, 'w-5 h-5');
   const amount = Number(log.data.amount);
 
   return (
     <li className="flex items-center gap-3 text-sm">
-      <span className="text-lg w-7 text-center">{icon}</span>
+      <span className="w-7 flex items-center justify-center text-gray-500 dark:text-slate-400 shrink-0">
+        {icon}
+      </span>
       <div className="flex-1 min-w-0">
         <span className="font-medium text-gray-800 dark:text-slate-100 capitalize">
           {def.label}
@@ -317,7 +359,7 @@ function ActiveQuestsWidget({ quests, loading }: { quests: ActiveQuest[]; loadin
     <Card variant="default" padding="lg">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
-          📜 Daily Quests
+          Daily Quests
         </h3>
         <Link href="/quests" className="text-xs font-semibold text-indigo-600 hover:underline">
           View all →
