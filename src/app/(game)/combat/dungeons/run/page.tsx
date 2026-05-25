@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCharacter } from '@/hooks/useCharacter';
-import { useCharacterStore } from '@/store/characterStore';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { useDungeonStore } from '@/store/dungeonStore';
 import { MONSTER_CATALOG } from '@/lib/gameLogic/monsters';
@@ -47,6 +46,7 @@ import { DiceRollOverlay } from '@/components/combat/overlays/DiceRollOverlay';
 import { SpellRollOverlay } from '@/components/combat/overlays/SpellRollOverlay';
 import { useCombatEncounter } from '@/hooks/useCombatEncounter';
 import { useCombatStore } from '@/store/combatStore';
+import { refreshPlayerState } from '@/lib/refreshPlayerState';
 import { getStreakLootMultiplier } from '@/lib/gameLogic/streaks';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 import type {
@@ -487,8 +487,6 @@ function DungeonCombatShell({
 export default function DungeonRunPage() {
   const router = useRouter();
   const { character } = useCharacter();
-  const { fetchCharacter } = useCharacterStore();
-  const { fetchInventory } = useInventoryStore();
   const { activeRun, fetchActiveRun, advanceRoom, completeRun, abandonRun } = useDungeonStore();
 
   const [phase, setPhase] = useState<RunPhase>('loading');
@@ -665,7 +663,7 @@ export default function DungeonRunPage() {
           if (result.inventoryPartial) {
             toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
           }
-          await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
+          await refreshPlayerState(character.uid);
         }
         await completeRun(character.uid, false);
         router.push('/combat/dungeons');
@@ -673,7 +671,7 @@ export default function DungeonRunPage() {
         console.error('[dungeon flee] claim failed', err);
       }
     },
-    [character, fetchCharacter, fetchInventory, completeRun, router],
+    [character, completeRun, router],
   );
 
   // ── Non-combat room handlers ───────────────────────────────────────────────
@@ -788,7 +786,7 @@ export default function DungeonRunPage() {
       if (result.inventoryPartial) {
         toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
       }
-      await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
+      await refreshPlayerState(character.uid);
       await completeRun(character.uid, false);
       router.push('/combat/dungeons');
     } catch (err) {
@@ -812,7 +810,7 @@ export default function DungeonRunPage() {
       if (result.inventoryPartial) {
         toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
       }
-      await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
+      await refreshPlayerState(character.uid);
       await completeRun(character.uid, legendaryUsed);
 
       fireConfetti(legendaryUsed ? 'legendary' : 'celebration');
@@ -893,10 +891,7 @@ export default function DungeonRunPage() {
                 if (result.inventoryPartial) {
                   toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
                 }
-                await Promise.all([
-                  fetchCharacter(character.uid, true),
-                  fetchInventory(character.uid),
-                ]);
+                await refreshPlayerState(character.uid);
               }
               await abandonRun(character.uid);
               router.push('/combat/dungeons');

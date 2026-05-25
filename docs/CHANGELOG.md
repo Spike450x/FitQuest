@@ -15,6 +15,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — refreshPlayerState helper + shop gold desync fix (B4)
+
+- New `src/lib/refreshPlayerState.ts` — canonical `Promise.all([fetchCharacter(uid, true), fetchInventory(uid)])` helper.
+- `inventoryStore.buyItem` now calls `refreshPlayerState` after the Firestore transaction instead of applying a local gold delta — eliminates the stale-gold display discrepancy.
+- All 4 dungeon claim call sites in `dungeons/run/page.tsx` migrated to `refreshPlayerState` (removed direct `useCharacterStore` import).
+
 ## 2026-05-25 — Combat nav lock + beforeunload guard (B9)
 
 - New `src/store/combatStore.ts` — single `combatActive` boolean with `setCombatActive` / `clear`.

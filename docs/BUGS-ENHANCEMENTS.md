@@ -73,6 +73,8 @@ extraProgress: pick.extraTargets ? {} : deleteField(),
 
 ### B4 — Shop Overcharge: item costs more gold than displayed price
 
+**Status:** SHIPPED 2026-05-25. `inventoryStore.buyItem` now calls `refreshPlayerState(uid)` (new `src/lib/refreshPlayerState.ts`) after the transaction instead of applying a local gold delta. All 4 dungeon claim call sites in `src/app/(game)/combat/dungeons/run/page.tsx` also migrated to `refreshPlayerState`. `useCharacterStore` import removed from the dungeon run page (no longer needed directly).
+
 **Severity:** High — players lose more gold than the listed price implies.
 
 **Symptoms:** Player buys an item; the gold deducted visually after purchase is larger than the item's displayed price.

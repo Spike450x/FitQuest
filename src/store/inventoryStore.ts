@@ -152,20 +152,14 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
 
     const acquiredAt = Date.now();
     try {
-      const newDocId = await runBuyItemTransaction(uid, itemDefId, def.price, acquiredAt);
-      const newItem: InventoryItem = {
-        id: newDocId,
-        itemDefId,
-        quantity: 1,
-        equipped: false,
-        acquiredAt,
-      };
-      set((state) => ({ items: [...state.items, newItem] }));
-      useCharacterStore.setState((state) => ({
-        character: state.character
-          ? { ...state.character, gold: state.character.gold - def.price }
-          : null,
-      }));
+      await runBuyItemTransaction(uid, itemDefId, def.price, acquiredAt);
+      // Pull authoritative gold + inventory from Firestore instead of applying
+      // a local delta — avoids stale-gold desync when the player has been on
+      // another device since the store was last populated.
+      await Promise.all([
+        useCharacterStore.getState().fetchCharacter(uid, true),
+        get().fetchInventory(uid, true),
+      ]);
       return true;
     } catch (e) {
       captureError('inventoryStore.buyItem', e);
