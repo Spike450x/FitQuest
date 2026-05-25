@@ -1,0 +1,80 @@
+name: Run E2E Suite
+description: |
+  Builds Cloud Functions, boots auth/firestore/functions emulators, installs
+  Playwright browsers, and runs the configured test projects. Reused by
+  ci.yml and scheduled-e2e.yml so the boot logic stays in one place.
+
+inputs:
+  playwright-flags:
+    description: Extra flags appended to `npx playwright test` (e.g. "--trace=on").
+    required: false
+    default: ''
+  upload-report:
+    description: Set "true" to upload playwright-report/ + test-results/ as an artifact.
+    required: false
+    default: 'true'
+  artifact-name:
+    description: Name for the uploaded artifact.
+    required: false
+    default: playwright-report
+
+runs:
+  using: composite
+  steps:
+    - name: Cache built Cloud Functions
+      uses: actions/cache@v4
+      with:
+        path: functions/lib
+        key: functions-lib-${{ hashFiles('functions/src/**', 'functions/package-lock.json', 'functions/tsconfig.json') }}
+
+    - name: Install Cloud Functions deps + build
+      shell: bash
+      run: |
+        cd functions
+        npm ci --prefer-offline
+        # Build only if cache missed (lib/ absent or stale).
+        if [ ! -f lib/index.js ]; then
+          npm run build
+        fi
+
+    - name: Install Playwright browsers
+      shell: bash
+      run: npx playwright install --with-deps chromium
+
+    - name: Start Firebase emulators (auth + firestore + functions)
+      shell: bash
+      run: |
+        npx firebase emulators:start \
+          --only auth,firestore,functions \
+          --project demo-fitness-rpg &
+        # Poll all three emulator ports.
+        for i in $(seq 1 45); do
+          curl -sf http://127.0.0.1:9099 > /dev/null 2>&1 \
+            && curl -sf http://127.0.0.1:8080 > /dev/null 2>&1 \
+            && curl -sf http://127.0.0.1:5001 > /dev/null 2>&1 \
+            && echo "Emulators ready" && break
+          sleep 2
+        done
+
+    - name: Run Playwright tests
+      shell: bash
+      env:
+        NEXT_PUBLIC_USE_FIREBASE_EMULATOR: 'true'
+        NEXT_PUBLIC_FIREBASE_API_KEY: e2e-placeholder
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: demo.firebaseapp.com
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: demo-fitness-rpg
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: demo.appspot.com
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+        NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:e2etest'
+      run: npx playwright test ${{ inputs.playwright-flags }}
+
+    - name: Upload Playwright report
+      if: always() && inputs.upload-report == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 14
+        if-no-files-found: ignore
