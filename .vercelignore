@@ -1,0 +1,22 @@
+# Backend-only paths — Vercel only builds the Next.js frontend.
+# Firebase Cloud Functions deploy from CI via `firebase deploy`, not Vercel.
+functions/
+
+# Tests + CI fixtures — never needed at runtime.
+tests/
+e2e/
+__tests__/
+
+# Firebase backend config — irrelevant to the frontend build.
+firestore.rules
+firestore.indexes.json
+firebase.json
+.firebaserc
+storage.rules
+
+# Repo scaffolding.
+docs/
+scripts/
+.husky/
+.github/
+.claude/
