@@ -24,6 +24,15 @@ const PLAY_FUNCS = {
   achievement: sounds.playAchievement,
   streak: sounds.playStreak,
   personalRecord: sounds.playPersonalRecord,
+  // Spell school–themed impact sounds
+  spellDamage: sounds.playSpellDamage,
+  spellFire: sounds.playSpellFire,
+  spellMagicDamage: sounds.playSpellMagicDamage,
+  spellHeal: sounds.playSpellHeal,
+  spellStun: sounds.playSpellStun,
+  spellDefense: sounds.playSpellDefense,
+  spellLifesteal: sounds.playSpellLifesteal,
+  spellStamina: sounds.playSpellStamina,
 } as const;
 
 function readEnabled(): boolean {

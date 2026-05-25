@@ -337,3 +337,103 @@ export function playPersonalRecord(): void {
     tone(ctx, f, t, 0.5, { type: 'triangle', volume: 0.18 });
   });
 }
+
+// ── Spell school–themed impact sounds ────────────────────────────────────────
+
+/** Damage school — sharp crackling strike */
+export function playSpellDamage(): void {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  noise(ctx, t, 0.12, { volume: 0.3, bandpass: { freq: 1600, q: 1.2 } });
+  tone(ctx, 140, t, 0.15, { type: 'sawtooth', volume: 0.35 });
+  tone(ctx, 220, t + 0.04, 0.1, { type: 'square', volume: 0.2 });
+}
+
+/** Fire school — crackling burst with ascending dissonance */
+export function playSpellFire(): void {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  noise(ctx, t, 0.22, { volume: 0.25, bandpass: { freq: 900, q: 0.8 } });
+  tone(ctx, 330, t, 0.18, { type: 'sawtooth', volume: 0.22 });
+  tone(ctx, 466, t + 0.08, 0.18, { type: 'triangle', volume: 0.18 });
+  tone(ctx, 587, t + 0.16, 0.2, { type: 'triangle', volume: 0.16 });
+}
+
+/** Magic-damage school — mystical arcane explosion */
+export function playSpellMagicDamage(): void {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Three rapid descending notes + heavy noise
+  [880, 659, 523].forEach((f, i) => {
+    tone(ctx, f, t + i * 0.06, 0.14, { type: 'square', volume: 0.18 });
+  });
+  noise(ctx, t + 0.1, 0.15, { volume: 0.25, bandpass: { freq: 2000, q: 1.5 } });
+  tone(ctx, 110, t + 0.1, 0.2, { type: 'sine', volume: 0.4 });
+}
+
+/** Heal school — warm, soft ascending chime */
+export function playSpellHeal(): void {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Gentle ascending triad — C5 E5 G5 C6
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+    tone(ctx, f, t + i * 0.08, 0.35, {
+      type: 'sine',
+      volume: 0.17,
+      envelope: { attack: 0.02, release: 0.28 },
+    });
+  });
+  // Sparkle top note
+  tone(ctx, 1568, t + 0.36, 0.3, { type: 'triangle', volume: 0.12 });
+}
+
+/** Stun school — disorienting detuned wobble */
+export function playSpellStun(): void {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Detuned pair creates beating effect
+  tone(ctx, 220, t, 0.35, { type: 'triangle', volume: 0.22 });
+  tone(ctx, 224, t, 0.35, { type: 'triangle', volume: 0.22, detune: 30 });
+  // Zap burst
+  noise(ctx, t, 0.08, { volume: 0.2, bandpass: { freq: 3000, q: 2 } });
+}
+
+/** Defense school — solid low shield resonance */
+export function playSpellDefense(): void {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Metallic clang: high noise burst + low sustain
+  noise(ctx, t, 0.06, { volume: 0.28, bandpass: { freq: 2400, q: 1 } });
+  tone(ctx, 174.61, t, 0.4, { type: 'triangle', volume: 0.38 }); // F3
+  tone(ctx, 261.63, t + 0.05, 0.35, { type: 'sine', volume: 0.22 }); // C4
+}
+
+/** Lifesteal school — dark pulsing drain */
+export function playSpellLifesteal(): void {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Low descending ominous notes
+  [196, 155.56, 130.81].forEach((f, i) => {
+    tone(ctx, f, t + i * 0.1, 0.25, { type: 'sawtooth', volume: 0.2 });
+  });
+  noise(ctx, t, 0.28, { volume: 0.12, bandpass: { freq: 300, q: 1.5 } });
+}
+
+/** Stamina school — energetic quick burst */
+export function playSpellStamina(): void {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Bright quick ascending notes
+  [523.25, 783.99, 1046.5, 1318.51].forEach((f, i) => {
+    tone(ctx, f, t + i * 0.05, 0.14, { type: 'square', volume: 0.15 });
+  });
+  tone(ctx, 1568, t + 0.22, 0.2, { type: 'triangle', volume: 0.18 });
+}
