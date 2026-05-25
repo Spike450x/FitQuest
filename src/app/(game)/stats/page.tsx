@@ -283,7 +283,7 @@ function StatsContent({ character, uid }: { character: Character; uid: string })
           <button
             key={value}
             onClick={() => setRange(value)}
-            className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            className={`px-4 py-2.5 min-h-[40px] rounded-lg text-xs font-medium transition-colors ${
               range === value
                 ? 'bg-white dark:bg-slate-900 text-indigo-700 shadow-sm'
                 : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
@@ -592,7 +592,7 @@ function XpChart({ data }: { data: { date: string; questXp: number; combatXp: nu
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
             <XAxis
               dataKey="date"
@@ -646,7 +646,7 @@ function ActivityFrequencyChart({ data }: { data: Record<string, number | string
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
             <XAxis
               dataKey="date"
@@ -704,7 +704,7 @@ function QuestsChart({ data }: { data: { date: string; quests: number }[] }) {
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
             <XAxis
               dataKey="date"

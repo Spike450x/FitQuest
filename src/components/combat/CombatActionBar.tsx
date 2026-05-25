@@ -1,6 +1,7 @@
 'use client';
 
 import { COMBAT } from '@/lib/gameLogic/constants';
+const SPELL_MAX_CHARGES = COMBAT.SPELL_MAX_CHARGES;
 import { gearAttackBonus } from '@/lib/gameLogic/combat';
 import {
   canBloodPact,
@@ -48,6 +49,7 @@ export function CombatActionBar({
   onFlee,
   modifiers,
   showMagicButton = false,
+  spellChargesUsed,
 }: {
   character: Character;
   fightState: FightState;
@@ -64,7 +66,7 @@ export function CombatActionBar({
   onAttack: () => void;
   onMagic: () => void;
   onAbility: () => void;
-  onCastSpell: (spellDef: ItemDef) => void;
+  onCastSpell: (spellDef: ItemDef, invItemId: string) => void;
   onRest: () => void;
   onMeditate: () => void;
   onUseItem: (invItemId: string) => void;
@@ -72,6 +74,11 @@ export function CombatActionBar({
   modifiers?: CombatModifiers;
   /** Show a dedicated Magic-attack button alongside Attack (optional — arena currently bundles magic into ability/spell flow only). */
   showMagicButton?: boolean;
+  /**
+   * Charges used per inventory item id this encounter (from useCombatEncounter).
+   * Drives the dot meter and the exhausted-spell gate in the spell panel.
+   */
+  spellChargesUsed?: Record<string, number>;
 }) {
   const isRolling = rollingAction !== null;
   const fleeDisabled = modifiers?.fleeDisabled ?? false;
@@ -84,6 +91,13 @@ export function CombatActionBar({
     fightState.isFirstAbility,
   );
   const canAbility = playerStamina >= staCost;
+
+  // Compute which spells still have charges this encounter
+  const spellsWithCharges = equippedSpells.filter(({ invItem }) => {
+    const used = spellChargesUsed?.[invItem.id] ?? 0;
+    return used < SPELL_MAX_CHARGES;
+  });
+  const allSpellsExhausted = equippedSpells.length > 0 && spellsWithCharges.length === 0;
 
   return (
     <div className="space-y-2">
@@ -152,14 +166,16 @@ export function CombatActionBar({
           sublabel={
             equippedSpells.length === 0
               ? 'No spells equipped'
-              : `${equippedSpells.length} spell${equippedSpells.length !== 1 ? 's' : ''} · ${playerMagic}✨ left`
+              : allSpellsExhausted
+                ? 'All spells exhausted'
+                : `${spellsWithCharges.length} spell${spellsWithCharges.length !== 1 ? 's' : ''} ready · ${playerMagic}✨ left`
           }
           onClick={() => {
             setShowSpellPanel(!showSpellPanel);
             setShowItemPanel(false);
           }}
           loading={false}
-          disabled={isRolling || equippedSpells.length === 0}
+          disabled={isRolling || equippedSpells.length === 0 || allSpellsExhausted}
           color="violet"
         />
       </div>
@@ -238,24 +254,42 @@ export function CombatActionBar({
               const bloodPactAvail = canBloodPact(character, effectiveCost, playerMagic, playerHp);
               const classOk =
                 sm.classRestriction === 'all' || sm.classRestriction === character.class;
-              const canCast = (affordable || bloodPactAvail) && classOk;
-              const actionLabel = !classOk
-                ? `${sm.classRestriction} only`
-                : bloodPactAvail
-                  ? 'Cast (Blood Pact −10 HP)'
-                  : !affordable
-                    ? 'Not enough magic'
-                    : 'Cast Spell';
+              const chargesUsed = spellChargesUsed?.[invItem.id] ?? 0;
+              const chargesLeft = SPELL_MAX_CHARGES - chargesUsed;
+              const exhausted = chargesLeft <= 0;
+              const canCast = (affordable || bloodPactAvail) && classOk && !exhausted;
+              const actionLabel = exhausted
+                ? 'No charges left'
+                : !classOk
+                  ? `${sm.classRestriction} only`
+                  : bloodPactAvail
+                    ? 'Cast (Blood Pact −10 HP)'
+                    : !affordable
+                      ? 'Not enough magic'
+                      : 'Cast Spell';
               return (
-                <PremiumSpellCard
-                  key={invItem.id}
-                  def={def}
-                  wisdomValue={character.stats.wisdom}
-                  affordable={affordable || bloodPactAvail}
-                  disabled={!canCast || isRolling}
-                  actionLabel={actionLabel}
-                  onAction={() => canCast && onCastSpell(def)}
-                />
+                <div key={invItem.id} className="flex flex-col gap-1">
+                  <PremiumSpellCard
+                    def={def}
+                    wisdomValue={character.stats.wisdom}
+                    affordable={(affordable || bloodPactAvail) && !exhausted}
+                    disabled={!canCast || isRolling}
+                    actionLabel={actionLabel}
+                    onAction={() => canCast && onCastSpell(def, invItem.id)}
+                  />
+                  {/* Charge dot meter */}
+                  <div className="flex gap-1 justify-center">
+                    {Array.from({ length: SPELL_MAX_CHARGES }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-2 h-2 rounded-full transition-colors ${
+                          i < chargesLeft ? 'bg-violet-400' : 'bg-slate-700 dark:bg-slate-600'
+                        }`}
+                        aria-hidden="true"
+                      />
+                    ))}
+                  </div>
+                </div>
               );
             })}
           </div>

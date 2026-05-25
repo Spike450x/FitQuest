@@ -4,7 +4,34 @@ import { useEffect, useState } from 'react';
 import { Die3D } from '@/components/ui/Die3D';
 import { playSound } from '@/hooks/useSound';
 import { describeRequirement, getHighlightedSpellDiceIndices } from '@/lib/gameLogic/spells';
+import { spellEffectKey } from '@/lib/entityArt';
 import type { ItemDef } from '@/types';
+import type { SpellEffectKey } from '@/components/art/silhouettes';
+import type { SoundKey } from '@/hooks/useSound';
+
+const SPELL_FLASH_BG: Record<SpellEffectKey, string> = {
+  damage: 'bg-rose-500',
+  fire: 'bg-orange-500',
+  'magic-damage': 'bg-violet-500',
+  heal: 'bg-emerald-500',
+  stun: 'bg-amber-400',
+  'stun-heal': 'bg-amber-400',
+  defense: 'bg-sky-500',
+  lifesteal: 'bg-purple-600',
+  stamina: 'bg-amber-400',
+};
+
+const SPELL_SOUND: Record<SpellEffectKey, SoundKey> = {
+  damage: 'spellDamage',
+  fire: 'spellFire',
+  'magic-damage': 'spellMagicDamage',
+  heal: 'spellHeal',
+  stun: 'spellStun',
+  'stun-heal': 'spellStun',
+  defense: 'spellDefense',
+  lifesteal: 'spellLifesteal',
+  stamina: 'spellStamina',
+};
 
 /**
  * Spell roll overlay — animates the spell's dice (count from the requirement)
@@ -15,14 +42,24 @@ export function SpellRollOverlay({
   spellDef,
   dice,
   requirementMet,
+  monsterRoll,
+  monsterStunned,
+  monsterDamage,
   onDismiss,
 }: {
   spellDef: ItemDef;
   dice: number[];
   requirementMet: boolean;
+  /** Monster's raw d10 roll for the counter-attack (0 if stunned). */
+  monsterRoll: number;
+  /** True when the spell stunned the monster, skipping the counter-attack. */
+  monsterStunned: boolean;
+  /** Damage the monster dealt to the player (0 if stunned). */
+  monsterDamage: number;
   onDismiss: () => Promise<void>;
 }) {
   const sm = spellDef.spellMechanics!;
+  const effectKey = spellEffectKey(sm.effect);
   const [phase, setPhase] = useState<'spinning' | 'settling' | 'result'>('spinning');
   const [displayDice, setDisplayDice] = useState<number[]>(() =>
     Array.from({ length: dice.length }, () => Math.ceil(Math.random() * 6)),
@@ -30,6 +67,7 @@ export function SpellRollOverlay({
   const [settled, setSettled] = useState<boolean[]>(() => dice.map(() => false));
   const [resultVisible, setResultVisible] = useState(false);
   const [dismissing, setDismissing] = useState(false);
+  const [flashActive, setFlashActive] = useState(false);
 
   const highlighted = requirementMet ? getHighlightedSpellDiceIndices(dice, sm.requirement) : [];
 
@@ -79,6 +117,15 @@ export function SpellRollOverlay({
     return () => timers.forEach(clearTimeout);
   }, [phase, dice]);
 
+  // Flash + school sound when result is revealed
+  useEffect(() => {
+    if (phase !== 'result') return;
+    setFlashActive(true);
+    const t = setTimeout(() => setFlashActive(false), 350);
+    playSound(requirementMet ? SPELL_SOUND[effectKey] : 'fail');
+    return () => clearTimeout(t);
+  }, [phase, requirementMet, effectKey]);
+
   async function handleDismiss() {
     setDismissing(true);
     await onDismiss();
@@ -97,6 +144,12 @@ export function SpellRollOverlay({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      {/* School-themed screen flash on result reveal */}
+      <div
+        className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${SPELL_FLASH_BG[effectKey]}`}
+        style={{ opacity: flashActive ? 0.18 : 0 }}
+        aria-hidden
+      />
       <div className="relative bg-white dark:bg-slate-900 rounded-2xl px-6 py-7 shadow-2xl mx-4 max-w-xs w-full space-y-5 text-center">
         <p className="text-xs font-bold text-violet-400 uppercase tracking-widest">
           {phase === 'spinning'
@@ -154,6 +207,23 @@ export function SpellRollOverlay({
               </p>
             </div>
           )}
+
+          {/* Monster counter-attack — mirrors ActionRollOverlay's enemy section */}
+          <div className="rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/60 px-4 py-3 space-y-1.5">
+            {monsterStunned ? (
+              <p className="text-xs font-semibold text-amber-500">Monster stunned — no counter</p>
+            ) : (
+              <>
+                <p className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                  Monster strikes back
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <Die3D value={monsterRoll || 1} size="sm" variant="settled" color="rose" />
+                  <span className="text-sm font-semibold text-red-500">−{monsterDamage} HP</span>
+                </div>
+              </>
+            )}
+          </div>
 
           <button
             onClick={handleDismiss}

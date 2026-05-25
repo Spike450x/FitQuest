@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCharacter } from '@/hooks/useCharacter';
-import { useCharacterStore } from '@/store/characterStore';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { useDungeonStore } from '@/store/dungeonStore';
 import { MONSTER_CATALOG } from '@/lib/gameLogic/monsters';
@@ -12,6 +11,7 @@ import {
   DUNGEON_BOSSES,
   VENOMFANG_BRACER_ID,
   resolveStatCheckOptions,
+  resolveStatCheckFlavor,
   statCheckFailureDamage,
   checkVenomProc,
   applyVenomTick,
@@ -46,8 +46,10 @@ import { ActionRollOverlay } from '@/components/combat/overlays/ActionRollOverla
 import { DiceRollOverlay } from '@/components/combat/overlays/DiceRollOverlay';
 import { SpellRollOverlay } from '@/components/combat/overlays/SpellRollOverlay';
 import { useCombatEncounter } from '@/hooks/useCombatEncounter';
+import { useCombatStore } from '@/store/combatStore';
+import { refreshPlayerState } from '@/lib/refreshPlayerState';
 import { getStreakLootMultiplier } from '@/lib/gameLogic/streaks';
-import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
+import { CLASS_DEFINITIONS, COMBAT } from '@/lib/gameLogic/constants';
 import type {
   DungeonRoomType,
   MonsterDef,
@@ -106,7 +108,7 @@ function ProgressChain({
         const isCurrent = i === currentRoom;
         const isDefeated = phase === 'defeat' && i === currentRoom;
         let nodeClass =
-          'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border';
+          'w-8 h-8 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold border';
         if (isDefeated) {
           nodeClass += ' bg-red-900 border-red-500 text-red-300';
         } else if (isCleared) {
@@ -201,6 +203,8 @@ function DungeonCombatShell({
 }: DungeonCombatShellProps) {
   const inventoryItems = useInventoryStore((s) => s.items);
   const consumeItem = useInventoryStore((s) => s.useConsumable);
+  const persistSpellChargeDecrements = useInventoryStore((s) => s.persistSpellChargeDecrements);
+  const replenishSpellCharges = useInventoryStore((s) => s.replenishSpellCharges);
 
   const [poisoned, setPoisoned] = useState<PoisonedStatus | null>(null);
   const [enrageState, setEnrageState] = useState<BossEnrageState>(() => initialEnrageState());
@@ -316,6 +320,23 @@ function DungeonCombatShell({
     };
   }, [isBossRoom, monster.id, monster.hp, poisoned, enrageState, character.equippedGear.accessory]);
 
+  // Build initialChargesUsed from inventory: items with charges set (depleted
+  // from a previous room) contribute their remaining → used count.
+  const initialChargesUsed = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const item of inventoryItems) {
+      const def = getItemById(item.itemDefId);
+      if (!item.equipped || def?.type !== 'spell') continue;
+      if (item.charges !== undefined) {
+        const used = Math.max(0, COMBAT.SPELL_MAX_CHARGES - item.charges);
+        if (used > 0) map[item.id] = used;
+      }
+    }
+    return map;
+    // intentionally stable — only computed on mount for the current room
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const encounter = useCombatEncounter({
     monster,
     character,
@@ -323,12 +344,15 @@ function DungeonCombatShell({
     maxStamina,
     maxMagic,
     initial: { hp: initialHp, stamina: initialStamina, magic: initialMagic },
+    initialChargesUsed,
     modifiers,
     streakMultiplier,
     getPityFor,
     consumeItem,
     onResourceChange: onResourceMirror,
     onVictory: async ({ droppedItems, finalHp, finalStamina, finalMagic }) => {
+      // Persist spell charge decrements so they survive the room transition
+      await persistSpellChargeDecrements(encounter.spellChargesUsed);
       await onVictory({ droppedItems, finalHp, finalStamina, finalMagic });
     },
     onDefeat: ({ finalHp, finalStamina, finalMagic }) => {
@@ -340,7 +364,16 @@ function DungeonCombatShell({
     onBannerMessage: (msg) => setEnrageBanner(msg),
   });
 
-  const { fightState, pending, bursts, expireBurst, usingItem, rollingAction, actions } = encounter;
+  const {
+    fightState,
+    pending,
+    bursts,
+    expireBurst,
+    usingItem,
+    rollingAction,
+    actions,
+    spellChargesUsed,
+  } = encounter;
   const playerEmoji = CLASS_DEFINITIONS[character.class].emoji;
   const playerDefStat = (character.stats.defense ?? 0) + gearDefenseBonus(character);
   const lastEntry = fightState.log[fightState.log.length - 1] ?? null;
@@ -373,6 +406,11 @@ function DungeonCombatShell({
           hp: fightState.monsterHp,
           maxHp: monster.hp,
           defense: monster.defense,
+          passive: isBossRoom ? undefined : monster.passive,
+          activeLabel:
+            !isBossRoom && fightState.activeUsed && monster.active
+              ? monster.active.label
+              : undefined,
         }}
         monsterSub={
           poisoned && poisoned.roundsRemaining > 0 ? (
@@ -450,6 +488,7 @@ function DungeonCombatShell({
           onUseItem={actions.useItem}
           onFlee={actions.flee}
           modifiers={modifiers}
+          spellChargesUsed={spellChargesUsed}
         />
       )}
 
@@ -466,6 +505,7 @@ function DungeonCombatShell({
           dice={pending.ability.dice}
           pattern={pending.ability.pattern}
           ability={pending.ability.ability}
+          formulaBreakdown={pending.ability.formulaBreakdown}
           onDismiss={pending.ability.applyResult}
         />
       )}
@@ -474,6 +514,9 @@ function DungeonCombatShell({
           spellDef={pending.spell.spellDef}
           dice={pending.spell.dice}
           requirementMet={pending.spell.requirementMet}
+          monsterRoll={pending.spell.monsterRoll}
+          monsterStunned={pending.spell.monsterStunned}
+          monsterDamage={pending.spell.monsterDamage}
           onDismiss={pending.spell.applyResult}
         />
       )}
@@ -486,9 +529,8 @@ function DungeonCombatShell({
 export default function DungeonRunPage() {
   const router = useRouter();
   const { character } = useCharacter();
-  const { fetchCharacter } = useCharacterStore();
-  const { fetchInventory } = useInventoryStore();
   const { activeRun, fetchActiveRun, advanceRoom, completeRun, abandonRun } = useDungeonStore();
+  const replenishSpellCharges = useInventoryStore((s) => s.replenishSpellCharges);
 
   const [phase, setPhase] = useState<RunPhase>('loading');
   const [playerHp, setPlayerHp] = useState(0);
@@ -532,6 +574,23 @@ export default function DungeonRunPage() {
   useEffect(() => {
     bootstrap();
   }, [bootstrap]);
+
+  // Lock nav and guard page unload while a combat or boss room is active
+  useEffect(() => {
+    const active = phase === 'combat' || phase === 'boss';
+    useCombatStore.getState().setCombatActive(active);
+    if (!active) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [phase]);
+
+  // Ensure the flag is cleared if the component unmounts mid-fight
+  useEffect(() => {
+    return () => useCombatStore.getState().setCombatActive(false);
+  }, []);
 
   function enterRoom(type: DungeonRoomType) {
     setLog([]);
@@ -647,7 +706,7 @@ export default function DungeonRunPage() {
           if (result.inventoryPartial) {
             toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
           }
-          await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
+          await refreshPlayerState(character.uid);
         }
         await completeRun(character.uid, false);
         router.push('/combat/dungeons');
@@ -655,7 +714,7 @@ export default function DungeonRunPage() {
         console.error('[dungeon flee] claim failed', err);
       }
     },
-    [character, fetchCharacter, fetchInventory, completeRun, router],
+    [character, completeRun, router],
   );
 
   // ── Non-combat room handlers ───────────────────────────────────────────────
@@ -731,6 +790,9 @@ export default function DungeonRunPage() {
     setPlayerStamina(newSta);
     setPlayerMagic(newMag);
 
+    // Replenish spell charges at rest sites — the one mid-dungeon restore point
+    await replenishSpellCharges();
+
     const updatedRooms = run.rooms.map((r, i) =>
       i === run.currentRoom ? { ...r, cleared: true } : r,
     );
@@ -746,7 +808,7 @@ export default function DungeonRunPage() {
     });
 
     setRoomResult({ xp: 0, gold: 0, items: [] });
-    setLog([`🌿 Rested — +${staRestore} Stamina, +${magRestore} Magic`]);
+    setLog([`🌿 Rested — +${staRestore} Stamina, +${magRestore} Magic — Spell charges restored!`]);
     setPhase('transition');
     setActing(false);
   }
@@ -770,9 +832,14 @@ export default function DungeonRunPage() {
       if (result.inventoryPartial) {
         toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
       }
-      await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
+      // Reset spell charges so the next dungeon run starts fresh
+      await replenishSpellCharges();
+      await refreshPlayerState(character.uid);
       await completeRun(character.uid, false);
       router.push('/combat/dungeons');
+    } catch (err) {
+      console.error('[dungeon retreat] claim failed', err);
+      toast.error('Failed to save retreat rewards — please try again.');
     } finally {
       setClaiming(false);
     }
@@ -791,7 +858,9 @@ export default function DungeonRunPage() {
       if (result.inventoryPartial) {
         toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
       }
-      await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
+      // Reset spell charges so the next dungeon run starts fresh
+      await replenishSpellCharges();
+      await refreshPlayerState(character.uid);
       await completeRun(character.uid, legendaryUsed);
 
       fireConfetti(legendaryUsed ? 'legendary' : 'celebration');
@@ -807,6 +876,9 @@ export default function DungeonRunPage() {
       } else {
         router.push('/combat/dungeons');
       }
+    } catch (err) {
+      console.error('[dungeon claim victory] failed', err);
+      toast.error('Failed to claim rewards — please try again.');
     } finally {
       setClaiming(false);
     }
@@ -869,13 +941,15 @@ export default function DungeonRunPage() {
                 if (result.inventoryPartial) {
                   toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
                 }
-                await Promise.all([
-                  fetchCharacter(character.uid, true),
-                  fetchInventory(character.uid),
-                ]);
+                // Reset spell charges so the next dungeon run starts fresh
+                await replenishSpellCharges();
+                await refreshPlayerState(character.uid);
               }
               await abandonRun(character.uid);
               router.push('/combat/dungeons');
+            } catch (err) {
+              console.error('[dungeon defeat] claim failed', err);
+              toast.error('Failed to save rewards — please try again.');
             } finally {
               setReturning(false);
             }
@@ -1050,10 +1124,19 @@ export default function DungeonRunPage() {
       {phase === 'stat-check' && character && (
         <div className="space-y-4">
           <div className="bg-slate-800 border border-amber-900 rounded-xl p-4">
-            <div className="text-amber-400 text-sm font-bold mb-1">🔍 Stat Check</div>
-            <div className="text-slate-400 text-xs mb-4">
-              Choose your path. Passing requires meeting the stat threshold.
-            </div>
+            <div className="text-amber-400 text-sm font-bold mb-2">🔍 Stat Check</div>
+            {(() => {
+              const flavor = resolveStatCheckFlavor(
+                run.tierId,
+                run.currentRoom * 100 + run.weekSeed,
+              );
+              return (
+                <div className="mb-4 space-y-1">
+                  <p className="text-slate-200 text-sm leading-relaxed">{flavor.intro}</p>
+                  <p className="text-amber-400/70 text-xs italic">{flavor.hint}</p>
+                </div>
+              );
+            })()}
 
             <div className="space-y-2">
               {resolveStatCheckOptions(

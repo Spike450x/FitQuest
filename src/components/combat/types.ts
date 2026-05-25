@@ -62,6 +62,11 @@ export interface RoundEntry {
   perRoundMagicRestore?: number;
   bloodPactUsed?: boolean;
   flatPassiveHeal?: number;
+  // monster passive / active events
+  thornsDamage?: number;
+  monsterRegen?: number;
+  monsterVampiric?: number;
+  monsterActiveTriggered?: string;
   /** Extra free-form log lines surfaced by combat modifiers (venom tick, shield absorb, etc.). */
   modifierNotes?: string[];
 }
@@ -80,6 +85,12 @@ export interface FightState {
   isFirstAbility: boolean;
   /** True once Execute (Assassin) has fired once this fight. */
   executeUsed: boolean;
+  /** True once the monster's one-shot active ability has fired. */
+  activeUsed?: boolean;
+  /** Permanent ATK boost from monster active (enrage). */
+  monsterBonusAtk?: number;
+  /** Permanent DEF boost from monster active (harden). */
+  monsterBonusDef?: number;
 }
 
 // ─── Pending overlay payloads ───────────────────────────────────────────────────
@@ -106,6 +117,16 @@ export interface PendingAbility {
   dice: number[];
   pattern: DicePattern | null;
   ability: AbilityDef | null;
+  /** Formula intermediates for the overlay breakdown — only present on ability hit (not fizzle). */
+  formulaBreakdown?: {
+    avgRoll: number;
+    statBonus: number;
+    gearBonus: number;
+    baseHit: number;
+    damageMultiplier: number;
+    rawDamage: number;
+    monsterDef: number;
+  };
   applyResult: () => Promise<void>;
 }
 
@@ -113,6 +134,12 @@ export interface PendingSpell {
   spellDef: ItemDef;
   dice: number[];
   requirementMet: boolean;
+  /** Monster's d10 counter-attack roll (0 if stunned). */
+  monsterRoll: number;
+  /** Whether the monster was stunned and skipped its counter-attack. */
+  monsterStunned: boolean;
+  /** Actual damage dealt to the player by the counter-attack (0 if stunned). */
+  monsterDamage: number;
   applyResult: () => Promise<void>;
 }
 

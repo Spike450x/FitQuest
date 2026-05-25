@@ -88,7 +88,8 @@ export function PremiumSpellCard({ def, className = '', ...rest }: PremiumSpellC
     applyTransform(isFlipped, rotX, rotY, true);
     el.style.boxShadow = hoverShadow;
     const isDark = document.documentElement.classList.contains('dark');
-    sh.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(${tint}, ${isDark ? 0.15 : 0.35}) 0%, transparent 60%)`;
+    sh.style.mixBlendMode = isDark ? 'screen' : 'overlay';
+    sh.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(${tint}, ${isDark ? 0.15 : 0.25}) 0%, transparent 60%)`;
   }
 
   function handleMouseLeave() {
@@ -185,7 +186,7 @@ export function PremiumSpellCard({ def, className = '', ...rest }: PremiumSpellC
             ref={shimmerRef}
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none rounded-2xl"
-            style={{ mixBlendMode: 'screen' }}
+            style={{ mixBlendMode: 'overlay' }}
           />
         </div>
 

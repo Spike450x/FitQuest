@@ -9,6 +9,8 @@
 
 ### B1 — Quest Reroll: `extraProgress: undefined` causes Firestore crash
 
+**Status:** SHIPPED 2026-05-25. `src/store/questStore.ts` now uses `deleteField()` in the Firestore payload; local Zustand state still uses `undefined`. Regression tests in `src/store/__tests__/questStore.test.ts` cover both branches.
+
 **Severity:** Critical — rerolling any quest that transitions to one without `extraTargets` is broken.
 
 **Symptoms:** Console shows `FirebaseError: Function updateDoc() called with invalid data. Unsupported field value: undefined (found in field extraProgress in document activeQuests/<id>)`.
@@ -29,6 +31,8 @@ extraProgress: pick.extraTargets ? {} : deleteField(),
 ---
 
 ### B2 — Log Activity: FirebaseError "internal" on all submissions
+
+**Status:** PARTIALLY ADDRESSED 2026-05-25. The Cloud Function now wraps its body in try/catch and re-throws unhandled errors as `HttpsError('internal', err.message)`, making the actual failure visible in the browser console. Root cause of the original "internal" error (deploy/IAM/index/server crash) still requires `firebase functions:log --only logActivity` to diagnose definitively — code inspection found no obvious crash path.
 
 **Severity:** Critical — players cannot log any workout, run, steps, nutrition, sleep, or water.
 
@@ -53,6 +57,8 @@ extraProgress: pick.extraTargets ? {} : deleteField(),
 
 ### B3 — Dungeon Victory: "Claim Rewards" button does nothing
 
+**Status:** SHIPPED 2026-05-25. All three dungeon claim handlers now have `catch` blocks that show `toast.error(…)` when the Cloud Function call fails. Previously the missing catch caused errors to be swallowed silently, re-enabling the button with no feedback.
+
 **Severity:** High — completing a dungeon boss does not advance to reward screen.
 
 **Symptoms:** After defeating the final boss, the victory screen renders with the "Claim Rewards" button. Clicking produces no visible response — no loading indicator, no navigation, no error toast. No console errors observed.
@@ -66,6 +72,8 @@ extraProgress: pick.extraTargets ? {} : deleteField(),
 ---
 
 ### B4 — Shop Overcharge: item costs more gold than displayed price
+
+**Status:** SHIPPED 2026-05-25. `inventoryStore.buyItem` now calls `refreshPlayerState(uid)` (new `src/lib/refreshPlayerState.ts`) after the transaction instead of applying a local gold delta. All 4 dungeon claim call sites in `src/app/(game)/combat/dungeons/run/page.tsx` also migrated to `refreshPlayerState`. `useCharacterStore` import removed from the dungeon run page (no longer needed directly).
 
 **Severity:** High — players lose more gold than the listed price implies.
 
@@ -92,6 +100,8 @@ If the local gold is stale (higher than the real Firestore balance), the display
 
 ### B5 — Stat Item: equipping a +HP item also raises current HP
 
+**Status:** SHIPPED 2026-05-25. `computeGearDelta` in `src/store/inventoryStore.ts` now applies DQ1/DQ2: equipping gear leaves `currentHp`/`currentStamina` unchanged (only max rises); unequipping clamps current down to the new lower max if needed.
+
 **Severity:** Medium — design inconsistency / player confusion.
 
 **Symptoms:** Equipping gear with a health bonus raises both `currentHp` and `maxHp` by the item's HP delta. Most RPGs only raise `maxHp` when equipping gear.
@@ -115,6 +125,8 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 
 ### B6 — Stamina Item: +1 stamina stat reads as +5 current stamina
 
+**Status:** SHIPPED 2026-05-25 (resolved by B5 fix). B5's `computeGearDelta` change means `currentStamina` no longer jumps on equip; only `maxStamina` changes. The +5 delta is the correct formula output for +1 stamina stat (STAMINA_PER_STAT = 5) — now displayed only as a max increase, not a current-resource jump, so the confusion is eliminated.
+
 **Severity:** Low / likely not a bug.
 
 **Symptoms:** Equipping a +1 stamina item appears to give +5 stamina points instead of +1.
@@ -128,6 +140,8 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 ---
 
 ### B7 — Quest Page: daily and weekly card columns misalign
+
+**Status:** SHIPPED 2026-05-25. Replaced the `grid-cols-1 md:grid-cols-2` two-column layout with a `Daily | Weekly` tab switcher. Only one section is visible at a time on all viewports — eliminates the alignment problem entirely.
 
 **Severity:** Medium — visual polish issue on desktop.
 
@@ -147,6 +161,8 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 
 ### B8 — Spell Overlay: monster counter-attack dice not shown
 
+**Status:** SHIPPED 2026-05-25. Added `monsterRoll` to `SpellResolution` (spells.ts), threaded `monsterRoll`/`monsterStunned`/`monsterDamage` through `PendingSpell` and the `resolveSpellAction` payload. `SpellRollOverlay` now renders a "Monster strikes back" panel (rose d10 + damage) below the spell result, or "Monster stunned — no counter" when the spell had a stun effect. Both arena and dungeon overlays updated.
+
 **Severity:** Medium — creates inconsistency with regular and ability attack flows.
 
 **Symptoms:** When casting a spell, the `SpellRollOverlay` shows the spell's dice roll and announces Hit or Fizzle. The player then taps "Continue" and monster damage is silently applied — there are no dice shown for the monster's attack, no roll animation, no moment of tension. In contrast, a regular Attack shows the monster's `monsterRoll` (d10) visibly in the `ActionRollOverlay`. The spell flow feels abrupt and opaque.
@@ -160,6 +176,8 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 ---
 
 ### B9 — Combat: nav menu allows escape from active fight
+
+**Status:** SHIPPED 2026-05-25. New `src/store/combatStore.ts` (`combatActive` boolean + `setCombatActive`/`clear`). Arena page sets the flag when `activeMonster !== null && !pendingRewards`; dungeon run page sets it when `phase === 'combat' || phase === 'boss'`. Both pages register a `beforeunload` guard while the flag is true. Layout's `CombatSafeLink` wraps both desktop sidebar and mobile bottom-nav links — fires a toast instead of navigating when `combatActive`. `handleSignOut` now flushes `combatStore`.
 
 **Severity:** High — players can abandon a fight mid-round with no consequence by tapping any nav item, and dungeon runs are left in an orphaned `active` state in Firestore.
 
@@ -200,6 +218,8 @@ useEffect(() => {
 ## Enhancements
 
 ### E1 — Dungeon Stat Check: add RPG narrative flavor before options
+
+**Status:** SHIPPED 2026-05-25. Added `STAT_CHECK_SCENARIOS` (3–4 thematic scenarios per tier) and `resolveStatCheckFlavor(tierId, roomSeed)` to `dungeons.ts`. The dungeon run page now renders a 2-line flavor panel (bold description + amber italic hint) above the stat-check option buttons, seeded deterministically from the same room seed.
 
 **Priority:** High — missing player immersion context.
 
@@ -248,6 +268,8 @@ useEffect(() => {
 ---
 
 ### E3 — Spells: fix light-mode readability and hover shimmer artifact
+
+**Status:** SHIPPED 2026-05-25. `PremiumSpellCard` shimmer now switches `mix-blend-mode` to `'overlay'` in light mode and `'screen'` in dark mode (detected via `document.documentElement.classList.contains('dark')` at hover time). Opacity also tuned: 0.25 light / 0.15 dark. Static initial value changed to `overlay` (safer default).
 
 **Priority:** Medium — cosmetic regression in light mode.
 
@@ -360,6 +382,8 @@ useEffect(() => {
 
 ### E8 — Combat Abilities: expose damage formula breakdown in UI
 
+**Status:** SHIPPED 2026-05-25. Added `formulaBreakdown` optional field to `AbilityResolution` (abilities.ts) with `avgRoll`, `statBonus`, `gearBonus`, `baseHit`, `damageMultiplier`, `rawDamage`, `monsterDef`. Threaded through `resolveAbilityAction` → `PendingAbility` type → `DiceRollOverlay` prop. Overlay renders a compact "Damage formula" panel below the ability name when an ability hits (not fizzle): `avg·stat·gear = base → ×multiplier = raw → −DEF`.
+
 **Priority:** Medium — players can't evaluate ability choices without knowing what the multiplier acts on.
 
 **The actual formula (for reference and in-game display):**
@@ -442,6 +466,8 @@ So "1.5× damage" means the multiplier is applied to **the sum of your dice aver
 ---
 
 ### E10 — Mobile & Tablet Responsiveness Sweep
+
+**Status:** SHIPPED 2026-05-25. Fixes applied: mobile nav touch targets raised to `min-h-[44px]` (py-3); main content bottom padding `pb-24 sm:pb-20 md:pb-6` for extra breathing room at 320px; stats range-filter buttons `py-2.5 min-h-[40px]`; chart left margin `-10` (was `-20` — clipped Y-axis labels); inventory NEW badge `text-[11px]`; dungeon progress nodes `w-8 h-8 sm:w-7 sm:h-7`; combat post-fight buttons `gap-2 sm:gap-3 py-3 sm:py-2.5`.
 
 **Priority:** High — the shell layout (sidebar, bottom nav, `pb-20 md:pb-6` content padding) is solid, but individual pages have not been audited for mobile and tablet breakpoints.
 

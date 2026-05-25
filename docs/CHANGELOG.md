@@ -15,6 +15,106 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Spell charge "top card" mechanic (E5)
+
+- Each equipped spell now has 3 charges (flat, all rarities). In arena, charges reset after every fight (win/loss/flee). In dungeons, charges persist across rooms and only replenish at rest sites.
+- `InventoryItem.charges?: number` added (`undefined` = full). `normalizeInventoryItem` passes the field through. `COMBAT.SPELL_MAX_CHARGES = 3` constant added.
+- `useCombatEncounter` tracks `spellChargesUsed: Record<string, number>` per invItemId; `castSpell(spellDef, invItemId)` gates and increments charges. Charges reset when the monster changes (new fight) via `useEffect` + `useRef`.
+- `CombatActionBar` renders violet/grey dot meters under each spell card; "Cast Spell" button and individual spell cast buttons are disabled when exhausted. "All spells exhausted" sublabel when every spell is depleted.
+- `inventoryStore` gains `persistSpellChargeDecrements(decrements)` (dungeon room carry-forward) and `replenishSpellCharges()` (arena fight end + dungeon rest site + dungeon run end).
+- 12 new vitest specs cover charge normalization, persistDecrements, and replenish.
+
+## 2026-05-25 — Monster passives + actives (E9)
+
+- Added `MonsterPassive` (thorns/regen/vampiric) and `MonsterActive` (enrage/harden) types to `MonsterDef`. All 11 MONSTER_CATALOG entries now have passive or active assignments (L1–L10).
+- Passive resolution in `combatActions.ts`: regen heals monster before each offensive round; thorns reflect a % of player damage back; vampiric heals monster from its own counter-attack damage.
+- Active fires once when monster HP crosses `triggerPct`; enrage boosts ATK permanently, harden boosts DEF. `FightState` tracks `activeUsed` / `monsterBonusAtk` / `monsterBonusDef`. Active label displayed as a pulsing orange badge in `CombatArena`. Passive shown as a color-coded chip (rose/emerald/purple). Boss rooms suppress passive/active badges (bosses have their own dungeon-modifier mechanics).
+
+## 2026-05-25 — Spell school sounds + screen flash (E7)
+
+- Eight new synthesized spell school sounds: `spellDamage`, `spellFire`, `spellMagicDamage`, `spellHeal`, `spellStun`, `spellDefense`, `spellLifesteal`, `spellStamina` — all added to `sounds.ts` + `useSound.ts` `PLAY_FUNCS`.
+- `SpellRollOverlay` plays the matching school sound when the result phase begins (via `spellEffectKey()` → `SPELL_SOUND` map); fizzles play `'fail'`.
+- Full-screen colored flash overlay (18% opacity, 500ms CSS fade) uses school-themed colors: rose/orange/violet/emerald/amber/sky/purple.
+
+## 2026-05-25 — Weekly spell rotation + out-of-combat consumable Use (E4/E6)
+
+- **E4** — Shop spells now rotate weekly (5 featured, seeded by ISO week). New `shopRotation.ts` + `getWeeklySpells()`. Rotation notice shows both daily gear and weekly spell countdowns. Non-featured spells accessible via collapsible "Browse all spells" section.
+- **E6** — Inventory consumable cards now show a "Use" button that consumes the item out of combat. Button shows "In dungeon" when `activeRun !== null` (disabled). Uses separate `using` state so it doesn't block equip/unequip actions.
+
+## 2026-05-25 — Emoji → SVG icon components (E2)
+
+- New `src/components/art/stat-icons.tsx` (StrengthIcon/WisdomIcon/AgilityIcon/StaminaIcon/HealthIcon/DefenseIcon) and `src/components/art/action-icons.tsx` (quick-action + activity-type SVGs). All use stroke-based Lucide-style 24px viewport.
+- `StatBar` now accepts `React.ReactNode` for `icon` prop. `CharacterCard` and dashboard `STAT_CONFIG` use SVG stat icons.
+- Dashboard `QUICK_ACTIONS` use SVG icons; `ActivityFeedItem` calls `getActivityIconSvg()`. Character page "How Stats Work" section adds inline SVG icons beside each stat.
+- `activityIcons.ts` gains `getActivityIconSvg()` using `createElement` (no JSX in .ts file) — existing string exports unchanged.
+
+## 2026-05-25 — Dungeon stat-check flavor, spell shimmer light-mode, ability formula (E1/E3/E8)
+
+- **E1** — Added `STAT_CHECK_SCENARIOS` (3–4 per tier) + `resolveStatCheckFlavor` to `dungeons.ts`. Dungeon run page renders 2-line flavor above stat-check options.
+- **E3** — `PremiumSpellCard` shimmer now uses `mix-blend-mode: overlay` in light mode and `screen` in dark mode (detected on mousemove via classList).
+- **E8** — `AbilityResolution.formulaBreakdown` exposes `avgRoll/statBonus/gearBonus/baseHit/damageMultiplier/rawDamage/monsterDef`. `DiceRollOverlay` renders a compact "Damage formula" panel on ability hit.
+
+## 2026-05-25 — Mobile responsiveness sweep (E10)
+
+- Mobile bottom nav touch targets raised to `min-h-[44px]` (py-3 instead of py-2).
+- Main content bottom padding bumped to `pb-24 sm:pb-20 md:pb-6` for breathing room at 320px.
+- Stats page range-filter buttons: `py-2.5 min-h-[40px]`; chart left margins `-10` (was `-20`).
+- Inventory NEW badge: `text-[11px]` (was `text-[10px]` — unreadable at 320px).
+- Dungeon progress chain nodes: `w-8 h-8 sm:w-7 sm:h-7` (mobile-friendly upscale).
+- Combat post-fight button grid: `gap-2 sm:gap-3`, buttons `py-3 sm:py-2.5`.
+
+## 2026-05-25 — SpellRollOverlay shows monster counter-attack panel (B8)
+
+- Added `monsterRoll: number` to `SpellResolution` in `spells.ts` (was computed internally but discarded).
+- Threaded `monsterRoll`, `monsterStunned`, `monsterDamage` through `resolveSpellAction` pending payload → `PendingSpell` type → `SpellRollOverlay` props.
+- Overlay now renders a compact "Monster strikes back" panel (rose d10 + HP damage) below the spell result. Shows "Monster stunned — no counter" when the spell stuns. Both arena and dungeon pages updated.
+
+## 2026-05-25 — Quest page Daily/Weekly tab switcher (B7)
+
+- Replaced `grid grid-cols-1 md:grid-cols-2` two-column layout with a `📅 Daily | 📆 Weekly` pill tab on all viewports.
+- One section visible at a time — eliminates the card-height misalignment on desktop and improves mobile legibility.
+
+## 2026-05-25 — Gear equip only changes max HP/Stamina; unequip clamps current (B5/B6)
+
+- `computeGearDelta` in `inventoryStore.ts` now applies DQ1/DQ2: equipping leaves `currentHp`/`currentStamina` unchanged (max rises only); unequipping clamps current down if it would exceed the reduced max.
+- Eliminates the confusing "+5 current stamina" display on equip (B6) — only the max changes now.
+
+## 2026-05-25 — refreshPlayerState helper + shop gold desync fix (B4)
+
+- New `src/lib/refreshPlayerState.ts` — canonical `Promise.all([fetchCharacter(uid, true), fetchInventory(uid)])` helper.
+- `inventoryStore.buyItem` now calls `refreshPlayerState` after the Firestore transaction instead of applying a local gold delta — eliminates the stale-gold display discrepancy.
+- All 4 dungeon claim call sites in `dungeons/run/page.tsx` migrated to `refreshPlayerState` (removed direct `useCharacterStore` import).
+
+## 2026-05-25 — Combat nav lock + beforeunload guard (B9)
+
+- New `src/store/combatStore.ts` — single `combatActive` boolean with `setCombatActive` / `clear`.
+- Arena page sets the flag while a monster is active (cleared on victory modal, flee, defeat, unmount). Dungeon run page sets it during `combat` and `boss` phases.
+- Both pages register a `beforeunload` handler while the flag is true so the browser "Leave page?" dialog fires on tab close or URL-bar navigation.
+- `CombatSafeLink` component in `layout.tsx` wraps all desktop sidebar + mobile bottom-nav links and shows a toast instead of navigating when `combatActive`.
+- `handleSignOut` flushes `combatStore` alongside the other 5 stores.
+
+## 2026-05-25 — Dungeon claim handlers surface errors; CF unhandled exceptions now diagnosable (B2/B3)
+
+Previously all three dungeon claim handlers (`handleClaimVictory`, `handleRetreat`, defeat button) used `try…finally` with no `catch`. Any Cloud Function failure silently re-enabled the button with no user feedback. Added `catch` blocks with `toast.error(…)` to all three so failures are always visible to the player.
+
+Also added a top-level `try/catch` inside the `logActivity` and `claimDungeonRun` Cloud Functions. Unhandled exceptions previously surfaced to clients as an opaque `functions/internal` with a blank message, making the root cause invisible in the browser console. They now re-throw as `HttpsError('internal', err.message)` so the actual error detail is visible in DevTools — critical for diagnosing B2's "internal" error until Firebase log access is available.
+
+- `src/app/(game)/combat/dungeons/run/page.tsx` — catch + `toast.error` added to `handleRetreat`, `handleClaimVictory`, and the defeat inline handler.
+- `functions/src/index.ts` — `logActivity` body wrapped in try/catch; unhandled errors re-throw with message.
+- `functions/src/claimDungeonRun.ts` — same pattern applied to `claimDungeonRun`.
+
+---
+
+## 2026-05-25 — Quest reroll no longer crashes when rolling into a single-target quest (B1)
+
+Rerolling an active quest now succeeds in every branch. Previously, rerolling into a quest with no `extraTargets` crashed with `FirebaseError: Function updateDoc() called with invalid data. Unsupported field value: undefined (found in field extraProgress …)` because the Firestore payload was sending `extraProgress: undefined` to clear the field. Firestore's `updateDoc` rejects `undefined` field values entirely.
+
+- **Fix** — `src/store/questStore.ts` now imports `deleteField` from `firebase/firestore` and uses `extraProgress: pick.extraTargets ? {} : deleteField()` in the `updateActiveQuestDoc` payload. The local Zustand store update keeps `undefined` (valid JS) so the in-memory shape is unchanged.
+- **Regression tests** — `src/store/__tests__/questStore.test.ts` adds two specs covering both branches of `rerollQuest`: the `deleteField` path (rolling into a quest with no extra targets) and the `{}` path (rolling into a quest with extra targets). Pool is constrained to a single deterministic candidate via the `heldDefIds` exclusion, no `Math.random` stub needed.
+- 684 vitest specs pass (was 674; +2 new specs, plus 8 picked up from earlier merges).
+
+---
+
 ## 2026-05-24 — Spell cards get an MTG-style flippable front/back
 
 Spell cards now have two faces: the existing rarity-themed front (image, title, description, effects) and a uniform "FitQuest Spellbook" back inspired by Magic: The Gathering's iconic shared card back. Players click the card body to flip; the action button (Buy / Equip / Cast) stays on the front and never triggers a flip.

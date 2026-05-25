@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { deleteField } from 'firebase/firestore';
 import { captureError } from '@/lib/errors';
 import { fetchWithRetry, STORE_RETRY_DELAYS } from '@/lib/retry';
 import { useCharacterStore } from './characterStore';
@@ -68,6 +69,18 @@ interface InventoryStore {
   equipConsumable: (inventoryItemId: string) => Promise<{ ok: boolean; reason?: string }>;
   /** Remove a consumable from the combat pack. */
   unequipConsumable: (inventoryItemId: string) => Promise<void>;
+  /**
+   * Persist mid-dungeon spell charge decrements to Firestore so charges survive
+   * room transitions. `decrements` maps invItemId → number of charges used.
+   * Items that have been used ≥ SPELL_MAX_CHARGES will be written with charges=0.
+   */
+  persistSpellChargeDecrements: (decrements: Record<string, number>) => Promise<void>;
+  /**
+   * Reset all equipped spell charges to full (delete the Firestore `charges`
+   * field so undefined = full is the canonical state). Call after arena fights
+   * and at dungeon rest sites.
+   */
+  replenishSpellCharges: () => Promise<void>;
   clear: () => void;
 }
 
@@ -96,22 +109,31 @@ function computeGearDelta(
   let newCurrentHp: number | undefined;
   let newCurrentStamina: number | undefined;
 
+  // Equip: only max changes, current is left untouched.
+  // Unequip: max falls; clamp current down to the new lower max if needed.
   if (hpDelta !== 0) {
-    newCurrentHp =
-      newItemDefId !== null
-        ? Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta, newMaxHp))
-        : Math.max(1, (character.currentHp ?? oldMaxHp) + hpDelta);
-    charUpdate.currentHp = newCurrentHp;
+    const currentHp = character.currentHp ?? oldMaxHp;
+    if (newItemDefId === null) {
+      // Unequipping — clamp if current would exceed the reduced max
+      const clamped = Math.max(1, Math.min(currentHp, newMaxHp));
+      if (clamped !== currentHp) {
+        newCurrentHp = clamped;
+        charUpdate.currentHp = newCurrentHp;
+      }
+    }
+    // Equipping — max rises, current stays the same; no charUpdate for currentHp
   }
   if (staminaDelta !== 0) {
-    newCurrentStamina =
-      newItemDefId !== null
-        ? Math.max(
-            0,
-            Math.min((character.currentStamina ?? oldMaxStamina) + staminaDelta, newMaxStamina),
-          )
-        : Math.max(0, (character.currentStamina ?? oldMaxStamina) + staminaDelta);
-    charUpdate.currentStamina = newCurrentStamina;
+    const currentStamina = character.currentStamina ?? oldMaxStamina;
+    if (newItemDefId === null) {
+      // Unequipping — clamp if current would exceed the reduced max
+      const clamped = Math.max(0, Math.min(currentStamina, newMaxStamina));
+      if (clamped !== currentStamina) {
+        newCurrentStamina = clamped;
+        charUpdate.currentStamina = newCurrentStamina;
+      }
+    }
+    // Equipping — max rises, current stays the same; no charUpdate for currentStamina
   }
 
   return { charUpdate, newCurrentHp, newCurrentStamina };
@@ -152,20 +174,14 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
 
     const acquiredAt = Date.now();
     try {
-      const newDocId = await runBuyItemTransaction(uid, itemDefId, def.price, acquiredAt);
-      const newItem: InventoryItem = {
-        id: newDocId,
-        itemDefId,
-        quantity: 1,
-        equipped: false,
-        acquiredAt,
-      };
-      set((state) => ({ items: [...state.items, newItem] }));
-      useCharacterStore.setState((state) => ({
-        character: state.character
-          ? { ...state.character, gold: state.character.gold - def.price }
-          : null,
-      }));
+      await runBuyItemTransaction(uid, itemDefId, def.price, acquiredAt);
+      // Pull authoritative gold + inventory from Firestore instead of applying
+      // a local delta — avoids stale-gold desync when the player has been on
+      // another device since the store was last populated.
+      await Promise.all([
+        useCharacterStore.getState().fetchCharacter(uid, true),
+        get().fetchInventory(uid, true),
+      ]);
       return true;
     } catch (e) {
       captureError('inventoryStore.buyItem', e);
@@ -440,6 +456,46 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     await updateInventoryDoc(inventoryItemId, { equipped: false });
     set((state) => ({
       items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, equipped: false } : i)),
+    }));
+  },
+
+  persistSpellChargeDecrements: async (decrements) => {
+    const entries = Object.entries(decrements).filter(([, used]) => used > 0);
+    if (entries.length === 0) return;
+    const MAX = COMBAT.SPELL_MAX_CHARGES;
+    await Promise.all(
+      entries.map(([invItemId, used]) => {
+        const remaining = Math.max(0, MAX - used);
+        return updateInventoryDoc(invItemId, { charges: remaining });
+      }),
+    );
+    set((state) => ({
+      items: state.items.map((i) => {
+        const used = decrements[i.id];
+        if (!used) return i;
+        return { ...i, charges: Math.max(0, MAX - used) };
+      }),
+    }));
+  },
+
+  replenishSpellCharges: async () => {
+    const spellsWithDepletedCharges = get().items.filter((i) => {
+      const def = getItemById(i.itemDefId);
+      return i.equipped && def?.type === 'spell' && i.charges !== undefined;
+    });
+    if (spellsWithDepletedCharges.length === 0) return;
+    await Promise.all(
+      spellsWithDepletedCharges.map((i) =>
+        updateInventoryDoc(i.id, { charges: deleteField() as unknown as number }),
+      ),
+    );
+    set((state) => ({
+      items: state.items.map((i) => {
+        if (!spellsWithDepletedCharges.some((s) => s.id === i.id)) return i;
+        const { charges: _charges, ...rest } = i;
+        void _charges;
+        return rest as typeof i;
+      }),
     }));
   },
 

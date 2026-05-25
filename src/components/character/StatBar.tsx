@@ -3,7 +3,7 @@ interface StatBarProps {
   value: number;
   max?: number;
   color: string;
-  icon: string;
+  icon: React.ReactNode;
   showMax?: boolean;
   suffix?: string;
 }

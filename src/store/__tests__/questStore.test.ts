@@ -1,5 +1,10 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
+const DELETE_FIELD_SENTINEL = '__DELETE_FIELD_SENTINEL__';
+
+vi.mock('firebase/firestore', () => ({
+  deleteField: vi.fn(() => DELETE_FIELD_SENTINEL),
+}));
 vi.mock('@/lib/firebase', () => ({ db: {}, auth: {}, functions: {} }));
 vi.mock('@/lib/errors', () => ({ captureError: vi.fn() }));
 vi.mock('@/lib/characterData', () => ({ updateCharacterDoc: vi.fn() }));
@@ -11,13 +16,20 @@ vi.mock('@/lib/questData', () => ({
   updateActiveQuestDoc: vi.fn(),
 }));
 vi.mock('@/store/characterStore', () => ({
-  useCharacterStore: { getState: vi.fn(() => ({ character: null })) },
+  useCharacterStore: {
+    getState: vi.fn(() => ({ character: null })),
+    setState: vi.fn(),
+  },
 }));
 
 import { fetchActiveQuests } from '@/lib/fetchPlayerData';
+import { updateActiveQuestDoc } from '@/lib/questData';
 import { useQuestStore } from '@/store/questStore';
+import { useCharacterStore } from '@/store/characterStore';
+import { DAILY_QUEST_POOL } from '@/lib/gameLogic/quests';
 
 const fetchActiveQuestsMock = vi.mocked(fetchActiveQuests);
+const updateActiveQuestDocMock = vi.mocked(updateActiveQuestDoc);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -86,5 +98,76 @@ describe('questStore.clear', () => {
     useQuestStore.getState().clear();
     await useQuestStore.getState().fetchAndAssignQuests('uid1', '2026-01-01');
     expect(fetchActiveQuestsMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('questStore.rerollQuest — extraProgress payload (B1)', () => {
+  beforeEach(() => {
+    vi.mocked(useCharacterStore.getState).mockReturnValue({
+      character: { uid: 'uid-1', gold: 1000 },
+    } as unknown as ReturnType<typeof useCharacterStore.getState>);
+  });
+
+  it('sends deleteField() when the rolled quest has no extraTargets', async () => {
+    // Source: has extraTargets; target: no extraTargets.
+    const sourceDefId = 'daily-combo-run-sleep';
+    const targetDefId = 'daily-run-1';
+    const sourceQuestId = 'source-quest-id';
+
+    const expiry = Date.now() + 24 * 3600 * 1000;
+    const quests = DAILY_QUEST_POOL.filter((d) => d.id !== targetDefId).map((def, i) => ({
+      id: def.id === sourceDefId ? sourceQuestId : `held-${i}`,
+      uid: 'uid-1',
+      questDefId: def.id,
+      progress: 0,
+      extraProgress: def.extraTargets ? {} : undefined,
+      completedAt: null,
+      claimedAt: null,
+      expiresAt: expiry,
+      rewards: def.rewards,
+    }));
+    useQuestStore.setState({ quests });
+
+    const result = await useQuestStore.getState().rerollQuest(sourceQuestId);
+
+    expect(result).toEqual({ newQuestDefId: targetDefId, cost: expect.any(Number) });
+    expect(updateActiveQuestDocMock).toHaveBeenCalledWith(
+      sourceQuestId,
+      expect.objectContaining({
+        questDefId: targetDefId,
+        extraProgress: DELETE_FIELD_SENTINEL,
+      }),
+    );
+  });
+
+  it('sends {} when the rolled quest has extraTargets', async () => {
+    const sourceDefId = 'daily-run-1';
+    const targetDefId = 'daily-combo-workout-water';
+    const sourceQuestId = 'source-quest-id';
+
+    const expiry = Date.now() + 24 * 3600 * 1000;
+    const quests = DAILY_QUEST_POOL.filter((d) => d.id !== targetDefId).map((def, i) => ({
+      id: def.id === sourceDefId ? sourceQuestId : `held-${i}`,
+      uid: 'uid-1',
+      questDefId: def.id,
+      progress: 0,
+      extraProgress: def.extraTargets ? {} : undefined,
+      completedAt: null,
+      claimedAt: null,
+      expiresAt: expiry,
+      rewards: def.rewards,
+    }));
+    useQuestStore.setState({ quests });
+
+    const result = await useQuestStore.getState().rerollQuest(sourceQuestId);
+
+    expect(result).toEqual({ newQuestDefId: targetDefId, cost: expect.any(Number) });
+    expect(updateActiveQuestDocMock).toHaveBeenCalledWith(
+      sourceQuestId,
+      expect.objectContaining({
+        questDefId: targetDefId,
+        extraProgress: {},
+      }),
+    );
   });
 });

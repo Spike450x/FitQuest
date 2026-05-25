@@ -87,6 +87,7 @@ import { toast, toastReward, toastLoot } from '@/components/ui/Toaster';
 import { claimCombatVictoryCF } from '@/lib/functions';
 import { fetchRecentCombatLogs } from '@/lib/combatData';
 import { COMBAT, CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
+import { useCombatStore } from '@/store/combatStore';
 import type { Character, MonsterDef } from '@/types';
 import type { PendingRewards } from '@/components/combat/types';
 
@@ -125,6 +126,7 @@ function CombatPageBody({ character }: { character: Character }) {
   const fetchInventory = useInventoryStore((s) => s.fetchInventory);
   const awardLoot = useInventoryStore((s) => s.awardLoot);
   const consumeItem = useInventoryStore((s) => s.useConsumable);
+  const replenishSpellCharges = useInventoryStore((s) => s.replenishSpellCharges);
 
   const [combatTab, setCombatTab] = useState<CombatTab>('arena');
 
@@ -162,6 +164,23 @@ function CombatPageBody({ character }: { character: Character }) {
       cancelled = true;
     };
   }, [character?.uid]);
+
+  // Lock nav and guard page unload while a fight is in progress
+  useEffect(() => {
+    const active = activeMonster !== null && !pendingRewards;
+    useCombatStore.getState().setCombatActive(active);
+    if (!active) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [activeMonster, pendingRewards]);
+
+  // Ensure the flag is cleared if the component unmounts mid-fight
+  useEffect(() => {
+    return () => useCombatStore.getState().setCombatActive(false);
+  }, []);
 
   // Fire confetti when a victory modal appears
   useEffect(() => {
@@ -242,6 +261,8 @@ function CombatPageBody({ character }: { character: Character }) {
       await updateCurrentHp(finalHp);
       await updateCurrentStamina(finalStamina);
       await updateCurrentMagic(finalMagic);
+      // Replenish spell charges — arena fights always reset charges between encounters
+      await replenishSpellCharges();
       const { multiplier: streakMult, boost: streakBoost } = getStreakBoost();
       setPendingRewards({
         xpReward: streakBoost(monster),
@@ -256,11 +277,13 @@ function CombatPageBody({ character }: { character: Character }) {
       await updateCurrentHp(finalHp);
       await updateCurrentStamina(finalStamina);
       await updateCurrentMagic(finalMagic);
+      await replenishSpellCharges();
     },
     onFlee: async ({ finalHp, finalStamina, finalMagic }) => {
       await updateCurrentHp(finalHp);
       await updateCurrentStamina(finalStamina);
       await updateCurrentMagic(finalMagic);
+      await replenishSpellCharges();
     },
   });
 
@@ -384,8 +407,16 @@ function CombatPageBody({ character }: { character: Character }) {
 
   // ── Fighting view ──────────────────────────────────────────────────────────
   if (activeMonster) {
-    const { fightState, pending, bursts, expireBurst, usingItem, rollingAction, actions } =
-      encounter;
+    const {
+      fightState,
+      pending,
+      bursts,
+      expireBurst,
+      usingItem,
+      rollingAction,
+      actions,
+      spellChargesUsed,
+    } = encounter;
     const { monster, playerHp, playerStamina, playerMagic, monsterHp, log, outcome, droppedItems } =
       fightState;
     const emoji = MONSTER_EMOJI[monster.id] ?? '👾';
@@ -523,6 +554,9 @@ function CombatPageBody({ character }: { character: Character }) {
                 hp: monsterHp,
                 maxHp: monster.hp,
                 defense: monster.defense,
+                passive: monster.passive,
+                activeLabel:
+                  fightState.activeUsed && monster.active ? monster.active.label : undefined,
               }}
               monsterSub={monsterSub}
             />
@@ -592,6 +626,7 @@ function CombatPageBody({ character }: { character: Character }) {
             onMeditate={actions.meditate}
             onUseItem={actions.useItem}
             onFlee={actions.flee}
+            spellChargesUsed={spellChargesUsed}
           />
         ) : outcome === 'loss' ? (
           <button
@@ -602,16 +637,16 @@ function CombatPageBody({ character }: { character: Character }) {
             {resetting ? 'Resetting…' : 'Begin Again'}
           </button>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <button
               onClick={backToArena}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition-colors"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 sm:py-2.5 rounded-lg transition-colors"
             >
               {outcome === 'fled' ? 'Back to Arena' : 'Fight Again'}
             </button>
             <Link
               href="/dashboard"
-              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-indigo-300 text-gray-700 dark:text-slate-200 font-semibold py-2.5 rounded-lg transition-colors text-center"
+              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-indigo-300 text-gray-700 dark:text-slate-200 font-semibold py-3 sm:py-2.5 rounded-lg transition-colors text-center"
             >
               Dashboard
             </Link>
@@ -640,6 +675,7 @@ function CombatPageBody({ character }: { character: Character }) {
             dice={pending.ability.dice}
             pattern={pending.ability.pattern}
             ability={pending.ability.ability}
+            formulaBreakdown={pending.ability.formulaBreakdown}
             onDismiss={pending.ability.applyResult}
           />
         )}
@@ -648,6 +684,9 @@ function CombatPageBody({ character }: { character: Character }) {
             spellDef={pending.spell.spellDef}
             dice={pending.spell.dice}
             requirementMet={pending.spell.requirementMet}
+            monsterRoll={pending.spell.monsterRoll}
+            monsterStunned={pending.spell.monsterStunned}
+            monsterDamage={pending.spell.monsterDamage}
             onDismiss={pending.spell.applyResult}
           />
         )}

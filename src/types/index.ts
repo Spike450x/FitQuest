@@ -178,6 +178,12 @@ export interface InventoryItem {
   quantity: number;
   equipped: boolean;
   acquiredAt: number;
+  /**
+   * Remaining spell charges for this fight or dungeon run.
+   * `undefined` means full (COMBAT.SPELL_MAX_CHARGES). Only set on spell
+   * items; gear and consumables never carry this field.
+   */
+  charges?: number;
 }
 
 // ─── Quests ──────────────────────────────────────────────────────────────────
@@ -243,6 +249,35 @@ export interface ActiveQuest {
 
 // ─── Combat ──────────────────────────────────────────────────────────────────
 
+/** Permanent passive trait active every offensive round. */
+export type MonsterPassiveId = 'thorns' | 'regen' | 'vampiric';
+
+export interface MonsterPassive {
+  id: MonsterPassiveId;
+  /** Human-readable label shown as a badge on the monster portrait. */
+  label: string;
+  /**
+   * Numeric magnitude:
+   *   thorns   — % of incoming player damage reflected back (integer 0–100)
+   *   regen    — flat HP healed each offensive round
+   *   vampiric — % of monster counter-attack damage returned as HP (integer 0–100)
+   */
+  value: number;
+}
+
+/** One-shot ability triggered once when monster HP falls below a threshold. */
+export type MonsterActiveId = 'enrage' | 'harden';
+
+export interface MonsterActive {
+  id: MonsterActiveId;
+  /** HP fraction (0–1) of max HP that triggers the active. */
+  triggerPct: number;
+  /** Short label surfaced as a combat-log note and arena badge after triggering. */
+  label: string;
+  /** Numeric magnitude: enrage = permanent ATK boost, harden = permanent DEF boost. */
+  value: number;
+}
+
 export interface MonsterDef {
   id: string;
   name: string;
@@ -254,6 +289,8 @@ export interface MonsterDef {
   goldReward: number;
   lootTable: Array<{ itemId: string; chance: number }>;
   description: string;
+  passive?: MonsterPassive;
+  active?: MonsterActive;
 }
 
 /**

@@ -4,7 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { ITEM_CATALOG, RARITY_BADGE, RARITY_CARD, RARITY_TEXT } from '@/lib/gameLogic/items';
-import { getDailyPick, rotationExpiresAt, formatCountdown } from '@/lib/gameLogic/rotation';
+import {
+  getDailyPick,
+  deriveWeekKey,
+  rotationExpiresAt,
+  weeklyExpiresAt,
+  formatCountdown,
+} from '@/lib/gameLogic/rotation';
+import { getWeeklySpells, WEEKLY_SPELL_COUNT } from '@/lib/gameLogic/shopRotation';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { PremiumSpellCard } from '@/components/ui/PremiumSpellCard';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
@@ -15,7 +22,7 @@ import type { ItemDef, ItemType } from '@/types';
 import { EntityArt } from '@/components/art/EntityArt';
 import { rarityTint } from '@/lib/entityArt';
 
-// Gear + consumables rotate daily (8 items); spells have their own fixed pool.
+// Gear + consumables rotate daily (8 items); spells rotate weekly (5 featured).
 const GEAR_SHOP_COUNT = 8;
 // Stable pools — item catalog never changes at runtime, safe at module level.
 const PURCHASABLE_GEAR = ITEM_CATALOG.filter((i) => !i.lootOnly && i.type !== 'spell');
@@ -48,11 +55,19 @@ export default function ShopPage() {
   const [activeTab, setActiveTab] = useState<ItemType | 'all'>('all');
   const [buying, setBuying] = useState<string | null>(null);
   const [justBought, setJustBought] = useState<string | null>(null);
+  const [showAllSpells, setShowAllSpells] = useState(false);
 
   const todayKey = useTodayKey();
+  const weekKey = useMemo(() => deriveWeekKey(todayKey), [todayKey]);
+
+  const weeklySpells = useMemo(() => getWeeklySpells(PURCHASABLE_SPELLS, weekKey), [weekKey]);
+  const browseAllSpells = useMemo(
+    () => PURCHASABLE_SPELLS.filter((s) => !weeklySpells.some((ws) => ws.id === s.id)),
+    [weeklySpells],
+  );
   const dailyItems = useMemo(
-    () => [...getDailyPick(PURCHASABLE_GEAR, GEAR_SHOP_COUNT, todayKey), ...PURCHASABLE_SPELLS],
-    [todayKey],
+    () => [...getDailyPick(PURCHASABLE_GEAR, GEAR_SHOP_COUNT, todayKey), ...weeklySpells],
+    [todayKey, weeklySpells],
   );
 
   useEffect(() => {
@@ -97,14 +112,24 @@ export default function ShopPage() {
         <GoldDisplay amount={character.gold} size="lg" />
       </div>
 
-      {/* Daily rotation notice */}
-      <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-2.5">
-        <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-          🔄 {GEAR_SHOP_COUNT} gear/consumables today — spells always available
-        </p>
-        <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
-          Resets in {formatCountdown(rotationExpiresAt())} (midnight UTC)
-        </p>
+      {/* Rotation notice */}
+      <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-2.5 space-y-1">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+            🔄 {GEAR_SHOP_COUNT} gear &amp; consumables
+          </p>
+          <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+            Resets in {formatCountdown(rotationExpiresAt())} (midnight UTC)
+          </p>
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-violet-700 dark:text-violet-300 font-medium">
+            ✨ {WEEKLY_SPELL_COUNT} featured spells this week
+          </p>
+          <p className="text-xs text-violet-600 dark:text-violet-400 font-semibold">
+            New spells in {formatCountdown(weeklyExpiresAt())}
+          </p>
+        </div>
       </div>
 
       {inventoryError && (
@@ -273,6 +298,52 @@ export default function ShopPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Browse All Spells — non-featured spells this week */}
+      {(activeTab === 'all' || activeTab === 'spell') && browseAllSpells.length > 0 && (
+        <div className="border border-dashed border-gray-200 dark:border-slate-700 rounded-xl p-4">
+          <button
+            type="button"
+            onClick={() => setShowAllSpells((v) => !v)}
+            className="w-full flex items-center justify-between text-sm font-semibold text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 transition-colors"
+          >
+            <span>Browse all spells ({browseAllSpells.length} more)</span>
+            <span className="text-xs">{showAllSpells ? '▲ Hide' : '▼ Show'}</span>
+          </button>
+          {showAllSpells && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+              {browseAllSpells.map((item) => {
+                if (!item.spellMechanics) return null;
+                const owned = ownedDefIds.has(item.id);
+                const canAfford = character.gold >= item.price;
+                const isBuying = buying === item.id;
+                const bought = justBought === item.id;
+                const actionLabel = owned
+                  ? bought
+                    ? '✓ Purchased!'
+                    : 'Already owned'
+                  : !canAfford
+                    ? 'Not enough gold'
+                    : isBuying
+                      ? 'Buying…'
+                      : `Buy for ${item.price} 💰`;
+                return (
+                  <PremiumSpellCard
+                    key={item.id}
+                    def={item}
+                    wisdomValue={character.stats.wisdom}
+                    affordable={canAfford}
+                    disabled={owned || !canAfford || !!buying}
+                    acting={isBuying}
+                    actionLabel={actionLabel}
+                    onAction={() => !owned && handleBuy(item)}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
