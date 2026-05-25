@@ -375,6 +375,11 @@ function DungeonCombatShell({
           hp: fightState.monsterHp,
           maxHp: monster.hp,
           defense: monster.defense,
+          passive: isBossRoom ? undefined : monster.passive,
+          activeLabel:
+            !isBossRoom && fightState.activeUsed && monster.active
+              ? monster.active.label
+              : undefined,
         }}
         monsterSub={
           poisoned && poisoned.roundsRemaining > 0 ? (

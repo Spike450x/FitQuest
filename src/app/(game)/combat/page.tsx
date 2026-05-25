@@ -541,6 +541,9 @@ function CombatPageBody({ character }: { character: Character }) {
                 hp: monsterHp,
                 maxHp: monster.hp,
                 defense: monster.defense,
+                passive: monster.passive,
+                activeLabel:
+                  fightState.activeUsed && monster.active ? monster.active.label : undefined,
               }}
               monsterSub={monsterSub}
             />

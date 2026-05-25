@@ -15,6 +15,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Monster passives + actives (E9)
+
+- Added `MonsterPassive` (thorns/regen/vampiric) and `MonsterActive` (enrage/harden) types to `MonsterDef`. All 11 MONSTER_CATALOG entries now have passive or active assignments (L1–L10).
+- Passive resolution in `combatActions.ts`: regen heals monster before each offensive round; thorns reflect a % of player damage back; vampiric heals monster from its own counter-attack damage.
+- Active fires once when monster HP crosses `triggerPct`; enrage boosts ATK permanently, harden boosts DEF. `FightState` tracks `activeUsed` / `monsterBonusAtk` / `monsterBonusDef`. Active label displayed as a pulsing orange badge in `CombatArena`. Passive shown as a color-coded chip (rose/emerald/purple). Boss rooms suppress passive/active badges (bosses have their own dungeon-modifier mechanics).
+
 ## 2026-05-25 — Spell school sounds + screen flash (E7)
 
 - Eight new synthesized spell school sounds: `spellDamage`, `spellFire`, `spellMagicDamage`, `spellHeal`, `spellStun`, `spellDefense`, `spellLifesteal`, `spellStamina` — all added to `sounds.ts` + `useSound.ts` `PLAY_FUNCS`.

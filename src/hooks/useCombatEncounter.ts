@@ -143,6 +143,9 @@ function makeInitialFightState(
     droppedItems: [],
     isFirstAbility: true,
     executeUsed: false,
+    activeUsed: false,
+    monsterBonusAtk: 0,
+    monsterBonusDef: 0,
   };
 }
 

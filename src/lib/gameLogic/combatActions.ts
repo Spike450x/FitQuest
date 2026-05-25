@@ -36,6 +36,62 @@ import {
 } from './passives';
 import { COMBAT } from './constants';
 
+// ─── Monster passive / active helpers ─────────────────────────────────────────
+
+/** Returns effective monster stats with permanent active boosts applied. */
+function getMonsterEffectiveStats(monster: MonsterDef, state: FightState): MonsterDef {
+  const bonusAtk = state.monsterBonusAtk ?? 0;
+  const bonusDef = state.monsterBonusDef ?? 0;
+  if (!bonusAtk && !bonusDef) return monster;
+  return { ...monster, attack: monster.attack + bonusAtk, defense: monster.defense + bonusDef };
+}
+
+/** Heals the monster by its regen value, capped at max HP. Returns updated state + amount. */
+function applyMonsterRegen(state: FightState): { state: FightState; regenAmount: number } {
+  const passive = state.monster.passive;
+  if (!passive || passive.id !== 'regen') return { state, regenAmount: 0 };
+  const regenAmount = Math.min(passive.value, state.monster.hp - state.monsterHp);
+  if (regenAmount <= 0) return { state, regenAmount: 0 };
+  return { state: { ...state, monsterHp: state.monsterHp + regenAmount }, regenAmount };
+}
+
+/** Reflects a % of player damage as thorns damage back to the player. */
+function calcThornsDamage(monster: MonsterDef, playerDamage: number): number {
+  const passive = monster.passive;
+  if (!passive || passive.id !== 'thorns' || playerDamage <= 0) return 0;
+  return Math.ceil((playerDamage * passive.value) / 100);
+}
+
+/** Heals monster from a % of its own counter-attack damage (vampiric). */
+function calcVampiricHeal(monster: MonsterDef, monsterDamage: number, monsterHp: number): number {
+  const passive = monster.passive;
+  if (!passive || passive.id !== 'vampiric' || monsterDamage <= 0) return 0;
+  const heal = Math.ceil((monsterDamage * passive.value) / 100);
+  return Math.min(heal, monster.hp - monsterHp);
+}
+
+/** Detects a first-time HP-threshold crossing and returns the active's effect. */
+function checkMonsterActive(
+  monster: MonsterDef,
+  hpBefore: number,
+  hpAfter: number,
+  activeUsed: boolean,
+): { triggered: boolean; bonusAtk: number; bonusDef: number; label: string } {
+  if (!monster.active || activeUsed || hpAfter === 0) {
+    return { triggered: false, bonusAtk: 0, bonusDef: 0, label: '' };
+  }
+  const threshold = monster.active.triggerPct * monster.hp;
+  if (hpBefore > threshold && hpAfter <= threshold) {
+    return {
+      triggered: true,
+      bonusAtk: monster.active.id === 'enrage' ? monster.active.value : 0,
+      bonusDef: monster.active.id === 'harden' ? monster.active.value : 0,
+      label: monster.active.label,
+    };
+  }
+  return { triggered: false, bonusAtk: 0, bonusDef: 0, label: '' };
+}
+
 // ─── Shared input / output shapes ──────────────────────────────────────────────
 
 export interface ActionInput {
@@ -72,22 +128,33 @@ interface PreActionResult {
   state: FightState;
   notes: string[];
   effectiveMonster: MonsterDef;
+  regenAmount: number;
 }
 
 function runPreAction(input: ActionInput): PreActionResult {
   const notes: string[] = [];
   let state = input.state;
 
+  // Dungeon pre-action tick (venom DoT, etc.) runs first.
   if (input.modifiers?.preActionTick) {
     const tick = input.modifiers.preActionTick(state);
     state = tick.state;
     if (tick.log) notes.push(tick.log);
   }
 
-  const effectiveMonster =
-    input.modifiers?.effectiveMonster?.(state.monster, state) ?? state.monster;
+  // Monster regen heals before the player attacks.
+  const { state: stateAfterRegen, regenAmount } = applyMonsterRegen(state);
+  if (regenAmount > 0) {
+    state = stateAfterRegen;
+    notes.push(`${state.monster.name} regenerates ${regenAmount} HP.`);
+  }
 
-  return { state, notes, effectiveMonster };
+  // Apply permanent active buffs (enrage/harden) before dungeon modifier override.
+  const baseEffective = getMonsterEffectiveStats(state.monster, state);
+  const effectiveMonster =
+    input.modifiers?.effectiveMonster?.(baseEffective, state) ?? baseEffective;
+
+  return { state, notes, effectiveMonster, regenAmount };
 }
 
 function runAbsorb(
@@ -152,7 +219,19 @@ export function resolveAttackAction(
   // Warlock Soul Drain on attack damage
   const { soulDrainHeal: attackSoulDrain } = resolveLifesteal(character, 0, playerDamage);
 
-  const newMonsterHp = Math.max(0, stateForRound.monsterHp - playerDamage);
+  const monsterHpBefore = stateForRound.monsterHp;
+  const newMonsterHp = Math.max(0, monsterHpBefore - playerDamage);
+
+  // Monster thorns: reflect damage to player (before resolveRoundOutcome so we know the amount).
+  const thornDamage = calcThornsDamage(stateForRound.monster, playerDamage);
+
+  // Active trigger: one-shot ability fires when monster HP crosses the threshold.
+  const activeResult = checkMonsterActive(
+    stateForRound.monster,
+    monsterHpBefore,
+    newMonsterHp,
+    stateForRound.activeUsed ?? false,
+  );
 
   const healedHp = Math.min(stateForRound.playerHp + attackSoulDrain, maxHp);
   const roundResult = resolveRoundOutcome({
@@ -168,16 +247,36 @@ export function resolveAttackAction(
     streakMultiplier,
     getPityFor,
   });
-  const { incoming, perRound, finalPlayerHp, finalPlayerMagic, outcome, droppedItems } =
-    roundResult;
+  const {
+    incoming,
+    perRound,
+    finalPlayerHp: rawFinalPlayerHp,
+    finalPlayerMagic,
+    outcome: rawOutcome,
+    droppedItems,
+  } = roundResult;
   const actualMonsterDamage = incoming.damage;
 
-  // Compose intermediate state for postRoundHook (with new monster HP and incoming damage applied)
+  // Apply thorns on top of monster counter-attack.
+  const finalPlayerHp =
+    thornDamage > 0 ? Math.max(0, rawFinalPlayerHp - thornDamage) : rawFinalPlayerHp;
+  const outcome = rawOutcome === 'win' ? 'win' : finalPlayerHp === 0 ? 'loss' : rawOutcome;
+
+  // Vampiric: monster heals from the damage it dealt (skip if monster is dead).
+  const vampiricHeal =
+    newMonsterHp === 0
+      ? 0
+      : calcVampiricHeal(stateForRound.monster, actualMonsterDamage, newMonsterHp);
+  const monsterHpFinal = Math.min(stateForRound.monster.hp, newMonsterHp + vampiricHeal);
+
   const interimState: FightState = {
     ...stateForRound,
-    monsterHp: newMonsterHp,
+    monsterHp: monsterHpFinal,
     playerHp: finalPlayerHp,
     playerMagic: finalPlayerMagic,
+    activeUsed: (stateForRound.activeUsed ?? false) || activeResult.triggered,
+    monsterBonusAtk: (stateForRound.monsterBonusAtk ?? 0) + activeResult.bonusAtk,
+    monsterBonusDef: (stateForRound.monsterBonusDef ?? 0) + activeResult.bonusDef,
   };
   const post = runPostRound(input, interimState, mode);
 
@@ -194,7 +293,7 @@ export function resolveAttackAction(
     playerDefFailed,
     monsterDefFailed,
     playerHpAfter: finalPlayerHp,
-    monsterHpAfter: newMonsterHp,
+    monsterHpAfter: monsterHpFinal,
     eagleEyeCrit: outgoing.eagleEyeCrit,
     divineAegisBlocked: incoming.divineAegisBlocked,
     manaBarrierAbsorbed: incoming.magicDrained > 0 ? incoming.magicDrained : undefined,
@@ -202,20 +301,32 @@ export function resolveAttackAction(
     perRoundHpRestore: perRound.hpRestore > 0 && outcome === null ? perRound.hpRestore : undefined,
     perRoundMagicRestore:
       perRound.magicRestore > 0 && outcome === null ? perRound.magicRestore : undefined,
+    thornsDamage: thornDamage > 0 ? thornDamage : undefined,
+    monsterRegen: pre.regenAmount > 0 ? pre.regenAmount : undefined,
+    monsterVampiric: vampiricHeal > 0 ? vampiricHeal : undefined,
+    monsterActiveTriggered: activeResult.triggered ? activeResult.label : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
+
+  const activeMessage = activeResult.triggered
+    ? `${stateForRound.monster.name}: ${activeResult.label}!`
+    : undefined;
+  const bannerMessage =
+    [post.bannerMessage, activeMessage].filter(Boolean).join(' · ') || undefined;
 
   const nextState: FightState = {
     ...post.state,
     log: [...stateForRound.log, logEntry],
     outcome,
     droppedItems,
+    monsterHp: monsterHpFinal,
+    playerHp: finalPlayerHp,
   };
 
   return {
     nextState,
     logEntry,
-    bannerMessage: post.bannerMessage,
+    bannerMessage,
     pending: {
       kind: 'action',
       payload: {
@@ -285,6 +396,15 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
 
   const killedMonster = newMonsterHp === 0;
 
+  // Thorns + active check (based on post-attack monster HP).
+  const thornDamage = calcThornsDamage(stateForRound.monster, effectivePlayerDamage);
+  const activeResult = checkMonsterActive(
+    stateForRound.monster,
+    monsterHpBefore,
+    newMonsterHp,
+    stateForRound.activeUsed ?? false,
+  );
+
   const healedHp = Math.min(stateForRound.playerHp + totalHeal, maxHp);
   const roundResult = resolveRoundOutcome({
     newMonsterHp,
@@ -299,9 +419,25 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     streakMultiplier,
     getPityFor,
   });
-  const { incoming, perRound, finalPlayerHp, finalPlayerMagic, outcome, droppedItems } =
-    roundResult;
+  const {
+    incoming,
+    perRound,
+    finalPlayerHp: rawFinalPlayerHp,
+    finalPlayerMagic,
+    outcome: rawOutcome,
+    droppedItems,
+  } = roundResult;
   const actualMonsterDamage = incoming.damage;
+
+  const finalPlayerHp =
+    thornDamage > 0 ? Math.max(0, rawFinalPlayerHp - thornDamage) : rawFinalPlayerHp;
+  const outcome = rawOutcome === 'win' ? 'win' : finalPlayerHp === 0 ? 'loss' : rawOutcome;
+
+  const vampiricHeal =
+    newMonsterHp === 0
+      ? 0
+      : calcVampiricHeal(stateForRound.monster, actualMonsterDamage, newMonsterHp);
+  const monsterHpFinal = Math.min(stateForRound.monster.hp, newMonsterHp + vampiricHeal);
 
   const momentumRestore = getMomentumRestore(character, killedMonster);
   const fizzleRefund = fizzled ? COMBAT.FIZZLE_STAMINA_REFUND : 0;
@@ -312,10 +448,13 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
 
   const interimState: FightState = {
     ...stateForRound,
-    monsterHp: newMonsterHp,
+    monsterHp: monsterHpFinal,
     playerHp: finalPlayerHp,
     playerStamina: newStamina,
     playerMagic: finalPlayerMagic,
+    activeUsed: (stateForRound.activeUsed ?? false) || activeResult.triggered,
+    monsterBonusAtk: (stateForRound.monsterBonusAtk ?? 0) + activeResult.bonusAtk,
+    monsterBonusDef: (stateForRound.monsterBonusDef ?? 0) + activeResult.bonusDef,
   };
   const post = runPostRound(input, interimState, 'ability');
   const modifierNotes = [...pre.notes, ...absorb.notes, ...post.notes];
@@ -327,7 +466,7 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     monsterDamage: actualMonsterDamage,
     playerDefFailed: resolution.playerDefFailed,
     playerHpAfter: finalPlayerHp,
-    monsterHpAfter: newMonsterHp,
+    monsterHpAfter: monsterHpFinal,
     abilityName: resolution.ability?.name,
     abilityEmoji: resolution.ability?.emoji,
     abilityPattern: resolution.pattern,
@@ -346,8 +485,18 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     perRoundHpRestore: perRound.hpRestore > 0 && outcome === null ? perRound.hpRestore : undefined,
     perRoundMagicRestore:
       perRound.magicRestore > 0 && outcome === null ? perRound.magicRestore : undefined,
+    thornsDamage: thornDamage > 0 ? thornDamage : undefined,
+    monsterRegen: pre.regenAmount > 0 ? pre.regenAmount : undefined,
+    monsterVampiric: vampiricHeal > 0 ? vampiricHeal : undefined,
+    monsterActiveTriggered: activeResult.triggered ? activeResult.label : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
+
+  const activeMessage = activeResult.triggered
+    ? `${stateForRound.monster.name}: ${activeResult.label}!`
+    : undefined;
+  const bannerMessageAbility =
+    [post.bannerMessage, activeMessage].filter(Boolean).join(' · ') || undefined;
 
   const nextState: FightState = {
     ...post.state,
@@ -356,12 +505,14 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     droppedItems,
     isFirstAbility: false,
     executeUsed: stateForRound.executeUsed || executeTriggered,
+    monsterHp: monsterHpFinal,
+    playerHp: finalPlayerHp,
   };
 
   return {
     nextState,
     logEntry,
-    bannerMessage: post.bannerMessage,
+    bannerMessage: bannerMessageAbility,
     pending: {
       kind: 'ability',
       payload: {
@@ -404,7 +555,16 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
   const absorb = runAbsorb(input, stateForRound, resolution.playerDamage);
   const damageToMonster = absorb.damage;
 
-  const newMonsterHp = Math.max(0, stateForRound.monsterHp - damageToMonster);
+  const monsterHpBeforeSpell = stateForRound.monsterHp;
+  const newMonsterHp = Math.max(0, monsterHpBeforeSpell - damageToMonster);
+
+  const thornDamageSpell = calcThornsDamage(stateForRound.monster, damageToMonster);
+  const activeResultSpell = checkMonsterActive(
+    stateForRound.monster,
+    monsterHpBeforeSpell,
+    newMonsterHp,
+    stateForRound.activeUsed ?? false,
+  );
 
   const spellCtx = {
     currentHpPct: stateForRound.playerHp / maxHp,
@@ -429,19 +589,40 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     streakMultiplier,
     getPityFor,
   });
-  const { incoming, perRound, finalPlayerHp, finalPlayerMagic, outcome, droppedItems } =
-    roundResult;
+  const {
+    incoming,
+    perRound,
+    finalPlayerHp: rawFinalHpSpell,
+    finalPlayerMagic,
+    outcome: rawOutcomeSpell,
+    droppedItems,
+  } = roundResult;
   const actualMonsterDamage = incoming.damage;
+
+  const finalPlayerHp =
+    thornDamageSpell > 0 ? Math.max(0, rawFinalHpSpell - thornDamageSpell) : rawFinalHpSpell;
+  const outcome =
+    rawOutcomeSpell === 'win' ? 'win' : finalPlayerHp === 0 ? 'loss' : rawOutcomeSpell;
+
+  const vampiricHealSpell =
+    newMonsterHp === 0
+      ? 0
+      : calcVampiricHeal(stateForRound.monster, actualMonsterDamage, newMonsterHp);
+  const monsterHpFinalSpell = Math.min(stateForRound.monster.hp, newMonsterHp + vampiricHealSpell);
+
   const newStamina = Math.min(stateForRound.playerStamina + resolution.staminaRestored, maxStamina);
 
   const totalSpellHeal = resolution.healAmount + spellSoulDrain;
 
   const interimState: FightState = {
     ...stateForRound,
-    monsterHp: newMonsterHp,
+    monsterHp: monsterHpFinalSpell,
     playerHp: finalPlayerHp,
     playerStamina: newStamina,
     playerMagic: finalPlayerMagic,
+    activeUsed: (stateForRound.activeUsed ?? false) || activeResultSpell.triggered,
+    monsterBonusAtk: (stateForRound.monsterBonusAtk ?? 0) + activeResultSpell.bonusAtk,
+    monsterBonusDef: (stateForRound.monsterBonusDef ?? 0) + activeResultSpell.bonusDef,
   };
   const post = runPostRound(input, interimState, 'spell');
   const modifierNotes = [...pre.notes, ...absorb.notes, ...post.notes];
@@ -462,7 +643,7 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     defenseBoost: resolution.defenseBoost,
     playerDefFailed: resolution.playerDefFailed,
     playerHpAfter: finalPlayerHp,
-    monsterHpAfter: newMonsterHp,
+    monsterHpAfter: monsterHpFinalSpell,
     soulDrainHeal: spellSoulDrain > 0 ? spellSoulDrain : undefined,
     divineAegisBlocked: incoming.divineAegisBlocked || undefined,
     manaBarrierAbsorbed: incoming.magicDrained > 0 ? incoming.magicDrained : undefined,
@@ -470,20 +651,32 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     perRoundHpRestore: perRound.hpRestore > 0 && outcome === null ? perRound.hpRestore : undefined,
     perRoundMagicRestore:
       perRound.magicRestore > 0 && outcome === null ? perRound.magicRestore : undefined,
+    thornsDamage: thornDamageSpell > 0 ? thornDamageSpell : undefined,
+    monsterRegen: pre.regenAmount > 0 ? pre.regenAmount : undefined,
+    monsterVampiric: vampiricHealSpell > 0 ? vampiricHealSpell : undefined,
+    monsterActiveTriggered: activeResultSpell.triggered ? activeResultSpell.label : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
+
+  const activeMessageSpell = activeResultSpell.triggered
+    ? `${stateForRound.monster.name}: ${activeResultSpell.label}!`
+    : undefined;
+  const bannerMessageSpell =
+    [post.bannerMessage, activeMessageSpell].filter(Boolean).join(' · ') || undefined;
 
   const nextState: FightState = {
     ...post.state,
     log: [...stateForRound.log, logEntry],
     outcome,
     droppedItems,
+    monsterHp: monsterHpFinalSpell,
+    playerHp: finalPlayerHp,
   };
 
   return {
     nextState,
     logEntry,
-    bannerMessage: post.bannerMessage,
+    bannerMessage: bannerMessageSpell,
     pending: {
       kind: 'spell',
       payload: {
@@ -520,8 +713,9 @@ function resolveRecoveryAction(input: ActionInput, type: 'rest' | 'meditate'): A
 
   // Monster gets a free attack (player's defense bypassed). Boss enrage ATK
   // boost applies here too — use effectiveMonster so Spider/Dragon hit harder.
+  const baseRecoveryMonster = getMonsterEffectiveStats(state.monster, state);
   const effectiveMonster =
-    input.modifiers?.effectiveMonster?.(state.monster, state) ?? state.monster;
+    input.modifiers?.effectiveMonster?.(baseRecoveryMonster, state) ?? baseRecoveryMonster;
   const monsterRoll = Math.ceil(Math.random() * 10);
   const monsterDamage = Math.max(1, effectiveMonster.attack + monsterRoll);
   const newPlayerHp = Math.max(0, state.playerHp - monsterDamage);

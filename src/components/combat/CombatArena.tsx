@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { CombatEffects } from './CombatEffects';
 import { EntityArt, type EntityCategory } from '@/components/art/EntityArt';
 import type { DamageBurst } from '@/hooks/useCombatBursts';
+import type { MonsterPassive } from '@/types';
 
 interface AvatarProps {
   /** Entity art category — 'class' for the player, 'monster' for foes. */
@@ -24,6 +25,10 @@ interface AvatarProps {
   side: 'left' | 'right';
   /** Optional sub-line under the HP bar (defense breakdown, hunting count, etc.) */
   sub?: React.ReactNode;
+  /** Monster passive trait badge — shown as a chip under the portrait. */
+  passive?: Pick<MonsterPassive, 'id' | 'label'>;
+  /** Set to the active's label once it has triggered — shown as a pulsing chip. */
+  activeLabel?: string;
 }
 
 /**
@@ -31,6 +36,15 @@ interface AvatarProps {
  * to give both combatants a focal point on the screen instead of two
  * stacked HP bars that read like an admin form.
  */
+const PASSIVE_COLORS: Record<string, string> = {
+  thorns:
+    'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800',
+  regen:
+    'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+  vampiric:
+    'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800',
+};
+
 function Avatar({
   artCategory,
   artId,
@@ -43,6 +57,8 @@ function Avatar({
   damageKey,
   side,
   sub,
+  passive,
+  activeLabel,
 }: AvatarProps) {
   const pct = Math.max(0, Math.min(100, (hp / maxHp) * 100));
   const fainted = hp <= 0;
@@ -99,6 +115,22 @@ function Avatar({
         {sub && (
           <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1 leading-tight">{sub}</p>
         )}
+        {(passive || activeLabel) && (
+          <div className="flex flex-wrap justify-center gap-1 mt-1">
+            {passive && (
+              <span
+                className={`text-[9px] font-bold rounded px-1.5 py-0.5 border uppercase tracking-wide ${PASSIVE_COLORS[passive.id] ?? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}
+              >
+                {passive.label}
+              </span>
+            )}
+            {activeLabel && (
+              <span className="text-[9px] font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 rounded px-1.5 py-0.5 uppercase tracking-wide animate-pulse">
+                {activeLabel}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -126,6 +158,10 @@ interface CombatArenaProps {
     hp: number;
     maxHp: number;
     defense: number;
+    /** Passive trait badge (from MonsterDef.passive). */
+    passive?: Pick<MonsterPassive, 'id' | 'label'>;
+    /** Set to the active's label once it triggers (from FightState.activeUsed + monster.active). */
+    activeLabel?: string;
   };
   /** Floating-damage bursts to overlay (player-targeted on left, monster on right). */
   bursts: DamageBurst[];
@@ -193,6 +229,8 @@ export function CombatArena({
           hpColor="bg-gradient-to-r from-slate-500 to-slate-600"
           damageKey={shakeKey ? `${shakeKey}-monster` : undefined}
           sub={monsterSub}
+          passive={monster.passive}
+          activeLabel={monster.activeLabel}
         />
       </div>
     </div>

@@ -17,6 +17,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'minor-health-potion', chance: 0.15 },
     ],
     description: 'A small, quick goblin — your first real test.',
+    passive: { id: 'thorns', label: 'Spiked Hide', value: 10 },
   },
   {
     id: 'giant-rat',
@@ -33,6 +34,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'minor-health-potion', chance: 0.15 },
     ],
     description: 'Fast and feral. Low defense but bites hard.',
+    passive: { id: 'thorns', label: 'Jagged Claws', value: 12 },
   },
   {
     id: 'forest-goblin',
@@ -51,6 +53,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'health-potion', chance: 0.08 },
     ],
     description: 'Armed with a crude axe and a chip on its shoulder.',
+    passive: { id: 'regen', label: 'Hardy', value: 2 },
   },
   {
     id: 'orc-grunt',
@@ -68,6 +71,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'health-potion', chance: 0.12 },
     ],
     description: 'Thick-skinned and relentless. Respect the club.',
+    active: { id: 'enrage', triggerPct: 0.5, label: 'Enrage', value: 4 },
   },
   {
     id: 'cave-spider',
@@ -85,6 +89,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'health-potion', chance: 0.1 },
     ],
     description: 'Venomous and fast. It will overwhelm the unprepared.',
+    passive: { id: 'thorns', label: 'Venomous Spines', value: 18 },
   },
   {
     id: 'skeleton-warrior',
@@ -102,6 +107,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'health-potion', chance: 0.12 },
     ],
     description: 'Animated by dark magic. High defense — chip it down.',
+    passive: { id: 'regen', label: 'Undying', value: 4 },
   },
   {
     id: 'dark-wolf',
@@ -120,6 +126,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'greater-health-potion', chance: 0.08 },
     ],
     description: 'Hunts in shadows. Ferocious and hungry.',
+    active: { id: 'enrage', triggerPct: 0.4, label: 'Blood Frenzy', value: 5 },
   },
   {
     id: 'stone-troll',
@@ -138,6 +145,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'greater-health-potion', chance: 0.1 },
     ],
     description: 'Nearly indestructible. Bring your best stats.',
+    passive: { id: 'regen', label: 'Trollish Resilience', value: 6 },
   },
   {
     id: 'dark-mage',
@@ -156,6 +164,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'greater-health-potion', chance: 0.1 },
     ],
     description: 'Glass cannon. Kill it fast or get obliterated.',
+    passive: { id: 'vampiric', label: 'Life Tap', value: 30 },
   },
   {
     id: 'lich-king',
@@ -175,6 +184,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'greater-magic-potion', chance: 0.1 },
     ],
     description: 'A necromancer-king risen from death. Bring magic resistance or kneel.',
+    active: { id: 'harden', triggerPct: 0.5, label: 'Bone Shield', value: 6 },
   },
   {
     id: 'ancient-dragon',
@@ -196,5 +206,6 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'elixir-of-life', chance: 0.08 },
     ],
     description: 'The ultimate challenge. Few have survived.',
+    passive: { id: 'thorns', label: 'Dragon Scales', value: 25 },
   },
 ];
