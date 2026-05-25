@@ -366,7 +366,7 @@ useEffect(() => {
 
 Regular attack:
 
-```
+```text
 playerDamage = max(1, d10_roll + statBonus + gearBonus − monster.defense)
   where statBonus = floor(STR × 1.0) for warrior/ranger
                   = floor(WIS × 1.0) for wizard
@@ -375,7 +375,7 @@ playerDamage = max(1, d10_roll + statBonus + gearBonus − monster.defense)
 
 Ability roll (Roll Ability — 6d6):
 
-```
+```text
 baseHit      = round(avg of 6d6) + statBonus + gearBonus
 rawDamage    = round(baseHit × abilityMultiplier × extraMultiplier)
 playerDamage = max(1, rawDamage − monster.defense)    ← unless bypassMonsterDef
