@@ -141,6 +141,8 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 
 ### B7 — Quest Page: daily and weekly card columns misalign
 
+**Status:** SHIPPED 2026-05-25. Replaced the `grid-cols-1 md:grid-cols-2` two-column layout with a `Daily | Weekly` tab switcher. Only one section is visible at a time on all viewports — eliminates the alignment problem entirely.
+
 **Severity:** Medium — visual polish issue on desktop.
 
 **Symptoms:** On the quests page (≥ md breakpoint), daily and weekly quests are shown side-by-side in a two-column grid. Weekly quests that have multiple progress criteria (`extraTargets`) render taller cards than single-bar daily quests. Because each column stacks cards independently (`space-y-3`), the vertical positions of cards in each column drift apart as you scroll — the layout looks misaligned.

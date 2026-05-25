@@ -307,6 +307,7 @@ export default function QuestsPage() {
   const rerollQuest = useQuestStore((s) => s.rerollQuest);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [rerolling, setRerolling] = useState<string | null>(null);
+  const [questTab, setQuestTab] = useState<'daily' | 'weekly'>('daily');
 
   useEffect(() => {
     if (character?.uid) fetchAndAssignQuests(character.uid);
@@ -366,6 +367,24 @@ export default function QuestsPage() {
         </p>
       </div>
 
+      {/* Tab switcher */}
+      <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1">
+        {(['daily', 'weekly'] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setQuestTab(tab)}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors capitalize ${
+              questTab === tab
+                ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-sm'
+                : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200'
+            }`}
+          >
+            {tab === 'daily' ? '📅 Daily' : '📆 Weekly'}
+          </button>
+        ))}
+      </div>
+
       {error && (
         <ErrorBanner
           title="Couldn't load your quests."
@@ -376,31 +395,30 @@ export default function QuestsPage() {
 
       {loading ? (
         <LoadingSkeleton />
+      ) : questTab === 'daily' ? (
+        <QuestSection
+          title="Daily Quests"
+          icon="📅"
+          quests={dailyQuests}
+          claiming={claiming}
+          rerolling={rerolling}
+          canAffordReroll={canAffordReroll}
+          rerollCost={QUEST_REROLL_COST}
+          onClaim={handleClaim}
+          onReroll={handleReroll}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <QuestSection
-            title="Daily Quests"
-            icon="📅"
-            quests={dailyQuests}
-            claiming={claiming}
-            rerolling={rerolling}
-            canAffordReroll={canAffordReroll}
-            rerollCost={QUEST_REROLL_COST}
-            onClaim={handleClaim}
-            onReroll={handleReroll}
-          />
-          <QuestSection
-            title="Weekly Quests"
-            icon="📆"
-            quests={weeklyQuests}
-            claiming={claiming}
-            rerolling={rerolling}
-            canAffordReroll={canAffordReroll}
-            rerollCost={QUEST_REROLL_COST}
-            onClaim={handleClaim}
-            onReroll={handleReroll}
-          />
-        </div>
+        <QuestSection
+          title="Weekly Quests"
+          icon="📆"
+          quests={weeklyQuests}
+          claiming={claiming}
+          rerolling={rerolling}
+          canAffordReroll={canAffordReroll}
+          rerollCost={QUEST_REROLL_COST}
+          onClaim={handleClaim}
+          onReroll={handleReroll}
+        />
       )}
     </div>
   );

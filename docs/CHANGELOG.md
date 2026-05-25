@@ -15,6 +15,11 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Quest page Daily/Weekly tab switcher (B7)
+
+- Replaced `grid grid-cols-1 md:grid-cols-2` two-column layout with a `📅 Daily | 📆 Weekly` pill tab on all viewports.
+- One section visible at a time — eliminates the card-height misalignment on desktop and improves mobile legibility.
+
 ## 2026-05-25 — Gear equip only changes max HP/Stamina; unequip clamps current (B5/B6)
 
 - `computeGearDelta` in `inventoryStore.ts` now applies DQ1/DQ2: equipping leaves `currentHp`/`currentStamina` unchanged (max rises only); unequipping clamps current down if it would exceed the reduced max.
