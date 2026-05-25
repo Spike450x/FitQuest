@@ -87,6 +87,7 @@ import { toast, toastReward, toastLoot } from '@/components/ui/Toaster';
 import { claimCombatVictoryCF } from '@/lib/functions';
 import { fetchRecentCombatLogs } from '@/lib/combatData';
 import { COMBAT, CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
+import { useCombatStore } from '@/store/combatStore';
 import type { Character, MonsterDef } from '@/types';
 import type { PendingRewards } from '@/components/combat/types';
 
@@ -162,6 +163,23 @@ function CombatPageBody({ character }: { character: Character }) {
       cancelled = true;
     };
   }, [character?.uid]);
+
+  // Lock nav and guard page unload while a fight is in progress
+  useEffect(() => {
+    const active = activeMonster !== null && !pendingRewards;
+    useCombatStore.getState().setCombatActive(active);
+    if (!active) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [activeMonster, pendingRewards]);
+
+  // Ensure the flag is cleared if the component unmounts mid-fight
+  useEffect(() => {
+    return () => useCombatStore.getState().setCombatActive(false);
+  }, []);
 
   // Fire confetti when a victory modal appears
   useEffect(() => {

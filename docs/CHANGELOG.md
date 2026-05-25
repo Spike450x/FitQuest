@@ -15,6 +15,14 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Combat nav lock + beforeunload guard (B9)
+
+- New `src/store/combatStore.ts` — single `combatActive` boolean with `setCombatActive` / `clear`.
+- Arena page sets the flag while a monster is active (cleared on victory modal, flee, defeat, unmount). Dungeon run page sets it during `combat` and `boss` phases.
+- Both pages register a `beforeunload` handler while the flag is true so the browser "Leave page?" dialog fires on tab close or URL-bar navigation.
+- `CombatSafeLink` component in `layout.tsx` wraps all desktop sidebar + mobile bottom-nav links and shows a toast instead of navigating when `combatActive`.
+- `handleSignOut` flushes `combatStore` alongside the other 5 stores.
+
 ## 2026-05-25 — Dungeon claim handlers surface errors; CF unhandled exceptions now diagnosable (B2/B3)
 
 Previously all three dungeon claim handlers (`handleClaimVictory`, `handleRetreat`, defeat button) used `try…finally` with no `catch`. Any Cloud Function failure silently re-enabled the button with no user feedback. Added `catch` blocks with `toast.error(…)` to all three so failures are always visible to the player.

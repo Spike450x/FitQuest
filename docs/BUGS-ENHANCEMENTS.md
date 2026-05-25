@@ -167,6 +167,8 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 
 ### B9 — Combat: nav menu allows escape from active fight
 
+**Status:** SHIPPED 2026-05-25. New `src/store/combatStore.ts` (`combatActive` boolean + `setCombatActive`/`clear`). Arena page sets the flag when `activeMonster !== null && !pendingRewards`; dungeon run page sets it when `phase === 'combat' || phase === 'boss'`. Both pages register a `beforeunload` guard while the flag is true. Layout's `CombatSafeLink` wraps both desktop sidebar and mobile bottom-nav links — fires a toast instead of navigating when `combatActive`. `handleSignOut` now flushes `combatStore`.
+
 **Severity:** High — players can abandon a fight mid-round with no consequence by tapping any nav item, and dungeon runs are left in an orphaned `active` state in Firestore.
 
 **Symptoms:** During an active arena or dungeon combat encounter, all sidebar links (desktop) and all bottom nav items (mobile) remain fully clickable. Navigating away mid-fight causes:

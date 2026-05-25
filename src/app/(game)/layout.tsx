@@ -21,6 +21,8 @@ import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { useStatsStore } from '@/store/statsStore';
+import { useCombatStore } from '@/store/combatStore';
+import { toast } from '@/components/ui/Toaster';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { XPBar } from '@/components/ui/XPBar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -32,6 +34,24 @@ import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
 import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
 
 type NavItem = { href: string; label: string; Icon: LucideIcon };
+
+/** Nav link that blocks navigation (with a toast) while combat is active. */
+function CombatSafeLink({ href, children, ...props }: React.ComponentProps<typeof Link>) {
+  const combatActive = useCombatStore((s) => s.combatActive);
+
+  function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (combatActive) {
+      e.preventDefault();
+      toast.warning('Finish or flee your current battle before navigating away.');
+    }
+  }
+
+  return (
+    <Link href={href} onClick={handleClick} {...props}>
+      {children}
+    </Link>
+  );
+}
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', Icon: Home },
@@ -61,6 +81,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
     useQuestStore.getState().clear();
     useInventoryStore.getState().clear();
     useStatsStore.getState().clear();
+    useCombatStore.getState().clear();
     await logOut();
     router.push('/login');
   }
@@ -196,7 +217,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
             {NAV_ITEMS.map(({ href, label, Icon }) => {
               const active = pathname === href;
               return (
-                <Link
+                <CombatSafeLink
                   key={href}
                   href={href}
                   title={collapsed ? label : undefined}
@@ -214,7 +235,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
                 >
                   <Icon className="w-4 h-4 shrink-0" aria-hidden="true" strokeWidth={2} />
                   {!collapsed && <span className="truncate">{label}</span>}
-                </Link>
+                </CombatSafeLink>
               );
             })}
           </nav>
@@ -236,7 +257,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
             const active = pathname === href;
             return (
               <li key={href} className="flex-1 min-w-0">
-                <Link
+                <CombatSafeLink
                   href={href}
                   aria-current={active ? 'page' : undefined}
                   className={`relative flex flex-col items-center gap-0.5 py-2 px-1 text-[10px] font-medium transition-all ${
@@ -253,7 +274,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
                   )}
                   <Icon className="w-5 h-5" aria-hidden="true" strokeWidth={active ? 2.5 : 2} />
                   <span className="truncate w-full text-center">{label}</span>
-                </Link>
+                </CombatSafeLink>
               </li>
             );
           })}

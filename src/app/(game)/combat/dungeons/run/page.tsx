@@ -46,6 +46,7 @@ import { ActionRollOverlay } from '@/components/combat/overlays/ActionRollOverla
 import { DiceRollOverlay } from '@/components/combat/overlays/DiceRollOverlay';
 import { SpellRollOverlay } from '@/components/combat/overlays/SpellRollOverlay';
 import { useCombatEncounter } from '@/hooks/useCombatEncounter';
+import { useCombatStore } from '@/store/combatStore';
 import { getStreakLootMultiplier } from '@/lib/gameLogic/streaks';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 import type {
@@ -532,6 +533,23 @@ export default function DungeonRunPage() {
   useEffect(() => {
     bootstrap();
   }, [bootstrap]);
+
+  // Lock nav and guard page unload while a combat or boss room is active
+  useEffect(() => {
+    const active = phase === 'combat' || phase === 'boss';
+    useCombatStore.getState().setCombatActive(active);
+    if (!active) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [phase]);
+
+  // Ensure the flag is cleared if the component unmounts mid-fight
+  useEffect(() => {
+    return () => useCombatStore.getState().setCombatActive(false);
+  }, []);
 
   function enterRoom(type: DungeonRoomType) {
     setLog([]);
