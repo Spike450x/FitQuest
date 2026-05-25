@@ -3,6 +3,7 @@ import {
   checkRequirement,
   describeRequirement,
   getHighlightedSpellDiceIndices,
+  getSpellMaxCharges,
   resolveSpell,
 } from '../spells';
 import type { SpellDiceRequirement, SpellEffect } from '@/types';
@@ -283,5 +284,25 @@ describe('resolveSpell', () => {
 
     const result = resolveSpell(damageEffect, alwaysFail, makeChar(), makeMonster({ attack: 15 }));
     expect(result.monsterDamage).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('getSpellMaxCharges (per-rarity)', () => {
+  it('returns 2 for common', () => {
+    expect(getSpellMaxCharges('common')).toBe(2);
+  });
+  it('returns 3 for uncommon and rare', () => {
+    expect(getSpellMaxCharges('uncommon')).toBe(3);
+    expect(getSpellMaxCharges('rare')).toBe(3);
+  });
+  it('returns 4 for epic', () => {
+    expect(getSpellMaxCharges('epic')).toBe(4);
+  });
+  it('returns 5 for legendary', () => {
+    expect(getSpellMaxCharges('legendary')).toBe(5);
+  });
+  it('falls back to COMBAT.SPELL_MAX_CHARGES when rarity is undefined', () => {
+    // Sanity check the defensive path — undefined → 3 (the COMBAT default).
+    expect(getSpellMaxCharges(undefined)).toBe(3);
   });
 });

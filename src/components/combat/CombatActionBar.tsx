@@ -1,7 +1,7 @@
 'use client';
 
 import { COMBAT } from '@/lib/gameLogic/constants';
-const SPELL_MAX_CHARGES = COMBAT.SPELL_MAX_CHARGES;
+import { getSpellMaxCharges } from '@/lib/gameLogic/spells';
 import { gearAttackBonus } from '@/lib/gameLogic/combat';
 import {
   canBloodPact,
@@ -92,10 +92,11 @@ export function CombatActionBar({
   );
   const canAbility = playerStamina >= staCost;
 
-  // Compute which spells still have charges this encounter
-  const spellsWithCharges = equippedSpells.filter(({ invItem }) => {
+  // Compute which spells still have charges this encounter (per-rarity max)
+  const spellsWithCharges = equippedSpells.filter(({ invItem, def }) => {
+    if (!def) return false;
     const used = spellChargesUsed?.[invItem.id] ?? 0;
-    return used < SPELL_MAX_CHARGES;
+    return used < getSpellMaxCharges(def.rarity);
   });
   const allSpellsExhausted = equippedSpells.length > 0 && spellsWithCharges.length === 0;
 
@@ -254,8 +255,9 @@ export function CombatActionBar({
               const bloodPactAvail = canBloodPact(character, effectiveCost, playerMagic, playerHp);
               const classOk =
                 sm.classRestriction === 'all' || sm.classRestriction === character.class;
+              const maxCharges = getSpellMaxCharges(def.rarity);
               const chargesUsed = spellChargesUsed?.[invItem.id] ?? 0;
-              const chargesLeft = SPELL_MAX_CHARGES - chargesUsed;
+              const chargesLeft = maxCharges - chargesUsed;
               const exhausted = chargesLeft <= 0;
               const canCast = (affordable || bloodPactAvail) && classOk && !exhausted;
               const actionLabel = exhausted
@@ -279,7 +281,7 @@ export function CombatActionBar({
                   />
                   {/* Charge dot meter */}
                   <div className="flex gap-1 justify-center">
-                    {Array.from({ length: SPELL_MAX_CHARGES }).map((_, i) => (
+                    {Array.from({ length: maxCharges }).map((_, i) => (
                       <div
                         key={i}
                         className={`w-2 h-2 rounded-full transition-colors ${
