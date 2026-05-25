@@ -15,6 +15,15 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Mobile responsiveness sweep (E10)
+
+- Mobile bottom nav touch targets raised to `min-h-[44px]` (py-3 instead of py-2).
+- Main content bottom padding bumped to `pb-24 sm:pb-20 md:pb-6` for breathing room at 320px.
+- Stats page range-filter buttons: `py-2.5 min-h-[40px]`; chart left margins `-10` (was `-20`).
+- Inventory NEW badge: `text-[11px]` (was `text-[10px]` — unreadable at 320px).
+- Dungeon progress chain nodes: `w-8 h-8 sm:w-7 sm:h-7` (mobile-friendly upscale).
+- Combat post-fight button grid: `gap-2 sm:gap-3`, buttons `py-3 sm:py-2.5`.
+
 ## 2026-05-25 — SpellRollOverlay shows monster counter-attack panel (B8)
 
 - Added `monsterRoll: number` to `SpellResolution` in `spells.ts` (was computed internally but discarded).

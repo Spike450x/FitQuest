@@ -107,7 +107,7 @@ function ProgressChain({
         const isCurrent = i === currentRoom;
         const isDefeated = phase === 'defeat' && i === currentRoom;
         let nodeClass =
-          'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border';
+          'w-8 h-8 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold border';
         if (isDefeated) {
           nodeClass += ' bg-red-900 border-red-500 text-red-300';
         } else if (isCleared) {

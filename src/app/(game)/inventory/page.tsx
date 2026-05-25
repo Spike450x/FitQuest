@@ -458,7 +458,7 @@ export default function InventoryPage() {
             return (
               <div key={invItem.id} className="relative">
                 {isNewItem && (
-                  <span className="absolute -top-2 -right-2 z-10 text-[10px] px-2 py-0.5 rounded-full font-bold bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-md shadow-amber-500/40 ring-2 ring-white">
+                  <span className="absolute -top-2 -right-2 z-10 text-[11px] px-2 py-0.5 rounded-full font-bold bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-md shadow-amber-500/40 ring-2 ring-white">
                     NEW
                   </span>
                 )}

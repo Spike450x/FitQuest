@@ -461,6 +461,8 @@ So "1.5× damage" means the multiplier is applied to **the sum of your dice aver
 
 ### E10 — Mobile & Tablet Responsiveness Sweep
 
+**Status:** SHIPPED 2026-05-25. Fixes applied: mobile nav touch targets raised to `min-h-[44px]` (py-3); main content bottom padding `pb-24 sm:pb-20 md:pb-6` for extra breathing room at 320px; stats range-filter buttons `py-2.5 min-h-[40px]`; chart left margin `-10` (was `-20` — clipped Y-axis labels); inventory NEW badge `text-[11px]`; dungeon progress nodes `w-8 h-8 sm:w-7 sm:h-7`; combat post-fight buttons `gap-2 sm:gap-3 py-3 sm:py-2.5`.
+
 **Priority:** High — the shell layout (sidebar, bottom nav, `pb-20 md:pb-6` content padding) is solid, but individual pages have not been audited for mobile and tablet breakpoints.
 
 **Known solid foundations:**

@@ -242,7 +242,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         </aside>
 
         {/* ── Main content ──────────────────────────────────────────────────── */}
-        <main id="main-content" className="flex-1 min-w-0 py-6 px-4 sm:px-6 pb-20 md:pb-6">
+        <main id="main-content" className="flex-1 min-w-0 py-6 px-4 sm:px-6 pb-24 sm:pb-20 md:pb-6">
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
@@ -260,7 +260,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
                 <CombatSafeLink
                   href={href}
                   aria-current={active ? 'page' : undefined}
-                  className={`relative flex flex-col items-center gap-0.5 py-2 px-1 text-[10px] font-medium transition-all ${
+                  className={`relative flex flex-col items-center gap-0.5 py-3 px-1 text-[10px] font-medium transition-all min-h-[44px] ${
                     active
                       ? 'text-indigo-600 dark:text-indigo-300 scale-105'
                       : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-200'

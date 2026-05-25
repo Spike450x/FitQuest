@@ -620,16 +620,16 @@ function CombatPageBody({ character }: { character: Character }) {
             {resetting ? 'Resetting…' : 'Begin Again'}
           </button>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <button
               onClick={backToArena}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition-colors"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 sm:py-2.5 rounded-lg transition-colors"
             >
               {outcome === 'fled' ? 'Back to Arena' : 'Fight Again'}
             </button>
             <Link
               href="/dashboard"
-              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-indigo-300 text-gray-700 dark:text-slate-200 font-semibold py-2.5 rounded-lg transition-colors text-center"
+              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-indigo-300 text-gray-700 dark:text-slate-200 font-semibold py-3 sm:py-2.5 rounded-lg transition-colors text-center"
             >
               Dashboard
             </Link>
