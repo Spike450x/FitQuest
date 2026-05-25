@@ -144,6 +144,22 @@ describe('generateDungeonLayout', () => {
     }
   });
 
+  it('never produces a room with an undefined field value (Firestore safety)', () => {
+    for (const tierId of TIERS) {
+      for (const seed of [100, 200, 300, 202421]) {
+        const layout = generateDungeonLayout(tierId, seed);
+        for (const room of layout) {
+          for (const [key, val] of Object.entries(room)) {
+            expect(
+              val,
+              `${tierId} seed ${seed}: room.${key} must not be undefined`,
+            ).not.toBeUndefined();
+          }
+        }
+      }
+    }
+  });
+
   it('always contains at least one combat room (excluding boss)', () => {
     // Test many seeds to catch stat-check-heavy PRNG outputs
     for (const tierId of TIERS) {

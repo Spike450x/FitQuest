@@ -25,6 +25,7 @@ vi.mock('firebase/firestore', () => ({
   limit: (...args: unknown[]) => limitMock(...args),
 }));
 
+import type { DungeonRoomDef } from '@/types';
 import {
   createDungeonRunDoc,
   getDungeonRunDoc,
@@ -33,6 +34,7 @@ import {
   finalizeDungeonRun,
   claimDungeonRunRewards,
   getRecentDungeonRuns,
+  normalizeDungeonRun,
   DUNGEON_RUNS_COLLECTION,
 } from '../dungeonData';
 
@@ -58,6 +60,28 @@ describe('createDungeonRunDoc', () => {
     expect(payload.cumulativeXp).toBe(0);
     expect(payload.completedAt).toBeNull();
     expect(payload.startedAt).toBeGreaterThanOrEqual(before);
+  });
+
+  it('omits monsterId key entirely for stat-check and rest rooms (Firestore rejects undefined)', async () => {
+    addDocMock.mockResolvedValue({ id: 'run-sc' });
+    const rooms: DungeonRoomDef[] = [
+      { type: 'stat-check', cleared: false, lootAwarded: [], xpAwarded: 0, goldAwarded: 0 },
+      { type: 'rest', cleared: false, lootAwarded: [], xpAwarded: 0, goldAwarded: 0 },
+      {
+        type: 'combat',
+        monsterId: 'goblin',
+        cleared: false,
+        lootAwarded: [],
+        xpAwarded: 0,
+        goldAwarded: 0,
+      },
+    ];
+    await createDungeonRunDoc('uid1', 'goblin-caves', rooms, 12345, true, 50, 40, 20);
+    const [, payload] = addDocMock.mock.calls[0] as [unknown, Record<string, unknown>];
+    const written = payload.rooms as Record<string, unknown>[];
+    expect('monsterId' in written[0]).toBe(false);
+    expect('monsterId' in written[1]).toBe(false);
+    expect(written[2].monsterId).toBe('goblin');
   });
 });
 
@@ -162,6 +186,121 @@ describe('getRecentDungeonRuns', () => {
     });
     const runs = await getRecentDungeonRuns('uid1');
     expect(runs.map((r) => r.id)).toEqual(['r1', 'r2']);
+  });
+});
+
+describe('normalizeDungeonRun', () => {
+  it('maps all scalar fields with their correct values', () => {
+    const run = normalizeDungeonRun('run1', {
+      uid: 'u1',
+      tierId: 'spider-lair',
+      weekSeed: 202421,
+      status: 'completed',
+      currentRoom: 3,
+      rooms: [],
+      currentHp: 80,
+      currentStamina: 50,
+      currentMagic: 30,
+      legendaryEligible: true,
+      cumulativeXp: 120,
+      cumulativeGold: 60,
+      allDroppedItems: ['item-sword'],
+      startedAt: 1000,
+      completedAt: 2000,
+      claimed: true,
+    });
+    expect(run.id).toBe('run1');
+    expect(run.uid).toBe('u1');
+    expect(run.tierId).toBe('spider-lair');
+    expect(run.weekSeed).toBe(202421);
+    expect(run.status).toBe('completed');
+    expect(run.currentRoom).toBe(3);
+    expect(run.currentHp).toBe(80);
+    expect(run.legendaryEligible).toBe(true);
+    expect(run.cumulativeXp).toBe(120);
+    expect(run.allDroppedItems).toEqual(['item-sword']);
+    expect(run.completedAt).toBe(2000);
+    expect(run.claimed).toBe(true);
+  });
+
+  it('provides safe defaults for every missing field', () => {
+    const run = normalizeDungeonRun('run-empty', {});
+    expect(run.uid).toBe('');
+    expect(run.tierId).toBe('goblin-caves');
+    expect(run.weekSeed).toBe(0);
+    expect(run.status).toBe('active');
+    expect(run.currentRoom).toBe(0);
+    expect(run.rooms).toEqual([]);
+    expect(run.currentHp).toBe(0);
+    expect(run.currentStamina).toBe(0);
+    expect(run.currentMagic).toBe(0);
+    expect(run.legendaryEligible).toBe(false);
+    expect(run.cumulativeXp).toBe(0);
+    expect(run.cumulativeGold).toBe(0);
+    expect(run.allDroppedItems).toEqual([]);
+    expect(run.startedAt).toBe(0);
+    expect(run.completedAt).toBeNull();
+    expect(run.claimed).toBe(false);
+  });
+
+  it('normalizes combat and boss rooms — monsterId present', () => {
+    const run = normalizeDungeonRun('run1', {
+      rooms: [
+        {
+          type: 'combat',
+          monsterId: 'goblin',
+          cleared: false,
+          lootAwarded: [],
+          xpAwarded: 0,
+          goldAwarded: 0,
+        },
+        {
+          type: 'boss',
+          monsterId: 'boss-goblin-king',
+          cleared: true,
+          lootAwarded: ['loot-1'],
+          xpAwarded: 100,
+          goldAwarded: 50,
+        },
+      ],
+    });
+    expect(run.rooms[0].monsterId).toBe('goblin');
+    expect(run.rooms[1].monsterId).toBe('boss-goblin-king');
+    expect(run.rooms[1].cleared).toBe(true);
+    expect(run.rooms[1].xpAwarded).toBe(100);
+  });
+
+  it('normalizes stat-check and rest rooms — monsterId key absent', () => {
+    const run = normalizeDungeonRun('run1', {
+      rooms: [
+        { type: 'stat-check', cleared: false, lootAwarded: [], xpAwarded: 0, goldAwarded: 0 },
+        { type: 'rest', cleared: false, lootAwarded: [], xpAwarded: 0, goldAwarded: 0 },
+      ],
+    });
+    expect('monsterId' in run.rooms[0]).toBe(false);
+    expect('monsterId' in run.rooms[1]).toBe(false);
+  });
+
+  it('ignores a non-string monsterId stored in Firestore (schema corruption guard)', () => {
+    const run = normalizeDungeonRun('run1', {
+      rooms: [
+        {
+          type: 'combat',
+          monsterId: 42,
+          cleared: false,
+          lootAwarded: [],
+          xpAwarded: 0,
+          goldAwarded: 0,
+        },
+      ],
+    });
+    expect('monsterId' in run.rooms[0]).toBe(false);
+  });
+
+  it('returns null completedAt when the field is absent or non-numeric', () => {
+    expect(normalizeDungeonRun('r', { completedAt: null }).completedAt).toBeNull();
+    expect(normalizeDungeonRun('r', { completedAt: 'bad' }).completedAt).toBeNull();
+    expect(normalizeDungeonRun('r', {}).completedAt).toBeNull();
   });
 });
 

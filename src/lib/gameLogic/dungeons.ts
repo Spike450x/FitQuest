@@ -238,7 +238,14 @@ export function generateDungeonLayout(tierId: DungeonTierId, weekSeed: number): 
     if (type === 'combat') {
       monsterId = tier.monsterPool[Math.floor(rand() * tier.monsterPool.length)];
     }
-    rooms.push({ type, monsterId, cleared: false, lootAwarded: [], xpAwarded: 0, goldAwarded: 0 });
+    rooms.push({
+      type,
+      ...(monsterId !== undefined && { monsterId }),
+      cleared: false,
+      lootAwarded: [],
+      xpAwarded: 0,
+      goldAwarded: 0,
+    });
   }
 
   // Guarantee at least one combat room — rare seeds can produce all stat-checks
