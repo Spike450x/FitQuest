@@ -12,6 +12,7 @@ import {
 } from '@/lib/inventoryData';
 import { updateCharacterDoc } from '@/lib/characterData';
 import { getItemById } from '@/lib/gameLogic/items';
+import { getSpellMaxCharges } from '@/lib/gameLogic/spells';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
 import { COMBAT } from '@/lib/gameLogic/constants';
 import type { Character, EquippedGear, InventoryItem } from '@/types';
@@ -72,7 +73,8 @@ interface InventoryStore {
   /**
    * Persist mid-dungeon spell charge decrements to Firestore so charges survive
    * room transitions. `decrements` maps invItemId → number of charges used.
-   * Items that have been used ≥ SPELL_MAX_CHARGES will be written with charges=0.
+   * Items used at or beyond their per-rarity max (see `getSpellMaxCharges`)
+   * are written with charges=0.
    */
   persistSpellChargeDecrements: (decrements: Record<string, number>) => Promise<void>;
   /**
@@ -462,18 +464,25 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
   persistSpellChargeDecrements: async (decrements) => {
     const entries = Object.entries(decrements).filter(([, used]) => used > 0);
     if (entries.length === 0) return;
-    const MAX = COMBAT.SPELL_MAX_CHARGES;
+    // Per-item max — look up each spell's rarity to compute the correct remaining.
+    const remainingByInvId: Record<string, number> = {};
+    const items = get().items;
+    for (const [invItemId, used] of entries) {
+      const item = items.find((i) => i.id === invItemId);
+      const def = item ? getItemById(item.itemDefId) : undefined;
+      const max = getSpellMaxCharges(def?.rarity);
+      remainingByInvId[invItemId] = Math.max(0, max - used);
+    }
     await Promise.all(
-      entries.map(([invItemId, used]) => {
-        const remaining = Math.max(0, MAX - used);
-        return updateInventoryDoc(invItemId, { charges: remaining });
-      }),
+      entries.map(([invItemId]) =>
+        updateInventoryDoc(invItemId, { charges: remainingByInvId[invItemId] }),
+      ),
     );
     set((state) => ({
       items: state.items.map((i) => {
-        const used = decrements[i.id];
-        if (!used) return i;
-        return { ...i, charges: Math.max(0, MAX - used) };
+        const remaining = remainingByInvId[i.id];
+        if (remaining === undefined) return i;
+        return { ...i, charges: remaining };
       }),
     }));
   },

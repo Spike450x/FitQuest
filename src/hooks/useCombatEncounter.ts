@@ -34,7 +34,7 @@ import {
   type ActionInput,
   type ActionResolution,
 } from '@/lib/gameLogic/combatActions';
-import { COMBAT } from '@/lib/gameLogic/constants';
+import { getSpellMaxCharges } from '@/lib/gameLogic/spells';
 import type { Character, ItemDef, MonsterDef } from '@/types';
 import type {
   CombatModifiers,
@@ -311,8 +311,9 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
     const sm = spellDef.spellMechanics;
     if (!sm) return;
     // Charge gate — defensive check; UI already hides depleted spells.
+    const max = getSpellMaxCharges(spellDef.rarity);
     const used = spellChargesUsed[invItemId] ?? 0;
-    if (used >= COMBAT.SPELL_MAX_CHARGES) return;
+    if (used >= max) return;
     setSpellChargesUsed((prev) => ({ ...prev, [invItemId]: used + 1 }));
     dispatch(resolveSpellAction(buildInput(), spellDef), 'ability');
   }

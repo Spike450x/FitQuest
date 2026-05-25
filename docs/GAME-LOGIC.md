@@ -12,21 +12,21 @@ All functions are **pure and deterministic** except those that explicitly call `
 
 The single source of truth for game numbers. Everything else imports from here.
 
-| Export                        | Kind     | Purpose                                                                                                                                                                          |
-| ----------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CLASS_DEFINITIONS`           | const    | Per-class starting stats and the per-activity stat-multiplier matrix.                                                                                                            |
-| `ACTIVITY_DEFINITIONS`        | const    | Per-activity unit, base stat gains, and base XP for the 6 activity types.                                                                                                        |
-| `RESTORE`                     | const    | Resource-restore rates for sleep/water/nutrition (e.g. `+5 stamina/hr`, `+5 magic/glass`).                                                                                       |
-| `MasteryActivityType`         | type     | Union of `'run' \| 'workout' \| 'steps'`.                                                                                                                                        |
-| `MASTERY_CONFIG`              | const    | Mastery milestone interval and the stat each mastery activity grants.                                                                                                            |
-| `isMasteryMilestone(count)`   | function | True if `count` is `5` or `15, 25, 35, …` (every 10 after the first 5).                                                                                                          |
-| `nextMasteryMilestone(count)` | function | The next mastery threshold above `count`.                                                                                                                                        |
-| `LEVEL_UP`                    | const    | Per-level auto-grants (HP, DEF) and pending stat-point increment.                                                                                                                |
-| `xpToNextLevel(level)`        | function | `floor(100 * level^1.5)`. The XP curve.                                                                                                                                          |
-| `PRIMARY_STAT_CAP`            | const    | `50` — hard cap for STR / WIS / AGI. Mirrored in `firestore.rules`.                                                                                                              |
-| `maxStatForLevel(level)`      | function | Secondary-stat cap formula (`level × 5 + 10`).                                                                                                                                   |
-| `statCap(stat, level)`        | function | Returns the cap for any stat — primary stats use `PRIMARY_STAT_CAP`, secondary use `maxStatForLevel`.                                                                            |
-| `COMBAT`                      | const    | Combat balance numbers (defense-bypass chance, ability stamina cost, etc.). Key values: `MAX_EQUIPPED_SPELLS: 5`, `SPELL_MAX_CHARGES: 3` (flat charges per spell per fight/run). |
+| Export                        | Kind     | Purpose                                                                                                                                                                                                                              |
+| ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CLASS_DEFINITIONS`           | const    | Per-class starting stats and the per-activity stat-multiplier matrix.                                                                                                                                                                |
+| `ACTIVITY_DEFINITIONS`        | const    | Per-activity unit, base stat gains, and base XP for the 6 activity types.                                                                                                                                                            |
+| `RESTORE`                     | const    | Resource-restore rates for sleep/water/nutrition (e.g. `+5 stamina/hr`, `+5 magic/glass`).                                                                                                                                           |
+| `MasteryActivityType`         | type     | Union of `'run' \| 'workout' \| 'steps'`.                                                                                                                                                                                            |
+| `MASTERY_CONFIG`              | const    | Mastery milestone interval and the stat each mastery activity grants.                                                                                                                                                                |
+| `isMasteryMilestone(count)`   | function | True if `count` is `5` or `15, 25, 35, …` (every 10 after the first 5).                                                                                                                                                              |
+| `nextMasteryMilestone(count)` | function | The next mastery threshold above `count`.                                                                                                                                                                                            |
+| `LEVEL_UP`                    | const    | Per-level auto-grants (HP, DEF) and pending stat-point increment.                                                                                                                                                                    |
+| `xpToNextLevel(level)`        | function | `floor(100 * level^1.5)`. The XP curve.                                                                                                                                                                                              |
+| `PRIMARY_STAT_CAP`            | const    | `50` — hard cap for STR / WIS / AGI. Mirrored in `firestore.rules`.                                                                                                                                                                  |
+| `maxStatForLevel(level)`      | function | Secondary-stat cap formula (`level × 5 + 10`).                                                                                                                                                                                       |
+| `statCap(stat, level)`        | function | Returns the cap for any stat — primary stats use `PRIMARY_STAT_CAP`, secondary use `maxStatForLevel`.                                                                                                                                |
+| `COMBAT`                      | const    | Combat balance numbers (defense-bypass chance, ability stamina cost, etc.). Key values: `MAX_EQUIPPED_SPELLS: 5`. `SPELL_MAX_CHARGES: 3` is a defensive fallback — per-rarity charges live in `getSpellMaxCharges()` in `spells.ts`. |
 
 ---
 
@@ -107,14 +107,15 @@ The catalog itself (`CLASS_ABILITY_CATALOG`) is module-internal — go through `
 
 Tested in [`__tests__/spells.test.ts`](../src/lib/gameLogic/__tests__/spells.test.ts).
 
-| Export                                          | Purpose                                                                                                   |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `rollSpellDice(count)`                          | Rolls `count` d6.                                                                                         |
-| `checkRequirement(req, dice)`                   | Evaluates a `SpellDiceRequirement` against the rolled dice (sum_gte, exact_value, pair, three, straight). |
-| `describeRequirement(req)`                      | Human-readable text for a requirement (e.g. "Roll 3d6, total ≥ 10").                                      |
-| `SpellResolution`                               | Result interface — succeeded/failed, dice, damage, heal, stun, etc.                                       |
-| `resolveSpell(character, monster, spell, dice)` | Full spell resolution: cost, requirement check, effect application, passive mods.                         |
-| `getHighlightedSpellDiceIndices(req, dice)`     | Returns which dice indices to highlight in the UI (the dice that satisfy the requirement).                |
+| Export                                          | Purpose                                                                                                                                                   |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rollSpellDice(count)`                          | Rolls `count` d6.                                                                                                                                         |
+| `checkRequirement(req, dice)`                   | Evaluates a `SpellDiceRequirement` against the rolled dice (sum_gte, exact_value, pair, three, straight).                                                 |
+| `describeRequirement(req)`                      | Human-readable text for a requirement (e.g. "Roll 3d6, total ≥ 10").                                                                                      |
+| `SpellResolution`                               | Result interface — succeeded/failed, dice, damage, heal, stun, etc.                                                                                       |
+| `resolveSpell(character, monster, spell, dice)` | Full spell resolution: cost, requirement check, effect application, passive mods.                                                                         |
+| `getHighlightedSpellDiceIndices(req, dice)`     | Returns which dice indices to highlight in the UI (the dice that satisfy the requirement).                                                                |
+| `getSpellMaxCharges(rarity?)`                   | Per-rarity max charges per encounter (common 2, uncommon/rare 3, epic 4, legendary 5). Falls back to `COMBAT.SPELL_MAX_CHARGES` when rarity is undefined. |
 
 ---
 

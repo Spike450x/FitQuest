@@ -49,7 +49,8 @@ import { useCombatEncounter } from '@/hooks/useCombatEncounter';
 import { useCombatStore } from '@/store/combatStore';
 import { refreshPlayerState } from '@/lib/refreshPlayerState';
 import { getStreakLootMultiplier } from '@/lib/gameLogic/streaks';
-import { CLASS_DEFINITIONS, COMBAT } from '@/lib/gameLogic/constants';
+import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
+import { getSpellMaxCharges } from '@/lib/gameLogic/spells';
 import type {
   DungeonRoomType,
   MonsterDef,
@@ -321,14 +322,16 @@ function DungeonCombatShell({
   }, [isBossRoom, monster.id, monster.hp, poisoned, enrageState, character.equippedGear.accessory]);
 
   // Build initialChargesUsed from inventory: items with charges set (depleted
-  // from a previous room) contribute their remaining → used count.
+  // from a previous room) contribute their remaining → used count. Uses per-
+  // rarity max so the carry-forward respects each spell's individual ceiling.
   const initialChargesUsed = useMemo(() => {
     const map: Record<string, number> = {};
     for (const item of inventoryItems) {
       const def = getItemById(item.itemDefId);
       if (!item.equipped || def?.type !== 'spell') continue;
       if (item.charges !== undefined) {
-        const used = Math.max(0, COMBAT.SPELL_MAX_CHARGES - item.charges);
+        const max = getSpellMaxCharges(def.rarity);
+        const used = Math.max(0, max - item.charges);
         if (used > 0) map[item.id] = used;
       }
     }
@@ -531,6 +534,7 @@ export default function DungeonRunPage() {
   const { character } = useCharacter();
   const { activeRun, fetchActiveRun, advanceRoom, completeRun, abandonRun } = useDungeonStore();
   const replenishSpellCharges = useInventoryStore((s) => s.replenishSpellCharges);
+  const inventoryItemsForRest = useInventoryStore((s) => s.items);
 
   const [phase, setPhase] = useState<RunPhase>('loading');
   const [playerHp, setPlayerHp] = useState(0);
@@ -790,8 +794,25 @@ export default function DungeonRunPage() {
     setPlayerStamina(newSta);
     setPlayerMagic(newMag);
 
+    // Count depleted spells before replenishing so we can give the player
+    // accurate feedback (and skip noisy toasts when nothing was depleted).
+    const depletedSpellCount = useInventoryStore.getState().items.filter((i) => {
+      const def = getItemById(i.itemDefId);
+      return i.equipped && def?.type === 'spell' && i.charges !== undefined;
+    }).length;
+
     // Replenish spell charges at rest sites — the one mid-dungeon restore point
     await replenishSpellCharges();
+
+    if (depletedSpellCount > 0) {
+      toast.success(
+        `✨ ${depletedSpellCount} spell${depletedSpellCount === 1 ? '' : 's'} replenished`,
+        {
+          description: 'All charges restored from the rest site.',
+          duration: 4000,
+        },
+      );
+    }
 
     const updatedRooms = run.rooms.map((r, i) =>
       i === run.currentRoom ? { ...r, cleared: true } : r,
@@ -808,7 +829,8 @@ export default function DungeonRunPage() {
     });
 
     setRoomResult({ xp: 0, gold: 0, items: [] });
-    setLog([`🌿 Rested — +${staRestore} Stamina, +${magRestore} Magic — Spell charges restored!`]);
+    const charges = depletedSpellCount > 0 ? ' — Spell charges restored!' : '';
+    setLog([`🌿 Rested — +${staRestore} Stamina, +${magRestore} Magic${charges}`]);
     setPhase('transition');
     setActing(false);
   }
@@ -1199,34 +1221,50 @@ export default function DungeonRunPage() {
       )}
 
       {/* ── Rest room ────────────────────────────────────────────────────── */}
-      {phase === 'rest' && (
-        <div className="space-y-4">
-          <div className="bg-slate-800 border border-green-900 rounded-xl p-5 text-center">
-            <div className="text-3xl mb-2">🌿</div>
-            <div className="text-green-300 font-bold text-sm mb-1">Rest Site</div>
-            <div className="text-slate-400 text-xs mb-4">
-              Take a moment to recover. Restores 30% Stamina and 30% Magic.
-            </div>
-            <div className="flex justify-center gap-6 mb-4">
-              <div className="text-center">
-                <div className="text-orange-400 font-bold">+{Math.round(maxSta * 0.3)}</div>
-                <div className="text-slate-500 text-xs">Stamina</div>
+      {phase === 'rest' &&
+        (() => {
+          const depletedSpells = inventoryItemsForRest.filter((i) => {
+            const def = getItemById(i.itemDefId);
+            return i.equipped && def?.type === 'spell' && i.charges !== undefined;
+          });
+          return (
+            <div className="space-y-4">
+              <div className="bg-slate-800 border border-green-900 rounded-xl p-5 text-center">
+                <div className="text-3xl mb-2">🌿</div>
+                <div className="text-green-300 font-bold text-sm mb-1">Rest Site</div>
+                <div className="text-slate-400 text-xs mb-4">
+                  Take a moment to recover. Restores 30% Stamina and 30% Magic
+                  {depletedSpells.length > 0 ? ' and all spell charges' : ''}.
+                </div>
+                <div className="flex justify-center gap-6 mb-4">
+                  <div className="text-center">
+                    <div className="text-orange-400 font-bold">+{Math.round(maxSta * 0.3)}</div>
+                    <div className="text-slate-500 text-xs">Stamina</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-indigo-400 font-bold">+{Math.round(maxMag * 0.3)}</div>
+                    <div className="text-slate-500 text-xs">Magic</div>
+                  </div>
+                  {depletedSpells.length > 0 && (
+                    <div className="text-center">
+                      <div className="text-violet-400 font-bold">+{depletedSpells.length}</div>
+                      <div className="text-slate-500 text-xs">
+                        Spell{depletedSpells.length === 1 ? '' : 's'} ✨
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleRestContinue}
+                  disabled={acting}
+                  className="w-full py-3 rounded-xl bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white font-semibold transition-colors"
+                >
+                  {acting ? 'Resting…' : '🌿 Rest & Continue'}
+                </button>
               </div>
-              <div className="text-center">
-                <div className="text-indigo-400 font-bold">+{Math.round(maxMag * 0.3)}</div>
-                <div className="text-slate-500 text-xs">Magic</div>
-              </div>
             </div>
-            <button
-              onClick={handleRestContinue}
-              disabled={acting}
-              className="w-full py-3 rounded-xl bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white font-semibold transition-colors"
-            >
-              {acting ? 'Resting…' : '🌿 Rest & Continue'}
-            </button>
-          </div>
-        </div>
-      )}
+          );
+        })()}
 
       {/* ── Transition interstitial ──────────────────────────────────────── */}
       {phase === 'transition' && (

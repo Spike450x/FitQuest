@@ -15,6 +15,14 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Spell charge polish (per-rarity + UI surfacing)
+
+- `getSpellMaxCharges(rarity)` in `src/lib/gameLogic/spells.ts` replaces the flat `COMBAT.SPELL_MAX_CHARGES` constant on live combat paths. Per-rarity scaling: common 2, uncommon 3, rare 3, epic 4, legendary 5. Acquisition (not per-cast) gates power.
+- Inventory loadout + spell tab cards now display the charge meter inside the card body via `SpellCard.chargesRemaining` / `maxCharges` props (small "Charges" label + violet/grey dots).
+- Dungeon rest site UI shows a "+N Spell(s) ✨" badge alongside Stamina/Magic restore amounts. Toast "✨ N spells replenished" fires on rest only when at least one spell was actually depleted (no noise when full).
+- `persistSpellChargeDecrements` now writes per-spell remaining charges based on each spell's rarity (not the old flat MAX). Same for `useCombatEncounter.castSpell` charge gate.
+- 5 new vitest specs covering `getSpellMaxCharges` per-rarity output and the undefined fallback (715 → 720 passing).
+
 ## 2026-05-25 — Spell charge "top card" mechanic (E5)
 
 - Each equipped spell now has 3 charges (flat, all rarities). In arena, charges reset after every fight (win/loss/flee). In dungeons, charges persist across rooms and only replenish at rest sites.

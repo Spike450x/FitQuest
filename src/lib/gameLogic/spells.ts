@@ -1,8 +1,29 @@
-import type { SpellDiceRequirement, SpellEffect } from '@/types';
+import type { SpellDiceRequirement, SpellEffect, ItemRarity } from '@/types';
 import { gearDefenseBonus, rollD10 } from './combat';
 import { COMBAT } from './constants';
 import type { Character, MonsterDef } from '@/types';
 import { applySpellDamagePassives } from './passives';
+
+// ─── Spell charges (per-rarity scaling) ───────────────────────────────────────
+
+/**
+ * Max charges available per spell, scaled by rarity. Rarer spells reward the
+ * player with more uses per fight/run — gating power behind acquisition rather
+ * than per-cast limits. Falls back to `COMBAT.SPELL_MAX_CHARGES` (3) when
+ * called without a rarity (defensive paths).
+ */
+const SPELL_CHARGES_BY_RARITY: Record<ItemRarity, number> = {
+  common: 2,
+  uncommon: 3,
+  rare: 3,
+  epic: 4,
+  legendary: 5,
+};
+
+export function getSpellMaxCharges(rarity?: ItemRarity): number {
+  if (!rarity) return COMBAT.SPELL_MAX_CHARGES;
+  return SPELL_CHARGES_BY_RARITY[rarity];
+}
 
 // ─── Dice check ───────────────────────────────────────────────────────────────
 

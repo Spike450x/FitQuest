@@ -129,6 +129,10 @@ interface SpellCardProps {
   onAction?: () => void;
   /** When true, suppresses shadow-md and rarity glow — use when a wrapper component owns shadow rendering. */
   disableShadow?: boolean;
+  /** Charges remaining for this spell (undefined = hide the meter). */
+  chargesRemaining?: number;
+  /** Max charges for this spell (required when chargesRemaining is set). */
+  maxCharges?: number;
   /** Extra classes on the outer wrapper. */
   className?: string;
 }
@@ -143,6 +147,8 @@ export const SpellCard = memo(function SpellCard({
   actionLabel,
   onAction,
   disableShadow,
+  chargesRemaining,
+  maxCharges,
   className = '',
 }: SpellCardProps) {
   const sm = def.spellMechanics;
@@ -238,6 +244,31 @@ export const SpellCard = memo(function SpellCard({
                 {tag.label}
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Charge meter — shown when both props are provided */}
+        {chargesRemaining !== undefined && maxCharges !== undefined && maxCharges > 0 && (
+          <div
+            className="flex items-center justify-center gap-1.5"
+            aria-label={`${chargesRemaining} of ${maxCharges} charges remaining`}
+          >
+            <span className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wide font-semibold">
+              Charges
+            </span>
+            <div className="flex gap-1">
+              {Array.from({ length: maxCharges }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-2 h-2 rounded-full ${
+                    i < chargesRemaining
+                      ? 'bg-violet-400 dark:bg-violet-300'
+                      : 'bg-slate-300 dark:bg-slate-700'
+                  }`}
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>

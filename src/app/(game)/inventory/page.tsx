@@ -15,6 +15,7 @@ import { toast } from '@/components/ui/Toaster';
 import { useInventoryNewMarkers } from '@/hooks/useInventoryNewMarkers';
 import { useDungeonStore } from '@/store/dungeonStore';
 import { COMBAT } from '@/lib/gameLogic/constants';
+import { getSpellMaxCharges } from '@/lib/gameLogic/spells';
 import type { ItemType } from '@/types';
 import { EntityArt } from '@/components/art/EntityArt';
 import { rarityTint } from '@/lib/entityArt';
@@ -296,6 +297,8 @@ export default function InventoryPage() {
               {equippedSpells.map(({ invItem, def }) => {
                 if (!def?.spellMechanics) return null;
                 const isActing = acting === invItem.id;
+                const maxCharges = getSpellMaxCharges(def.rarity);
+                const chargesRemaining = invItem.charges ?? maxCharges;
                 return (
                   <PremiumSpellCard
                     key={invItem.id}
@@ -306,6 +309,8 @@ export default function InventoryPage() {
                     acting={isActing}
                     actionLabel={isActing ? 'Removing…' : 'Remove'}
                     onAction={() => handleUnequipSpell(invItem.id)}
+                    chargesRemaining={chargesRemaining}
+                    maxCharges={maxCharges}
                   />
                 );
               })}
@@ -475,6 +480,8 @@ export default function InventoryPage() {
                   onAction={() =>
                     isEquipped ? handleUnequipSpell(invItem.id) : handleEquipSpell(invItem.id)
                   }
+                  chargesRemaining={invItem.charges ?? getSpellMaxCharges(def.rarity)}
+                  maxCharges={getSpellMaxCharges(def.rarity)}
                 />
               </div>
             );
