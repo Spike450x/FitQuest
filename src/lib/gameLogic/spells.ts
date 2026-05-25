@@ -91,6 +91,8 @@ export interface SpellResolution {
   monsterDamage: number;
   /** Whether the player's defense was bypassed by the monster this round. */
   playerDefFailed: boolean;
+  /** The monster's raw d10 roll for the counter-attack (0 if stunned). */
+  monsterRoll: number;
 }
 
 /**
@@ -142,8 +144,9 @@ export function resolveSpell(
   // ── Monster counter-attack (skipped if stunned) ──────────────────────────
   let monsterDamage = 0;
   let playerDefFailed = false;
+  let monsterRoll = 0;
   if (!monsterStunned) {
-    const monsterRoll = rollD10();
+    monsterRoll = rollD10();
     const totalDef = (character.stats.defense ?? 0) + gearDefenseBonus(character) + defenseBoost;
     playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
     const effectiveDef = playerDefFailed ? 0 : totalDef;
@@ -160,6 +163,7 @@ export function resolveSpell(
     defenseBoost,
     monsterDamage,
     playerDefFailed,
+    monsterRoll,
   };
 }
 

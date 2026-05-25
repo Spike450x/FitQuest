@@ -113,6 +113,12 @@ export interface PendingSpell {
   spellDef: ItemDef;
   dice: number[];
   requirementMet: boolean;
+  /** Monster's d10 counter-attack roll (0 if stunned). */
+  monsterRoll: number;
+  /** Whether the monster was stunned and skipped its counter-attack. */
+  monsterStunned: boolean;
+  /** Actual damage dealt to the player by the counter-attack (0 if stunned). */
+  monsterDamage: number;
   applyResult: () => Promise<void>;
 }
 

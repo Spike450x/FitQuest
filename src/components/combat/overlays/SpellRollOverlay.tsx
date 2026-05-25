@@ -15,11 +15,20 @@ export function SpellRollOverlay({
   spellDef,
   dice,
   requirementMet,
+  monsterRoll,
+  monsterStunned,
+  monsterDamage,
   onDismiss,
 }: {
   spellDef: ItemDef;
   dice: number[];
   requirementMet: boolean;
+  /** Monster's raw d10 roll for the counter-attack (0 if stunned). */
+  monsterRoll: number;
+  /** True when the spell stunned the monster, skipping the counter-attack. */
+  monsterStunned: boolean;
+  /** Damage the monster dealt to the player (0 if stunned). */
+  monsterDamage: number;
   onDismiss: () => Promise<void>;
 }) {
   const sm = spellDef.spellMechanics!;
@@ -154,6 +163,23 @@ export function SpellRollOverlay({
               </p>
             </div>
           )}
+
+          {/* Monster counter-attack — mirrors ActionRollOverlay's enemy section */}
+          <div className="rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/60 px-4 py-3 space-y-1.5">
+            {monsterStunned ? (
+              <p className="text-xs font-semibold text-amber-500">Monster stunned — no counter</p>
+            ) : (
+              <>
+                <p className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                  Monster strikes back
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <Die3D value={monsterRoll || 1} size="sm" variant="settled" color="rose" />
+                  <span className="text-sm font-semibold text-red-500">−{monsterDamage} HP</span>
+                </div>
+              </>
+            )}
+          </div>
 
           <button
             onClick={handleDismiss}

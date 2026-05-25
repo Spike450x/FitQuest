@@ -161,6 +161,8 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 
 ### B8 — Spell Overlay: monster counter-attack dice not shown
 
+**Status:** SHIPPED 2026-05-25. Added `monsterRoll` to `SpellResolution` (spells.ts), threaded `monsterRoll`/`monsterStunned`/`monsterDamage` through `PendingSpell` and the `resolveSpellAction` payload. `SpellRollOverlay` now renders a "Monster strikes back" panel (rose d10 + damage) below the spell result, or "Monster stunned — no counter" when the spell had a stun effect. Both arena and dungeon overlays updated.
+
 **Severity:** Medium — creates inconsistency with regular and ability attack flows.
 
 **Symptoms:** When casting a spell, the `SpellRollOverlay` shows the spell's dice roll and announces Hit or Fizzle. The player then taps "Continue" and monster damage is silently applied — there are no dice shown for the monster's attack, no roll animation, no moment of tension. In contrast, a regular Attack shows the monster's `monsterRoll` (d10) visibly in the `ActionRollOverlay`. The spell flow feels abrupt and opaque.

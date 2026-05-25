@@ -489,6 +489,9 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
         spellDef,
         dice: resolution.dice,
         requirementMet: resolution.requirementMet,
+        monsterRoll: resolution.monsterRoll,
+        monsterStunned: resolution.monsterStunned,
+        monsterDamage: resolution.monsterDamage,
       },
     },
   };

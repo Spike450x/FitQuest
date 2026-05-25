@@ -15,6 +15,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — SpellRollOverlay shows monster counter-attack panel (B8)
+
+- Added `monsterRoll: number` to `SpellResolution` in `spells.ts` (was computed internally but discarded).
+- Threaded `monsterRoll`, `monsterStunned`, `monsterDamage` through `resolveSpellAction` pending payload → `PendingSpell` type → `SpellRollOverlay` props.
+- Overlay now renders a compact "Monster strikes back" panel (rose d10 + HP damage) below the spell result. Shows "Monster stunned — no counter" when the spell stuns. Both arena and dungeon pages updated.
+
 ## 2026-05-25 — Quest page Daily/Weekly tab switcher (B7)
 
 - Replaced `grid grid-cols-1 md:grid-cols-2` two-column layout with a `📅 Daily | 📆 Weekly` pill tab on all viewports.

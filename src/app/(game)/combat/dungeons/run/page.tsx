@@ -475,6 +475,9 @@ function DungeonCombatShell({
           spellDef={pending.spell.spellDef}
           dice={pending.spell.dice}
           requirementMet={pending.spell.requirementMet}
+          monsterRoll={pending.spell.monsterRoll}
+          monsterStunned={pending.spell.monsterStunned}
+          monsterDamage={pending.spell.monsterDamage}
           onDismiss={pending.spell.applyResult}
         />
       )}
