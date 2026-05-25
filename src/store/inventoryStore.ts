@@ -96,22 +96,31 @@ function computeGearDelta(
   let newCurrentHp: number | undefined;
   let newCurrentStamina: number | undefined;
 
+  // Equip: only max changes, current is left untouched.
+  // Unequip: max falls; clamp current down to the new lower max if needed.
   if (hpDelta !== 0) {
-    newCurrentHp =
-      newItemDefId !== null
-        ? Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta, newMaxHp))
-        : Math.max(1, (character.currentHp ?? oldMaxHp) + hpDelta);
-    charUpdate.currentHp = newCurrentHp;
+    const currentHp = character.currentHp ?? oldMaxHp;
+    if (newItemDefId === null) {
+      // Unequipping — clamp if current would exceed the reduced max
+      const clamped = Math.max(1, Math.min(currentHp, newMaxHp));
+      if (clamped !== currentHp) {
+        newCurrentHp = clamped;
+        charUpdate.currentHp = newCurrentHp;
+      }
+    }
+    // Equipping — max rises, current stays the same; no charUpdate for currentHp
   }
   if (staminaDelta !== 0) {
-    newCurrentStamina =
-      newItemDefId !== null
-        ? Math.max(
-            0,
-            Math.min((character.currentStamina ?? oldMaxStamina) + staminaDelta, newMaxStamina),
-          )
-        : Math.max(0, (character.currentStamina ?? oldMaxStamina) + staminaDelta);
-    charUpdate.currentStamina = newCurrentStamina;
+    const currentStamina = character.currentStamina ?? oldMaxStamina;
+    if (newItemDefId === null) {
+      // Unequipping — clamp if current would exceed the reduced max
+      const clamped = Math.max(0, Math.min(currentStamina, newMaxStamina));
+      if (clamped !== currentStamina) {
+        newCurrentStamina = clamped;
+        charUpdate.currentStamina = newCurrentStamina;
+      }
+    }
+    // Equipping — max rises, current stays the same; no charUpdate for currentStamina
   }
 
   return { charUpdate, newCurrentHp, newCurrentStamina };

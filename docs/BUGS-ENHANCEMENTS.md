@@ -100,6 +100,8 @@ If the local gold is stale (higher than the real Firestore balance), the display
 
 ### B5 — Stat Item: equipping a +HP item also raises current HP
 
+**Status:** SHIPPED 2026-05-25. `computeGearDelta` in `src/store/inventoryStore.ts` now applies DQ1/DQ2: equipping gear leaves `currentHp`/`currentStamina` unchanged (only max rises); unequipping clamps current down to the new lower max if needed.
+
 **Severity:** Medium — design inconsistency / player confusion.
 
 **Symptoms:** Equipping gear with a health bonus raises both `currentHp` and `maxHp` by the item's HP delta. Most RPGs only raise `maxHp` when equipping gear.
@@ -122,6 +124,8 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 ---
 
 ### B6 — Stamina Item: +1 stamina stat reads as +5 current stamina
+
+**Status:** SHIPPED 2026-05-25 (resolved by B5 fix). B5's `computeGearDelta` change means `currentStamina` no longer jumps on equip; only `maxStamina` changes. The +5 delta is the correct formula output for +1 stamina stat (STAMINA_PER_STAT = 5) — now displayed only as a max increase, not a current-resource jump, so the confusion is eliminated.
 
 **Severity:** Low / likely not a bug.
 

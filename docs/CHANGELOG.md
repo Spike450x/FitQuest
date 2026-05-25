@@ -15,6 +15,11 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Gear equip only changes max HP/Stamina; unequip clamps current (B5/B6)
+
+- `computeGearDelta` in `inventoryStore.ts` now applies DQ1/DQ2: equipping leaves `currentHp`/`currentStamina` unchanged (max rises only); unequipping clamps current down if it would exceed the reduced max.
+- Eliminates the confusing "+5 current stamina" display on equip (B6) — only the max changes now.
+
 ## 2026-05-25 — refreshPlayerState helper + shop gold desync fix (B4)
 
 - New `src/lib/refreshPlayerState.ts` — canonical `Promise.all([fetchCharacter(uid, true), fetchInventory(uid)])` helper.
