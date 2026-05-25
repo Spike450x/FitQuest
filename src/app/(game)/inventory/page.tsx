@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Card } from '@/components/ui/Card';
 import { toast } from '@/components/ui/Toaster';
 import { useInventoryNewMarkers } from '@/hooks/useInventoryNewMarkers';
+import { useDungeonStore } from '@/store/dungeonStore';
 import { COMBAT } from '@/lib/gameLogic/constants';
 import type { ItemType } from '@/types';
 import { EntityArt } from '@/components/art/EntityArt';
@@ -53,8 +54,10 @@ export default function InventoryPage() {
   const unequipConsumable = useInventoryStore((s) => s.unequipConsumable);
   const equipSpell = useInventoryStore((s) => s.equipSpell);
   const unequipSpell = useInventoryStore((s) => s.unequipSpell);
+  const activeRun = useDungeonStore((s) => s.activeRun);
   const [activeTab, setActiveTab] = useState<ItemType | 'all'>('all');
   const [acting, setActing] = useState<string | null>(null);
+  const [using, setUsing] = useState<string | null>(null);
   const [spellError, setSpellError] = useState<string | null>(null);
   const [consumableError, setConsumableError] = useState<string | null>(null);
 
@@ -120,9 +123,9 @@ export default function InventoryPage() {
   }
 
   async function handleUse(inventoryItemId: string) {
-    if (!character || acting) return;
+    if (!character || using) return;
     const def = getItemById(items.find((i) => i.id === inventoryItemId)?.itemDefId ?? '');
-    setActing(inventoryItemId);
+    setUsing(inventoryItemId);
     const maxHp = playerMaxHp(character);
     const maxStamina = playerMaxStamina(character);
     const maxMagic = playerMaxMagic(character);
@@ -135,7 +138,7 @@ export default function InventoryPage() {
       character.currentMagic ?? maxMagic,
       maxMagic,
     );
-    setActing(null);
+    setUsing(null);
     if (def) {
       const parts: string[] = [];
       if (result.hpGained > 0) parts.push(`+${result.hpGained} HP`);
@@ -575,25 +578,35 @@ export default function InventoryPage() {
                 </div>
 
                 {def.type === 'consumable' ? (
-                  isEquipped ? (
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
-                      onClick={() => handleUnequipConsumable(invItem.id)}
-                      disabled={!!acting}
-                      className="text-xs text-emerald-500 hover:text-red-500 disabled:opacity-40 transition-colors font-medium"
+                      onClick={() => handleUse(invItem.id)}
+                      disabled={!!using || !!acting || !!activeRun}
+                      title={activeRun ? "Can't use items during a dungeon run" : undefined}
+                      className="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg px-3 py-1 transition-colors"
                     >
-                      {isActing ? 'Removing…' : 'Remove from Pack'}
+                      {using === invItem.id ? 'Using…' : activeRun ? 'In dungeon' : 'Use'}
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => handleEquipConsumable(invItem.id)}
-                      disabled={!!acting}
-                      className="text-xs text-emerald-600 hover:text-emerald-800 disabled:opacity-40 transition-colors font-medium"
-                    >
-                      {isActing
-                        ? 'Adding…'
-                        : `Add to Pack (${equippedConsumables.length}/${COMBAT.MAX_EQUIPPED_CONSUMABLES})`}
-                    </button>
-                  )
+                    {isEquipped ? (
+                      <button
+                        onClick={() => handleUnequipConsumable(invItem.id)}
+                        disabled={!!acting}
+                        className="text-xs text-emerald-500 hover:text-red-500 disabled:opacity-40 transition-colors font-medium"
+                      >
+                        {isActing ? '…' : 'Remove from Pack'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleEquipConsumable(invItem.id)}
+                        disabled={!!acting}
+                        className="text-xs text-emerald-600 hover:text-emerald-800 disabled:opacity-40 transition-colors font-medium"
+                      >
+                        {isActing
+                          ? '…'
+                          : `Add to Pack (${equippedConsumables.length}/${COMBAT.MAX_EQUIPPED_CONSUMABLES})`}
+                      </button>
+                    )}
+                  </div>
                 ) : isEquipped ? (
                   <button
                     onClick={() => handleUnequip(invItem.id)}
