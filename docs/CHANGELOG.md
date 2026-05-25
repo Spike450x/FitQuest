@@ -15,6 +15,16 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Quest reroll no longer crashes when rolling into a single-target quest (B1)
+
+Rerolling an active quest now succeeds in every branch. Previously, rerolling into a quest with no `extraTargets` crashed with `FirebaseError: Function updateDoc() called with invalid data. Unsupported field value: undefined (found in field extraProgress …)` because the Firestore payload was sending `extraProgress: undefined` to clear the field. Firestore's `updateDoc` rejects `undefined` field values entirely.
+
+- **Fix** — `src/store/questStore.ts` now imports `deleteField` from `firebase/firestore` and uses `extraProgress: pick.extraTargets ? {} : deleteField()` in the `updateActiveQuestDoc` payload. The local Zustand store update keeps `undefined` (valid JS) so the in-memory shape is unchanged.
+- **Regression tests** — `src/store/__tests__/questStore.test.ts` adds two specs covering both branches of `rerollQuest`: the `deleteField` path (rolling into a quest with no extra targets) and the `{}` path (rolling into a quest with extra targets). Pool is constrained to a single deterministic candidate via the `heldDefIds` exclusion, no `Math.random` stub needed.
+- 684 vitest specs pass (was 674; +2 new specs, plus 8 picked up from earlier merges).
+
+---
+
 ## 2026-05-24 — Spell cards get an MTG-style flippable front/back
 
 Spell cards now have two faces: the existing rarity-themed front (image, title, description, effects) and a uniform "FitQuest Spellbook" back inspired by Magic: The Gathering's iconic shared card back. Players click the card body to flip; the action button (Buy / Equip / Cast) stays on the front and never triggers a flip.

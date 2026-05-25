@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { deleteField } from 'firebase/firestore';
 import { captureError } from '@/lib/errors';
 import { fetchWithRetry, STORE_RETRY_DELAYS } from '@/lib/retry';
 import { fetchActiveQuests } from '@/lib/fetchPlayerData';
@@ -336,11 +337,16 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       // because Firestore rules already cap any further gold delta at the
       // matching write, and the reroll is rare/explicit.
       const newGold = character.gold - QUEST_REROLL_COST;
+      // Use deleteField() (not undefined) for the no-extraTargets branch:
+      // Firestore's updateDoc rejects undefined values entirely, so a bare
+      // `extraProgress: undefined` payload crashes the reroll. deleteField()
+      // explicitly removes the field, which is what we want when the new
+      // quest has no extra targets to track.
       await Promise.all([
         updateActiveQuestDoc(questId, {
           questDefId: pick.id,
           progress: 0,
-          extraProgress: pick.extraTargets ? {} : undefined,
+          extraProgress: pick.extraTargets ? {} : deleteField(),
           completedAt: null,
           rewards: pick.rewards,
           expiresAt: expiry,

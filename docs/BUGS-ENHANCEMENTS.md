@@ -9,6 +9,8 @@
 
 ### B1 — Quest Reroll: `extraProgress: undefined` causes Firestore crash
 
+**Status:** SHIPPED 2026-05-25. `src/store/questStore.ts` now uses `deleteField()` in the Firestore payload; local Zustand state still uses `undefined`. Regression tests in `src/store/__tests__/questStore.test.ts` cover both branches.
+
 **Severity:** Critical — rerolling any quest that transitions to one without `extraTargets` is broken.
 
 **Symptoms:** Console shows `FirebaseError: Function updateDoc() called with invalid data. Unsupported field value: undefined (found in field extraProgress in document activeQuests/<id>)`.
