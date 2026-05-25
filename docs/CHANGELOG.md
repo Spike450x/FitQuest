@@ -15,6 +15,16 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Service-account E2E automation + scheduled runs + Discord alerts
+
+- New `authenticated-flows` Playwright project exercises real user actions against the emulator-seeded `e2e@test.local` test user: `flows/log-activity.test.ts`, `flows/quest-claim.test.ts`, `flows/combat-victory.test.ts`, `flows/shop-buy-equip.test.ts`, `flows/dungeon-flee.test.ts`. Per-test `resetCharacter` via the emulator `owner` admin token; seeded `Math.random` (mulberry32) for deterministic combat/spell/loot rolls.
+- New `tests/e2e/helpers/` directory: `seed.ts` (createTestUser, seedCharacter, resetCharacter, seedClaimableQuest, seedEquippedWeapon, clearCollectionForUid), `actions.ts` (UI flow helpers), `rng.ts` (seeded `Math.random` installer for `page.addInitScript`).
+- New composite GitHub Actions: `.github/actions/run-e2e-suite/action.yml` boots auth+firestore+functions emulators, builds Cloud Functions (with `functions/lib/` cache keyed on `functions/src/**`), installs Playwright browsers, runs tests, uploads report artifact. `.github/actions/discord-notify/action.yml` reads the Playwright JSON report and posts a colored embed (pass/fail counts, top 10 truncated failures, run URL) to a `DISCORD_WEBHOOK_URL` secret; swallows network errors so notifier glitches never fail the job.
+- New `.github/workflows/scheduled-e2e.yml` cron at 08:00 UTC daily + `workflow_dispatch`. Concurrency group prevents overlapping runs. `--trace=on` flag passed for post-mortem on scheduled failures.
+- `ci.yml` swapped the inline emulator + Playwright steps for `uses: ./.github/actions/run-e2e-suite`; added a failure-only Discord notify step on master pushes.
+- Playwright reporter now emits `test-results/results.json` (consumed by `notify.mjs`); third Playwright project `authenticated-flows` added with shared `storageState`.
+- Added `data-testid` attributes to interactive elements used by flow tests: activity submit + tabs, quest claim button + cards + claimed badge, ActionButton (Attack/Magic/Flee), BattleResultsModal, MonsterCard fight button, shop buy + owned indicator, inventory equip + equipped badge, dungeon enter button. Pure-additive; no visual or behavior change.
+
 ## 2026-05-25 — Documentation audit and sync
 
 - Updated 6 docs to close gaps between shipped features and recorded state: ARCHITECTURE.md (2 new stores, `components/art/` folder, 4 new lib entries, 2 new hooks), CI.md (test count 653→720), GAME-LOGIC.md (quest pool sizes 12/5→28/14, `resolveStatCheckFlavor` export), FIRESTORE.md (`InventoryItem.charges` field), BUGS-ENHANCEMENTS.md (SHIPPED markers for E2/E4/E6/E7), README.md (SMOKE-TEST.md entry, PWA status corrected), BACKLOG.md (resolved SMOKE-TEST item).

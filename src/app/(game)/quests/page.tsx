@@ -102,6 +102,8 @@ function QuestCard({
 
   return (
     <div
+      data-testid={`quest-card-${quest.id}`}
+      data-claimed={isClaimed ? 'true' : 'false'}
       className={`bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-sm space-y-3 transition-colors ${
         isClaimed
           ? 'border-emerald-200 opacity-60'
@@ -116,7 +118,10 @@ function QuestCard({
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">{def.name}</h3>
             {isClaimed && (
-              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700">
+              <span
+                data-testid={`quest-claimed-badge-${quest.id}`}
+                className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700"
+              >
                 Claimed
               </span>
             )}
@@ -183,6 +188,7 @@ function QuestCard({
         <button
           onClick={() => onClaim(quest.id)}
           disabled={!!claiming}
+          data-testid={`quest-claim-btn-${quest.id}`}
           className="relative w-full overflow-hidden bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 hover:shadow-lg hover:shadow-amber-500/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none text-white text-xs font-bold py-2 rounded-lg transition-all active:scale-[0.98] group"
         >
           {/* Shimmer sweep */}

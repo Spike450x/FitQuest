@@ -555,6 +555,7 @@ export default function InventoryPage() {
                       )}
                       {isEquipped && (
                         <span
+                          data-testid={`inventory-equipped-badge-${def.id}`}
                           className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                             isConsumable
                               ? 'bg-emerald-100 text-emerald-700'
@@ -626,6 +627,7 @@ export default function InventoryPage() {
                   <button
                     onClick={() => handleEquip(invItem.id)}
                     disabled={!!acting}
+                    data-testid={`inventory-equip-${def.id}`}
                     className="text-xs text-indigo-600 hover:text-indigo-800 disabled:opacity-40 transition-colors font-medium"
                   >
                     {isActing ? 'Equipping…' : 'Equip'}

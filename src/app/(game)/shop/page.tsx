@@ -279,13 +279,17 @@ export default function ShopPage() {
                 </div>
 
                 {owned ? (
-                  <div className="w-full text-center text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg py-2">
+                  <div
+                    data-testid={`shop-owned-${item.id}`}
+                    className="w-full text-center text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg py-2"
+                  >
                     {bought ? '✓ Purchased!' : 'Already owned'}
                   </div>
                 ) : (
                   <button
                     onClick={() => handleBuy(item)}
                     disabled={!canAfford || isBuying || !!buying}
+                    data-testid={`shop-buy-${item.id}`}
                     className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 hover:shadow-md hover:shadow-amber-500/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none text-white text-sm font-semibold py-2 rounded-lg transition-all active:scale-[0.98]"
                   >
                     {isBuying
