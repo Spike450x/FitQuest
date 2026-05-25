@@ -12,21 +12,21 @@ All functions are **pure and deterministic** except those that explicitly call `
 
 The single source of truth for game numbers. Everything else imports from here.
 
-| Export                        | Kind     | Purpose                                                                                               |
-| ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
-| `CLASS_DEFINITIONS`           | const    | Per-class starting stats and the per-activity stat-multiplier matrix.                                 |
-| `ACTIVITY_DEFINITIONS`        | const    | Per-activity unit, base stat gains, and base XP for the 6 activity types.                             |
-| `RESTORE`                     | const    | Resource-restore rates for sleep/water/nutrition (e.g. `+5 stamina/hr`, `+5 magic/glass`).            |
-| `MasteryActivityType`         | type     | Union of `'run' \| 'workout' \| 'steps'`.                                                             |
-| `MASTERY_CONFIG`              | const    | Mastery milestone interval and the stat each mastery activity grants.                                 |
-| `isMasteryMilestone(count)`   | function | True if `count` is `5` or `15, 25, 35, …` (every 10 after the first 5).                               |
-| `nextMasteryMilestone(count)` | function | The next mastery threshold above `count`.                                                             |
-| `LEVEL_UP`                    | const    | Per-level auto-grants (HP, DEF) and pending stat-point increment.                                     |
-| `xpToNextLevel(level)`        | function | `floor(100 * level^1.5)`. The XP curve.                                                               |
-| `PRIMARY_STAT_CAP`            | const    | `50` — hard cap for STR / WIS / AGI. Mirrored in `firestore.rules`.                                   |
-| `maxStatForLevel(level)`      | function | Secondary-stat cap formula (`level × 5 + 10`).                                                        |
-| `statCap(stat, level)`        | function | Returns the cap for any stat — primary stats use `PRIMARY_STAT_CAP`, secondary use `maxStatForLevel`. |
-| `COMBAT`                      | const    | Combat balance numbers (defense-bypass chance, ability stamina cost, etc.).                           |
+| Export                        | Kind     | Purpose                                                                                                                                                                          |
+| ----------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLASS_DEFINITIONS`           | const    | Per-class starting stats and the per-activity stat-multiplier matrix.                                                                                                            |
+| `ACTIVITY_DEFINITIONS`        | const    | Per-activity unit, base stat gains, and base XP for the 6 activity types.                                                                                                        |
+| `RESTORE`                     | const    | Resource-restore rates for sleep/water/nutrition (e.g. `+5 stamina/hr`, `+5 magic/glass`).                                                                                       |
+| `MasteryActivityType`         | type     | Union of `'run' \| 'workout' \| 'steps'`.                                                                                                                                        |
+| `MASTERY_CONFIG`              | const    | Mastery milestone interval and the stat each mastery activity grants.                                                                                                            |
+| `isMasteryMilestone(count)`   | function | True if `count` is `5` or `15, 25, 35, …` (every 10 after the first 5).                                                                                                          |
+| `nextMasteryMilestone(count)` | function | The next mastery threshold above `count`.                                                                                                                                        |
+| `LEVEL_UP`                    | const    | Per-level auto-grants (HP, DEF) and pending stat-point increment.                                                                                                                |
+| `xpToNextLevel(level)`        | function | `floor(100 * level^1.5)`. The XP curve.                                                                                                                                          |
+| `PRIMARY_STAT_CAP`            | const    | `50` — hard cap for STR / WIS / AGI. Mirrored in `firestore.rules`.                                                                                                              |
+| `maxStatForLevel(level)`      | function | Secondary-stat cap formula (`level × 5 + 10`).                                                                                                                                   |
+| `statCap(stat, level)`        | function | Returns the cap for any stat — primary stats use `PRIMARY_STAT_CAP`, secondary use `maxStatForLevel`.                                                                            |
+| `COMBAT`                      | const    | Combat balance numbers (defense-bypass chance, ability stamina cost, etc.). Key values: `MAX_EQUIPPED_SPELLS: 5`, `SPELL_MAX_CHARGES: 3` (flat charges per spell per fight/run). |
 
 ---
 

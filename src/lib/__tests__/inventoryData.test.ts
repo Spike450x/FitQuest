@@ -11,6 +11,7 @@ vi.mock('firebase/firestore', () => ({
   deleteDoc: vi.fn(),
   doc: vi.fn(),
   runTransaction: vi.fn(),
+  deleteField: vi.fn(() => 'DELETE_SENTINEL'),
 }));
 
 import { normalizeInventoryItem } from '../inventoryData';
@@ -52,5 +53,20 @@ describe('normalizeInventoryItem', () => {
 
   it('handles quantity: 0 explicitly (not the default)', () => {
     expect(normalizeInventoryItem('inv1', { ...valid, quantity: 0 }).quantity).toBe(0);
+  });
+
+  it('passes through charges when present', () => {
+    const result = normalizeInventoryItem('inv1', { ...valid, charges: 1 });
+    expect(result.charges).toBe(1);
+  });
+
+  it('leaves charges undefined when absent (undefined = full)', () => {
+    const result = normalizeInventoryItem('inv1', valid);
+    expect(result.charges).toBeUndefined();
+  });
+
+  it('passes through charges: 0 (fully depleted spell)', () => {
+    const result = normalizeInventoryItem('inv1', { ...valid, charges: 0 });
+    expect(result.charges).toBe(0);
   });
 });

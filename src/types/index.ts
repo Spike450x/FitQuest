@@ -178,6 +178,12 @@ export interface InventoryItem {
   quantity: number;
   equipped: boolean;
   acquiredAt: number;
+  /**
+   * Remaining spell charges for this fight or dungeon run.
+   * `undefined` means full (COMBAT.SPELL_MAX_CHARGES). Only set on spell
+   * items; gear and consumables never carry this field.
+   */
+  charges?: number;
 }
 
 // ─── Quests ──────────────────────────────────────────────────────────────────

@@ -15,6 +15,15 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Spell charge "top card" mechanic (E5)
+
+- Each equipped spell now has 3 charges (flat, all rarities). In arena, charges reset after every fight (win/loss/flee). In dungeons, charges persist across rooms and only replenish at rest sites.
+- `InventoryItem.charges?: number` added (`undefined` = full). `normalizeInventoryItem` passes the field through. `COMBAT.SPELL_MAX_CHARGES = 3` constant added.
+- `useCombatEncounter` tracks `spellChargesUsed: Record<string, number>` per invItemId; `castSpell(spellDef, invItemId)` gates and increments charges. Charges reset when the monster changes (new fight) via `useEffect` + `useRef`.
+- `CombatActionBar` renders violet/grey dot meters under each spell card; "Cast Spell" button and individual spell cast buttons are disabled when exhausted. "All spells exhausted" sublabel when every spell is depleted.
+- `inventoryStore` gains `persistSpellChargeDecrements(decrements)` (dungeon room carry-forward) and `replenishSpellCharges()` (arena fight end + dungeon rest site + dungeon run end).
+- 12 new vitest specs cover charge normalization, persistDecrements, and replenish.
+
 ## 2026-05-25 — Monster passives + actives (E9)
 
 - Added `MonsterPassive` (thorns/regen/vampiric) and `MonsterActive` (enrage/harden) types to `MonsterDef`. All 11 MONSTER_CATALOG entries now have passive or active assignments (L1–L10).

@@ -18,11 +18,14 @@ const CHARACTERS = 'characters';
 // CONTRACT: whenever a new optional field is added to InventoryItem, add a safe
 // default here. See "Adding a post-MVP schema field" in docs/FIRESTORE.md.
 export function normalizeInventoryItem(id: string, data: Record<string, unknown>): InventoryItem {
+  const charges = data.charges as number | undefined;
   return {
     ...data,
     id,
     quantity: (data.quantity as number | undefined) ?? 1,
     equipped: (data.equipped as boolean | undefined) ?? false,
+    // undefined = full (SPELL_MAX_CHARGES); only spell items carry this field
+    ...(charges !== undefined && { charges }),
   } as InventoryItem;
 }
 

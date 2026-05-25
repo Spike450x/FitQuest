@@ -49,7 +49,7 @@ import { useCombatEncounter } from '@/hooks/useCombatEncounter';
 import { useCombatStore } from '@/store/combatStore';
 import { refreshPlayerState } from '@/lib/refreshPlayerState';
 import { getStreakLootMultiplier } from '@/lib/gameLogic/streaks';
-import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
+import { CLASS_DEFINITIONS, COMBAT } from '@/lib/gameLogic/constants';
 import type {
   DungeonRoomType,
   MonsterDef,
@@ -203,6 +203,8 @@ function DungeonCombatShell({
 }: DungeonCombatShellProps) {
   const inventoryItems = useInventoryStore((s) => s.items);
   const consumeItem = useInventoryStore((s) => s.useConsumable);
+  const persistSpellChargeDecrements = useInventoryStore((s) => s.persistSpellChargeDecrements);
+  const replenishSpellCharges = useInventoryStore((s) => s.replenishSpellCharges);
 
   const [poisoned, setPoisoned] = useState<PoisonedStatus | null>(null);
   const [enrageState, setEnrageState] = useState<BossEnrageState>(() => initialEnrageState());
@@ -318,6 +320,23 @@ function DungeonCombatShell({
     };
   }, [isBossRoom, monster.id, monster.hp, poisoned, enrageState, character.equippedGear.accessory]);
 
+  // Build initialChargesUsed from inventory: items with charges set (depleted
+  // from a previous room) contribute their remaining → used count.
+  const initialChargesUsed = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const item of inventoryItems) {
+      const def = getItemById(item.itemDefId);
+      if (!item.equipped || def?.type !== 'spell') continue;
+      if (item.charges !== undefined) {
+        const used = Math.max(0, COMBAT.SPELL_MAX_CHARGES - item.charges);
+        if (used > 0) map[item.id] = used;
+      }
+    }
+    return map;
+    // intentionally stable — only computed on mount for the current room
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const encounter = useCombatEncounter({
     monster,
     character,
@@ -325,12 +344,15 @@ function DungeonCombatShell({
     maxStamina,
     maxMagic,
     initial: { hp: initialHp, stamina: initialStamina, magic: initialMagic },
+    initialChargesUsed,
     modifiers,
     streakMultiplier,
     getPityFor,
     consumeItem,
     onResourceChange: onResourceMirror,
     onVictory: async ({ droppedItems, finalHp, finalStamina, finalMagic }) => {
+      // Persist spell charge decrements so they survive the room transition
+      await persistSpellChargeDecrements(encounter.spellChargesUsed);
       await onVictory({ droppedItems, finalHp, finalStamina, finalMagic });
     },
     onDefeat: ({ finalHp, finalStamina, finalMagic }) => {
@@ -342,7 +364,16 @@ function DungeonCombatShell({
     onBannerMessage: (msg) => setEnrageBanner(msg),
   });
 
-  const { fightState, pending, bursts, expireBurst, usingItem, rollingAction, actions } = encounter;
+  const {
+    fightState,
+    pending,
+    bursts,
+    expireBurst,
+    usingItem,
+    rollingAction,
+    actions,
+    spellChargesUsed,
+  } = encounter;
   const playerEmoji = CLASS_DEFINITIONS[character.class].emoji;
   const playerDefStat = (character.stats.defense ?? 0) + gearDefenseBonus(character);
   const lastEntry = fightState.log[fightState.log.length - 1] ?? null;
@@ -457,6 +488,7 @@ function DungeonCombatShell({
           onUseItem={actions.useItem}
           onFlee={actions.flee}
           modifiers={modifiers}
+          spellChargesUsed={spellChargesUsed}
         />
       )}
 
@@ -498,6 +530,7 @@ export default function DungeonRunPage() {
   const router = useRouter();
   const { character } = useCharacter();
   const { activeRun, fetchActiveRun, advanceRoom, completeRun, abandonRun } = useDungeonStore();
+  const replenishSpellCharges = useInventoryStore((s) => s.replenishSpellCharges);
 
   const [phase, setPhase] = useState<RunPhase>('loading');
   const [playerHp, setPlayerHp] = useState(0);
@@ -757,6 +790,9 @@ export default function DungeonRunPage() {
     setPlayerStamina(newSta);
     setPlayerMagic(newMag);
 
+    // Replenish spell charges at rest sites — the one mid-dungeon restore point
+    await replenishSpellCharges();
+
     const updatedRooms = run.rooms.map((r, i) =>
       i === run.currentRoom ? { ...r, cleared: true } : r,
     );
@@ -772,7 +808,7 @@ export default function DungeonRunPage() {
     });
 
     setRoomResult({ xp: 0, gold: 0, items: [] });
-    setLog([`🌿 Rested — +${staRestore} Stamina, +${magRestore} Magic`]);
+    setLog([`🌿 Rested — +${staRestore} Stamina, +${magRestore} Magic — Spell charges restored!`]);
     setPhase('transition');
     setActing(false);
   }
@@ -796,6 +832,8 @@ export default function DungeonRunPage() {
       if (result.inventoryPartial) {
         toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
       }
+      // Reset spell charges so the next dungeon run starts fresh
+      await replenishSpellCharges();
       await refreshPlayerState(character.uid);
       await completeRun(character.uid, false);
       router.push('/combat/dungeons');
@@ -820,6 +858,8 @@ export default function DungeonRunPage() {
       if (result.inventoryPartial) {
         toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
       }
+      // Reset spell charges so the next dungeon run starts fresh
+      await replenishSpellCharges();
       await refreshPlayerState(character.uid);
       await completeRun(character.uid, legendaryUsed);
 
@@ -901,6 +941,8 @@ export default function DungeonRunPage() {
                 if (result.inventoryPartial) {
                   toast.warning("Some loot didn't save — re-claim from the dungeon menu to retry.");
                 }
+                // Reset spell charges so the next dungeon run starts fresh
+                await replenishSpellCharges();
                 await refreshPlayerState(character.uid);
               }
               await abandonRun(character.uid);

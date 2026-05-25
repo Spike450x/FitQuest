@@ -20,7 +20,7 @@
  * the per-round cadence would burn Firestore quota. Persistence belongs in
  * `onVictory` / `onDefeat` / `onFlee` (called exactly once per encounter).
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCombatBursts } from '@/hooks/useCombatBursts';
 import { playSound } from '@/hooks/useSound';
 import {
@@ -34,6 +34,7 @@ import {
   type ActionInput,
   type ActionResolution,
 } from '@/lib/gameLogic/combatActions';
+import { COMBAT } from '@/lib/gameLogic/constants';
 import type { Character, ItemDef, MonsterDef } from '@/types';
 import type {
   CombatModifiers,
@@ -72,6 +73,12 @@ export interface UseCombatEncounterOptions {
   maxStamina: number;
   maxMagic: number;
   initial?: { hp?: number; stamina?: number; magic?: number };
+  /**
+   * Starting charge-use counts keyed by inventory item id — used by the
+   * dungeon page to restore per-room charge state from Firestore. Arena always
+   * omits this (every fight starts with full charges).
+   */
+  initialChargesUsed?: Record<string, number>;
   modifiers?: CombatModifiers;
   streakMultiplier: number;
   getPityFor: (monsterId: string) => number;
@@ -108,11 +115,14 @@ export interface UseCombatEncounterReturn {
   bursts: ReturnType<typeof useCombatBursts>['bursts'];
   expireBurst: (id: number) => void;
   usingItem: string | null;
+  /** Charges used per inventory item id this encounter. Used by UI to render dots. */
+  spellChargesUsed: Record<string, number>;
   actions: {
     attack: () => void;
     magic: () => void;
     rollAbility: () => void;
-    castSpell: (spellDef: ItemDef) => void;
+    /** `invItemId` is the InventoryItem.id — needed to track per-item charges. */
+    castSpell: (spellDef: ItemDef, invItemId: string) => void;
     rest: () => void;
     meditate: () => void;
     useItem: (invItemId: string) => Promise<void>;
@@ -157,6 +167,7 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
     maxStamina,
     maxMagic,
     initial,
+    initialChargesUsed,
     modifiers,
     streakMultiplier,
     getPityFor,
@@ -176,6 +187,20 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
   const [pendingAbility, setPendingAbility] = useState<PendingAbility | null>(null);
   const [pendingSpell, setPendingSpell] = useState<PendingSpell | null>(null);
   const [usingItem, setUsingItem] = useState<string | null>(null);
+
+  // ── Spell charge tracking ──────────────────────────────────────────────────
+  // Keyed by InventoryItem.id → number of charges used this encounter.
+  // Resets to initialChargesUsed whenever the monster changes (i.e., new fight).
+  const [spellChargesUsed, setSpellChargesUsed] = useState<Record<string, number>>(
+    () => initialChargesUsed ?? {},
+  );
+  const prevMonsterIdRef = useRef(monster.id);
+  useEffect(() => {
+    if (monster.id !== prevMonsterIdRef.current) {
+      prevMonsterIdRef.current = monster.id;
+      setSpellChargesUsed(initialChargesUsed ?? {});
+    }
+  }, [monster.id, initialChargesUsed]);
 
   // Fire dice-rattle sound whenever any roll overlay opens
   useEffect(() => {
@@ -281,13 +306,14 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
     // Stamina gate handled at the page level (button is disabled)
     dispatch(resolveAbilityAction(buildInput()), 'ability');
   }
-  function castSpell(spellDef: ItemDef) {
+  function castSpell(spellDef: ItemDef, invItemId: string) {
     if (rollingAction !== null || fightState.outcome !== null) return;
-    // Affordability check handled at the page level — but re-verify to avoid
-    // a stale-button race where modifiers change available magic between click
-    // and dispatch.
     const sm = spellDef.spellMechanics;
     if (!sm) return;
+    // Charge gate — defensive check; UI already hides depleted spells.
+    const used = spellChargesUsed[invItemId] ?? 0;
+    if (used >= COMBAT.SPELL_MAX_CHARGES) return;
+    setSpellChargesUsed((prev) => ({ ...prev, [invItemId]: used + 1 }));
     dispatch(resolveSpellAction(buildInput(), spellDef), 'ability');
   }
   function rest() {
@@ -332,7 +358,15 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
   const actions = useMemo(
     () => ({ attack, magic, rollAbility, castSpell, rest, meditate, useItem, flee }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fightState, character, modifiers, streakMultiplier, rollingAction, usingItem],
+    [
+      fightState,
+      character,
+      modifiers,
+      streakMultiplier,
+      rollingAction,
+      usingItem,
+      spellChargesUsed,
+    ],
   );
 
   return {
@@ -346,6 +380,7 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
     bursts,
     expireBurst: expire,
     usingItem,
+    spellChargesUsed,
     actions,
   };
 }

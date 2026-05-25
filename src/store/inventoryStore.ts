@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { deleteField } from 'firebase/firestore';
 import { captureError } from '@/lib/errors';
 import { fetchWithRetry, STORE_RETRY_DELAYS } from '@/lib/retry';
 import { useCharacterStore } from './characterStore';
@@ -68,6 +69,18 @@ interface InventoryStore {
   equipConsumable: (inventoryItemId: string) => Promise<{ ok: boolean; reason?: string }>;
   /** Remove a consumable from the combat pack. */
   unequipConsumable: (inventoryItemId: string) => Promise<void>;
+  /**
+   * Persist mid-dungeon spell charge decrements to Firestore so charges survive
+   * room transitions. `decrements` maps invItemId → number of charges used.
+   * Items that have been used ≥ SPELL_MAX_CHARGES will be written with charges=0.
+   */
+  persistSpellChargeDecrements: (decrements: Record<string, number>) => Promise<void>;
+  /**
+   * Reset all equipped spell charges to full (delete the Firestore `charges`
+   * field so undefined = full is the canonical state). Call after arena fights
+   * and at dungeon rest sites.
+   */
+  replenishSpellCharges: () => Promise<void>;
   clear: () => void;
 }
 
@@ -443,6 +456,46 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     await updateInventoryDoc(inventoryItemId, { equipped: false });
     set((state) => ({
       items: state.items.map((i) => (i.id === inventoryItemId ? { ...i, equipped: false } : i)),
+    }));
+  },
+
+  persistSpellChargeDecrements: async (decrements) => {
+    const entries = Object.entries(decrements).filter(([, used]) => used > 0);
+    if (entries.length === 0) return;
+    const MAX = COMBAT.SPELL_MAX_CHARGES;
+    await Promise.all(
+      entries.map(([invItemId, used]) => {
+        const remaining = Math.max(0, MAX - used);
+        return updateInventoryDoc(invItemId, { charges: remaining });
+      }),
+    );
+    set((state) => ({
+      items: state.items.map((i) => {
+        const used = decrements[i.id];
+        if (!used) return i;
+        return { ...i, charges: Math.max(0, MAX - used) };
+      }),
+    }));
+  },
+
+  replenishSpellCharges: async () => {
+    const spellsWithDepletedCharges = get().items.filter((i) => {
+      const def = getItemById(i.itemDefId);
+      return i.equipped && def?.type === 'spell' && i.charges !== undefined;
+    });
+    if (spellsWithDepletedCharges.length === 0) return;
+    await Promise.all(
+      spellsWithDepletedCharges.map((i) =>
+        updateInventoryDoc(i.id, { charges: deleteField() as unknown as number }),
+      ),
+    );
+    set((state) => ({
+      items: state.items.map((i) => {
+        if (!spellsWithDepletedCharges.some((s) => s.id === i.id)) return i;
+        const { charges: _charges, ...rest } = i;
+        void _charges;
+        return rest as typeof i;
+      }),
     }));
   },
 

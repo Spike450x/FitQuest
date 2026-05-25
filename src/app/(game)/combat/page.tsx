@@ -126,6 +126,7 @@ function CombatPageBody({ character }: { character: Character }) {
   const fetchInventory = useInventoryStore((s) => s.fetchInventory);
   const awardLoot = useInventoryStore((s) => s.awardLoot);
   const consumeItem = useInventoryStore((s) => s.useConsumable);
+  const replenishSpellCharges = useInventoryStore((s) => s.replenishSpellCharges);
 
   const [combatTab, setCombatTab] = useState<CombatTab>('arena');
 
@@ -260,6 +261,8 @@ function CombatPageBody({ character }: { character: Character }) {
       await updateCurrentHp(finalHp);
       await updateCurrentStamina(finalStamina);
       await updateCurrentMagic(finalMagic);
+      // Replenish spell charges — arena fights always reset charges between encounters
+      await replenishSpellCharges();
       const { multiplier: streakMult, boost: streakBoost } = getStreakBoost();
       setPendingRewards({
         xpReward: streakBoost(monster),
@@ -274,11 +277,13 @@ function CombatPageBody({ character }: { character: Character }) {
       await updateCurrentHp(finalHp);
       await updateCurrentStamina(finalStamina);
       await updateCurrentMagic(finalMagic);
+      await replenishSpellCharges();
     },
     onFlee: async ({ finalHp, finalStamina, finalMagic }) => {
       await updateCurrentHp(finalHp);
       await updateCurrentStamina(finalStamina);
       await updateCurrentMagic(finalMagic);
+      await replenishSpellCharges();
     },
   });
 
@@ -402,8 +407,16 @@ function CombatPageBody({ character }: { character: Character }) {
 
   // ── Fighting view ──────────────────────────────────────────────────────────
   if (activeMonster) {
-    const { fightState, pending, bursts, expireBurst, usingItem, rollingAction, actions } =
-      encounter;
+    const {
+      fightState,
+      pending,
+      bursts,
+      expireBurst,
+      usingItem,
+      rollingAction,
+      actions,
+      spellChargesUsed,
+    } = encounter;
     const { monster, playerHp, playerStamina, playerMagic, monsterHp, log, outcome, droppedItems } =
       fightState;
     const emoji = MONSTER_EMOJI[monster.id] ?? '👾';
@@ -613,6 +626,7 @@ function CombatPageBody({ character }: { character: Character }) {
             onMeditate={actions.meditate}
             onUseItem={actions.useItem}
             onFlee={actions.flee}
+            spellChargesUsed={spellChargesUsed}
           />
         ) : outcome === 'loss' ? (
           <button

@@ -216,4 +216,10 @@ export const COMBAT = {
   MAX_EQUIPPED_SPELLS: 5,
   /** Maximum number of consumables a player can have packed when entering combat. */
   MAX_EQUIPPED_CONSUMABLES: 5,
+  /**
+   * Charges per equipped spell per combat encounter (arena) or dungeon run
+   * (dungeons). Flat across all rarities — charges reset after every arena
+   * fight and only at rest sites inside a dungeon.
+   */
+  SPELL_MAX_CHARGES: 3,
 };
