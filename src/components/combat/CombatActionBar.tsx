@@ -116,6 +116,7 @@ export function CombatActionBar({
             loading={rollingAction === 'attack'}
             disabled={isRolling}
             color="indigo"
+            testId="combat-attack-btn"
           />
           <ActionButton
             label="🔮 Magic"
@@ -128,6 +129,7 @@ export function CombatActionBar({
             loading={rollingAction === 'magic'}
             disabled={isRolling}
             color="violet"
+            testId="combat-magic-btn"
           />
         </div>
       ) : (
@@ -143,6 +145,7 @@ export function CombatActionBar({
           disabled={isRolling}
           color="indigo"
           fullWidth
+          testId="combat-attack-btn"
         />
       )}
 
@@ -236,6 +239,7 @@ export function CombatActionBar({
             loading={rollingAction === 'run'}
             disabled={isRolling}
             color="amber"
+            testId="combat-flee-btn"
           />
         )}
       </div>

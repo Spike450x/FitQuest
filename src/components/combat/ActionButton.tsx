@@ -17,6 +17,7 @@ export function ActionButton({
   disabled,
   color,
   fullWidth,
+  testId,
 }: {
   label: string;
   sublabel: string;
@@ -25,6 +26,7 @@ export function ActionButton({
   disabled: boolean;
   color: ActionButtonColor;
   fullWidth?: boolean;
+  testId?: string;
 }) {
   const base =
     'rounded-xl py-3 px-4 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed';
@@ -42,6 +44,7 @@ export function ActionButton({
     <button
       onClick={onClick}
       disabled={disabled}
+      data-testid={testId}
       className={`${base} ${colors[color]} ${fullWidth ? 'w-full' : ''}`}
     >
       <p className="font-bold text-sm">{loading ? 'Rolling…' : label}</p>

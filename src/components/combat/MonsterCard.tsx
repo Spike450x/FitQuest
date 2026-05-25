@@ -109,6 +109,7 @@ export function MonsterCard({
       )}
       <button
         onClick={() => onFight(monster)}
+        data-testid={`monster-fight-${monster.id}`}
         className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 hover:shadow-md hover:shadow-indigo-500/40 text-white text-sm font-bold py-2 rounded-lg transition-all active:scale-[0.98]"
       >
         Fight!

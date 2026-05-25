@@ -213,6 +213,7 @@ export default function TierEntryPage({ params }: { params: Promise<{ tierId: st
       <button
         onClick={handleEnter}
         disabled={!canEnter}
+        data-testid={`dungeon-enter-${id}`}
         className={`w-full py-4 rounded-xl text-base font-bold transition-colors ${
           canEnter
             ? 'bg-indigo-600 hover:bg-indigo-500 text-white'

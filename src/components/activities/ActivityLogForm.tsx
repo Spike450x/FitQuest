@@ -310,6 +310,7 @@ export function ActivityLogForm() {
           <button
             key={type}
             type="button"
+            data-testid={`activity-tab-${type}`}
             onClick={() => {
               setActiveTab(type);
               setAmount('');
@@ -391,6 +392,7 @@ export function ActivityLogForm() {
         <button
           type="submit"
           disabled={!amountValid || submitting}
+          data-testid="log-activity-submit"
           className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 hover:shadow-md hover:shadow-indigo-500/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none text-white font-semibold py-2.5 rounded-lg transition-all active:scale-[0.98]"
         >
           {submitting ? 'Logging…' : 'Log Activity'}
