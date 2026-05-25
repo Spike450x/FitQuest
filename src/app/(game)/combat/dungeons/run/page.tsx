@@ -773,6 +773,9 @@ export default function DungeonRunPage() {
       await Promise.all([fetchCharacter(character.uid, true), fetchInventory(character.uid)]);
       await completeRun(character.uid, false);
       router.push('/combat/dungeons');
+    } catch (err) {
+      console.error('[dungeon retreat] claim failed', err);
+      toast.error('Failed to save retreat rewards — please try again.');
     } finally {
       setClaiming(false);
     }
@@ -807,6 +810,9 @@ export default function DungeonRunPage() {
       } else {
         router.push('/combat/dungeons');
       }
+    } catch (err) {
+      console.error('[dungeon claim victory] failed', err);
+      toast.error('Failed to claim rewards — please try again.');
     } finally {
       setClaiming(false);
     }
@@ -876,6 +882,9 @@ export default function DungeonRunPage() {
               }
               await abandonRun(character.uid);
               router.push('/combat/dungeons');
+            } catch (err) {
+              console.error('[dungeon defeat] claim failed', err);
+              toast.error('Failed to save rewards — please try again.');
             } finally {
               setReturning(false);
             }

@@ -32,6 +32,8 @@ extraProgress: pick.extraTargets ? {} : deleteField(),
 
 ### B2 — Log Activity: FirebaseError "internal" on all submissions
 
+**Status:** PARTIALLY ADDRESSED 2026-05-25. The Cloud Function now wraps its body in try/catch and re-throws unhandled errors as `HttpsError('internal', err.message)`, making the actual failure visible in the browser console. Root cause of the original "internal" error (deploy/IAM/index/server crash) still requires `firebase functions:log --only logActivity` to diagnose definitively — code inspection found no obvious crash path.
+
 **Severity:** Critical — players cannot log any workout, run, steps, nutrition, sleep, or water.
 
 **Symptoms:** Clicking submit on the Activity Log form results in a `FirebaseError: internal` in the console. No activity is saved.
@@ -54,6 +56,8 @@ extraProgress: pick.extraTargets ? {} : deleteField(),
 ---
 
 ### B3 — Dungeon Victory: "Claim Rewards" button does nothing
+
+**Status:** SHIPPED 2026-05-25. All three dungeon claim handlers now have `catch` blocks that show `toast.error(…)` when the Cloud Function call fails. Previously the missing catch caused errors to be swallowed silently, re-enabling the button with no feedback.
 
 **Severity:** High — completing a dungeon boss does not advance to reward screen.
 

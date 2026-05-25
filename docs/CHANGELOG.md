@@ -15,6 +15,18 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Dungeon claim handlers surface errors; CF unhandled exceptions now diagnosable (B2/B3)
+
+Previously all three dungeon claim handlers (`handleClaimVictory`, `handleRetreat`, defeat button) used `try…finally` with no `catch`. Any Cloud Function failure silently re-enabled the button with no user feedback. Added `catch` blocks with `toast.error(…)` to all three so failures are always visible to the player.
+
+Also added a top-level `try/catch` inside the `logActivity` and `claimDungeonRun` Cloud Functions. Unhandled exceptions previously surfaced to clients as an opaque `functions/internal` with a blank message, making the root cause invisible in the browser console. They now re-throw as `HttpsError('internal', err.message)` so the actual error detail is visible in DevTools — critical for diagnosing B2's "internal" error until Firebase log access is available.
+
+- `src/app/(game)/combat/dungeons/run/page.tsx` — catch + `toast.error` added to `handleRetreat`, `handleClaimVictory`, and the defeat inline handler.
+- `functions/src/index.ts` — `logActivity` body wrapped in try/catch; unhandled errors re-throw with message.
+- `functions/src/claimDungeonRun.ts` — same pattern applied to `claimDungeonRun`.
+
+---
+
 ## 2026-05-25 — Quest reroll no longer crashes when rolling into a single-target quest (B1)
 
 Rerolling an active quest now succeeds in every branch. Previously, rerolling into a quest with no `extraTargets` crashed with `FirebaseError: Function updateDoc() called with invalid data. Unsupported field value: undefined (found in field extraProgress …)` because the Firestore payload was sending `extraProgress: undefined` to clear the field. Firestore's `updateDoc` rejects `undefined` field values entirely.
