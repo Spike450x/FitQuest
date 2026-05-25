@@ -1,6 +1,6 @@
 # FitQuest — Deployment Runbook
 
-Reference for deploying the Firebase backend (Firestore rules, indexes, and Cloud Functions). The Next.js frontend has no production hosting target yet — this document covers the Firebase-side deploy only.
+Reference for deploying the FitQuest stack: the Next.js frontend on **Vercel** and the Firebase backend (Firestore rules, indexes, Cloud Functions).
 
 Pair with [CI.md](CI.md) for the automated checks that gate every deploy and [SECURITY-SETUP.md](SECURITY-SETUP.md) for the hardening context behind the deploy order.
 
@@ -139,15 +139,66 @@ Never commit `.env.local`. The `.env.ci` file contains intentionally non-functio
 
 ---
 
-## Future: hosting
+## Frontend hosting — Vercel
 
-When a hosting platform is chosen, extend this document with:
+The Next.js frontend is hosted on Vercel. Vercel auto-detects the framework, runs `next build`, and serves the static + serverless output. The `/functions` directory and other backend assets are excluded via `.vercelignore`.
 
-- Which platform (Vercel, Firebase Hosting, etc.)
-- Environment variable management (platform dashboard, not `.env.local`)
-- Preview deployment strategy per PR
-- Production promotion workflow
-- Rollback path for frontend deploys
+### First-time setup (one-time, ~5 minutes)
+
+1. **Create the project on Vercel.** Visit <https://vercel.com/new>, sign in with GitHub, choose the `Spike450x/FitQuest` repo, click **Import**.
+2. **Framework Preset** — confirm Vercel auto-selected **Next.js**. Leave Build/Output/Install commands at their defaults (`next build` / `.next` / `npm install`).
+3. **Root Directory** — `.` (repo root).
+4. **Node.js Version (Settings → General).** Vercel reads `engines.node: ">=24.0.0"` from `package.json`. If Vercel doesn't support Node 24 yet, set Node Version to **22.x** in the Vercel project settings — the codebase runs on 22 (CI uses 24 but it is not a strict requirement). No code change needed.
+5. **Environment variables (Settings → Environment Variables).** Copy each value from your local `.env.local` into Vercel for **Production**, **Preview**, and **Development** scopes:
+
+   | Variable                                   | Source                              |
+   | ------------------------------------------ | ----------------------------------- |
+   | `NEXT_PUBLIC_FIREBASE_API_KEY`             | Firebase Console → Project Settings |
+   | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`         | Firebase Console → Project Settings |
+   | `NEXT_PUBLIC_FIREBASE_PROJECT_ID`          | Firebase Console → Project Settings |
+   | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`      | Firebase Console → Project Settings |
+   | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase Console → Project Settings |
+   | `NEXT_PUBLIC_FIREBASE_APP_ID`              | Firebase Console → Project Settings |
+
+   These are all `NEXT_PUBLIC_*` so they are baked into the browser bundle — safe to expose (Firebase keys are not secrets; access control lives in `firestore.rules`).
+
+6. **Deploy.** Click **Deploy**. First build takes ~2–3 minutes. Vercel will assign a domain like `fitquest-<hash>.vercel.app`.
+
+7. **Whitelist the Vercel domain in Firebase Auth.** Without this step, sign-in will fail with `auth/unauthorized-domain`.
+   - Firebase Console → **Authentication** → **Settings** → **Authorized domains** → **Add domain**
+   - Add both: the auto-assigned `*.vercel.app` domain **and** any custom domain you map later.
+
+### Per-PR preview deployments
+
+Vercel automatically creates a preview deployment for every PR. The preview URL appears in a bot comment on the PR within ~2 minutes of push. Each preview is a fully isolated Vercel deployment — safe to share for manual QA from a phone.
+
+**Preview deploys share the production Firebase project.** Be careful: any writes during preview testing land in the same Firestore the production app reads. Use a throwaway test character.
+
+### Production promotion
+
+Vercel treats `master` as the production branch by default. Every merge to `master` triggers a production deploy automatically (no separate promote step). The previous deployment stays running until the new one passes health checks, so there is no downtime.
+
+### Frontend rollback
+
+Vercel keeps every deployment. To roll back:
+
+1. **Dashboard:** Project → Deployments → find the last known-good deployment → ⋯ menu → **Promote to Production**. Takes ~10 seconds.
+2. **CLI:** `npx vercel rollback <deployment-url> --prod`
+
+Frontend rollback does **not** touch Firestore or Cloud Functions — if the bad release also changed schema/rules/functions, roll those back separately per the sections above.
+
+### Installing the PWA on a phone
+
+After the first deploy:
+
+1. Open the Vercel URL in **Safari (iOS)** or **Chrome (Android)** on your phone.
+2. iOS: tap **Share → Add to Home Screen.** Android: tap menu (⋮) → **Install app** (the prompt may also auto-appear).
+3. The app launches full-screen with the FitQuest icon. The PWA manifest is generated by `src/app/manifest.ts` via Next.js's metadata API — no extra config needed.
+
+### Things that do **not** carry over from local dev
+
+- The local Firebase emulator hosts (`127.0.0.1:9099/8080/5001`) are intentionally listed in the CSP `connect-src` even in production. They are harmless — a real browser cannot reach an attacker's loopback. See the comment block in `next.config.mjs`.
+- `npm run dev` features (Fast Refresh, Turbopack) are dev-only. Production runs the optimized `next start` server output that Vercel manages.
 
 ---
 
