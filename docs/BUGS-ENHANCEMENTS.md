@@ -244,6 +244,8 @@ useEffect(() => {
 
 ### E2 — Emoji → Custom Art: dashboard, character sheet, and activity icons
 
+**Status:** SHIPPED 2026-05-25. `src/components/art/stat-icons.tsx` (STR/WIS/AGI SVG glyphs) and `src/components/art/action-icons.tsx` (Activities/Combat/Quests/Shop SVG icons) introduced. `StatBar` updated to accept `ReactNode` for the icon prop. `src/lib/activityIcons.ts` gains `getActivityIconSvg()` returning SVG components for all 6 activity types. Dashboard quick-action and stat-bar emoji replaced throughout.
+
 **Priority:** High — visual consistency with the rest of the UI.
 
 **Current state:** Several locations still use emoji as visual anchors:
@@ -289,6 +291,8 @@ useEffect(() => {
 
 ### E4 — Shop: rotate/paginate spells instead of displaying all
 
+**Status:** SHIPPED 2026-05-25. New `src/lib/gameLogic/shopRotation.ts` exports `getWeeklySpells(spells, weekKey?)` (seeded by ISO week via `getWeeklyPick`) and `WEEKLY_SPELL_COUNT = 5`. Shop now shows 5 featured spells per week instead of all 21. Tested in `__tests__/shopRotation.test.ts`.
+
 **Priority:** Medium — UX parity with how gear items are shown.
 
 **Current state:** The spell section of the shop renders the entire spell catalog at once (all 21 spells listed).
@@ -332,6 +336,8 @@ useEffect(() => {
 
 ### E6 — Inventory: use consumables (potions) outside of combat
 
+**Status:** SHIPPED 2026-05-25. `inventoryStore` gains a `useConsumable` action. Inventory page shows a "Use" button on consumable cards when out of combat; the button is hidden/disabled during active dungeon runs with a toast: "You can't use items outside the dungeon from here during an active run."
+
 **Priority:** Medium — QoL for pre-combat preparation.
 
 **Current state:** Consumable items (health potions, stamina potions, etc.) can only be used during active combat via the "Use Item" action.
@@ -350,6 +356,8 @@ useEffect(() => {
 ---
 
 ### E7 — Spell Casting: visual impact animation and school-based sound
+
+**Status:** SHIPPED 2026-05-25. 8 new school-themed synth sounds added to `sounds.ts` (damage crack, heal chime, stun clang, lifesteal drain, defense ring, fizzle poof, and school-generic variants). Full-screen school-colored flash overlay fires on spell result reveal — tinted by effect type (damage → red-orange, heal → green, stun → cyan, lifesteal → purple, defense → blue, fizzle → gray). Flash implemented as a CSS `div` with opacity transition; gated by `prefers-reduced-motion`.
 
 **Priority:** High — casting a spell should feel meaningfully different from a normal attack; currently it resolves identically to a basic hit with only text changing.
 

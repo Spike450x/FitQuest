@@ -220,11 +220,11 @@ The Ancient Dragon's loot table is the primary source of legendary loot from reg
 
 ## `quests.ts` — quest pools
 
-| Export                    | Kind     | Purpose                                                                         |
-| ------------------------- | -------- | ------------------------------------------------------------------------------- |
-| `DAILY_QUEST_POOL`        | const    | 12 daily quests, 2 per activity type. 3 are picked each day via `getDailyPick`. |
-| `WEEKLY_QUEST_POOL`       | const    | 5 weekly quests, one per activity type. 3 are picked each week.                 |
-| `getQuestDef(questDefId)` | function | Catalog lookup across both pools.                                               |
+| Export                    | Kind     | Purpose                                                                               |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------- |
+| `DAILY_QUEST_POOL`        | const    | 28 daily quests across 6 activity types. 3 are picked each day via `getDailyPick`.    |
+| `WEEKLY_QUEST_POOL`       | const    | 14 weekly quests across 6 activity types. 3 are picked each week via `getWeeklyPick`. |
+| `getQuestDef(questDefId)` | function | Catalog lookup across both pools.                                                     |
 
 ---
 
@@ -293,6 +293,7 @@ Tested in [`__tests__/dungeons.test.ts`](../src/lib/gameLogic/__tests__/dungeons
 | `applyVenomTick(monsterHp, poisoned)`           | function  | Advances the venom DoT state: decrements `roundsRemaining`, applies `damagePerRound` to monster HP, bypassing defense.                    |
 | `applyBossEnrage(boss, enrageState, round)`     | function  | Returns modified boss stats for the current round given active enrage state (Broodmother ATK+5, Necromancer shield, Dragon King 3-round). |
 | `isBossEnrageTriggered(boss, bossHp, maxHp)`    | function  | Returns whether the enrage threshold has been crossed this round.                                                                         |
+| `resolveStatCheckFlavor(tierId, roomSeed)`       | function  | Returns a thematic `{ description, hint }` for a stat-check room, seeded deterministically from `roomSeed`. Each tier has 3–4 entries in `STAT_CHECK_SCENARIOS`. Used by the dungeon run page to display narrative context above the option buttons. |
 
 ---
 

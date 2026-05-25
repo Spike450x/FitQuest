@@ -68,6 +68,7 @@ This README covers feature breakdowns and game mechanics. Deeper engineering ref
 | [docs/BACKLOG.md](docs/BACKLOG.md)                         | Engineering debt and deferred technical items.                         |
 | [docs/UI-UX-MODERNIZATION.md](docs/UI-UX-MODERNIZATION.md) | UI/UX audit tracking — 24-item modernization checklist.                |
 | [docs/ART-ASSETS.md](docs/ART-ASSETS.md)                   | Heraldic art system — asset inventory, generation guide, usage rules.  |
+| [docs/SMOKE-TEST.md](docs/SMOKE-TEST.md)                   | Manual smoke-test checklist for auth, middleware, and Firebase round-trips. |
 | [docs/superpowers/specs/](docs/superpowers/specs/)         | Post-MVP feature design specs (roadmap, champions, reputation, etc.).  |
 | [SECURITY.md](SECURITY.md)                                 | Vulnerability reporting policy.                                        |
 | [CLAUDE.md](CLAUDE.md)                                     | Development partner guide (commands, workflow, conventions).           |
@@ -100,7 +101,7 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
 | Future | Pets                            | 🔲 Not started |
 | Future | Wanted Board & Reputation       | 🔲 Not started |
 | Future | Monthly NPCs                    | 🔲 Not started |
-| Future | PWA                             | 🔲 Not started |
+| Bonus  | PWA install prompt              | ✅ Complete    |
 | Future | Apple Health integration        | 🔲 Not started |
 | Future | Leaderboards                    | 🔲 Not started |
 

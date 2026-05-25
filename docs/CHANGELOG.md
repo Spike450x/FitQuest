@@ -15,6 +15,10 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Documentation audit and sync
+
+- Updated 6 docs to close gaps between shipped features and recorded state: ARCHITECTURE.md (2 new stores, `components/art/` folder, 4 new lib entries, 2 new hooks), CI.md (test count 653→720), GAME-LOGIC.md (quest pool sizes 12/5→28/14, `resolveStatCheckFlavor` export), FIRESTORE.md (`InventoryItem.charges` field), BUGS-ENHANCEMENTS.md (SHIPPED markers for E2/E4/E6/E7), README.md (SMOKE-TEST.md entry, PWA status corrected), BACKLOG.md (resolved SMOKE-TEST item).
+
 ## 2026-05-25 — Spell charge polish (per-rarity + UI surfacing)
 
 - `getSpellMaxCharges(rarity)` in `src/lib/gameLogic/spells.ts` replaces the flat `COMBAT.SPELL_MAX_CHARGES` constant on live combat paths. Per-rarity scaling: common 2, uncommon 3, rare 3, epic 4, legendary 5. Acquisition (not per-cast) gates power.

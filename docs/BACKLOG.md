@@ -21,5 +21,4 @@ This is separate from the **feature backlog** in CLAUDE.md, which covers game co
 
 | Item                        | Detail                                                                                                                                                                                          |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| README docs table grouping  | Table has 13 entries and will grow. Add sub-headers (e.g. **Engineering**, **Game Design**, **Ops**) once it reaches ~15 to keep it scannable.                                                  |
-| Add SMOKE-TEST.md to README | `docs/SMOKE-TEST.md` is listed in CLAUDE.md's docs reference but absent from the README engineering references table. Add it alongside the other docs for full consistency and discoverability. |
+| README docs table grouping  | Table now has 14 entries. Add sub-headers (e.g. **Engineering**, **Game Design**, **Ops**) once it reaches ~18 to keep it scannable. |

@@ -144,6 +144,7 @@ interface InventoryItem {
   quantity: number; // 1–999
   equipped: boolean;
   acquiredAt: number; // unix ms — immutable
+  charges?: number; // remaining spell charges for this encounter/run; undefined = full
 }
 ```
 
@@ -159,6 +160,7 @@ interface InventoryItem {
 - `uid`, `itemDefId`, `acquiredAt` are **immutable**.
 - `quantity ≥ 1` (the app deletes the doc when quantity hits 0; a stored `0` is never legitimate).
 - `equipped` remains a bool.
+- `charges` — optional; when present, a non-negative integer. `undefined` (field absent) means full charges. Written by `persistSpellChargeDecrements` during combat; reset at fight end (arena) or Rest Site (dungeon).
 
 ---
 
