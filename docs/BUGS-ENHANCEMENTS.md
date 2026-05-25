@@ -127,6 +127,76 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 
 ---
 
+### B7 — Quest Page: daily and weekly card columns misalign
+
+**Severity:** Medium — visual polish issue on desktop.
+
+**Symptoms:** On the quests page (≥ md breakpoint), daily and weekly quests are shown side-by-side in a two-column grid. Weekly quests that have multiple progress criteria (`extraTargets`) render taller cards than single-bar daily quests. Because each column stacks cards independently (`space-y-3`), the vertical positions of cards in each column drift apart as you scroll — the layout looks misaligned.
+
+**Root cause (confirmed):** `src/app/(game)/quests/page.tsx:380` — the outer container uses `grid grid-cols-1 md:grid-cols-2 gap-6`. There's no cross-column card alignment mechanism; each `QuestSection` is a free-standing flex column so card heights are entirely independent.
+
+**Fix options:**
+
+- **Option A (recommended) — tab switcher:** Replace the two-column grid with a `Daily | Weekly` tab UI on all viewports. Each tab shows its quest list at full width. Eliminates the alignment problem entirely, improves mobile legibility, and is the standard pattern for this type of content. Side-by-side columns in a narrow single-pane app feel cramped; tabs feel intentional.
+- **Option B — CSS Subgrid:** Keep the two-column layout but use `display: subgrid` on the inner cards so card rows snap to a shared row track. Requires the parent grid to define explicit row tracks, which is complex given variable card heights.
+- **Option C — equal-height stretch:** Add `items-stretch` to the grid and `h-full` to each `QuestSection`. Cards within each column won't align to each other, but the two column boxes will at least be the same height. Doesn't fix individual card misalignment.
+
+**Files to change:** `src/app/(game)/quests/page.tsx:358–406`.
+
+---
+
+### B8 — Spell Overlay: monster counter-attack dice not shown
+
+**Severity:** Medium — creates inconsistency with regular and ability attack flows.
+
+**Symptoms:** When casting a spell, the `SpellRollOverlay` shows the spell's dice roll and announces Hit or Fizzle. The player then taps "Continue" and monster damage is silently applied — there are no dice shown for the monster's attack, no roll animation, no moment of tension. In contrast, a regular Attack shows the monster's `monsterRoll` (d10) visibly in the `ActionRollOverlay`. The spell flow feels abrupt and opaque.
+
+**Root cause (confirmed):** `src/lib/gameLogic/spells.ts:146` — `resolveSpell` calls `rollD10()` internally for the monster counter-attack, and the result is buried in `SpellResolution.monsterDamage`. `SpellRollOverlay` (`src/components/combat/overlays/SpellRollOverlay.tsx`) receives `dice` (spell dice only) and `requirementMet` but never receives the monster's roll value. The monster dice are not passed through the overlay pipeline.
+
+**Fix:** Thread the monster roll value through `SpellResolution` → `ActionResolution` → `SpellRollOverlay` props, then render a compact "Monster strikes back" panel below the spell result — mirroring how `ActionRollOverlay` renders the enemy counter-attack section. If the spell stuns the monster, show "Monster stunned — no counter" instead.
+
+**Files to change:** `src/lib/gameLogic/spells.ts` (expose `monsterRoll` in `SpellResolution`), `src/lib/gameLogic/combatActions.ts` (thread it into `ActionResolution`), `src/components/combat/overlays/SpellRollOverlay.tsx` (add monster attack panel), both combat pages that render the overlay.
+
+---
+
+### B9 — Combat: nav menu allows escape from active fight
+
+**Severity:** High — players can abandon a fight mid-round with no consequence by tapping any nav item, and dungeon runs are left in an orphaned `active` state in Firestore.
+
+**Symptoms:** During an active arena or dungeon combat encounter, all sidebar links (desktop) and all bottom nav items (mobile) remain fully clickable. Navigating away mid-fight causes:
+
+- Arena: fight state is discarded silently (no XP loss, but also no death penalty — fight just disappears).
+- Dungeon: `dungeonStore.activeRun` persists with `status: 'active'` in Firestore. On return the run resumes, but any in-round state (buffs, queued actions, rolling overlays) is gone and the player may find themselves mid-round with an inconsistent UI.
+
+**Root cause (confirmed):** `src/app/(game)/layout.tsx:196–219` (sidebar) and `layout.tsx:235–259` (mobile bottom nav) render plain Next.js `<Link>` components with no combat-awareness. No `beforeunload` handler, no route guard, no combat-active signal exists anywhere in the layout or the combat pages.
+
+**Fix — two-part:**
+
+**Part 1 — nav lock during combat:**
+
+- Add a `combatActive` flag to a small Zustand slice (or extend `dungeonStore`). Arena combat page sets `combatActive = true` on mount, `false` on unmount or after a final outcome (win/lose/flee). Dungeon run page uses `activeRun !== null` as its source of truth (already available in `dungeonStore`).
+- In the layout, read `combatActive`. When true, replace each nav `<Link>` with a `<button>` that fires a toast: _"You're in combat — win, lose, or flee first."_ Keep the active route link functional (so the player can still interact with the current combat page).
+- The sidebar collapse toggle and the sign-out button are fine to leave functional.
+
+**Part 2 — tab/window close guard:**
+
+- In both combat pages, add a `beforeunload` event listener when a fight is active. This triggers the browser's native "Leave page?" dialog if the player closes the tab or navigates via the URL bar, catching the case the nav lock doesn't cover.
+
+```ts
+useEffect(() => {
+  if (!fightInProgress) return;
+  const handler = (e: BeforeUnloadEvent) => {
+    e.preventDefault();
+  };
+  window.addEventListener('beforeunload', handler);
+  return () => window.removeEventListener('beforeunload', handler);
+}, [fightInProgress]);
+```
+
+**Files to change:** `src/app/(game)/layout.tsx` (read combat flag, conditional nav rendering), `src/store/` (new `combatActive` flag — either a new `combatStore.ts` or extend `dungeonStore.ts`), `src/app/(game)/combat/page.tsx` (set flag on mount/unmount + `beforeunload`), `src/app/(game)/combat/dungeons/run/page.tsx` (set flag + `beforeunload`).
+
+---
+
 ## Enhancements
 
 ### E1 — Dungeon Stat Check: add RPG narrative flavor before options
@@ -257,17 +327,165 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 
 ---
 
-## Design Questions (no code change yet — needs decision)
+### E7 — Spell Casting: visual impact animation and school-based sound
 
-| #   | Question                                                                                     | Context                                          |
-| --- | -------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| DQ1 | Should equipping gear only raise max HP (not current HP)?                                    | See B5. Recommendation: yes — Option B.          |
-| DQ2 | Should stamina follow the same rule as HP (equip only changes max, not current)?             | See B5/B6. Recommendation: yes, for consistency. |
-| DQ3 | Spell charge replenishment trigger — after each combat, at rest sites only, or daily?        | See E5.                                          |
-| DQ4 | Spell charges per rarity or flat 3?                                                          | See E5.                                          |
-| DQ5 | When all spells in loadout are depleted mid-dungeon, can the player re-equip from inventory? | See E5.                                          |
+**Priority:** High — casting a spell should feel meaningfully different from a normal attack; currently it resolves identically to a basic hit with only text changing.
+
+**Confirmed desired additions (player):** (1) a visual impact effect when the spell lands, and (2) school-themed sound effects per spell type.
+
+**Visual impact spec:**
+
+- On a successful cast, trigger a brief school-tinted flash overlay on the monster portrait (or the full combat arena): fire/lightning/damage spells → red-orange burst; ice/stun → blue-white pulse; heal → green ripple; lifesteal → purple drain shimmer.
+- A subtle screen shake (2–3 px, ~150 ms) on high-damage or Legendary rarity casts would add weight.
+- The overlay can be CSS-only — a `div` with a tinted background that fades out via `opacity: 0` transition in ~300 ms. No canvas or third-party animation library needed.
+- On a fizzle, play a quiet "poof" dissipation effect (grey fade-out).
+
+**Sound spec — school mapping:**
+
+| Spell effect                        | Sound                                                      |
+| ----------------------------------- | ---------------------------------------------------------- |
+| Damage (fire / lightning / generic) | Sharp crack / crackle — distinct from the diceSettle sound |
+| Damage + bypass DEF                 | Heavy impact thud                                          |
+| Heal                                | Soft ascending chime                                       |
+| Stun                                | Metallic clang / disruption chord                          |
+| Lifesteal                           | Low "drain" pulse                                          |
+| Defense boost                       | Brief shield-ring                                          |
+| Fizzle                              | Soft poof / dissipation                                    |
+
+**Data model:** No schema change needed. The existing `spellEffectKey()` function in `src/lib/entityArt.ts:10` already maps spell effects to visual categories — reuse it as the routing key for both flash color and sound ID.
+
+**Files to change:** `src/hooks/useSound.ts` (add spell-sound IDs), `public/sounds/` (add audio files), `src/components/combat/overlays/SpellRollOverlay.tsx` (trigger flash + sound on result reveal), `src/components/combat/CombatArena.tsx` or similar (flash overlay layer).
 
 ---
+
+### E8 — Combat Abilities: expose damage formula breakdown in UI
+
+**Priority:** Medium — players can't evaluate ability choices without knowing what the multiplier acts on.
+
+**The actual formula (for reference and in-game display):**
+
+Regular attack:
+
+```
+playerDamage = max(1, d10_roll + statBonus + gearBonus − monster.defense)
+  where statBonus = floor(STR × 1.0) for warrior/ranger
+                  = floor(WIS × 1.0) for wizard
+        gearBonus = equipped weapon attack bonus
+```
+
+Ability roll (Roll Ability — 6d6):
+
+```
+baseHit      = round(avg of 6d6) + statBonus + gearBonus
+rawDamage    = round(baseHit × abilityMultiplier × extraMultiplier)
+playerDamage = max(1, rawDamage − monster.defense)    ← unless bypassMonsterDef
+  where abilityMultiplier = e.g. 1.5× for Power Strike, 2.5× for Time Warp
+        extraMultiplier   = 1.0 normally; 2.0 for Assassin Lethal Opener (first ability)
+```
+
+So "1.5× damage" means the multiplier is applied to **the sum of your dice average + stat bonus + weapon bonus**, then monster DEF is subtracted. A warrior with STR 15, a +6 weapon, and an avg roll of 3.5 has a `baseHit` of 24.5 → `round(24.5 × 1.5)` = 37 raw → 37 − monster.defense = final damage.
+
+**Desired UX — two options:**
+
+- **Option A (tooltip on ability card):** A small `ℹ` icon on each ability card that expands: _"Power Strike: avg 6d6 (3.5) + STR 15 + weapon 6 = 24.5 base → ×1.5 = 36 raw → −8 DEF = 28 damage"_.
+- **Option B (overlay breakdown, recommended):** After the ability dice settle in the `ActionRollOverlay`, show the formula steps below the damage number. Shown at the moment of maximum player interest — no persistent UI changes needed to ability cards.
+
+**Files to change:** `src/lib/gameLogic/abilities.ts` (expose `baseHit`, `rawDamage`, and intermediate values in `AbilityResolution`), `src/components/combat/overlays/ActionRollOverlay.tsx` (render breakdown panel).
+
+---
+
+### E9 — Monster Abilities: passives for all, active specials for level 5+
+
+**Priority:** Medium-high — this is a significant new system and one of the highest-impact engagement improvements. Every fight currently plays identically regardless of monster type.
+
+**Confirmed scope (player):** All monsters get 1 passive trait. Monsters level 5 and above (and all dungeon bosses) also get one active ability.
+
+**Passive traits (1 per monster, static field on `MonsterDef`):**
+
+| Passive           | Effect                                                                     | Example monsters         |
+| ----------------- | -------------------------------------------------------------------------- | ------------------------ |
+| Regeneration      | +3 HP per round before player damage resolves                              | Troll, Werewolf          |
+| Tough Hide        | Player can never ignore monster DEF (counters bypassMonsterDef abilities)  | Stone Golem, Armored Orc |
+| Dodge             | 20% chance to negate incoming player damage entirely                       | Goblin Rogue, Shadow     |
+| Lifesteal         | Monster heals 25% of damage it deals each round                            | Vampire, Blood Witch     |
+| Arcane Resistance | Spell damage reduced by 50%                                                | Magic Golem, Lich        |
+| Stun Immunity     | Cannot be stunned by any player ability or spell                           | Iron Colossus            |
+| Enrage Threshold  | On reaching 30% HP, monster ATK increases by 50% for the rest of the fight | Berserker, Cave Bear     |
+
+**Active abilities (level 5+ monsters; trigger once per fight when HP drops below 40%, or 25% chance per round — see DQ below):**
+
+| Active      | Effect                                                                          |
+| ----------- | ------------------------------------------------------------------------------- |
+| Curse       | Halves player DEF for 2 rounds                                                  |
+| Frenzy      | Monster attacks twice this round                                                |
+| Shield Wall | Monster gains +10 DEF for 1 round                                               |
+| Venom Bite  | Applies DoT: 5 damage/round for 3 rounds (extends existing dungeon venom logic) |
+| Drain       | Steals 10 stamina from player                                                   |
+| Execute     | If player HP < 30%, monster deals 3× damage this hit                            |
+| Berserk     | Both sides deal 2× damage this round                                            |
+
+**Implementation notes:**
+
+- Dungeon bosses already have hardcoded custom mechanics (venom, Necro Shield, Dragon ignore-DEF). Those remain as-is; this system targets the arena monster catalog and non-boss dungeon rooms.
+- Passives: static field `passive?: MonsterPassive` on `MonsterDef`. Applied in round resolution inside `combatActions.ts`.
+- Active abilities: field `activeAbility?: MonsterActive` on `MonsterDef`. Trigger checked at the start of each round in `useCombatEncounter.ts`. Fires at most once per fight (`activeUsed` flag in `FightState`).
+- Active ability firing should append a special entry to the battle log and optionally trigger a monster portrait flash (same tech as E7 monster portrait layer).
+
+**Design questions to resolve before implementing:**
+
+1. Should passive traits be shown on the monster portrait card in combat (player can see and strategize), or hidden until discovery?
+2. Should active abilities trigger on a HP threshold (learnable, tactical) or random % chance per round (tense, unpredictable)? Recommendation: HP threshold is better for first implementation — easier to test and reason about.
+3. Which existing arena monsters (levels 1–9 in `src/lib/gameLogic/monsters.ts`) get which passive?
+
+**Files to change:** `src/types/index.ts` (add `MonsterPassive`, `MonsterActive` types), `src/lib/gameLogic/monsters.ts` (add passive/active fields to catalog), `src/lib/gameLogic/combatActions.ts` (apply passive modifiers), `src/hooks/useCombatEncounter.ts` (active trigger check + `activeUsed` flag), `src/components/combat/CombatArena.tsx` (render passive trait badge on monster card).
+
+---
+
+### E10 — Mobile & Tablet Responsiveness Sweep
+
+**Priority:** High — the shell layout (sidebar, bottom nav, `pb-20 md:pb-6` content padding) is solid, but individual pages have not been audited for mobile and tablet breakpoints.
+
+**Known solid foundations:**
+
+- `src/app/(game)/layout.tsx` — collapsible sidebar on `md+`, bottom nav on `<md`, correct main-content bottom-padding for nav clearance.
+- Tailwind responsive prefix system (`sm:`, `md:`, `lg:`) is in use throughout.
+
+**Audit categories and known or likely issues:**
+
+| Category              | Issue                                                                                                                                                                                                                 | Affected pages                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Horizontal overflow   | Cards or stat grids that are too wide for 375px (iPhone SE) viewports — no `overflow-hidden` safety net                                                                                                               | Shop, Inventory, Character sheet |
+| Touch targets         | Buttons < 44×44 px — Tailwind `py-1 px-2` buttons on spell cards and reroll/claim quest buttons may be too small                                                                                                      | Quests, Inventory, Combat        |
+| Chart overflow        | Recharts charts on the Stats page use fixed or percentage widths — may not respond correctly to narrow containers without a `ResponsiveContainer` wrapper with explicit height                                        | Stats                            |
+| Combat overlays       | `SpellRollOverlay` and `ActionRollOverlay` use `max-w-xs` — fine on phone; verify on tablet landscape where centered modals can feel too narrow                                                                       | Combat (arena + dungeon)         |
+| Dungeon run page      | Multi-panel layout (HP bars, action bar, log) — needs visual stack verification at 375 px and 768 px (iPad portrait)                                                                                                  | Dungeon run                      |
+| Text truncation       | Long item names, monster names, quest titles — verify `truncate` or `line-clamp` is applied at narrow widths so text doesn't overflow cards                                                                           | Shop, Inventory, Quests          |
+| Header stats row      | The `hidden sm:flex` HP/DEF stats strip in the top bar disappears on mobile — confirm the information is accessible elsewhere (character page) or add it to a mobile-friendly location                                | Dashboard / Layout               |
+| Bottom nav icon count | 8 nav items in the mobile bottom nav at `justify-around` — on a 375px screen each item is ~47px wide with a 10px label, tight but workable. Verify on 320px (iPhone SE 1st gen) — may need icon-only mode below `sm:` | Layout                           |
+| Landscape orientation | Combat and dungeon pages use `min-h-screen` full-height layouts — on mobile landscape (667 × 375 px) the bottom nav + content may not scroll correctly                                                                | Combat, Dungeon run              |
+| Tablet (768 px)       | iPad portrait sits exactly at the `md:` breakpoint — sidebar appears, bottom nav disappears. Verify sidebar doesn't feel too wide or content too narrow at this exact breakpoint                                      | All game pages                   |
+
+**Recommended approach:** Do a single dedicated mobile audit pass using browser DevTools responsive mode at three sizes: 375 px (iPhone base), 414 px (iPhone Plus), 768 px (iPad portrait). Capture screenshots at each breakpoint for all 9 game routes. Fix overflow, touch target, and truncation issues in one PR rather than page-by-page.
+
+**No schema changes.** All fixes are CSS/Tailwind class adjustments and responsive variant additions.
+
+**Files most likely to need changes:** `src/app/(game)/layout.tsx`, `src/app/(game)/stats/page.tsx` (chart ResponsiveContainer), `src/app/(game)/shop/page.tsx`, `src/app/(game)/inventory/page.tsx`, `src/app/(game)/combat/dungeons/run/page.tsx`, `src/components/combat/overlays/*.tsx`.
+
+---
+
+## Design Questions (no code change yet — needs decision)
+
+| #   | Question                                                                                     | Context                                                               |
+| --- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| DQ1 | Should equipping gear only raise max HP (not current HP)?                                    | See B5. Recommendation: yes — Option B.                               |
+| DQ2 | Should stamina follow the same rule as HP (equip only changes max, not current)?             | See B5/B6. Recommendation: yes, for consistency.                      |
+| DQ3 | Spell charge replenishment trigger — after each combat, at rest sites only, or daily?        | See E5.                                                               |
+| DQ4 | Spell charges per rarity or flat 3?                                                          | See E5.                                                               |
+| DQ5 | When all spells in loadout are depleted mid-dungeon, can the player re-equip from inventory? | See E5.                                                               |
+| DQ6 | Quest page: tab switcher vs. two-column grid — which layout?                                 | See B7. Recommendation: tab switcher (simpler, no alignment problem). |
+| DQ7 | Should monster passive traits be visible to the player before/during combat?                 | See E9. Recommendation: visible — rewards learning and strategy.      |
+| DQ8 | Monster active abilities: HP-threshold trigger or % chance per round?                        | See E9. Recommendation: HP threshold for first ship.                  |
+| DQ9 | Which formula display option for ability damage — tooltip on card or overlay breakdown?      | See E8. Recommendation: overlay breakdown (Option B).                 |
 
 ---
 
@@ -283,6 +501,10 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 
 - **Shop gold desync (B4) is a signal** — The stale-gold display issue shows the character store can drift from Firestore. A post-write force-refresh (`fetchCharacter(uid, true)`) on any gold-mutating operation (buy, reroll quest, dungeon entry fee) would eliminate this class of desync entirely, not just for shop purchases.
 
+- **Monster abilities + spell effects create a compounding feedback loop** — E9 monster actives and E7 spell impact visuals would naturally combine: when a monster fires its active ability, give it the same flash treatment as player spells. This makes monster specials feel dramatic and teaches the player that "something unusual just happened" — critical for HUD-less mobile play where a battle log entry alone is easily missed.
+
+- **Formula transparency (E8) reduces support burden** — Every time a player doesn't understand why a powerful ability did less damage than expected (monster DEF, failed DEF roll, already near-dead monster), they think it's a bug. The overlay breakdown converts that confusion into a learning moment. Worth shipping before the monster ability system (E9) makes damage calculation even more complex.
+
 ---
 
 ## Potential Risks & Gaps
@@ -297,19 +519,34 @@ newCurrentHp = Math.max(1, Math.min((character.currentHp ?? oldMaxHp) + hpDelta,
 
 - **B5 gear-equip behavior change** — Changing `computeGearDelta` so equipping gear no longer heals current HP is a silent behavior change that may surprise players who've relied on the "equip to heal" pattern (intentionally or not). A one-time in-game tooltip or patch note on the Inventory page ("Equipping gear no longer restores HP") would soften the change.
 
+- **E9 monster abilities + existing dungeon boss mechanics collision** — Dungeon bosses (Spider Broodmother, Lich King, Dragon) already have bespoke hardcoded traits. If E9 also adds passives to the `MonsterDef` schema, the boss entries need to be explicitly excluded from the new passive system or their behavior will double-stack (e.g., the Lich already has a Necro Shield mechanic; adding an Arcane Resistance passive on top would make it nearly invulnerable to spells). Keep boss logic in the dungeon-specific `CombatModifiers` seam and out of the shared `MonsterDef` passive field.
+
+- **B8 spell overlay latency** — Threading the monster roll through `SpellResolution` → `ActionResolution` → the overlay requires a small refactor across 4 files. Low risk but easy to miss the dungeon run page's separate `SpellRollOverlay` wiring at `run/page.tsx:473` — both combat pages must be updated, not just `combat/page.tsx`.
+
+- **B9 combat-active flag placement** — The nav lock requires a shared signal between combat pages and the layout. A Zustand store is the right place, but if `combatActive` is stored in `dungeonStore` only, arena combat won't be covered. A dedicated tiny `combatStore` (a single boolean + setters) is cleaner than polluting an existing store, and is the only new store the codebase would need. Make sure the flag is cleared on sign-out (add to the sign-out flush in `layout.tsx:handleSignOut`) or a crash during combat would permanently lock the nav.
+
+- **E10 mobile audit scope** — "Mobile-friendly sweep" is easy to underestimate. The 8-item bottom nav is borderline at 320 px; if any label wraps to two lines the nav height changes and the `pb-20` offset in main content becomes wrong. Test at 320 px explicitly, not just 375 px, before closing this item.
+
 ---
 
 ## Implementation Order (suggested)
 
-| #   | Item                                                                                                   | Effort | Impact                                 |
-| --- | ------------------------------------------------------------------------------------------------------ | ------ | -------------------------------------- |
-| 1   | B1 — Quest reroll `deleteField()` fix                                                                  | XS     | Unblocks quest variety for all players |
-| 2   | B2/B3 — Investigate & fix logActivity + dungeon claim (likely same root: functions not deployed / IAM) | M      | Unblocks core game loop                |
-| 3   | B4 — Shop gold display: force-refresh after purchase                                                   | S      | Fixes confusing gold display           |
-| 4   | B5/B6 — Gear equip: only change max HP/Stamina, clamp current                                          | S      | Design consistency + player trust      |
-| 5   | E1 — Dungeon stat check flavor text                                                                    | S      | Immersion / RPG feel                   |
-| 6   | E2 — Emoji → SVG art icons                                                                             | M      | Visual consistency                     |
-| 7   | E3 — Spell light-mode + shimmer fix                                                                    | S      | Polish                                 |
-| 8   | E4 — Shop spell rotation                                                                               | S      | UX parity                              |
-| 9   | E6 — Inventory consumable use (out of combat)                                                          | M      | QoL                                    |
-| 10  | E5 — Spell charge mechanic (resolve DQ3–DQ5 first)                                                     | L      | Major game mechanic change             |
+| #   | Item                                                                                                   | Effort | Impact                                             |
+| --- | ------------------------------------------------------------------------------------------------------ | ------ | -------------------------------------------------- |
+| 1   | B1 — Quest reroll `deleteField()` fix                                                                  | XS     | Unblocks quest variety for all players             |
+| 2   | B2/B3 — Investigate & fix logActivity + dungeon claim (likely same root: functions not deployed / IAM) | M      | Unblocks core game loop                            |
+| 3   | B9 — Combat nav lock + `beforeunload` guard                                                            | S      | Prevents fight abandonment + orphaned dungeon runs |
+| 4   | B4 — Shop gold display: force-refresh after purchase                                                   | S      | Fixes confusing gold display                       |
+| 5   | B5/B6 — Gear equip: only change max HP/Stamina, clamp current                                          | S      | Design consistency + player trust                  |
+| 6   | B7 — Quest layout: tab switcher (resolve DQ6 first)                                                    | S      | Visual polish / UX                                 |
+| 7   | B8 — Spell overlay: add monster counter-attack dice panel                                              | S      | Combat flow consistency                            |
+| 8   | E10 — Mobile & tablet responsiveness sweep                                                             | M      | Covers entire player base on phone/tablet          |
+| 9   | E1 — Dungeon stat check flavor text                                                                    | S      | Immersion / RPG feel                               |
+| 10  | E3 — Spell light-mode + shimmer fix                                                                    | S      | Polish                                             |
+| 11  | E7 — Spell visual impact + school-based sounds                                                         | M      | Game feel / juice                                  |
+| 12  | E8 — Ability damage formula breakdown in overlay (resolve DQ9 first)                                   | S      | Transparency / player trust                        |
+| 13  | E2 — Emoji → SVG art icons                                                                             | M      | Visual consistency                                 |
+| 14  | E4 — Shop spell rotation                                                                               | S      | UX parity                                          |
+| 15  | E6 — Inventory consumable use (out of combat)                                                          | M      | QoL                                                |
+| 16  | E9 — Monster abilities (resolve DQ7–DQ8 first; assign passives per monster)                            | L      | Major engagement / replayability gain              |
+| 17  | E5 — Spell charge mechanic (resolve DQ3–DQ5 first)                                                     | L      | Major game mechanic change                         |
