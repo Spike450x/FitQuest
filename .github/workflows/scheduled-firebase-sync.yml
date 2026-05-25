@@ -1,3 +1,4 @@
+---
 name: Scheduled Firebase Sync
 
 # Redeploys Cloud Functions and Firestore rules/indexes on a weekly cadence.
