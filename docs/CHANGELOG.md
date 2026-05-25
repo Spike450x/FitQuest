@@ -15,6 +15,24 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-25 — Spell school sounds + screen flash (E7)
+
+- Eight new synthesized spell school sounds: `spellDamage`, `spellFire`, `spellMagicDamage`, `spellHeal`, `spellStun`, `spellDefense`, `spellLifesteal`, `spellStamina` — all added to `sounds.ts` + `useSound.ts` `PLAY_FUNCS`.
+- `SpellRollOverlay` plays the matching school sound when the result phase begins (via `spellEffectKey()` → `SPELL_SOUND` map); fizzles play `'fail'`.
+- Full-screen colored flash overlay (18% opacity, 500ms CSS fade) uses school-themed colors: rose/orange/violet/emerald/amber/sky/purple.
+
+## 2026-05-25 — Weekly spell rotation + out-of-combat consumable Use (E4/E6)
+
+- **E4** — Shop spells now rotate weekly (5 featured, seeded by ISO week). New `shopRotation.ts` + `getWeeklySpells()`. Rotation notice shows both daily gear and weekly spell countdowns. Non-featured spells accessible via collapsible "Browse all spells" section.
+- **E6** — Inventory consumable cards now show a "Use" button that consumes the item out of combat. Button shows "In dungeon" when `activeRun !== null` (disabled). Uses separate `using` state so it doesn't block equip/unequip actions.
+
+## 2026-05-25 — Emoji → SVG icon components (E2)
+
+- New `src/components/art/stat-icons.tsx` (StrengthIcon/WisdomIcon/AgilityIcon/StaminaIcon/HealthIcon/DefenseIcon) and `src/components/art/action-icons.tsx` (quick-action + activity-type SVGs). All use stroke-based Lucide-style 24px viewport.
+- `StatBar` now accepts `React.ReactNode` for `icon` prop. `CharacterCard` and dashboard `STAT_CONFIG` use SVG stat icons.
+- Dashboard `QUICK_ACTIONS` use SVG icons; `ActivityFeedItem` calls `getActivityIconSvg()`. Character page "How Stats Work" section adds inline SVG icons beside each stat.
+- `activityIcons.ts` gains `getActivityIconSvg()` using `createElement` (no JSX in .ts file) — existing string exports unchanged.
+
 ## 2026-05-25 — Dungeon stat-check flavor, spell shimmer light-mode, ability formula (E1/E3/E8)
 
 - **E1** — Added `STAT_CHECK_SCENARIOS` (3–4 per tier) + `resolveStatCheckFlavor` to `dungeons.ts`. Dungeon run page renders 2-line flavor above stat-check options.

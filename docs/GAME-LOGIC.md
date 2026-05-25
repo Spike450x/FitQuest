@@ -206,11 +206,25 @@ The Ancient Dragon's loot table is the primary source of legendary loot from reg
 | ---------------------------- | ------------------------------------------------------------------------------------ |
 | `getDailyPick(arr, count)`   | Seeded shuffle by today's local date. Same `arr` → same picks for everyone, all day. |
 | `getWeeklyPick(arr, count)`  | Seeded shuffle by ISO week (Mon–Sun). Same picks for everyone, all week.             |
+| `deriveWeekKey(dateKey)`     | Converts `'YYYY-MM-DD'` → `'YYYY-WW'` ISO week key without reading the clock.        |
 | `dailyExpiresAt()`           | Unix ms for local midnight tonight (start of tomorrow).                              |
 | `weeklyExpiresAt()`          | Unix ms for end of this Sunday `23:59:59.999` local time.                            |
 | `formatCountdown(expiresAt)` | Human-readable "Xh Ym" / "Nd" countdown for quest UI.                                |
 
 Internal helpers (`getDaySeed`, `getWeekSeed`, `seededShuffle` — Numerical Recipes LCG) are not exported.
+
+---
+
+## `shopRotation.ts` — weekly spell featured rotation
+
+Thin wrapper around `getWeeklyPick` with the canonical spell-count constant.
+
+| Export                              | Purpose                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `WEEKLY_SPELL_COUNT`                | `5` — number of featured spells shown in the shop each week.                                     |
+| `getWeeklySpells(spells, weekKey?)` | Returns the 5 weekly featured spells seeded by ISO week. Pass `weekKey` for deterministic tests. |
+
+Tested in [`__tests__/shopRotation.test.ts`](../src/lib/gameLogic/__tests__/shopRotation.test.ts).
 
 ---
 
