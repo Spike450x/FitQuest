@@ -1,17 +1,16 @@
 #!/usr/bin/env node
-// Production-only vulnerability check.
+// Production dependency vulnerability check.
 //
-// Fails with exit code 1 if any HIGH or CRITICAL vulnerability affects a
-// production dependency (not devDependencies).
+// Fails with exit code 1 if any MODERATE, HIGH, or CRITICAL vulnerability
+// affects a production dependency (not devDependencies).
 //
-// Moderate vulnerabilities in devDependencies are logged as warnings and do
-// not block the build. The current known case is uuid inside the firebase-tools
-// transitive chain — a devDep deployment tool with no runtime exposure.
+// Moderate-or-above vulnerabilities in devDependencies are logged as warnings
+// and do not block the build.
 // See docs/SECURITY-SETUP.md § Known devDependency vulnerabilities.
 
 import { execSync } from 'child_process';
 
-const FAIL_SEVERITIES = new Set(['critical', 'high']);
+const FAIL_SEVERITIES = new Set(['critical', 'high', 'moderate']);
 
 let audit;
 try {
@@ -47,7 +46,9 @@ if (devWarnings.length > 0) {
 }
 
 if (prodBlockers.length > 0) {
-  console.error(`\nFAIL: ${prodBlockers.length} high/critical production vulnerability(ies):\n`);
+  console.error(
+    `\nFAIL: ${prodBlockers.length} moderate/high/critical production vulnerability(ies):\n`,
+  );
   prodBlockers.forEach(([name, v]) => {
     const via = Array.isArray(v.via)
       ? v.via.map((x) => (typeof x === 'string' ? x : x.title)).join(', ')
@@ -58,4 +59,4 @@ if (prodBlockers.length > 0) {
   process.exit(1);
 }
 
-console.log('\nOK: no high/critical production vulnerabilities found.\n');
+console.log('\nOK: no moderate/high/critical production vulnerabilities found.\n');
