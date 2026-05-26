@@ -4,20 +4,21 @@
 
 import type { ActivityType } from './activityCaps';
 
-export type MasteryActivityType = 'run' | 'workout' | 'steps';
+export type MasteryActivityType = 'run' | 'workout' | 'steps' | 'meditation';
 
-export const MASTERY_ACTIVITIES = new Set<ActivityType>(['run', 'workout', 'steps']);
+export const MASTERY_ACTIVITIES = new Set<ActivityType>(['run', 'workout', 'steps', 'meditation']);
 
 export const MASTERY_CONFIG: Record<
   MasteryActivityType,
-  { linkedStat: 'agility' | 'strength' | 'wisdom'; linkedStatLabel: string }
+  { linkedStat: 'agility' | 'strength' | 'wisdom' | 'spirit'; linkedStatLabel: string }
 > = {
   run: { linkedStat: 'agility', linkedStatLabel: 'Agility' },
   workout: { linkedStat: 'strength', linkedStatLabel: 'Strength' },
   steps: { linkedStat: 'wisdom', linkedStatLabel: 'Wisdom' },
+  meditation: { linkedStat: 'spirit', linkedStatLabel: 'Spirit' },
 };
 
-/** Flat cap for primary combat stats: Strength, Wisdom, Agility. */
+/** Flat cap for primary combat stats: Strength, Wisdom, Agility, Spirit. */
 const PRIMARY_STAT_CAP = 50;
 
 function maxStatForLevel(level: number): number {
@@ -32,7 +33,8 @@ function maxStatForLevel(level: number): number {
  * so the wider type is safe in practice.
  */
 export function statCap(stat: string, level: number): number {
-  if (stat === 'strength' || stat === 'wisdom' || stat === 'agility') return PRIMARY_STAT_CAP;
+  if (stat === 'strength' || stat === 'wisdom' || stat === 'agility' || stat === 'spirit')
+    return PRIMARY_STAT_CAP;
   return maxStatForLevel(level);
 }
 
@@ -52,6 +54,13 @@ export const RESTORE = {
   STAMINA_PER_SLEEP_HOUR: 5,
   /** Magic restored per glass of water. */
   MAGIC_PER_WATER_GLASS: 5,
+  /** Magic restored per minute of meditation. */
+  MAGIC_PER_MEDITATION_MINUTE: 0.2,
 } as const;
 
-export const RESTORE_ACTIVITIES = new Set<ActivityType>(['nutrition', 'sleep', 'water']);
+export const RESTORE_ACTIVITIES = new Set<ActivityType>([
+  'nutrition',
+  'sleep',
+  'water',
+  'meditation',
+]);

@@ -15,6 +15,17 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-26 — Spirit stat + Meditation activity (content-scaling PR1)
+
+- **New primary stat: Spirit** (cap 50, joins Strength/Wisdom/Agility). `Stats.spirit?: number` added to `src/types/index.ts`; class definitions extended with starting values (Warrior 3, Wizard 7, Rogue 3) and stat multipliers (0.9× / 1.2× / 1.1×). Spirit is backfilled to legacy character docs on next fetch via the existing agility-migration pattern in `characterStore.fetchCharacter`.
+- **Spell/ability crit math** — `spellCritChance(spirit)` and `spellCritDamage(spirit)` helpers in `src/lib/gameLogic/combat.ts` (+1% chance per point, cap 40%; +0.5% multiplier per point, cap +25%). Integrated into `resolveAbilityAction` and `resolveSpellAction` in `combatActions.ts` — fires only on a successful (non-fizzle / requirement-met) action that deals damage. New `spiritCrit` and `spiritCritMultiplier` flags on `RoundEntry`.
+- **New activity: Meditation** (7th activity type). Daily cap 60 min, single-session ceiling 120 min. **First activity in both `MASTERY_ACTIVITIES` and `RESTORE_ACTIVITIES`** — grants Spirit mastery (milestones at 5/15/25/… logs) AND restores Magic at 0.2 per minute (stacks with water). New `meditation` tab in `ActivityLogForm`, lotus-pose SVG in `action-icons.tsx`, 🧘 emoji in `ACTIVITY_ICONS`, `#a78bfa` color in stats-page chart legend.
+- **Cloud Function parity** — `functions/src/index.ts` `validTypes` includes `meditation`; `RESTORE_MAP` adds the `meditation → currentMagic` entry. `functions/src/gameLogic/constants.ts` adds `MAGIC_PER_MEDITATION_MINUTE`, extends `MasteryActivityType`/`MASTERY_CONFIG`/`MASTERY_ACTIVITIES`/`RESTORE_ACTIVITIES`/`statCap` for the spirit primary stat.
+- **Quest pool expansion** — 5 new daily meditation quests + 2 weekly + 1 daily combo (`daily-combo-meditation-workout`) + 1 weekly combo (`weekly-combo-meditation-steps`). DAILY_QUEST_POOL grows 28 → 34; WEEKLY_QUEST_POOL grows 14 → 17.
+- **Stat allocation UI** — `StatAllocModal` adds a Spirit option (violet ✨, "Increases spell/ability crit chance and damage") alongside the existing 4 stats. `allocateStatPoint` signature accepts `'spirit'`.
+- 24 new vitest specs (720 → 744): full coverage for `spellCritChance`/`spellCritDamage`/`rollSpellCrit` and end-to-end meditation surface (activity registration, daily caps, magic restore, Spirit mastery mapping).
+- First slice of the 5-PR content-scaling drop. Doubles the foundation (new stat + new activity) so PR2's monster expansion has Spirit-aware combat to land on.
+
 ## 2026-05-26 — Fix Discord notify action manifest load error
 
 - Removed a `${{ job.status }}` expression from inside the `status` input's description in `.github/actions/discord-notify/action.yml`. GitHub parses every `${{ ... }}` expression in an action manifest at load time (even inside string descriptions), and the `job` context isn't available there — caused the first scheduled-e2e run to fail with `Unrecognized named-value: 'job'`. Description rewritten to plain text.

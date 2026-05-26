@@ -17,7 +17,15 @@ export const CLASS_DEFINITIONS: Record<
     description:
       'Masters of physical combat. Heavy plate armor and a shield give them the highest natural defense. Best for tanking through long fights.',
     emoji: '⚔️',
-    startingStats: { strength: 8, stamina: 6, agility: 4, health: 7, wisdom: 3, defense: 6 },
+    startingStats: {
+      strength: 8,
+      stamina: 6,
+      agility: 4,
+      health: 7,
+      wisdom: 3,
+      defense: 6,
+      spirit: 3,
+    },
     statMultipliers: {
       strength: 1.5,
       stamina: 1.2,
@@ -25,6 +33,7 @@ export const CLASS_DEFINITIONS: Record<
       health: 1.0,
       wisdom: 0.8,
       defense: 1.5,
+      spirit: 0.9,
     },
   },
   wizard: {
@@ -34,7 +43,15 @@ export const CLASS_DEFINITIONS: Record<
     emoji: '🧙',
     // +2 health vs the original (6→8) — the lowest-defense class needed a
     // small HP cushion so early-game encounters aren't one-shot reset tickets.
-    startingStats: { strength: 3, stamina: 5, agility: 6, health: 8, wisdom: 8, defense: 1 },
+    startingStats: {
+      strength: 3,
+      stamina: 5,
+      agility: 6,
+      health: 8,
+      wisdom: 8,
+      defense: 1,
+      spirit: 7,
+    },
     statMultipliers: {
       strength: 0.8,
       stamina: 1.0,
@@ -42,6 +59,7 @@ export const CLASS_DEFINITIONS: Record<
       health: 1.2,
       wisdom: 1.5,
       defense: 0.7,
+      spirit: 1.2,
     },
   },
   rogue: {
@@ -49,7 +67,15 @@ export const CLASS_DEFINITIONS: Record<
     description:
       'Light leather armor and quick reflexes. Agility is their edge — harder to catch and easier to escape. High stamina fuels relentless special attacks.',
     emoji: '🗡️',
-    startingStats: { strength: 5, stamina: 8, agility: 8, health: 5, wisdom: 6, defense: 3 },
+    startingStats: {
+      strength: 5,
+      stamina: 8,
+      agility: 8,
+      health: 5,
+      wisdom: 6,
+      defense: 3,
+      spirit: 3,
+    },
     statMultipliers: {
       strength: 1.2,
       stamina: 1.5,
@@ -57,6 +83,7 @@ export const CLASS_DEFINITIONS: Record<
       health: 0.8,
       wisdom: 1.0,
       defense: 1.2,
+      spirit: 1.1,
     },
   },
 };
@@ -74,10 +101,16 @@ export const ACTIVITY_DEFINITIONS = {
   sleep: { label: 'Sleep', description: 'Hours of sleep (7–9 is optimal)', unit: 'hours' },
   water: { label: 'Water', description: 'Glasses of water (8oz each)', unit: 'glasses' },
   nutrition: { label: 'Nutrition', description: 'Healthy meals logged', unit: 'meals' },
+  meditation: {
+    label: 'Meditation',
+    description: 'Mindful breathing or focus sessions, tracked in minutes',
+    unit: 'minutes',
+  },
 } as const;
 
 // ─── Resource Restore (via activities) ───────────────────────────────────────
-// Sleep restores Stamina · Water restores Magic · Nutrition restores HP.
+// Sleep restores Stamina · Water restores Magic · Nutrition restores HP ·
+// Meditation also restores Magic (stacks with Water).
 // These are capped at the player's current maximum — logging when full does nothing.
 
 export const RESTORE = {
@@ -87,24 +120,33 @@ export const RESTORE = {
   STAMINA_PER_SLEEP_HOUR: 5,
   /** Magic restored per glass of water. 8 glasses = +40 magic. */
   MAGIC_PER_WATER_GLASS: 5,
+  /** Magic restored per minute of meditation. 30 min = +6 magic. */
+  MAGIC_PER_MEDITATION_MINUTE: 0.2,
 };
 
 // ─── Mastery System ───────────────────────────────────────────────────────────
-// Logging run/workout/steps builds mastery toward permanent +1 stat milestones.
-// Open-ended: milestones fire at log 5, then every 10 forever (5, 15, 25, …).
+// Logging run/workout/steps/meditation builds mastery toward permanent +1 stat
+// milestones. Open-ended: milestones fire at log 5, then every 10 forever
+// (5, 15, 25, …).
 
-export type MasteryActivityType = 'run' | 'workout' | 'steps';
+export type MasteryActivityType = 'run' | 'workout' | 'steps' | 'meditation';
 
-export const MASTERY_ACTIVITIES = new Set<ActivityType>(['run', 'workout', 'steps']);
-export const RESTORE_ACTIVITIES = new Set<ActivityType>(['nutrition', 'sleep', 'water']);
+export const MASTERY_ACTIVITIES = new Set<ActivityType>(['run', 'workout', 'steps', 'meditation']);
+export const RESTORE_ACTIVITIES = new Set<ActivityType>([
+  'nutrition',
+  'sleep',
+  'water',
+  'meditation',
+]);
 
 export const MASTERY_CONFIG: Record<
   MasteryActivityType,
-  { linkedStat: 'agility' | 'strength' | 'wisdom'; linkedStatLabel: string }
+  { linkedStat: 'agility' | 'strength' | 'wisdom' | 'spirit'; linkedStatLabel: string }
 > = {
   run: { linkedStat: 'agility', linkedStatLabel: 'Agility' },
   workout: { linkedStat: 'strength', linkedStatLabel: 'Strength' },
   steps: { linkedStat: 'wisdom', linkedStatLabel: 'Wisdom' },
+  meditation: { linkedStat: 'spirit', linkedStatLabel: 'Spirit' },
 };
 
 /** Returns true if this log count hits a mastery milestone (5, 15, 25, 35, …). */
@@ -163,7 +205,8 @@ export function maxStatForLevel(level: number): number {
 
 /** Returns the stat cap for a given stat key at the character's current level. */
 export function statCap(stat: keyof import('@/types').Stats, level: number): number {
-  if (stat === 'strength' || stat === 'wisdom' || stat === 'agility') return PRIMARY_STAT_CAP;
+  if (stat === 'strength' || stat === 'wisdom' || stat === 'agility' || stat === 'spirit')
+    return PRIMARY_STAT_CAP;
   return maxStatForLevel(level);
 }
 

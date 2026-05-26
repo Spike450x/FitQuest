@@ -12,8 +12,12 @@ export interface ResourceRestore {
 
 /**
  * Returns the resource type and raw restore amount for a restoration activity.
- * Nutrition → HP · Sleep → Stamina · Water → Magic.
- * Returns null for mastery activities (run / workout / steps) — they don't restore resources.
+ * Nutrition → HP · Sleep → Stamina · Water → Magic · Meditation → Magic.
+ * Returns null for pure-mastery activities (run / workout / steps).
+ *
+ * Meditation is both a mastery activity (builds Spirit) AND a restore activity
+ * (restores Magic). The two effects compose — calculateResourceRestore handles
+ * the restore half; mastery is awarded separately in the logActivity flow.
  */
 export function calculateResourceRestore(
   activityType: ActivityType,
@@ -29,6 +33,11 @@ export function calculateResourceRestore(
       };
     case 'water':
       return { resourceType: 'magic', amount: Math.floor(amount * RESTORE.MAGIC_PER_WATER_GLASS) };
+    case 'meditation':
+      return {
+        resourceType: 'magic',
+        amount: Math.floor(amount * RESTORE.MAGIC_PER_MEDITATION_MINUTE),
+      };
     default:
       return null;
   }
@@ -57,6 +66,10 @@ export function applyStatGains(
     defense: Math.min(
       (current.defense ?? 0) + (gains.defense ?? 0),
       statCap('defense', characterLevel),
+    ),
+    spirit: Math.min(
+      (current.spirit ?? 0) + (gains.spirit ?? 0),
+      statCap('spirit', characterLevel),
     ),
   };
 }

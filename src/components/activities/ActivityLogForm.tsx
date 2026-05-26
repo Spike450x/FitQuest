@@ -36,6 +36,7 @@ const TABS: { type: ActivityType; icon: string; label: string }[] = [
   { type: 'sleep', icon: '😴', label: 'Sleep' },
   { type: 'water', icon: '💧', label: 'Water' },
   { type: 'nutrition', icon: '🥗', label: 'Nutrition' },
+  { type: 'meditation', icon: '🧘', label: 'Meditate' },
 ];
 
 const INPUT_CONFIG: Record<
@@ -48,6 +49,7 @@ const INPUT_CONFIG: Record<
   sleep: { min: 0.5, max: 12, step: 0.5, placeholder: 'e.g. 7.5' },
   water: { min: 1, max: 20, step: 1, placeholder: 'e.g. 8' },
   nutrition: { min: 1, max: 10, step: 1, placeholder: 'e.g. 3' },
+  meditation: { min: 1, max: 120, step: 1, placeholder: 'e.g. 20' },
 };
 
 const RESOURCE_LABEL: Record<
@@ -194,8 +196,19 @@ export function ActivityLogForm() {
       } = fnResult;
       const capReached = !rewardEligible;
 
-      // ── Mastery activities (run / workout / steps) ──────────────────────────
-      if (MASTERY_ACTIVITIES.has(activeTab)) {
+      // Meditation is in BOTH sets — it grants Spirit mastery AND restores Magic.
+      // Apply restore first so the magic bar reflects the new value, then prefer
+      // the mastery result card (mastery is the more meaningful long-term reward).
+      const isMastery = MASTERY_ACTIVITIES.has(activeTab);
+      const isRestore = RESTORE_ACTIVITIES.has(activeTab);
+
+      // ── Restore branch (nutrition / sleep / water / meditation) ─────────────
+      if (isRestore && fnResult.restored && fnResult.restored.amount > 0) {
+        applyRestoreLocal(fnResult.restored.resourceType, fnResult.restored.newValue);
+      }
+
+      // ── Mastery branch (run / workout / steps / meditation) ─────────────────
+      if (isMastery) {
         const type = activeTab as MasteryActivityType;
         const config = MASTERY_CONFIG[type];
 
@@ -218,19 +231,11 @@ export function ActivityLogForm() {
           nextMilestone: nextMasteryMilestone(newCount),
           isNewRecord,
         });
-
-        // ── Restoration activities (nutrition / sleep / water) ──────────────────
-      } else if (RESTORE_ACTIVITIES.has(activeTab)) {
+      } else if (isRestore) {
         const type = activeTab as 'nutrition' | 'sleep' | 'water';
-        // The function computed the capped restore amount server-side and already
-        // wrote the new value to Firestore. We just mirror it to local state.
         const restored = fnResult.restored;
         const actualRestored = restored?.amount ?? 0;
         const alreadyFull = restored ? restored.amount === 0 : false;
-
-        if (restored && restored.amount > 0) {
-          applyRestoreLocal(restored.resourceType, restored.newValue);
-        }
 
         setResult({
           kind: 'restore',

@@ -36,13 +36,13 @@ describe('scaleQuestRewards', () => {
 describe('Quest pools', () => {
   it('daily pool covers all activity types with multiple variants', () => {
     const types = new Set(DAILY_QUEST_POOL.map((q) => q.requirement.activityType));
-    expect(types.size).toBe(6);
+    expect(types.size).toBe(7);
     expect(DAILY_QUEST_POOL.length).toBeGreaterThanOrEqual(24);
   });
 
   it('weekly pool covers all activity types with multiple variants', () => {
     const types = new Set(WEEKLY_QUEST_POOL.map((q) => q.requirement.activityType));
-    expect(types.size).toBe(6);
+    expect(types.size).toBe(7);
     expect(WEEKLY_QUEST_POOL.length).toBeGreaterThanOrEqual(10);
   });
 

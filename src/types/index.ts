@@ -27,6 +27,14 @@ export interface Stats {
   health: number;
   wisdom: number;
   defense: number;
+  /**
+   * Primary stat (cap 50) — drives spell/ability crit chance and crit damage.
+   * Built via Meditation mastery (parallel to Steps→Wisdom). Optional on the
+   * interface so legacy character docs still typecheck; readers must use
+   * `(stats.spirit ?? 0)`. Backfilled by characterStore.fetchCharacter once
+   * per legacy doc, mirroring the agility migration.
+   */
+  spirit?: number;
 }
 
 export interface EquippedGear {
@@ -52,7 +60,7 @@ export interface Character {
   pendingStatPoints?: number; // unspent level-up stat points; 0 = none pending
   subclass?: CharacterSubclass; // chosen at level 10; undefined = not yet chosen
   /** Log counts for mastery activities — incremented on each log, milestones grant +1 stat. */
-  masteryCounts?: Partial<Record<'run' | 'workout' | 'steps', number>>;
+  masteryCounts?: Partial<Record<'run' | 'workout' | 'steps' | 'meditation', number>>;
   /**
    * Per-monster legendary dry streak — kills since the last legendary drop from
    * that monster. Drives the pity system in rollLoot(): once it climbs past
@@ -86,7 +94,14 @@ export interface Character {
 
 // ─── Activity ────────────────────────────────────────────────────────────────
 
-export type ActivityType = 'workout' | 'run' | 'steps' | 'sleep' | 'water' | 'nutrition';
+export type ActivityType =
+  | 'workout'
+  | 'run'
+  | 'steps'
+  | 'sleep'
+  | 'water'
+  | 'nutrition'
+  | 'meditation';
 
 export interface ActivityLog {
   id: string;

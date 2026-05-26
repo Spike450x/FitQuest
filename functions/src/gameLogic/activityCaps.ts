@@ -1,7 +1,14 @@
 // Copied from src/lib/gameLogic/activityCaps.ts
 // Keep in sync when caps change. No @/ path aliases — plain Node imports only.
 
-export type ActivityType = 'workout' | 'run' | 'steps' | 'sleep' | 'water' | 'nutrition';
+export type ActivityType =
+  | 'workout'
+  | 'run'
+  | 'steps'
+  | 'sleep'
+  | 'water'
+  | 'nutrition'
+  | 'meditation';
 
 /**
  * Daily soft caps on activity *amount* eligible for XP, stat gains, mastery
@@ -18,6 +25,7 @@ export const DAILY_ACTIVITY_CAPS: Record<ActivityType, number> = {
   sleep: 12, // hours
   water: 16, // glasses
   nutrition: 6, // meals
+  meditation: 60, // minutes — low-impact volume; half of workout cap
 };
 
 /**
@@ -34,6 +42,7 @@ export const ACTIVITY_AMOUNT_MAX: Record<ActivityType, number> = {
   sleep: 12, // hours
   water: 20, // glasses
   nutrition: 10, // meals
+  meditation: 120, // minutes — single-session physical ceiling
 };
 
 /**

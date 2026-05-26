@@ -22,7 +22,7 @@ import type {
   PendingSpell,
   RoundEntry,
 } from '@/components/combat/types';
-import { calculateRound, resolveRoundOutcome, rollRunAway } from './combat';
+import { calculateRound, resolveRoundOutcome, rollRunAway, rollSpellCrit } from './combat';
 import { resolveAbility } from './abilities';
 import { resolveSpell } from './spells';
 import {
@@ -371,6 +371,14 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
   const outgoing = applyOutgoingPassives(character, resolution.playerDamage, abilityCtx);
   let effectivePlayerDamage = outgoing.damage;
 
+  // Spirit crit — fires only on a successful ability (non-fizzle) that actually
+  // deals damage. Stacks on top of Eagle Eye and other outgoing passive procs.
+  const abilityCrit =
+    !fizzled && effectivePlayerDamage > 0
+      ? rollSpellCrit(character.stats.spirit ?? 0, effectivePlayerDamage)
+      : { damage: effectivePlayerDamage, crit: false, multiplier: 1 };
+  effectivePlayerDamage = abilityCrit.damage;
+
   // Modifier: absorb (Necro Shield)
   const absorb = runAbsorb(input, stateForRound, effectivePlayerDamage);
   effectivePlayerDamage = absorb.damage;
@@ -489,6 +497,8 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     monsterRegen: pre.regenAmount > 0 ? pre.regenAmount : undefined,
     monsterVampiric: vampiricHeal > 0 ? vampiricHeal : undefined,
     monsterActiveTriggered: activeResult.triggered ? activeResult.label : undefined,
+    spiritCrit: abilityCrit.crit || undefined,
+    spiritCritMultiplier: abilityCrit.crit ? abilityCrit.multiplier : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -551,8 +561,15 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
   // Warlock Soul Drain on spell damage
   const { soulDrainHeal: spellSoulDrain } = resolveLifesteal(character, 0, resolution.playerDamage);
 
-  // Absorb (Necro Shield) — applies to raw spell damage
-  const absorb = runAbsorb(input, stateForRound, resolution.playerDamage);
+  // Spirit crit — fires only on a successful cast (requirement met) that
+  // actually deals damage. Heal-only and stun-only spells never crit.
+  const spellCrit =
+    resolution.requirementMet && resolution.playerDamage > 0
+      ? rollSpellCrit(character.stats.spirit ?? 0, resolution.playerDamage)
+      : { damage: resolution.playerDamage, crit: false, multiplier: 1 };
+
+  // Absorb (Necro Shield) — applies to the crit'd spell damage.
+  const absorb = runAbsorb(input, stateForRound, spellCrit.damage);
   const damageToMonster = absorb.damage;
 
   const monsterHpBeforeSpell = stateForRound.monsterHp;
@@ -648,6 +665,8 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     divineAegisBlocked: incoming.divineAegisBlocked || undefined,
     manaBarrierAbsorbed: incoming.magicDrained > 0 ? incoming.magicDrained : undefined,
     bloodPactUsed: useBloodPact || undefined,
+    spiritCrit: spellCrit.crit || undefined,
+    spiritCritMultiplier: spellCrit.crit ? spellCrit.multiplier : undefined,
     perRoundHpRestore: perRound.hpRestore > 0 && outcome === null ? perRound.hpRestore : undefined,
     perRoundMagicRestore:
       perRound.magicRestore > 0 && outcome === null ? perRound.magicRestore : undefined,

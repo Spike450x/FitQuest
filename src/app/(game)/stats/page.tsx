@@ -37,6 +37,7 @@ const ACTIVITY_COLORS: Record<ActivityType, string> = {
   sleep: '#8b5cf6',
   water: '#3b82f6',
   nutrition: '#22c55e',
+  meditation: '#a78bfa',
 };
 
 type Range = '7d' | '30d' | 'all';

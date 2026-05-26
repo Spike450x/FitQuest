@@ -87,7 +87,15 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
 
       // Input validation — mirrors INPUT_CONFIG.max in ActivityLogForm.tsx.
       // Reject obviously bogus values before touching Firestore.
-      const validTypes: ActivityType[] = ['workout', 'run', 'steps', 'sleep', 'water', 'nutrition'];
+      const validTypes: ActivityType[] = [
+        'workout',
+        'run',
+        'steps',
+        'sleep',
+        'water',
+        'nutrition',
+        'meditation',
+      ];
       if (!validTypes.includes(activityType)) {
         throw new HttpsError('invalid-argument', `Unknown activityType: ${activityType}`);
       }
@@ -174,18 +182,25 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
         charData = charSnap.data();
       }
 
-      // ── 4. Resource restore (nutrition / sleep / water) ────────────────────────
+      // ── 4. Resource restore (nutrition / sleep / water / meditation) ──────────
       // Capped at the formula-derived max (not the Firestore rule ceiling) so a
       // player at max HP can't accumulate extra HP by logging nutrition over and over.
+      // Meditation restores Magic just like water — both feed currentMagic, so they
+      // stack within the same day.
       if (rewardEligible && RESTORE_ACTIVITIES.has(activityType) && charData) {
         const RESTORE_MAP = {
           nutrition: { field: 'currentHp' as const, rate: RESTORE.HP_PER_MEAL },
           sleep: { field: 'currentStamina' as const, rate: RESTORE.STAMINA_PER_SLEEP_HOUR },
           water: { field: 'currentMagic' as const, rate: RESTORE.MAGIC_PER_WATER_GLASS },
+          meditation: {
+            field: 'currentMagic' as const,
+            rate: RESTORE.MAGIC_PER_MEDITATION_MINUTE,
+          },
         } as const;
 
-        const { field, rate } = RESTORE_MAP[activityType as 'nutrition' | 'sleep' | 'water'];
-        const resourceType =
+        const { field, rate } =
+          RESTORE_MAP[activityType as 'nutrition' | 'sleep' | 'water' | 'meditation'];
+        const resourceType: 'hp' | 'stamina' | 'magic' =
           activityType === 'nutrition' ? 'hp' : activityType === 'sleep' ? 'stamina' : 'magic';
 
         const restoreAmount = Math.floor(eligibleAmount * rate);

@@ -52,6 +52,10 @@ export interface RoundEntry {
   recoveredMagic?: number;
   // passive events
   eagleEyeCrit?: boolean;
+  /** Spell or ability crit fired (Spirit-driven). True when the damage was boosted. */
+  spiritCrit?: boolean;
+  /** Multiplier applied when spiritCrit fired (1 + bonus, e.g. 1.15 for +15%). */
+  spiritCritMultiplier?: number;
   divineAegisBlocked?: boolean;
   soulDrainHeal?: number;
   hemorrhageDrain?: number;

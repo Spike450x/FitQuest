@@ -52,7 +52,9 @@ interface CharacterStore {
    * Spend one pending stat point on the given stat.
    * Does nothing if pendingStatPoints === 0.
    */
-  allocateStatPoint: (stat: 'strength' | 'wisdom' | 'agility' | 'stamina') => Promise<void>;
+  allocateStatPoint: (
+    stat: 'strength' | 'wisdom' | 'agility' | 'stamina' | 'spirit',
+  ) => Promise<void>;
   /** Resets level, XP, and stats back to class starting values (death penalty). */
   resetCharacter: () => Promise<void>;
   /**
@@ -117,11 +119,21 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
     try {
       const data = await fetchWithRetry(() => getCharacterDoc(uid), STORE_RETRY_DELAYS);
       if (data) {
+        const statBackfill: Record<string, number> = {};
         // Backfill: agility was added after launch; old character docs don't have it.
         if (data.stats?.agility === undefined) {
           const startingAgility = CLASS_DEFINITIONS[data.class].startingStats.agility;
           data.stats = { ...data.stats, agility: startingAgility };
-          await updateCharacterDoc(uid, { 'stats.agility': startingAgility });
+          statBackfill['stats.agility'] = startingAgility;
+        }
+        // Backfill: spirit was added in the 2× content scaling pass.
+        if (data.stats?.spirit === undefined) {
+          const startingSpirit = CLASS_DEFINITIONS[data.class].startingStats.spirit ?? 0;
+          data.stats = { ...data.stats, spirit: startingSpirit };
+          statBackfill['stats.spirit'] = startingSpirit;
+        }
+        if (Object.keys(statBackfill).length > 0) {
+          await updateCharacterDoc(uid, statBackfill);
         }
         set({ character: data, loading: false, lastFetchedAt: Date.now() });
       } else {
