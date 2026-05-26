@@ -1,0 +1,51 @@
+name: Deploy Announce
+
+# Fires after CI completes successfully on master. Posts a rich Discord embed
+# summarising what shipped. Does NOT fire for baseline-update commits
+# (those carry [skip ci] so CI never runs, so this workflow never triggers).
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  announce:
+    name: Post deploy announcement to Discord
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+
+      - name: Build Discord fields from commit metadata
+        id: meta
+        env:
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          TITLE=$(git log -1 --format=%s)
+          AUTHOR=$(git log -1 --format=%an)
+          SHORT_SHA=${HEAD_SHA:0:7}
+          FILES_CHANGED=$(git diff --name-only HEAD~1 HEAD | wc -l | tr -d ' ')
+          FIELDS='[{"name":"Author","value":"'"${AUTHOR}"'","inline":true},{"name":"Commit","value":"'"${SHORT_SHA}"'","inline":true},{"name":"Files changed","value":"'"${FILES_CHANGED}"'","inline":true},{"name":"CI run","value":"[View run]('"${RUN_URL}"')","inline":false}]'
+          echo "title=Shipped: ${TITLE}" >> "$GITHUB_OUTPUT"
+          echo "fields<<GHADELIM" >> "$GITHUB_OUTPUT"
+          echo "${FIELDS}" >> "$GITHUB_OUTPUT"
+          echo "GHADELIM" >> "$GITHUB_OUTPUT"
+
+      - name: Post to Discord
+        uses: ./.github/actions/discord-notify
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: ${{ steps.meta.outputs.title }}
+          fields: ${{ steps.meta.outputs.fields }}
+          status: success
