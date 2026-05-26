@@ -15,6 +15,11 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-26 — Fix Discord notify action manifest load error
+
+- Removed a `${{ job.status }}` expression from inside the `status` input's description in `.github/actions/discord-notify/action.yml`. GitHub parses every `${{ ... }}` expression in an action manifest at load time (even inside string descriptions), and the `job` context isn't available there — caused the first scheduled-e2e run to fail with `Unrecognized named-value: 'job'`. Description rewritten to plain text.
+- No behavior change to the notify itself — the runtime step already reads `${{ inputs.status }}`, which is valid composite-action context.
+
 ## 2026-05-25 — Service-account E2E automation + scheduled runs + Discord alerts
 
 - New `authenticated-flows` Playwright project exercises real user actions against the emulator-seeded `e2e@test.local` test user: `flows/log-activity.test.ts`, `flows/quest-claim.test.ts`, `flows/combat-victory.test.ts`, `flows/shop-buy-equip.test.ts`, `flows/dungeon-flee.test.ts`. Per-test `resetCharacter` via the emulator `owner` admin token; seeded `Math.random` (mulberry32) for deterministic combat/spell/loot rolls.
