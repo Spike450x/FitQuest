@@ -110,7 +110,7 @@ Recursively sums file sizes under:
 
 ### `--compare` mode
 
-1. Reads `docs/bundle-baseline.json` (exits 1 with clear error if file missing)
+1. Reads `docs/bundle-baseline.json`. If the file does not exist (first run before any master push), logs a warning and exits 0 — the check is skipped gracefully rather than blocking the feature PR that introduced it. The baseline is created when that PR merges to master.
 2. Reads current `.next/static/` sizes
 3. Computes delta percentage for JS and CSS separately
 4. Writes comparison summary to `$GITHUB_OUTPUT` as pre-formatted Discord fields
