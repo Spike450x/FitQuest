@@ -15,6 +15,19 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-26 — Monster roster + new mechanics (content-scaling PR2)
+
+- **10 new monsters** filling out levels 1–10 variety and the L11–14 progression gap between Ancient Dragon (10) and Dragon King boss (15). Mud Imp / Boar Runt / Bog Lurker / Iron Husk / Frost Wraith / Gloom Knight (L1–8 variety) plus Obsidian Golem / Ashwyrm / Void Revenant / Storm Djinn (L11–14 bridge). Daily arena rotation (`getDailyPick(MONSTER_CATALOG, 4)`) auto-picks the new entries — no rotation code change needed.
+- **2 new monster passives + 1 new active**:
+  - `siphon` — drains flat stamina from the player every round the monster lands a hit. Helper `monsterSiphonAmount`; integrated post-`roundResult` in all three resolvers (`resolveAttackAction`, `resolveAbilityAction`, `resolveSpellAction`); surfaces in the round log as `monsterSiphon`.
+  - `armor-pierce` — flat reduction to player effective defense for this monster's attacks. New helpers `monsterArmorPierce` + `effectivePlayerDefenseVsMonster` in `src/lib/gameLogic/combat.ts`; wired through `calculateRound` and `rollRunAway`, plus parallel pierce-aware effective-def math in `spells.ts` (counter-attack) and `abilities.ts` (`rollMonsterAttack`). Surfaces as `monsterArmorPierce` in the round log.
+  - `summon-add` — one-time HP bonus added to both current monster HP AND the cap when the trigger threshold is crossed. New `FightState.monsterBonusHp`; regen/vampiric caps now use `effectiveMonsterMaxHp(state)` instead of `state.monster.hp` so reinforcements stick. `checkMonsterActive` gains a `bonusHp` return field; surfaces as `monsterSummonAddHp` in the round log.
+- **Dungeon pool extension** — `dark-sanctum` gains `iron-husk` + `gloom-knight`; `dragons-keep` gains all four L11–14 monsters (`obsidian-golem`, `ashwyrm`, `void-revenant`, `storm-djinn`).
+- **Bestiary backend** — new `Character.monstersKilled?: Record<string, { killCount; firstKilledAt }>` schema field, defaulted by `normalizeCharacter`. `characterStore.updateMonsterPity` now writes both `legendaryDryStreak` and `monstersKilled` in the same Firestore update so every kill stamps the bestiary tally. Pruned by `MONSTER_CATALOG` ids. Ready for the PR5 bestiary surface.
+- **Monster art** — 10 new monster portraits in `src/components/art/silhouettes.tsx` (Mud Imp through Storm Djinn) registered in `MONSTER_SILHOUETTES`. Reuses the existing `currentColor` + Tailwind-class pattern; no new theming hooks needed.
+- **Types** — extended `MonsterPassiveId` and `MonsterActiveId` unions; both `MonsterPassive` and `MonsterActive` doc comments updated to cover the new values.
+- 16 new vitest specs (744 → **760**): `armor-pierce` math + `calculateRound` integration, `siphon` value reads, catalog/pool registration, summon-add catalog assertion. Suite still under 13 s.
+
 ## 2026-05-26 — Spirit stat + Meditation activity (content-scaling PR1)
 
 - **New primary stat: Spirit** (cap 50, joins Strength/Wisdom/Agility). `Stats.spirit?: number` added to `src/types/index.ts`; class definitions extended with starting values (Warrior 3, Wizard 7, Rogue 3) and stat multipliers (0.9× / 1.2× / 1.1×). Spirit is backfilled to legacy character docs on next fetch via the existing agility-migration pattern in `characterStore.fetchCharacter`.

@@ -22,7 +22,14 @@ import type {
   PendingSpell,
   RoundEntry,
 } from '@/components/combat/types';
-import { calculateRound, resolveRoundOutcome, rollRunAway, rollSpellCrit } from './combat';
+import {
+  calculateRound,
+  monsterArmorPierce,
+  monsterSiphonAmount,
+  resolveRoundOutcome,
+  rollRunAway,
+  rollSpellCrit,
+} from './combat';
 import { resolveAbility } from './abilities';
 import { resolveSpell } from './spells';
 import {
@@ -46,11 +53,17 @@ function getMonsterEffectiveStats(monster: MonsterDef, state: FightState): Monst
   return { ...monster, attack: monster.attack + bonusAtk, defense: monster.defense + bonusDef };
 }
 
-/** Heals the monster by its regen value, capped at max HP. Returns updated state + amount. */
+/** Maximum HP the monster can be healed up to, factoring in summon-add bonuses. */
+function effectiveMonsterMaxHp(state: FightState): number {
+  return state.monster.hp + (state.monsterBonusHp ?? 0);
+}
+
+/** Heals the monster by its regen value, capped at effective max HP. */
 function applyMonsterRegen(state: FightState): { state: FightState; regenAmount: number } {
   const passive = state.monster.passive;
   if (!passive || passive.id !== 'regen') return { state, regenAmount: 0 };
-  const regenAmount = Math.min(passive.value, state.monster.hp - state.monsterHp);
+  const cap = effectiveMonsterMaxHp(state);
+  const regenAmount = Math.min(passive.value, cap - state.monsterHp);
   if (regenAmount <= 0) return { state, regenAmount: 0 };
   return { state: { ...state, monsterHp: state.monsterHp + regenAmount }, regenAmount };
 }
@@ -63,11 +76,16 @@ function calcThornsDamage(monster: MonsterDef, playerDamage: number): number {
 }
 
 /** Heals monster from a % of its own counter-attack damage (vampiric). */
-function calcVampiricHeal(monster: MonsterDef, monsterDamage: number, monsterHp: number): number {
+function calcVampiricHeal(
+  monster: MonsterDef,
+  monsterDamage: number,
+  monsterHp: number,
+  maxHp: number,
+): number {
   const passive = monster.passive;
   if (!passive || passive.id !== 'vampiric' || monsterDamage <= 0) return 0;
   const heal = Math.ceil((monsterDamage * passive.value) / 100);
-  return Math.min(heal, monster.hp - monsterHp);
+  return Math.min(heal, maxHp - monsterHp);
 }
 
 /** Detects a first-time HP-threshold crossing and returns the active's effect. */
@@ -76,20 +94,43 @@ function checkMonsterActive(
   hpBefore: number,
   hpAfter: number,
   activeUsed: boolean,
-): { triggered: boolean; bonusAtk: number; bonusDef: number; label: string } {
+): {
+  triggered: boolean;
+  bonusAtk: number;
+  bonusDef: number;
+  bonusHp: number;
+  label: string;
+} {
   if (!monster.active || activeUsed || hpAfter === 0) {
-    return { triggered: false, bonusAtk: 0, bonusDef: 0, label: '' };
+    return { triggered: false, bonusAtk: 0, bonusDef: 0, bonusHp: 0, label: '' };
   }
   const threshold = monster.active.triggerPct * monster.hp;
   if (hpBefore > threshold && hpAfter <= threshold) {
+    const { id, value, label } = monster.active;
     return {
       triggered: true,
-      bonusAtk: monster.active.id === 'enrage' ? monster.active.value : 0,
-      bonusDef: monster.active.id === 'harden' ? monster.active.value : 0,
-      label: monster.active.label,
+      bonusAtk: id === 'enrage' ? value : 0,
+      bonusDef: id === 'harden' ? value : 0,
+      bonusHp: id === 'summon-add' ? value : 0,
+      label,
     };
   }
-  return { triggered: false, bonusAtk: 0, bonusDef: 0, label: '' };
+  return { triggered: false, bonusAtk: 0, bonusDef: 0, bonusHp: 0, label: '' };
+}
+
+/**
+ * Player stamina drain from a monster's siphon passive, applied each round the
+ * monster actually lands a hit. Bounded by remaining stamina.
+ */
+function calcSiphonDrain(
+  monster: MonsterDef,
+  monsterDamage: number,
+  playerStamina: number,
+): number {
+  if (monsterDamage <= 0) return 0;
+  const raw = monsterSiphonAmount(monster);
+  if (raw <= 0) return 0;
+  return Math.min(raw, playerStamina);
 }
 
 // ─── Shared input / output shapes ──────────────────────────────────────────────
@@ -260,23 +301,44 @@ export function resolveAttackAction(
   // Apply thorns on top of monster counter-attack.
   const finalPlayerHp =
     thornDamage > 0 ? Math.max(0, rawFinalPlayerHp - thornDamage) : rawFinalPlayerHp;
+
+  // Siphon: monster drains stamina each round it lands a hit.
+  const siphonDrain = calcSiphonDrain(
+    stateForRound.monster,
+    actualMonsterDamage,
+    stateForRound.playerStamina,
+  );
+  const staminaAfterSiphon = stateForRound.playerStamina - siphonDrain;
   const outcome = rawOutcome === 'win' ? 'win' : finalPlayerHp === 0 ? 'loss' : rawOutcome;
+
+  // summon-add: when the active fires, monster gains flat HP (current + cap).
+  const summonAddHp = activeResult.bonusHp;
+  const newMaxMonsterHp =
+    stateForRound.monster.hp + (stateForRound.monsterBonusHp ?? 0) + summonAddHp;
+  const hpAfterSummon = newMonsterHp + summonAddHp;
 
   // Vampiric: monster heals from the damage it dealt (skip if monster is dead).
   const vampiricHeal =
-    newMonsterHp === 0
+    hpAfterSummon === 0
       ? 0
-      : calcVampiricHeal(stateForRound.monster, actualMonsterDamage, newMonsterHp);
-  const monsterHpFinal = Math.min(stateForRound.monster.hp, newMonsterHp + vampiricHeal);
+      : calcVampiricHeal(
+          stateForRound.monster,
+          actualMonsterDamage,
+          hpAfterSummon,
+          newMaxMonsterHp,
+        );
+  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + vampiricHeal);
 
   const interimState: FightState = {
     ...stateForRound,
     monsterHp: monsterHpFinal,
     playerHp: finalPlayerHp,
+    playerStamina: staminaAfterSiphon,
     playerMagic: finalPlayerMagic,
     activeUsed: (stateForRound.activeUsed ?? false) || activeResult.triggered,
     monsterBonusAtk: (stateForRound.monsterBonusAtk ?? 0) + activeResult.bonusAtk,
     monsterBonusDef: (stateForRound.monsterBonusDef ?? 0) + activeResult.bonusDef,
+    monsterBonusHp: (stateForRound.monsterBonusHp ?? 0) + summonAddHp,
   };
   const post = runPostRound(input, interimState, mode);
 
@@ -305,6 +367,12 @@ export function resolveAttackAction(
     monsterRegen: pre.regenAmount > 0 ? pre.regenAmount : undefined,
     monsterVampiric: vampiricHeal > 0 ? vampiricHeal : undefined,
     monsterActiveTriggered: activeResult.triggered ? activeResult.label : undefined,
+    monsterSiphon: siphonDrain > 0 ? siphonDrain : undefined,
+    monsterArmorPierce:
+      actualMonsterDamage > 0 && monsterArmorPierce(stateForRound.monster) > 0
+        ? monsterArmorPierce(stateForRound.monster)
+        : undefined,
+    monsterSummonAddHp: summonAddHp > 0 ? summonAddHp : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -321,6 +389,7 @@ export function resolveAttackAction(
     droppedItems,
     monsterHp: monsterHpFinal,
     playerHp: finalPlayerHp,
+    playerStamina: staminaAfterSiphon,
   };
 
   return {
@@ -441,18 +510,38 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     thornDamage > 0 ? Math.max(0, rawFinalPlayerHp - thornDamage) : rawFinalPlayerHp;
   const outcome = rawOutcome === 'win' ? 'win' : finalPlayerHp === 0 ? 'loss' : rawOutcome;
 
+  // summon-add: when the active fires, monster gains flat HP (current + cap).
+  const summonAddHp = activeResult.bonusHp;
+  const newMaxMonsterHp =
+    stateForRound.monster.hp + (stateForRound.monsterBonusHp ?? 0) + summonAddHp;
+  const hpAfterSummon = newMonsterHp + summonAddHp;
+
   const vampiricHeal =
-    newMonsterHp === 0
+    hpAfterSummon === 0
       ? 0
-      : calcVampiricHeal(stateForRound.monster, actualMonsterDamage, newMonsterHp);
-  const monsterHpFinal = Math.min(stateForRound.monster.hp, newMonsterHp + vampiricHeal);
+      : calcVampiricHeal(
+          stateForRound.monster,
+          actualMonsterDamage,
+          hpAfterSummon,
+          newMaxMonsterHp,
+        );
+  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + vampiricHeal);
 
   const momentumRestore = getMomentumRestore(character, killedMonster);
   const fizzleRefund = fizzled ? COMBAT.FIZZLE_STAMINA_REFUND : 0;
-  const newStamina = Math.min(
+  // Siphon drains stamina each round the monster lands a hit — applied AFTER
+  // the ability-cost subtraction and momentum restore so it can fully empty
+  // the pool if the monster hits hard enough.
+  const staminaBeforeSiphon = Math.min(
     Math.max(0, stateForRound.playerStamina - actualStaminaCost + fizzleRefund) + momentumRestore,
     maxStamina,
   );
+  const siphonDrain = calcSiphonDrain(
+    stateForRound.monster,
+    actualMonsterDamage,
+    staminaBeforeSiphon,
+  );
+  const newStamina = staminaBeforeSiphon - siphonDrain;
 
   const interimState: FightState = {
     ...stateForRound,
@@ -463,6 +552,7 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     activeUsed: (stateForRound.activeUsed ?? false) || activeResult.triggered,
     monsterBonusAtk: (stateForRound.monsterBonusAtk ?? 0) + activeResult.bonusAtk,
     monsterBonusDef: (stateForRound.monsterBonusDef ?? 0) + activeResult.bonusDef,
+    monsterBonusHp: (stateForRound.monsterBonusHp ?? 0) + summonAddHp,
   };
   const post = runPostRound(input, interimState, 'ability');
   const modifierNotes = [...pre.notes, ...absorb.notes, ...post.notes];
@@ -497,6 +587,12 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     monsterRegen: pre.regenAmount > 0 ? pre.regenAmount : undefined,
     monsterVampiric: vampiricHeal > 0 ? vampiricHeal : undefined,
     monsterActiveTriggered: activeResult.triggered ? activeResult.label : undefined,
+    monsterSiphon: siphonDrain > 0 ? siphonDrain : undefined,
+    monsterArmorPierce:
+      actualMonsterDamage > 0 && monsterArmorPierce(stateForRound.monster) > 0
+        ? monsterArmorPierce(stateForRound.monster)
+        : undefined,
+    monsterSummonAddHp: summonAddHp > 0 ? summonAddHp : undefined,
     spiritCrit: abilityCrit.crit || undefined,
     spiritCritMultiplier: abilityCrit.crit ? abilityCrit.multiplier : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
@@ -621,13 +717,36 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
   const outcome =
     rawOutcomeSpell === 'win' ? 'win' : finalPlayerHp === 0 ? 'loss' : rawOutcomeSpell;
 
-  const vampiricHealSpell =
-    newMonsterHp === 0
-      ? 0
-      : calcVampiricHeal(stateForRound.monster, actualMonsterDamage, newMonsterHp);
-  const monsterHpFinalSpell = Math.min(stateForRound.monster.hp, newMonsterHp + vampiricHealSpell);
+  // summon-add: when the active fires, monster gains flat HP (current + cap).
+  const summonAddHp = activeResultSpell.bonusHp;
+  const newMaxMonsterHp =
+    stateForRound.monster.hp + (stateForRound.monsterBonusHp ?? 0) + summonAddHp;
+  const hpAfterSummon = newMonsterHp + summonAddHp;
 
-  const newStamina = Math.min(stateForRound.playerStamina + resolution.staminaRestored, maxStamina);
+  const vampiricHealSpell =
+    hpAfterSummon === 0
+      ? 0
+      : calcVampiricHeal(
+          stateForRound.monster,
+          actualMonsterDamage,
+          hpAfterSummon,
+          newMaxMonsterHp,
+        );
+  const monsterHpFinalSpell = Math.min(newMaxMonsterHp, hpAfterSummon + vampiricHealSpell);
+
+  // Siphon: drain stamina each round the monster lands a hit. Applied AFTER
+  // the spell's own restoreStamina effect so a "restore stamina" spell is not
+  // immediately drained back down to zero by a same-round counter.
+  const staminaAfterRestore = Math.min(
+    stateForRound.playerStamina + resolution.staminaRestored,
+    maxStamina,
+  );
+  const siphonDrain = calcSiphonDrain(
+    stateForRound.monster,
+    actualMonsterDamage,
+    staminaAfterRestore,
+  );
+  const newStamina = staminaAfterRestore - siphonDrain;
 
   const totalSpellHeal = resolution.healAmount + spellSoulDrain;
 
@@ -640,6 +759,7 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     activeUsed: (stateForRound.activeUsed ?? false) || activeResultSpell.triggered,
     monsterBonusAtk: (stateForRound.monsterBonusAtk ?? 0) + activeResultSpell.bonusAtk,
     monsterBonusDef: (stateForRound.monsterBonusDef ?? 0) + activeResultSpell.bonusDef,
+    monsterBonusHp: (stateForRound.monsterBonusHp ?? 0) + summonAddHp,
   };
   const post = runPostRound(input, interimState, 'spell');
   const modifierNotes = [...pre.notes, ...absorb.notes, ...post.notes];
@@ -674,6 +794,12 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     monsterRegen: pre.regenAmount > 0 ? pre.regenAmount : undefined,
     monsterVampiric: vampiricHealSpell > 0 ? vampiricHealSpell : undefined,
     monsterActiveTriggered: activeResultSpell.triggered ? activeResultSpell.label : undefined,
+    monsterSiphon: siphonDrain > 0 ? siphonDrain : undefined,
+    monsterArmorPierce:
+      actualMonsterDamage > 0 && monsterArmorPierce(stateForRound.monster) > 0
+        ? monsterArmorPierce(stateForRound.monster)
+        : undefined,
+    monsterSummonAddHp: summonAddHp > 0 ? summonAddHp : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 

@@ -1,5 +1,5 @@
 import type { SpellDiceRequirement, SpellEffect, ItemRarity } from '@/types';
-import { gearDefenseBonus, rollD10 } from './combat';
+import { gearDefenseBonus, monsterArmorPierce, rollD10 } from './combat';
 import { COMBAT } from './constants';
 import type { Character, MonsterDef } from '@/types';
 import { applySpellDamagePassives } from './passives';
@@ -170,7 +170,7 @@ export function resolveSpell(
     monsterRoll = rollD10();
     const totalDef = (character.stats.defense ?? 0) + gearDefenseBonus(character) + defenseBoost;
     playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
-    const effectiveDef = playerDefFailed ? 0 : totalDef;
+    const effectiveDef = playerDefFailed ? 0 : Math.max(0, totalDef - monsterArmorPierce(monster));
     monsterDamage = Math.max(COMBAT.MIN_DAMAGE, monster.attack + monsterRoll - effectiveDef);
   }
 

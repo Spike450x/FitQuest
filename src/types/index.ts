@@ -68,6 +68,13 @@ export interface Character {
    * legendary chance. Resets to 0 on a legendary drop.
    */
   legendaryDryStreak?: Record<string, number>;
+  /**
+   * Per-monster kill tally for the bestiary surface (PR5). Incremented every
+   * time a monster is defeated (arena or dungeon). `firstKilledAt` is the unix
+   * ms timestamp of the first kill — used to greet the player with a "new
+   * monster" toast on initial discovery.
+   */
+  monstersKilled?: Record<string, { killCount: number; firstKilledAt: number }>;
   dungeonRunsToday?: DungeonRunsToday;
   activeDungeonRunId?: string | null;
   achievements?: AchievementId[];
@@ -265,7 +272,7 @@ export interface ActiveQuest {
 // ─── Combat ──────────────────────────────────────────────────────────────────
 
 /** Permanent passive trait active every offensive round. */
-export type MonsterPassiveId = 'thorns' | 'regen' | 'vampiric';
+export type MonsterPassiveId = 'thorns' | 'regen' | 'vampiric' | 'siphon' | 'armor-pierce';
 
 export interface MonsterPassive {
   id: MonsterPassiveId;
@@ -273,15 +280,17 @@ export interface MonsterPassive {
   label: string;
   /**
    * Numeric magnitude:
-   *   thorns   — % of incoming player damage reflected back (integer 0–100)
-   *   regen    — flat HP healed each offensive round
-   *   vampiric — % of monster counter-attack damage returned as HP (integer 0–100)
+   *   thorns       — % of incoming player damage reflected back (integer 0–100)
+   *   regen        — flat HP healed each offensive round
+   *   vampiric     — % of monster counter-attack damage returned as HP (integer 0–100)
+   *   siphon       — flat stamina drained from player per landed monster hit
+   *   armor-pierce — flat reduction to player effective defense vs this monster
    */
   value: number;
 }
 
 /** One-shot ability triggered once when monster HP falls below a threshold. */
-export type MonsterActiveId = 'enrage' | 'harden';
+export type MonsterActiveId = 'enrage' | 'harden' | 'summon-add';
 
 export interface MonsterActive {
   id: MonsterActiveId;
@@ -289,7 +298,12 @@ export interface MonsterActive {
   triggerPct: number;
   /** Short label surfaced as a combat-log note and arena badge after triggering. */
   label: string;
-  /** Numeric magnitude: enrage = permanent ATK boost, harden = permanent DEF boost. */
+  /**
+   * Numeric magnitude:
+   *   enrage     — permanent ATK boost on trigger
+   *   harden     — permanent DEF boost on trigger
+   *   summon-add — one-time HP bonus added to current and max monster HP
+   */
   value: number;
 }
 

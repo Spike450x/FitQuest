@@ -71,6 +71,12 @@ export interface RoundEntry {
   monsterRegen?: number;
   monsterVampiric?: number;
   monsterActiveTriggered?: string;
+  /** Stamina drained by a monster's `siphon` passive this round. */
+  monsterSiphon?: number;
+  /** Effective player-DEF reduction from a monster's `armor-pierce` passive. */
+  monsterArmorPierce?: number;
+  /** HP added to the monster when `summon-add` active fires. */
+  monsterSummonAddHp?: number;
   /** Extra free-form log lines surfaced by combat modifiers (venom tick, shield absorb, etc.). */
   modifierNotes?: string[];
 }
@@ -95,6 +101,8 @@ export interface FightState {
   monsterBonusAtk?: number;
   /** Permanent DEF boost from monster active (harden). */
   monsterBonusDef?: number;
+  /** One-time HP boost the monster received from `summon-add` (raises both cur + cap). */
+  monsterBonusHp?: number;
 }
 
 // ─── Pending overlay payloads ───────────────────────────────────────────────────
