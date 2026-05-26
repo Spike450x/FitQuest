@@ -41,8 +41,8 @@ jobs:
       - name: Test Cloud Functions (pure-logic unit tests)
         run: cd functions && npm test
 
-      # Fails immediately on high/critical vulnerabilities. Moderate dev-dep
-      # vulns (e.g., firebase-tools transitive chain) are logged as warnings.
+      # Fails on moderate/high/critical vulnerabilities in production deps.
+      # Moderate-or-above vulns in devDependencies are logged as warnings.
       # See docs/SECURITY-SETUP.md § Known devDependency vulnerabilities.
       - name: Audit production dependencies
         run: node scripts/audit-check.mjs
