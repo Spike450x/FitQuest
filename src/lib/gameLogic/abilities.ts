@@ -1,5 +1,5 @@
 import type { Character, MonsterDef } from '@/types';
-import { gearAttackBonus, gearDefenseBonus, rollD10 } from './combat';
+import { gearAttackBonus, gearDefenseBonus, monsterArmorPierce, rollD10 } from './combat';
 import { COMBAT } from './constants';
 import { applySubclassAbilityMods, getAbilityDamageMultiplier } from './passives';
 
@@ -400,11 +400,14 @@ function rollMonsterAttack(
   bypassPlayerDef: boolean,
 ): { monsterDamage: number; playerDefFailed: boolean } {
   const monsterRoll = rollD10();
-  const playerDef = (character.stats.defense ?? 0) + gearDefenseBonus(character);
+  const totalDef = (character.stats.defense ?? 0) + gearDefenseBonus(character);
   const playerDefFailed = bypassPlayerDef || Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
+  // Armor-pierce reduces the player's effective defense when it lands; failed
+  // blocks are already zero so pierce can't further reduce them.
+  const effectiveDef = playerDefFailed ? 0 : Math.max(0, totalDef - monsterArmorPierce(monster));
   const rawMonsterDamage = monsterRoll + monster.attack;
   const monsterDamage = playerDefFailed
     ? rawMonsterDamage
-    : Math.max(0, rawMonsterDamage - playerDef);
+    : Math.max(0, rawMonsterDamage - effectiveDef);
   return { monsterDamage, playerDefFailed };
 }

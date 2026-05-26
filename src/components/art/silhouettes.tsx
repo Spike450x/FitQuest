@@ -302,6 +302,252 @@ function LichKing() {
   );
 }
 
+// ── PR2 NEW MONSTERS ─────────────────────────────────────────────────────────
+
+function MudImp() {
+  return (
+    <g fill="currentColor">
+      {/* Squat blobby body */}
+      <ellipse cx="50" cy="62" rx="22" ry="16" />
+      {/* Head */}
+      <ellipse cx="50" cy="42" rx="14" ry="12" />
+      {/* Glowing eyes */}
+      <circle cx="44" cy="42" r="2.5" className="fill-amber-300" />
+      <circle cx="56" cy="42" r="2.5" className="fill-amber-300" />
+      {/* Sneer */}
+      <path d="M 44 50 L 50 54 L 56 50" stroke="currentColor" strokeWidth="2" fill="none" />
+      {/* Sticky drips */}
+      <path d="M 32 74 L 30 84 L 36 78 Z" />
+      <path d="M 64 76 L 68 86 L 60 80 Z" />
+    </g>
+  );
+}
+
+function BoarRunt() {
+  return (
+    <g fill="currentColor">
+      {/* Body */}
+      <ellipse cx="50" cy="58" rx="22" ry="14" />
+      {/* Snouted head */}
+      <ellipse cx="68" cy="50" rx="12" ry="10" />
+      <rect x="74" y="48" width="6" height="6" />
+      {/* Tusks */}
+      <path d="M 74 54 L 70 62 L 76 58 Z" className="fill-amber-100 dark:fill-amber-200" />
+      <path d="M 80 54 L 84 62 L 78 58 Z" className="fill-amber-100 dark:fill-amber-200" />
+      {/* Eye */}
+      <circle cx="66" cy="46" r="2" className="fill-rose-400" />
+      {/* Legs */}
+      <rect x="36" y="68" width="4" height="8" />
+      <rect x="48" y="68" width="4" height="8" />
+      <rect x="60" y="68" width="4" height="8" />
+    </g>
+  );
+}
+
+function BogLurker() {
+  return (
+    <g fill="currentColor">
+      {/* Hunched amphibious body */}
+      <path d="M 30 70 Q 20 60, 30 50 Q 40 40, 50 44 Q 60 40, 70 50 Q 80 60, 70 70 Q 50 78, 30 70 Z" />
+      {/* Bulging eyes */}
+      <circle cx="42" cy="46" r="4" className="fill-emerald-300" />
+      <circle cx="58" cy="46" r="4" className="fill-emerald-300" />
+      <circle cx="42" cy="46" r="2" className="fill-slate-950" />
+      <circle cx="58" cy="46" r="2" className="fill-slate-950" />
+      {/* Slimy tendrils */}
+      <path
+        d="M 28 68 Q 18 78, 22 88"
+        stroke="currentColor"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 72 68 Q 82 78, 78 88"
+        stroke="currentColor"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
+
+function IronHusk() {
+  return (
+    <g fill="currentColor">
+      {/* Squared helmeted head */}
+      <rect x="38" y="24" width="24" height="22" />
+      {/* Eye slit glow */}
+      <rect x="42" y="34" width="16" height="3" className="fill-rose-400" />
+      {/* Shoulder plates */}
+      <path d="M 28 46 L 38 44 L 38 60 L 30 62 Z" />
+      <path d="M 72 46 L 62 44 L 62 60 L 70 62 Z" />
+      {/* Cuirass */}
+      <rect x="38" y="46" width="24" height="32" />
+      {/* Plated chest divisions */}
+      <path d="M 38 56 L 62 56" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M 38 66 L 62 66" stroke="currentColor" strokeWidth="1.5" />
+      {/* Sundering rune */}
+      <path d="M 50 50 L 46 60 L 50 58 L 54 60 Z" className="fill-amber-300" />
+    </g>
+  );
+}
+
+function FrostWraith() {
+  return (
+    <g fill="currentColor">
+      {/* Spectral hood */}
+      <path d="M 50 22 L 36 30 L 30 46 L 32 60 L 40 70 L 50 72 L 60 70 L 68 60 L 70 46 L 64 30 Z" />
+      {/* Cold blue eyes */}
+      <circle cx="44" cy="44" r="3.5" className="fill-sky-300" />
+      <circle cx="56" cy="44" r="3.5" className="fill-sky-300" />
+      {/* Icy mouth */}
+      <path d="M 44 54 L 50 60 L 56 54" stroke="currentColor" strokeWidth="2" fill="none" />
+      {/* Wispy frost trails */}
+      <path
+        d="M 30 70 Q 18 80, 24 92"
+        stroke="currentColor"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 70 70 Q 82 80, 76 92"
+        stroke="currentColor"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+      />
+      {/* Icicle accents */}
+      <path d="M 38 64 L 36 72 L 40 70 Z" className="fill-sky-200" />
+      <path d="M 62 64 L 64 72 L 60 70 Z" className="fill-sky-200" />
+    </g>
+  );
+}
+
+function GloomKnight() {
+  return (
+    <g fill="currentColor">
+      {/* Greathelm */}
+      <path d="M 40 22 L 60 22 L 64 32 L 60 46 L 50 50 L 40 46 L 36 32 Z" />
+      {/* Visor slit */}
+      <rect x="42" y="36" width="16" height="3" className="fill-rose-500" />
+      {/* Pauldrons */}
+      <path d="M 26 52 L 38 48 L 38 64 L 28 66 Z" />
+      <path d="M 74 52 L 62 48 L 62 64 L 72 66 Z" />
+      {/* Tabard */}
+      <path d="M 38 50 L 62 50 L 64 86 L 50 92 L 36 86 Z" />
+      {/* Broken oath sigil */}
+      <path d="M 46 64 L 54 64 L 50 78 Z" className="fill-amber-300 dark:fill-amber-400" />
+      <path d="M 44 68 L 56 70" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </g>
+  );
+}
+
+function ObsidianGolem() {
+  return (
+    <g fill="currentColor">
+      {/* Chunky head */}
+      <path d="M 36 24 L 64 24 L 68 40 L 64 50 L 36 50 L 32 40 Z" />
+      {/* Glowing magma eyes */}
+      <rect x="40" y="34" width="6" height="6" className="fill-orange-400" />
+      <rect x="54" y="34" width="6" height="6" className="fill-orange-400" />
+      {/* Massive torso block */}
+      <path d="M 28 52 L 72 52 L 76 80 L 50 90 L 24 80 Z" />
+      {/* Magma cracks */}
+      <path d="M 38 58 L 44 66 L 40 74 L 50 80" stroke="currentColor" strokeWidth="2" fill="none" />
+      <path d="M 62 60 L 56 70 L 64 78" stroke="currentColor" strokeWidth="2" fill="none" />
+      <path
+        d="M 38 58 L 44 66"
+        stroke="currentColor"
+        strokeWidth="1"
+        fill="none"
+        className="text-orange-400 dark:text-orange-300"
+      />
+    </g>
+  );
+}
+
+function Ashwyrm() {
+  return (
+    <g fill="currentColor">
+      {/* Long sinuous body */}
+      <path
+        d="M 14 70 Q 30 50, 50 60 Q 70 70, 86 50"
+        stroke="currentColor"
+        strokeWidth="10"
+        fill="none"
+        strokeLinecap="round"
+      />
+      {/* Wedge head */}
+      <path d="M 78 46 L 92 38 L 92 54 Z" />
+      {/* Glowing eye */}
+      <circle cx="84" cy="46" r="2.5" className="fill-orange-400" />
+      {/* Small wings */}
+      <path d="M 48 50 Q 42 38, 36 44 Q 44 50, 48 56 Z" />
+      <path d="M 58 64 Q 64 76, 70 70 Q 62 64, 58 58 Z" />
+      {/* Ember puff */}
+      <circle cx="92" cy="32" r="3" className="fill-orange-300" />
+      <circle cx="86" cy="28" r="2" className="fill-orange-200" />
+    </g>
+  );
+}
+
+function VoidRevenant() {
+  return (
+    <g fill="currentColor">
+      {/* Ghostly twin silhouettes (echo) */}
+      <path d="M 36 30 L 28 42 L 30 60 L 36 70 L 36 84 L 44 78 L 44 30 Z" opacity="0.55" />
+      <path d="M 64 30 L 72 42 L 70 60 L 64 70 L 64 84 L 56 78 L 56 30 Z" opacity="0.55" />
+      {/* Central revenant */}
+      <path d="M 50 24 L 40 32 L 36 50 L 40 66 L 44 80 L 50 86 L 56 80 L 60 66 L 64 50 L 60 32 Z" />
+      {/* Glowing void eyes */}
+      <ellipse cx="45" cy="42" rx="3" ry="4" className="fill-violet-400" />
+      <ellipse cx="55" cy="42" rx="3" ry="4" className="fill-violet-400" />
+      {/* Void crown */}
+      <path d="M 44 24 L 50 16 L 56 24" stroke="currentColor" strokeWidth="2" fill="none" />
+    </g>
+  );
+}
+
+function StormDjinn() {
+  return (
+    <g fill="currentColor">
+      {/* Upper torso */}
+      <path d="M 50 18 L 40 26 L 32 44 L 36 60 L 50 64 L 64 60 L 68 44 L 60 26 Z" />
+      {/* Eyes glowing yellow lightning */}
+      <circle cx="44" cy="40" r="3" className="fill-yellow-300" />
+      <circle cx="56" cy="40" r="3" className="fill-yellow-300" />
+      {/* Beard / arms wisp */}
+      <path
+        d="M 36 56 Q 24 64, 22 80"
+        stroke="currentColor"
+        strokeWidth="3"
+        fill="none"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 64 56 Q 76 64, 78 80"
+        stroke="currentColor"
+        strokeWidth="3"
+        fill="none"
+        strokeLinecap="round"
+      />
+      {/* Whirlwind tail */}
+      <path d="M 38 64 Q 50 70, 62 64 L 60 78 Q 50 84, 40 78 Z" />
+      {/* Lightning bolt */}
+      <path
+        d="M 48 36 L 44 44 L 50 42 L 46 50"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill="none"
+        className="text-yellow-300 dark:text-yellow-200"
+      />
+    </g>
+  );
+}
+
 export const MONSTER_SILHOUETTES: Record<string, () => React.ReactNode> = {
   'goblin-scout': GoblinScout,
   'giant-rat': GiantRat,
@@ -314,6 +560,17 @@ export const MONSTER_SILHOUETTES: Record<string, () => React.ReactNode> = {
   'dark-mage': DarkMage,
   'lich-king': LichKing,
   'ancient-dragon': AncientDragon,
+  // PR2 additions
+  'mud-imp': MudImp,
+  'boar-runt': BoarRunt,
+  'bog-lurker': BogLurker,
+  'iron-husk': IronHusk,
+  'frost-wraith': FrostWraith,
+  'gloom-knight': GloomKnight,
+  'obsidian-golem': ObsidianGolem,
+  ashwyrm: Ashwyrm,
+  'void-revenant': VoidRevenant,
+  'storm-djinn': StormDjinn,
 };
 
 // ── CLASSES ──────────────────────────────────────────────────────────────────

@@ -34,6 +34,7 @@ export function normalizeCharacter(uid: string, raw: Record<string, unknown>): C
     pendingStatPoints: (raw.pendingStatPoints as number | undefined) ?? 0,
     masteryCounts: (raw.masteryCounts as Character['masteryCounts']) ?? {},
     legendaryDryStreak: (raw.legendaryDryStreak as Record<string, number>) ?? {},
+    monstersKilled: (raw.monstersKilled as Character['monstersKilled']) ?? {},
   };
 }
 

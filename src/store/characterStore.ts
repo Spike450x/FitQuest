@@ -422,8 +422,27 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         ),
       );
 
-      await updateCharacterDoc(character.uid, { legendaryDryStreak: pruned });
-      set({ character: { ...character, legendaryDryStreak: pruned } });
+      // Bestiary tally — increment kill count and stamp first-killed timestamp
+      // on initial discovery. Stays bounded by the same MONSTER_CATALOG prune.
+      const existingKill = character.monstersKilled?.[monsterId];
+      const nowMs = Date.now();
+      const nextKilled = {
+        killCount: (existingKill?.killCount ?? 0) + 1,
+        firstKilledAt: existingKill?.firstKilledAt ?? nowMs,
+      };
+      const monstersKilled = Object.fromEntries(
+        Object.entries({ ...character.monstersKilled, [monsterId]: nextKilled }).filter(([id]) =>
+          validIds.has(id),
+        ),
+      );
+
+      await updateCharacterDoc(character.uid, {
+        legendaryDryStreak: pruned,
+        monstersKilled,
+      });
+      set({
+        character: { ...character, legendaryDryStreak: pruned, monstersKilled },
+      });
     } catch (e) {
       captureError('characterStore.updateMonsterPity', e);
     }

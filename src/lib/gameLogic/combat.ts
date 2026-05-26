@@ -115,6 +115,40 @@ export function gearDefenseBonus(character: Character): number {
   return totalGearBonuses(character.equippedGear).defense ?? 0;
 }
 
+/**
+ * Returns the flat reduction to player effective defense from a monster's
+ * `armor-pierce` passive. Zero for any other passive (or no passive).
+ */
+export function monsterArmorPierce(monster: MonsterDef): number {
+  return monster.passive?.id === 'armor-pierce' ? monster.passive.value : 0;
+}
+
+/**
+ * Player's effective defense for a monster's counter-attack, after applying the
+ * monster's `armor-pierce` passive (if any). Stat + gear sum, minus the pierce
+ * value, floored at 0.
+ *
+ * `defFailed` short-circuits to 0 — a failed defense block already zeroes
+ * effective DEF, so pierce can't reduce it further.
+ */
+export function effectivePlayerDefenseVsMonster(
+  character: Character,
+  monster: MonsterDef,
+  defFailed: boolean,
+): number {
+  if (defFailed) return 0;
+  const totalDef = (character.stats.defense ?? 0) + gearDefenseBonus(character);
+  return Math.max(0, totalDef - monsterArmorPierce(monster));
+}
+
+/**
+ * Returns the flat stamina drain from a monster's `siphon` passive, applied
+ * when the monster lands a hit on the player. Zero for any other passive.
+ */
+export function monsterSiphonAmount(monster: MonsterDef): number {
+  return monster.passive?.id === 'siphon' ? monster.passive.value : 0;
+}
+
 /** Roll a d10 — returns a value between ATTACK_RNG_MIN (1) and ATTACK_RNG_MAX (10) inclusive. */
 export function rollD10(): number {
   return (
@@ -255,10 +289,10 @@ export function calculateRound(
   // Monster rolls its own d10 for its counter-attack
   const monsterRoll = rollD10();
 
-  // Player's defense might fail (stat + gear)
+  // Player's defense might fail (stat + gear), and monster's armor-pierce
+  // passive reduces what gets through.
   const playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
-  const totalPlayerDef = (character.stats.defense ?? 0) + gearDefenseBonus(character);
-  const effectivePlayerDef = playerDefFailed ? 0 : totalPlayerDef;
+  const effectivePlayerDef = effectivePlayerDefenseVsMonster(character, monster, playerDefFailed);
   const monsterDamage = Math.max(COMBAT.MIN_DAMAGE, monster.attack - effectivePlayerDef);
 
   return {
@@ -353,10 +387,9 @@ export function rollRunAway(
   let playerDefFailed = false;
 
   if (!escaped) {
-    // Failed escape: monster gets a free hit
+    // Failed escape: monster gets a free hit (armor-pierce applies).
     playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
-    const totalDef = (character.stats.defense ?? 0) + gearDefenseBonus(character);
-    const effectivePlayerDef = playerDefFailed ? 0 : totalDef;
+    const effectivePlayerDef = effectivePlayerDefenseVsMonster(character, monster, playerDefFailed);
     monsterDamage = Math.max(COMBAT.MIN_DAMAGE, monster.attack - effectivePlayerDef);
   }
 
