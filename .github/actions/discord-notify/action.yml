@@ -8,7 +8,7 @@ inputs:
     description: Discord webhook URL. Should come from `secrets.DISCORD_WEBHOOK_URL`.
     required: true
   status:
-    description: Job status — pass `${{ job.status }}` (success/failure/cancelled).
+    description: Job status (success / failure / cancelled). Pass the workflow's job.status expression.
     required: true
   workflow-name:
     description: Display name for the embed title.
