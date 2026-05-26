@@ -7,6 +7,7 @@ import {
   SleepIcon,
   WaterIcon,
   NutritionIcon,
+  MeditationIcon,
 } from '@/components/art/action-icons';
 
 /**
@@ -22,6 +23,7 @@ export const ACTIVITY_ICONS: Record<ActivityType, string> = {
   sleep: '😴',
   water: '💧',
   nutrition: '🥗',
+  meditation: '🧘',
 };
 
 /** Fallback used when a string-keyed lookup misses (defensive). */
@@ -42,6 +44,7 @@ const ACTIVITY_SVG_MAP: Record<ActivityType, ActivityIconFC> = {
   sleep: SleepIcon,
   water: WaterIcon,
   nutrition: NutritionIcon,
+  meditation: MeditationIcon,
 };
 
 /** Returns an SVG icon element for the given activity type. */

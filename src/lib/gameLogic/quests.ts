@@ -211,6 +211,48 @@ export const DAILY_QUEST_POOL: QuestDef[] = [
     rewards: { xp: 70, gold: 20 },
   },
 
+  // ── Meditation ──
+  {
+    id: 'daily-meditation-1',
+    name: 'Calm Center',
+    description: 'Sit for 10 minutes of meditation',
+    type: 'daily',
+    requirement: { activityType: 'meditation', target: 10, unit: 'minutes' },
+    rewards: { xp: 35, gold: 10 },
+  },
+  {
+    id: 'daily-meditation-2',
+    name: 'Steady Breath',
+    description: 'Log 20 minutes of meditation today',
+    type: 'daily',
+    requirement: { activityType: 'meditation', target: 20, unit: 'minutes' },
+    rewards: { xp: 60, gold: 17 },
+  },
+  {
+    id: 'daily-meditation-3',
+    name: 'Quick Centering',
+    description: 'Find 5 minutes of stillness today',
+    type: 'daily',
+    requirement: { activityType: 'meditation', target: 5, unit: 'minutes' },
+    rewards: { xp: 20, gold: 6 },
+  },
+  {
+    id: 'daily-meditation-4',
+    name: 'Deep Focus',
+    description: 'Log a 30-minute meditation session',
+    type: 'daily',
+    requirement: { activityType: 'meditation', target: 30, unit: 'minutes' },
+    rewards: { xp: 90, gold: 25 },
+  },
+  {
+    id: 'daily-meditation-5',
+    name: 'Spirit Communion',
+    description: 'Log 45 minutes of meditation today',
+    type: 'daily',
+    requirement: { activityType: 'meditation', target: 45, unit: 'minutes' },
+    rewards: { xp: 130, gold: 36 },
+  },
+
   // ── Multi-target daily quests ──────────────────────────────────────────────
   // Rewards are ~1.4–1.6× the individual components — a meaningful bonus for
   // crossing two habits on the same day without making single-activity quests obsolete.
@@ -249,6 +291,15 @@ export const DAILY_QUEST_POOL: QuestDef[] = [
     requirement: { activityType: 'run', target: 2, unit: 'miles' },
     extraTargets: [{ activityType: 'water', target: 6, unit: 'glasses' }],
     rewards: { xp: 140, gold: 39 },
+  },
+  {
+    id: 'daily-combo-meditation-workout',
+    name: 'Mind & Body',
+    description: 'Meditate 15 minutes and train for 30 minutes',
+    type: 'daily',
+    requirement: { activityType: 'meditation', target: 15, unit: 'minutes' },
+    extraTargets: [{ activityType: 'workout', target: 30, unit: 'minutes' }],
+    rewards: { xp: 130, gold: 36 },
   },
 ];
 
@@ -354,6 +405,23 @@ export const WEEKLY_QUEST_POOL: QuestDef[] = [
     rewards: { xp: 320, gold: 90 },
   },
 
+  {
+    id: 'weekly-meditation-1',
+    name: 'Daily Stillness',
+    description: 'Log 100 minutes of meditation this week',
+    type: 'weekly',
+    requirement: { activityType: 'meditation', target: 100, unit: 'minutes' },
+    rewards: { xp: 220, gold: 60 },
+  },
+  {
+    id: 'weekly-meditation-2',
+    name: 'Inner Sanctum',
+    description: 'Log 200 minutes of meditation this week',
+    type: 'weekly',
+    requirement: { activityType: 'meditation', target: 200, unit: 'minutes' },
+    rewards: { xp: 380, gold: 105 },
+  },
+
   // ── Multi-target weekly quests ─────────────────────────────────────────────
   {
     id: 'weekly-combo-run-sleep',
@@ -372,6 +440,15 @@ export const WEEKLY_QUEST_POOL: QuestDef[] = [
     requirement: { activityType: 'workout', target: 200, unit: 'minutes' },
     extraTargets: [{ activityType: 'nutrition', target: 14, unit: 'meals' }],
     rewards: { xp: 560, gold: 155 },
+  },
+  {
+    id: 'weekly-combo-meditation-steps',
+    name: 'Mindful Mover',
+    description: 'Meditate 90 minutes and walk 60,000 steps this week',
+    type: 'weekly',
+    requirement: { activityType: 'meditation', target: 90, unit: 'minutes' },
+    extraTargets: [{ activityType: 'steps', target: 60000, unit: 'steps' }],
+    rewards: { xp: 500, gold: 140 },
   },
 ];
 

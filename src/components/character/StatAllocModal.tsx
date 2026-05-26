@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useCharacterStore } from '@/store/characterStore';
 import type { Character } from '@/types';
 
-type AllocStat = 'strength' | 'wisdom' | 'agility' | 'stamina';
+type AllocStat = 'strength' | 'wisdom' | 'agility' | 'stamina' | 'spirit';
 
 const ALLOC_OPTIONS: {
   stat: AllocStat;
@@ -44,6 +44,14 @@ const ALLOC_OPTIONS: {
     color:
       'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-950/60 text-amber-800 dark:text-amber-300',
     description: 'Increases HP pool and stamina for abilities',
+  },
+  {
+    stat: 'spirit',
+    label: 'Spirit',
+    icon: '✨',
+    color:
+      'border-violet-300 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-950/60 text-violet-800 dark:text-violet-300',
+    description: 'Increases spell/ability crit chance and damage',
   },
 ];
 

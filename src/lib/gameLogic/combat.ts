@@ -21,6 +21,60 @@ export function playerMaxMagic(character: Pick<Character, 'stats' | 'class'>): n
   );
 }
 
+// ─── Spirit-based crit math ──────────────────────────────────────────────────
+// Spirit drives both the *chance* a successful spell or ability rolls a critical
+// hit and the *damage multiplier* applied when one fires. Stays well below the
+// damage swings from base stats — designed as a spike layer, not a replacement
+// for STR/WIS scaling.
+//
+// PARITY: must match functions/src/gameLogic/combat.ts (logActivity branch).
+// The crit math currently runs client-side only because the Cloud Function
+// doesn't resolve combat damage, but the helpers live in the parity copy so
+// future server-side combat moves don't desync.
+
+/** Spirit needed per +1% crit chance. */
+export const SPIRIT_PER_CRIT_CHANCE = 1;
+/** Spirit needed per +0.5% crit damage. */
+export const SPIRIT_PER_CRIT_DAMAGE = 1;
+/** Maximum crit chance regardless of Spirit (0–1 fraction). */
+export const MAX_SPELL_CRIT_CHANCE = 0.4;
+/** Maximum crit damage multiplier (1 + extra). */
+export const MAX_SPELL_CRIT_DAMAGE_MULT = 1.25;
+
+/**
+ * Probability (0–1) that a successful spell or ability roll triggers a crit,
+ * given the character's Spirit stat. +1% per point of Spirit, capped at 40%.
+ */
+export function spellCritChance(spirit: number): number {
+  const raw = (Math.max(0, spirit) / SPIRIT_PER_CRIT_CHANCE) * 0.01;
+  return Math.min(MAX_SPELL_CRIT_CHANCE, raw);
+}
+
+/**
+ * Damage multiplier applied when a crit fires (1 = no boost). +0.5% per point
+ * of Spirit, capped at +25%.
+ */
+export function spellCritDamage(spirit: number): number {
+  const raw = 1 + (Math.max(0, spirit) / SPIRIT_PER_CRIT_DAMAGE) * 0.005;
+  return Math.min(MAX_SPELL_CRIT_DAMAGE_MULT, raw);
+}
+
+/**
+ * Helper for combat resolvers: given Spirit, roll the crit and return the
+ * effective damage and crit flag. RNG is injected so tests can pin it.
+ */
+export function rollSpellCrit(
+  spirit: number,
+  baseDamage: number,
+  rng: () => number = Math.random,
+): { damage: number; crit: boolean; multiplier: number } {
+  if (baseDamage <= 0) return { damage: baseDamage, crit: false, multiplier: 1 };
+  const chance = spellCritChance(spirit);
+  if (rng() >= chance) return { damage: baseDamage, crit: false, multiplier: 1 };
+  const multiplier = spellCritDamage(spirit);
+  return { damage: Math.round(baseDamage * multiplier), crit: true, multiplier };
+}
+
 // ─── Gear stat aggregation ────────────────────────────────────────────────────
 
 /**

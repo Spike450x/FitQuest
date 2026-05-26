@@ -116,3 +116,19 @@ export const NutritionIcon = svgIcon(
     <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
   </>,
 );
+
+export const MeditationIcon = svgIcon(
+  'MeditationIcon',
+  <>
+    {/* Head */}
+    <circle cx="12" cy="6" r="2" />
+    {/* Torso + crossed legs (lotus pose silhouette) */}
+    <path d="M12 9c-2 0-3.5 1.6-3.5 3.6 0 1 .5 2 1.2 2.6" />
+    <path d="M12 9c2 0 3.5 1.6 3.5 3.6 0 1-.5 2-1.2 2.6" />
+    <path d="M5 18c1.5-2 4-3 7-3s5.5 1 7 3" />
+    {/* Hands resting in lap */}
+    <path d="M10 15c.6.4 1.3.6 2 .6s1.4-.2 2-.6" />
+    {/* Aura / breath glyph */}
+    <path d="M12 2v1" />
+  </>,
+);

@@ -20,6 +20,7 @@ export const DAILY_ACTIVITY_CAPS: Record<ActivityType, number> = {
   sleep: 12, // hours
   water: 16, // glasses
   nutrition: 6, // meals
+  meditation: 60, // minutes — low-impact volume; half of workout cap
 };
 
 /**

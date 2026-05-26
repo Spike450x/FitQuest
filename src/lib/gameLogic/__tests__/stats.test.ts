@@ -35,10 +35,17 @@ describe('calculateResourceRestore', () => {
     });
   });
 
-  it('returns null for mastery activities (workout/run/steps)', () => {
+  it('returns null for pure mastery activities (workout/run/steps)', () => {
     expect(calculateResourceRestore('workout', 60)).toBeNull();
     expect(calculateResourceRestore('run', 5)).toBeNull();
     expect(calculateResourceRestore('steps', 10000)).toBeNull();
+  });
+
+  it('meditation → magic at MAGIC_PER_MEDITATION_MINUTE rate', () => {
+    expect(calculateResourceRestore('meditation', 30)).toEqual({
+      resourceType: 'magic',
+      amount: Math.floor(30 * RESTORE.MAGIC_PER_MEDITATION_MINUTE),
+    });
   });
 
   it('handles zero-amount input cleanly', () => {
@@ -63,6 +70,7 @@ describe('applyStatGains', () => {
     stamina: 5,
     health: 5,
     defense: 5,
+    spirit: 0,
   });
 
   it('adds gains to each stat without exceeding caps', () => {
