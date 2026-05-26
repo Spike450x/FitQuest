@@ -136,6 +136,7 @@ Chronological log of hardening work that has actually shipped — pair each row 
 
 | Date       | Change                                                                                                                                                                                                                                                                                                                                    | Source                                                                                                     |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 2026-05-25 | `uuid` moderate vuln (GHSA-w5hq-g745-h8pq, Dependabot alerts #27 #29) resolved via `"uuid": ">=11.1.1"` in root `package.json` `overrides`. All `uuid` instances deduplicated to `14.0.0`. `npm audit` now reports 0 vulnerabilities. `--force` downgrade path avoided.                                                                   | this PR                                                                                                    |
 | 2026-05-16 | CodeQL workflow added (`.github/workflows/codeql.yml`): `security-extended` queries on every push/PR + weekly schedule. SARIF results upload to the Security tab. Dependabot will SHA-pin the `github/codeql-action` references.                                                                                                          | this PR                                                                                                    |
 | 2026-05-16 | Firestore rules unit tests: `tests/rules/` suite (40+ assertions) covers all four collections; CI step 10 runs them via `firebase emulators:exec --project demo-fitness-rpg`.                                                                                                                                                             | this PR                                                                                                    |
 | 2026-05-16 | Confirmed automated Firestore rules deploy was already live in CI step 11 (documented in CI.md since initial CI setup); removed from outstanding backlog.                                                                                                                                                                                 | CI step 11                                                                                                 |
@@ -184,20 +185,8 @@ For each item below, when it ships, add a row to the Remediations Log above.
 
 ## Known devDependency Vulnerabilities
 
-These vulnerabilities are flagged by `npm audit` but **cannot be fixed without breaking changes** and **do not affect the production runtime bundle**. They are logged as warnings by `scripts/audit-check.mjs` and do not block CI.
-
-| Package                | Severity | Via                      | Status                                                           |
-| ---------------------- | -------- | ------------------------ | ---------------------------------------------------------------- |
-| `gaxios`               | moderate | `uuid < 9`               | Transitive dep of `firebase-tools` (devDep). Not in prod bundle. |
-| `google-gax`           | moderate | `retry-request` → `uuid` | Same chain.                                                      |
-| `@google-cloud/pubsub` | moderate | `google-gax`             | Same chain.                                                      |
-| `teeny-request`        | moderate | `uuid < 9`               | Same chain.                                                      |
-| `retry-request`        | moderate | `teeny-request`          | Same chain.                                                      |
-
-**Root cause:** `firebase-tools` requires `uuid@^3` or `^7` in its transitive chain. The `uuid` advisory covers versions < 9. `npm audit fix --force` would downgrade `firebase-tools` to a breaking version.
-
-**Resolution path:** Watch [firebase-tools releases](https://github.com/firebase/firebase-tools/releases). When a release notes a `uuid` bump past v9 in its transitive deps, run `npm update firebase-tools` on a branch and re-run `npm audit`.
+No outstanding known vulnerabilities as of 2026-05-25. `npm audit` reports 0 vulnerabilities.
 
 **CI behaviour:** `scripts/audit-check.mjs` (invoked in `.github/workflows/ci.yml`) blocks the build on any high/critical vulnerability and logs moderate/low ones as warnings. The script does not currently distinguish dev-only from prod-only chains (the npm audit JSON does not expose a top-level dev flag), so a high/critical vuln anywhere — including dev-only — will fail CI. This is intentionally conservative.
 
-**Last reviewed:** 2026-05-23
+**Last reviewed:** 2026-05-25
