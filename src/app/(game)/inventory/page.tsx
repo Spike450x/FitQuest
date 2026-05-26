@@ -4,7 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useInventoryStore } from '@/store/inventoryStore';
-import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
+import {
+  consumableEffectColorClass,
+  describeConsumableEffect,
+  getItemById,
+  RARITY_BADGE,
+  RARITY_CARD,
+} from '@/lib/gameLogic/items';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
 import { PremiumSpellCard } from '@/components/ui/PremiumSpellCard';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
@@ -356,18 +362,8 @@ export default function InventoryPage() {
               {equippedConsumables.map(({ invItem, def }) => {
                 if (!def?.effect) return null;
                 const isActing = acting === invItem.id;
-                const effectLabel =
-                  def.effect.type === 'restore_stamina'
-                    ? 'Stamina'
-                    : def.effect.type === 'restore_magic'
-                      ? 'Magic'
-                      : 'HP';
-                const effectColor =
-                  def.effect.type === 'restore_stamina'
-                    ? 'text-amber-600'
-                    : def.effect.type === 'restore_magic'
-                      ? 'text-violet-600'
-                      : 'text-emerald-600';
+                const effectColor = consumableEffectColorClass(def.effect);
+                const effectText = describeConsumableEffect(def.effect, true);
                 return (
                   <div
                     key={invItem.id}
@@ -383,9 +379,7 @@ export default function InventoryPage() {
                         >
                           {def.rarity}
                         </span>
-                        <span className={`text-xs font-semibold ${effectColor}`}>
-                          +{def.effect.amount} {effectLabel}
-                        </span>
+                        <span className={`text-xs font-semibold ${effectColor}`}>{effectText}</span>
                         {invItem.quantity > 1 && (
                           <span className="text-xs text-gray-400 dark:text-slate-500">
                             ×{invItem.quantity}

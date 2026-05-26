@@ -8,7 +8,12 @@ import {
   getAbilityStaminaCost,
   getEffectiveSpellCost,
 } from '@/lib/gameLogic/passives';
-import { getItemById, RARITY_BADGE } from '@/lib/gameLogic/items';
+import {
+  consumableEffectColorHex,
+  describeConsumableEffect,
+  getItemById,
+  RARITY_BADGE,
+} from '@/lib/gameLogic/items';
 import { PremiumSpellCard } from '@/components/ui/PremiumSpellCard';
 import { ActionButton } from './ActionButton';
 import type { Character, ItemDef, InventoryItem } from '@/types';
@@ -330,21 +335,9 @@ export function CombatActionBar({
                 </div>
                 <span
                   className="text-xs font-semibold shrink-0"
-                  style={{
-                    color:
-                      def.effect.type === 'restore_stamina'
-                        ? '#d97706'
-                        : def.effect.type === 'restore_magic'
-                          ? '#7c3aed'
-                          : '#059669',
-                  }}
+                  style={{ color: consumableEffectColorHex(def.effect) }}
                 >
-                  +{def.effect.amount}{' '}
-                  {def.effect.type === 'restore_stamina'
-                    ? 'Stamina'
-                    : def.effect.type === 'restore_magic'
-                      ? 'Magic'
-                      : 'HP'}
+                  {describeConsumableEffect(def.effect, true)}
                 </span>
               </button>
             );

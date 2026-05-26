@@ -134,10 +134,18 @@ export type ItemType = 'weapon' | 'armor' | 'accessory' | 'consumable' | 'spell'
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 /** Effect applied when a consumable item is used (potions, elixirs). */
-export interface ConsumableEffect {
-  type: 'restore_hp' | 'restore_stamina' | 'restore_magic';
-  amount: number;
-}
+/**
+ * Single-resource restores use `restore_hp | restore_stamina | restore_magic` with a
+ * flat `amount`. Multi-resource elixirs use `multi` with an array of per-resource
+ * restore steps — each step is applied in order by `inventoryStore.useConsumable`
+ * and totals roll up into the `{ hpGained, staminaGained, magicGained }` return shape.
+ */
+export type ConsumableEffect =
+  | { type: 'restore_hp' | 'restore_stamina' | 'restore_magic'; amount: number }
+  | {
+      type: 'multi';
+      restores: Array<{ resource: 'hp' | 'stamina' | 'magic'; amount: number }>;
+    };
 
 // ─── Spell system ─────────────────────────────────────────────────────────────
 

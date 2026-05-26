@@ -28,6 +28,16 @@ export const LEGENDARY_ITEM_IDS = new Set([
   'wraithbound-ring',
   'draconic-sigil',
   'scale-dragon-king',
+  // PR3 — Content-scaling legendaries
+  'world-ender',
+  'cosmic-codex',
+  'shadowblade-zenith',
+  'crown-of-mind',
+  'guardian-bulwark',
+  'starfire-vestments',
+  'eye-of-eternity',
+  'twin-suns-pendant',
+  'phoenix-draught',
 ]);
 
 /**

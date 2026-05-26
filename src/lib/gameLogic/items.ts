@@ -1,4 +1,4 @@
-import type { ItemDef, ItemRarity } from '@/types';
+import type { ConsumableEffect, ItemDef, ItemRarity } from '@/types';
 
 /**
  * Item catalog — five rarity tiers.
@@ -1052,10 +1052,706 @@ export const ITEM_CATALOG: ItemDef[] = [
       classRestriction: 'rogue',
     },
   },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Content-scaling PR3 — 56 new items (22 weapons / 12 armor / 16 accessories / 6 consumables)
+  // Roughly doubles the catalog, fills L11–14 progression, introduces Spirit-stat
+  // gear, thickens AGI coverage, and adds elixir-style multi-restore consumables.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // ── PR3 Weapons — Common ───────────────────────────────────────────────────
+  {
+    id: 'wooden-club',
+    name: 'Wooden Club',
+    type: 'weapon',
+    rarity: 'common',
+    tier: 1,
+    price: 35,
+    statBonuses: { strength: 2 },
+    description: 'A heavy length of oak. Crude but reliable. +2 Strength.',
+  },
+  {
+    id: 'apprentice-wand',
+    name: 'Apprentice Wand',
+    type: 'weapon',
+    rarity: 'common',
+    tier: 1,
+    price: 40,
+    statBonuses: { wisdom: 2 },
+    description: 'Tipped with raw quartz. Channels minor magics. +2 Wisdom.',
+  },
+  {
+    id: 'leather-sling',
+    name: 'Leather Sling',
+    type: 'weapon',
+    rarity: 'common',
+    tier: 1,
+    price: 38,
+    statBonuses: { strength: 1, agility: 1 },
+    description: 'A simple cord and pouch. Strikes from a distance. +1 Strength, +1 Agility.',
+  },
+  {
+    id: 'novice-charm',
+    name: 'Novice Charm',
+    type: 'weapon',
+    rarity: 'common',
+    tier: 1,
+    price: 42,
+    statBonuses: { spirit: 2 },
+    description: 'A handheld focus carved with prayer-marks. +2 Spirit.',
+  },
+
+  // ── PR3 Weapons — Uncommon ─────────────────────────────────────────────────
+  {
+    id: 'steel-mace',
+    name: 'Steel Mace',
+    type: 'weapon',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 125,
+    statBonuses: { strength: 5 },
+    description: 'Flanged head, heavy haft. Crushes armor as it bites. +5 Strength.',
+  },
+  {
+    id: 'crystal-staff',
+    name: 'Crystal Staff',
+    type: 'weapon',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 125,
+    statBonuses: { wisdom: 5 },
+    description: 'Capped with a humming amethyst. +5 Wisdom.',
+  },
+  {
+    id: 'shortbow',
+    name: 'Shortbow',
+    type: 'weapon',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 130,
+    statBonuses: { strength: 3, agility: 2 },
+    description: 'Light enough to draw on the move. +3 Strength, +2 Agility.',
+  },
+  {
+    id: 'spirit-totem',
+    name: 'Spirit Totem',
+    type: 'weapon',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 125,
+    statBonuses: { spirit: 5 },
+    description: 'A carved wooden idol, warm to the touch. +5 Spirit.',
+  },
+  {
+    id: 'kris-blade',
+    name: 'Kris Blade',
+    type: 'weapon',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 135,
+    statBonuses: { strength: 3, agility: 3 },
+    description: 'Wavy-edged dagger that bleeds wounds open. +3 Strength, +3 Agility.',
+  },
+
+  // ── PR3 Weapons — Rare ─────────────────────────────────────────────────────
+  {
+    id: 'flameblade',
+    name: 'Flameblade',
+    type: 'weapon',
+    rarity: 'rare',
+    tier: 3,
+    price: 360,
+    statBonuses: { strength: 10 },
+    description: 'Runed steel that bursts into fire on the swing. +10 Strength.',
+  },
+  {
+    id: 'lightning-rod',
+    name: 'Lightning Rod',
+    type: 'weapon',
+    rarity: 'rare',
+    tier: 3,
+    price: 360,
+    statBonuses: { wisdom: 10 },
+    description: 'A copper-wrapped haft that draws the storm. +10 Wisdom.',
+  },
+  {
+    id: 'silver-rapier',
+    name: 'Silver Rapier',
+    type: 'weapon',
+    rarity: 'rare',
+    tier: 3,
+    price: 370,
+    statBonuses: { strength: 6, agility: 5 },
+    description: 'A duelist’s blade — fast as breath. +6 Strength, +5 Agility.',
+  },
+  {
+    id: 'moonstaff',
+    name: 'Moonstaff',
+    type: 'weapon',
+    rarity: 'rare',
+    tier: 3,
+    price: 370,
+    statBonuses: { wisdom: 6, spirit: 5 },
+    description: 'A staff carved from moon-touched yew. +6 Wisdom, +5 Spirit.',
+  },
+  {
+    id: 'starfall-bow',
+    name: 'Starfall Bow',
+    type: 'weapon',
+    rarity: 'rare',
+    tier: 3,
+    price: 380,
+    statBonuses: { strength: 6, agility: 4 },
+    description: 'Looses arrows that streak like falling stars. +6 Strength, +4 Agility.',
+  },
+
+  // ── PR3 Weapons — Epic ─────────────────────────────────────────────────────
+  {
+    id: 'soulreaver',
+    name: 'Soulreaver',
+    type: 'weapon',
+    rarity: 'epic',
+    tier: 4,
+    price: 720,
+    statBonuses: { strength: 14 },
+    description: 'A black blade that whispers in dying ears. +14 Strength.',
+  },
+  {
+    id: 'astral-tome',
+    name: 'Astral Tome',
+    type: 'weapon',
+    rarity: 'epic',
+    tier: 4,
+    price: 720,
+    statBonuses: { wisdom: 14 },
+    description: 'Pages of star-light, never two the same. +14 Wisdom.',
+  },
+  {
+    id: 'thunderclaws',
+    name: 'Thunderclaws',
+    type: 'weapon',
+    rarity: 'epic',
+    tier: 4,
+    price: 760,
+    statBonuses: { strength: 10, agility: 6 },
+    description: 'Twin curved daggers that snap with static. +10 Strength, +6 Agility.',
+  },
+  {
+    id: 'spirit-channeler',
+    name: 'Spirit Channeler',
+    type: 'weapon',
+    rarity: 'epic',
+    tier: 4,
+    price: 740,
+    statBonuses: { wisdom: 10, spirit: 6 },
+    description: 'A focus carved from a saint’s rib. +10 Wisdom, +6 Spirit.',
+  },
+
+  // ── PR3 Weapons — Legendary ────────────────────────────────────────────────
+  {
+    id: 'world-ender',
+    name: 'World-Ender',
+    type: 'weapon',
+    rarity: 'legendary',
+    tier: 5,
+    price: 2200,
+    lootOnly: true,
+    statBonuses: { strength: 22 },
+    description: 'The blade fated to sunder the last city. +22 Strength.',
+  },
+  {
+    id: 'cosmic-codex',
+    name: 'Cosmic Codex',
+    type: 'weapon',
+    rarity: 'legendary',
+    tier: 5,
+    price: 2200,
+    lootOnly: true,
+    statBonuses: { wisdom: 22 },
+    description: 'A book that reads its reader. +22 Wisdom.',
+  },
+  {
+    id: 'shadowblade-zenith',
+    name: 'Shadowblade Zenith',
+    type: 'weapon',
+    rarity: 'legendary',
+    tier: 5,
+    price: 2300,
+    lootOnly: true,
+    statBonuses: { strength: 14, agility: 10 },
+    description: 'Twin spectral edges — they strike between heartbeats. +14 Strength, +10 Agility.',
+  },
+  {
+    id: 'crown-of-mind',
+    name: 'Crown of Mind',
+    type: 'weapon',
+    rarity: 'legendary',
+    tier: 5,
+    price: 2300,
+    lootOnly: true,
+    statBonuses: { wisdom: 18, spirit: 12 },
+    description:
+      'A diadem-focus worn at the brow. Magic flows through its bearer. +18 Wisdom, +12 Spirit.',
+  },
+
+  // ── PR3 Armor — Common ─────────────────────────────────────────────────────
+  {
+    id: 'cloth-shirt',
+    name: 'Cloth Shirt',
+    type: 'armor',
+    rarity: 'common',
+    tier: 1,
+    price: 30,
+    statBonuses: { defense: 1, stamina: 1 },
+    description: 'Breathes well. Stops nothing. +1 Defense, +1 Stamina.',
+  },
+  {
+    id: 'studded-jerkin',
+    name: 'Studded Jerkin',
+    type: 'armor',
+    rarity: 'common',
+    tier: 1,
+    price: 40,
+    statBonuses: { defense: 2, agility: 1 },
+    description: 'Iron studs over hardened leather. +2 Defense, +1 Agility.',
+  },
+
+  // ── PR3 Armor — Uncommon ───────────────────────────────────────────────────
+  {
+    id: 'scale-mail',
+    name: 'Scale Mail',
+    type: 'armor',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 115,
+    statBonuses: { defense: 5 },
+    description: 'Overlapping bronze scales. +5 Defense.',
+  },
+  {
+    id: 'mage-vestments',
+    name: 'Mage Vestments',
+    type: 'armor',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 130,
+    statBonuses: { defense: 3, wisdom: 3 },
+    description: 'Embroidered with arcane sigils. +3 Defense, +3 Wisdom.',
+  },
+  {
+    id: 'reflex-leathers',
+    name: 'Reflex Leathers',
+    type: 'armor',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 130,
+    statBonuses: { defense: 3, agility: 3 },
+    description: 'Cut for movement. Light, quiet, quick. +3 Defense, +3 Agility.',
+  },
+
+  // ── PR3 Armor — Rare ───────────────────────────────────────────────────────
+  {
+    id: 'mithril-mail',
+    name: 'Mithril Mail',
+    type: 'armor',
+    rarity: 'rare',
+    tier: 3,
+    price: 350,
+    statBonuses: { defense: 10 },
+    description: 'Featherlight elven mail. +10 Defense.',
+  },
+  {
+    id: 'oracle-robes',
+    name: 'Oracle Robes',
+    type: 'armor',
+    rarity: 'rare',
+    tier: 3,
+    price: 340,
+    statBonuses: { defense: 6, wisdom: 5 },
+    description: 'Worn by the temple seers. +6 Defense, +5 Wisdom.',
+  },
+  {
+    id: 'silent-cloak',
+    name: 'Silent Cloak',
+    type: 'armor',
+    rarity: 'rare',
+    tier: 3,
+    price: 360,
+    statBonuses: { defense: 5, agility: 6 },
+    description: 'Footsteps fade in its hem. +5 Defense, +6 Agility.',
+  },
+
+  // ── PR3 Armor — Epic ───────────────────────────────────────────────────────
+  {
+    id: 'aegis-of-light',
+    name: 'Aegis of Light',
+    type: 'armor',
+    rarity: 'epic',
+    tier: 4,
+    price: 700,
+    statBonuses: { defense: 14, spirit: 4 },
+    description: 'Plate that glows faintly even in shadow. +14 Defense, +4 Spirit.',
+  },
+  {
+    id: 'shadowstep-coat',
+    name: 'Shadowstep Coat',
+    type: 'armor',
+    rarity: 'epic',
+    tier: 4,
+    price: 680,
+    statBonuses: { defense: 10, agility: 8 },
+    description: 'A long coat of woven dusk. +10 Defense, +8 Agility.',
+  },
+
+  // ── PR3 Armor — Legendary ──────────────────────────────────────────────────
+  {
+    id: 'guardian-bulwark',
+    name: 'Guardian Bulwark',
+    type: 'armor',
+    rarity: 'legendary',
+    tier: 5,
+    price: 1900,
+    lootOnly: true,
+    statBonuses: { defense: 22, health: 8 },
+    description: 'Plate forged for a vow that outlived its bearer. +22 Defense, +8 Health.',
+  },
+  {
+    id: 'starfire-vestments',
+    name: 'Starfire Vestments',
+    type: 'armor',
+    rarity: 'legendary',
+    tier: 5,
+    price: 1900,
+    lootOnly: true,
+    statBonuses: { defense: 14, wisdom: 10, spirit: 6 },
+    description: 'Robes woven from caught starfire. +14 Defense, +10 Wisdom, +6 Spirit.',
+  },
+
+  // ── PR3 Accessories — Common ───────────────────────────────────────────────
+  {
+    id: 'speed-anklet',
+    name: 'Speed Anklet',
+    type: 'accessory',
+    rarity: 'common',
+    tier: 1,
+    price: 32,
+    statBonuses: { agility: 2 },
+    description: 'A copper band that quickens the step. +2 Agility.',
+  },
+  {
+    id: 'focus-pebble',
+    name: 'Focus Pebble',
+    type: 'accessory',
+    rarity: 'common',
+    tier: 1,
+    price: 30,
+    statBonuses: { wisdom: 2 },
+    description: 'A river stone polished into a focus. +2 Wisdom.',
+  },
+  {
+    id: 'spirit-pendant',
+    name: 'Spirit Pendant',
+    type: 'accessory',
+    rarity: 'common',
+    tier: 1,
+    price: 32,
+    statBonuses: { spirit: 2 },
+    description: 'A bone carving on a leather thong. +2 Spirit.',
+  },
+
+  // ── PR3 Accessories — Uncommon ─────────────────────────────────────────────
+  {
+    id: 'agility-band',
+    name: 'Agility Band',
+    type: 'accessory',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 100,
+    statBonuses: { agility: 4 },
+    description: 'Tightens the reflexes. +4 Agility.',
+  },
+  {
+    id: 'silver-chalice',
+    name: 'Silver Chalice',
+    type: 'accessory',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 110,
+    statBonuses: { spirit: 3, wisdom: 2 },
+    description: 'A small ceremonial cup, ever-warm. +3 Spirit, +2 Wisdom.',
+  },
+  {
+    id: 'rune-bracelet',
+    name: 'Rune Bracelet',
+    type: 'accessory',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 105,
+    statBonuses: { wisdom: 3, spirit: 2 },
+    description: 'A circle of carved runes. +3 Wisdom, +2 Spirit.',
+  },
+  {
+    id: 'thief-gloves',
+    name: 'Thief Gloves',
+    type: 'accessory',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 105,
+    statBonuses: { strength: 3, agility: 3 },
+    description: 'Soft leather, padded fingertips. +3 Strength, +3 Agility.',
+  },
+
+  // ── PR3 Accessories — Rare ─────────────────────────────────────────────────
+  {
+    id: 'wind-walker-boots',
+    name: 'Wind-Walker Boots',
+    type: 'accessory',
+    rarity: 'rare',
+    tier: 3,
+    price: 300,
+    statBonuses: { agility: 6 },
+    description: 'They leave no print, even in snow. +6 Agility.',
+  },
+  {
+    id: 'sage-circlet',
+    name: 'Sage Circlet',
+    type: 'accessory',
+    rarity: 'rare',
+    tier: 3,
+    price: 310,
+    statBonuses: { wisdom: 5, spirit: 4 },
+    description: 'A silver band that clears the mind. +5 Wisdom, +4 Spirit.',
+  },
+  {
+    id: 'rogues-talisman',
+    name: 'Rogue’s Talisman',
+    type: 'accessory',
+    rarity: 'rare',
+    tier: 3,
+    price: 305,
+    statBonuses: { agility: 5, strength: 4 },
+    description: 'Lucky charm of the thieves’ guild. +5 Agility, +4 Strength.',
+  },
+  {
+    id: 'tortoise-charm',
+    name: 'Tortoise Charm',
+    type: 'accessory',
+    rarity: 'rare',
+    tier: 3,
+    price: 290,
+    statBonuses: { defense: 6, health: 4 },
+    description: 'Carved jade tortoise. Slow, sturdy, eternal. +6 Defense, +4 Health.',
+  },
+
+  // ── PR3 Accessories — Epic ─────────────────────────────────────────────────
+  {
+    id: 'phoenix-feather',
+    name: 'Phoenix Feather',
+    type: 'accessory',
+    rarity: 'epic',
+    tier: 4,
+    price: 640,
+    statBonuses: { spirit: 6, wisdom: 6 },
+    description: 'A single ember-bright plume. +6 Spirit, +6 Wisdom.',
+  },
+  {
+    id: 'storm-stride',
+    name: 'Storm Stride',
+    type: 'accessory',
+    rarity: 'epic',
+    tier: 4,
+    price: 660,
+    statBonuses: { agility: 8, strength: 4 },
+    description: 'Heel-bands that crackle with each step. +8 Agility, +4 Strength.',
+  },
+  {
+    id: 'sigil-of-clarity',
+    name: 'Sigil of Clarity',
+    type: 'accessory',
+    rarity: 'epic',
+    tier: 4,
+    price: 650,
+    statBonuses: { wisdom: 7, spirit: 5 },
+    description: 'A pendant that thins the noise of the world. +7 Wisdom, +5 Spirit.',
+  },
+
+  // ── PR3 Accessories — Legendary ────────────────────────────────────────────
+  {
+    id: 'eye-of-eternity',
+    name: 'Eye of Eternity',
+    type: 'accessory',
+    rarity: 'legendary',
+    tier: 5,
+    price: 1700,
+    lootOnly: true,
+    statBonuses: { spirit: 10, wisdom: 8, agility: 6 },
+    description: 'It sees a moment ahead. +10 Spirit, +8 Wisdom, +6 Agility.',
+  },
+  {
+    id: 'twin-suns-pendant',
+    name: 'Twin Suns Pendant',
+    type: 'accessory',
+    rarity: 'legendary',
+    tier: 5,
+    price: 1700,
+    lootOnly: true,
+    statBonuses: { strength: 10, defense: 10, stamina: 6 },
+    description:
+      'Two golden discs spinning in eternal opposition. +10 Strength, +10 Defense, +6 Stamina.',
+  },
+
+  // ── PR3 Consumables — Epic single-resource ─────────────────────────────────
+  {
+    id: 'arcane-elixir',
+    name: 'Arcane Elixir',
+    type: 'consumable',
+    rarity: 'epic',
+    tier: 4,
+    price: 420,
+    statBonuses: {},
+    effect: { type: 'restore_magic', amount: 120 },
+    description: 'Pure distilled magic. Restores 120 Magic.',
+  },
+  {
+    id: 'titan-elixir',
+    name: 'Titan Elixir',
+    type: 'consumable',
+    rarity: 'epic',
+    tier: 4,
+    price: 380,
+    statBonuses: {},
+    effect: { type: 'restore_stamina', amount: 200 },
+    description: 'A draught that floods the limbs with strength. Restores 200 Stamina.',
+  },
+
+  // ── PR3 Consumables — Legendary HP ─────────────────────────────────────────
+  {
+    id: 'phoenix-draught',
+    name: 'Phoenix Draught',
+    type: 'consumable',
+    rarity: 'legendary',
+    tier: 5,
+    price: 1200,
+    lootOnly: true,
+    statBonuses: {},
+    effect: { type: 'restore_hp', amount: 350 },
+    description: 'Bottled phoenix-fire. Restores 350 HP.',
+  },
+
+  // ── PR3 Consumables — Utility multi-restore ────────────────────────────────
+  {
+    id: 'battle-stim',
+    name: 'Battle Stim',
+    type: 'consumable',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 90,
+    statBonuses: {},
+    effect: {
+      type: 'multi',
+      restores: [
+        { resource: 'hp', amount: 30 },
+        { resource: 'stamina', amount: 30 },
+        { resource: 'magic', amount: 20 },
+      ],
+    },
+    description: 'Field-grade stimulant. Restores 30 HP, 30 Stamina, and 20 Magic.',
+  },
+  {
+    id: 'spirit-tea',
+    name: 'Spirit Tea',
+    type: 'consumable',
+    rarity: 'rare',
+    tier: 3,
+    price: 180,
+    statBonuses: {},
+    effect: {
+      type: 'multi',
+      restores: [
+        { resource: 'hp', amount: 30 },
+        { resource: 'magic', amount: 60 },
+      ],
+    },
+    description: 'Brewed in monasteries from chant-steam. Restores 30 HP and 60 Magic.',
+  },
+  {
+    id: 'sages-brew',
+    name: 'Sage’s Brew',
+    type: 'consumable',
+    rarity: 'epic',
+    tier: 4,
+    price: 360,
+    statBonuses: {},
+    effect: {
+      type: 'multi',
+      restores: [
+        { resource: 'stamina', amount: 60 },
+        { resource: 'magic', amount: 60 },
+      ],
+    },
+    description: 'Bitter, smoke-dark. Restores 60 Stamina and 60 Magic.',
+  },
 ];
 
 const ITEM_MAP = new Map(ITEM_CATALOG.map((item) => [item.id, item]));
 
 export function getItemById(id: string): ItemDef | undefined {
   return ITEM_MAP.get(id);
+}
+
+// ── Consumable-effect formatting helpers ─────────────────────────────────────
+// Single source of truth for how consumable effects render — keeps inventory,
+// shop, and combat surfaces in sync as new effect variants (e.g., `multi`) ship.
+
+const RESOURCE_LABEL = { hp: 'HP', stamina: 'Stamina', magic: 'Magic' } as const;
+const RESOURCE_LABEL_SHORT = { hp: 'HP', stamina: 'Stam', magic: 'Mag' } as const;
+
+/**
+ * Human-readable description of a consumable effect.
+ *  - single-restore  → "+25 HP"
+ *  - multi-restore   → "+30 HP / +30 Stam / +20 Mag"
+ *
+ * `short=true` uses abbreviated resource labels so tight badges still fit.
+ */
+export function describeConsumableEffect(effect: ConsumableEffect, short = false): string {
+  const label: Record<'hp' | 'stamina' | 'magic', string> = short
+    ? RESOURCE_LABEL_SHORT
+    : RESOURCE_LABEL;
+  switch (effect.type) {
+    case 'restore_hp':
+      return `+${effect.amount} ${label.hp}`;
+    case 'restore_stamina':
+      return `+${effect.amount} ${label.stamina}`;
+    case 'restore_magic':
+      return `+${effect.amount} ${label.magic}`;
+    case 'multi':
+      return effect.restores.map((r) => `+${r.amount} ${label[r.resource]}`).join(' / ');
+  }
+}
+
+const RESOURCE_TAILWIND = {
+  hp: 'text-emerald-600',
+  stamina: 'text-amber-600',
+  magic: 'text-violet-600',
+} as const;
+const RESOURCE_HEX = { hp: '#059669', stamina: '#d97706', magic: '#7c3aed' } as const;
+const MIXED_TAILWIND = 'text-sky-600';
+const MIXED_HEX = '#0284c7';
+
+function dominantResource(effect: ConsumableEffect): 'hp' | 'stamina' | 'magic' | 'mixed' {
+  if (effect.type === 'restore_hp') return 'hp';
+  if (effect.type === 'restore_stamina') return 'stamina';
+  if (effect.type === 'restore_magic') return 'magic';
+  return 'mixed';
+}
+
+/** Tailwind color class for the effect's primary resource (or "mixed" for multi). */
+export function consumableEffectColorClass(effect: ConsumableEffect): string {
+  const r = dominantResource(effect);
+  return r === 'mixed' ? MIXED_TAILWIND : RESOURCE_TAILWIND[r];
+}
+
+/** Inline hex color for surfaces that don't render Tailwind utilities (e.g., inline styles). */
+export function consumableEffectColorHex(effect: ConsumableEffect): string {
+  const r = dominantResource(effect);
+  return r === 'mixed' ? MIXED_HEX : RESOURCE_HEX[r];
 }
