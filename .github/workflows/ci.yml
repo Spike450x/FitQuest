@@ -18,6 +18,8 @@ jobs:
     name: Typecheck, Lint, Test
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -72,19 +74,49 @@ jobs:
       - name: Build
         run: npm run build:ci
 
+      - name: Update bundle baseline
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: node scripts/bundle-stats.mjs --write
+
+      - name: Commit baseline if changed
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git diff --quiet docs/bundle-baseline.json || (
+            git add docs/bundle-baseline.json &&
+            git commit -m "chore: update bundle baseline [skip ci]" &&
+            HUSKY=0 git push
+          )
+
       - name: Run E2E suite (composite action)
         id: e2e
         uses: ./.github/actions/run-e2e-suite
 
       # Notify Discord only on failure on master pushes. Keeps PR-channel
       # noise low; deploy-time regressions still ping.
+      - name: Format CI results for Discord
+        id: fmt
+        if: failure() && github.ref == 'refs/heads/master' && github.event_name == 'push'
+        env:
+          RESULTS_PATH: test-results/results.json
+          STATUS: ${{ job.status }}
+          WORKFLOW_NAME: CI
+          GITHUB_BRANCH: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: node scripts/format-playwright-results.mjs
+
       - name: Notify Discord on master failure
         if: failure() && github.ref == 'refs/heads/master' && github.event_name == 'push'
         uses: ./.github/actions/discord-notify
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: ${{ steps.fmt.outputs.title || 'CI Failure' }}
+          description: ${{ steps.fmt.outputs.description }}
+          fields: ${{ steps.fmt.outputs.fields }}
           status: ${{ job.status }}
-          workflow-name: CI
 
       - name: Deploy Firestore rules and indexes
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'

@@ -1,23 +1,32 @@
 name: Discord Notify
 description: |
-  Reads Playwright's JSON report (test-results/results.json) and posts a
-  Discord embed with pass/fail counts, top failures, and a run link.
+  General-purpose Discord embed poster. Callers build title/description/fields
+  themselves; Playwright result formatting lives in scripts/format-playwright-results.mjs.
 
 inputs:
   webhook-url:
     description: Discord webhook URL. Should come from `secrets.DISCORD_WEBHOOK_URL`.
     required: true
+  title:
+    description: Embed heading.
+    required: false
+    default: 'CI Notification'
+  description:
+    description: Body text below the title.
+    required: false
+    default: ''
+  color:
+    description: Embed color as a decimal integer string. If omitted, derived from status.
+    required: false
+    default: ''
+  fields:
+    description: JSON array string of embed fields — [{"name":"…","value":"…","inline":true}].
+    required: false
+    default: '[]'
   status:
-    description: Job status (success / failure / cancelled). Pass the workflow's job.status expression.
-    required: true
-  workflow-name:
-    description: Display name for the embed title.
+    description: Job status (success / failure / cancelled). Auto-selects color when color is omitted.
     required: false
-    default: ${{ github.workflow }}
-  results-path:
-    description: Path to the Playwright JSON report file.
-    required: false
-    default: test-results/results.json
+    default: ''
 
 runs:
   using: composite
@@ -26,9 +35,11 @@ runs:
       shell: bash
       env:
         DISCORD_WEBHOOK_URL: ${{ inputs.webhook-url }}
-        JOB_STATUS: ${{ inputs.status }}
-        WORKFLOW_NAME: ${{ inputs.workflow-name }}
-        RESULTS_PATH: ${{ inputs.results-path }}
+        NOTIFY_TITLE: ${{ inputs.title }}
+        NOTIFY_DESCRIPTION: ${{ inputs.description }}
+        NOTIFY_COLOR: ${{ inputs.color }}
+        NOTIFY_FIELDS: ${{ inputs.fields }}
+        NOTIFY_STATUS: ${{ inputs.status }}
         GITHUB_BRANCH: ${{ github.ref_name }}
         GITHUB_SHA: ${{ github.sha }}
         GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

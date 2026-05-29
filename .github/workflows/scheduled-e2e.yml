@@ -49,10 +49,25 @@ jobs:
           # unconditionally so post-mortem doesn't need a re-run.
           playwright-flags: '--trace=on'
 
+      - name: Format E2E results for Discord
+        id: fmt
+        if: always()
+        env:
+          RESULTS_PATH: test-results/results.json
+          STATUS: ${{ job.status }}
+          WORKFLOW_NAME: Scheduled E2E
+          GITHUB_BRANCH: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: node scripts/format-playwright-results.mjs
+
       - name: Notify Discord (always)
         if: always()
         uses: ./.github/actions/discord-notify
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: ${{ steps.fmt.outputs.title }}
+          description: ${{ steps.fmt.outputs.description }}
+          fields: ${{ steps.fmt.outputs.fields }}
           status: ${{ job.status }}
-          workflow-name: Scheduled E2E
