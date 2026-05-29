@@ -38,6 +38,10 @@ export const LEGENDARY_ITEM_IDS = new Set([
   'eye-of-eternity',
   'twin-suns-pendant',
   'phoenix-draught',
+  // PR4 — Legendary class spells (loot-only)
+  'spell-worldbreaker',
+  'spell-stellar-collapse',
+  'spell-thousand-cuts',
 ]);
 
 /**

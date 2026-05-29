@@ -133,6 +133,43 @@ function calcSiphonDrain(
   return Math.min(raw, playerStamina);
 }
 
+/**
+ * Tick all active spell bleed/burn DoTs on the monster: apply this round's
+ * damage (capped at current HP), decrement each timer, and drop expired entries.
+ * Returns the new monsterHp, the surviving DoT list, total damage dealt, and a
+ * human-readable note. Pure — caller commits the result into FightState.
+ */
+function tickMonsterDots(state: FightState): {
+  monsterHp: number;
+  monsterDots: FightState['monsterDots'];
+  damage: number;
+  note?: string;
+} {
+  const dots = state.monsterDots ?? [];
+  if (dots.length === 0 || state.monsterHp <= 0) {
+    return { monsterHp: state.monsterHp, monsterDots: dots, damage: 0 };
+  }
+  const rawDamage = dots.reduce((sum, d) => sum + d.perRound, 0);
+  const damage = Math.min(rawDamage, state.monsterHp);
+  const survivors = dots
+    .map((d) => ({ ...d, roundsRemaining: d.roundsRemaining - 1 }))
+    .filter((d) => d.roundsRemaining > 0);
+  const note = damage > 0 ? `${state.monster.name} suffers ${damage} bleed damage.` : undefined;
+  return { monsterHp: state.monsterHp - damage, monsterDots: survivors, damage, note };
+}
+
+/**
+ * Add or refresh a spell DoT on the monster. Re-casting the same spell (same
+ * `key`) replaces its prior stack; different spells stack as separate entries.
+ */
+function applyMonsterDot(
+  dots: FightState['monsterDots'],
+  entry: { key: string; label: string; perRound: number; roundsRemaining: number },
+): FightState['monsterDots'] {
+  const others = (dots ?? []).filter((d) => d.key !== entry.key);
+  return [...others, entry];
+}
+
 // ─── Shared input / output shapes ──────────────────────────────────────────────
 
 export interface ActionInput {
@@ -170,6 +207,8 @@ interface PreActionResult {
   notes: string[];
   effectiveMonster: MonsterDef;
   regenAmount: number;
+  /** Spell bleed/burn DoT damage dealt to the monster at the start of this action. */
+  dotDamage: number;
 }
 
 function runPreAction(input: ActionInput): PreActionResult {
@@ -190,12 +229,22 @@ function runPreAction(input: ActionInput): PreActionResult {
     notes.push(`${state.monster.name} regenerates ${regenAmount} HP.`);
   }
 
+  // Spell bleed/burn DoTs tick after the monster's own regen so a bleed can
+  // eat into freshly-regenerated HP. Stacks independently with dungeon venom.
+  const dot = tickMonsterDots(state);
+  if (dot.damage > 0) {
+    state = { ...state, monsterHp: dot.monsterHp, monsterDots: dot.monsterDots };
+    if (dot.note) notes.push(dot.note);
+  } else if ((state.monsterDots?.length ?? 0) > 0) {
+    state = { ...state, monsterDots: dot.monsterDots };
+  }
+
   // Apply permanent active buffs (enrage/harden) before dungeon modifier override.
   const baseEffective = getMonsterEffectiveStats(state.monster, state);
   const effectiveMonster =
     input.modifiers?.effectiveMonster?.(baseEffective, state) ?? baseEffective;
 
-  return { state, notes, effectiveMonster, regenAmount };
+  return { state, notes, effectiveMonster, regenAmount, dotDamage: dot.damage };
 }
 
 function runAbsorb(
@@ -373,6 +422,7 @@ export function resolveAttackAction(
         ? monsterArmorPierce(stateForRound.monster)
         : undefined,
     monsterSummonAddHp: summonAddHp > 0 ? summonAddHp : undefined,
+    monsterDotDamage: pre.dotDamage > 0 ? pre.dotDamage : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -593,6 +643,7 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
         ? monsterArmorPierce(stateForRound.monster)
         : undefined,
     monsterSummonAddHp: summonAddHp > 0 ? summonAddHp : undefined,
+    monsterDotDamage: pre.dotDamage > 0 ? pre.dotDamage : undefined,
     spiritCrit: abilityCrit.crit || undefined,
     spiritCritMultiplier: abilityCrit.crit ? abilityCrit.multiplier : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
@@ -750,6 +801,19 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
 
   const totalSpellHeal = resolution.healAmount + spellSoulDrain;
 
+  // Bleed/burn: apply the spell's DoT to the still-living monster. Keyed by spell
+  // id so re-casting refreshes rather than infinitely stacks the same spell.
+  const dotDef = sm.effect.dotDamage;
+  const nextMonsterDots =
+    resolution.requirementMet && dotDef && monsterHpFinalSpell > 0
+      ? applyMonsterDot(stateForRound.monsterDots, {
+          key: spellDef.id,
+          label: spellDef.name,
+          perRound: dotDef.perRound,
+          roundsRemaining: dotDef.rounds,
+        })
+      : stateForRound.monsterDots;
+
   const interimState: FightState = {
     ...stateForRound,
     monsterHp: monsterHpFinalSpell,
@@ -760,6 +824,7 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     monsterBonusAtk: (stateForRound.monsterBonusAtk ?? 0) + activeResultSpell.bonusAtk,
     monsterBonusDef: (stateForRound.monsterBonusDef ?? 0) + activeResultSpell.bonusDef,
     monsterBonusHp: (stateForRound.monsterBonusHp ?? 0) + summonAddHp,
+    monsterDots: nextMonsterDots,
   };
   const post = runPostRound(input, interimState, 'spell');
   const modifierNotes = [...pre.notes, ...absorb.notes, ...post.notes];
@@ -800,6 +865,7 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
         ? monsterArmorPierce(stateForRound.monster)
         : undefined,
     monsterSummonAddHp: summonAddHp > 0 ? summonAddHp : undefined,
+    monsterDotDamage: pre.dotDamage > 0 ? pre.dotDamage : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 

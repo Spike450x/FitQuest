@@ -12,6 +12,8 @@ export function spellEffectKey(effect: SpellEffect): SpellEffectKey {
   if (effect.stun && effect.heal) return 'stun-heal';
   if (effect.stun) return 'stun';
   if (effect.lifestealPct) return 'lifesteal';
+  // Burn / bleed DoT spells use the crackling fire school (sound + art).
+  if (effect.dotDamage) return 'fire';
   if (effect.bypassMonsterDef && effect.damage) return 'magic-damage';
   if (effect.damage && effect.heal) return 'fire';
   if (effect.damage) return 'damage';

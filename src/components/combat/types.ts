@@ -77,6 +77,8 @@ export interface RoundEntry {
   monsterArmorPierce?: number;
   /** HP added to the monster when `summon-add` active fires. */
   monsterSummonAddHp?: number;
+  /** Total spell bleed/burn DoT damage dealt to the monster at the start of this round. */
+  monsterDotDamage?: number;
   /** Extra free-form log lines surfaced by combat modifiers (venom tick, shield absorb, etc.). */
   modifierNotes?: string[];
 }
@@ -103,6 +105,13 @@ export interface FightState {
   monsterBonusDef?: number;
   /** One-time HP boost the monster received from `summon-add` (raises both cur + cap). */
   monsterBonusHp?: number;
+  /**
+   * Active spell bleed/burn DoTs on the monster. Each ticks `perRound` damage
+   * (bypassing defense) at the start of the player's offensive actions until
+   * `roundsRemaining` reaches 0, then it is dropped. Keyed by spell id so
+   * re-casting the same spell refreshes its entry; different spells stack.
+   */
+  monsterDots?: Array<{ key: string; label: string; perRound: number; roundsRemaining: number }>;
 }
 
 // ─── Pending overlay payloads ───────────────────────────────────────────────────
