@@ -31,4 +31,10 @@ export const GEAR_STAT_BONUSES: Record<string, { stamina?: number; health?: numb
   'scavengers-chain': { stamina: 2 },
   'wraithbound-ring': { stamina: 4 },
   'scale-dragon-king': { health: 4 },
+
+  // ── PR3 content-scaling items ────────────────────────────────────────────────
+  'cloth-shirt': { stamina: 1 },
+  'tortoise-charm': { health: 4 },
+  'guardian-bulwark': { health: 8 },
+  'twin-suns-pendant': { stamina: 6 },
 };

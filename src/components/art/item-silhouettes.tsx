@@ -971,6 +971,800 @@ function GreaterStaminaPotion() {
   );
 }
 
+// ── PR3 ITEMS (per item ID) ──────────────────────────────────────────────────
+// Compact silhouettes for the 56-item content-scaling drop. Each one reuses
+// the existing visual vocabulary (sword/staff/bow/charm for weapons, plate/
+// robe/cloak for armor, anklet/pendant/circlet for accessories, bottle for
+// consumables) with one or two distinguishing details so the item reads
+// at-a-glance on the shop card without bloating the bundle.
+
+// ── PR3 Weapons ───────────────────────────────────────────────────────────────
+
+function WoodenClub() {
+  return (
+    <g fill="currentColor">
+      <path d="M 50 14 C 60 16 64 24 64 40 L 60 60 L 40 60 L 36 40 C 36 24 40 16 50 14 Z" />
+      <rect x="47" y="60" width="6" height="24" rx="2" />
+    </g>
+  );
+}
+
+function ApprenticeWand() {
+  return (
+    <g fill="currentColor">
+      <rect x="48" y="22" width="4" height="60" rx="2" />
+      <path d="M 50 12 L 44 22 L 50 26 L 56 22 Z" />
+      <circle cx="50" cy="18" r="3" className="fill-violet-300" />
+    </g>
+  );
+}
+
+function LeatherSling() {
+  return (
+    <g fill="currentColor">
+      <path d="M 30 24 C 35 50 65 50 70 24" stroke="currentColor" strokeWidth="3" fill="none" />
+      <ellipse cx="50" cy="58" rx="14" ry="9" />
+      <circle cx="50" cy="58" r="5" className="fill-stone-400" />
+    </g>
+  );
+}
+
+function NoviceCharm() {
+  return (
+    <g fill="currentColor">
+      <rect x="48" y="16" width="4" height="14" rx="1" />
+      <path d="M 30 36 L 50 30 L 70 36 L 64 70 L 50 78 L 36 70 Z" />
+      <circle cx="50" cy="50" r="6" className="fill-amber-200" />
+    </g>
+  );
+}
+
+function SteelMace() {
+  return (
+    <g fill="currentColor">
+      <rect x="47" y="44" width="6" height="44" rx="2" />
+      <path d="M 50 12 L 38 22 L 38 38 L 50 48 L 62 38 L 62 22 Z" />
+      <path d="M 42 24 L 50 18 L 58 24 L 58 36 L 50 42 L 42 36 Z" className="fill-white/15" />
+    </g>
+  );
+}
+
+function CrystalStaff() {
+  return (
+    <g fill="currentColor">
+      <rect x="47" y="32" width="6" height="56" rx="3" />
+      <path d="M 50 8 L 38 22 L 44 36 L 56 36 L 62 22 Z" />
+      <path d="M 50 16 L 44 24 L 50 32 L 56 24 Z" className="fill-cyan-300" />
+    </g>
+  );
+}
+
+function Shortbow() {
+  return (
+    <g fill="currentColor">
+      <path d="M 38 20 C 26 38 26 62 38 80 L 41 76 C 32 60 32 40 41 24 Z" />
+      <rect x="38" y="20" width="2" height="60" />
+      <rect x="34" y="46" width="9" height="8" rx="1" />
+    </g>
+  );
+}
+
+function SpiritTotem() {
+  return (
+    <g fill="currentColor">
+      <rect x="42" y="18" width="16" height="64" rx="3" />
+      <circle cx="50" cy="32" r="4" className="fill-amber-200" />
+      <path d="M 42 46 L 58 46 L 56 52 L 44 52 Z" className="fill-white/20" />
+      <circle cx="50" cy="64" r="4" className="fill-emerald-300" />
+    </g>
+  );
+}
+
+function KrisBlade() {
+  return (
+    <g fill="currentColor">
+      <path d="M 50 14 C 46 22 54 28 50 36 C 46 44 54 50 50 58 L 46 62 L 54 62 Z" />
+      <rect x="38" y="62" width="24" height="5" rx="1" />
+      <rect x="47" y="67" width="6" height="14" rx="1" />
+    </g>
+  );
+}
+
+function Flameblade() {
+  return (
+    <g fill="currentColor">
+      <path d="M 50 12 C 52 24 46 30 50 40 C 54 50 48 56 50 64 L 44 60 L 56 60 Z" />
+      <rect x="34" y="60" width="32" height="6" rx="1" />
+      <path d="M 44 22 L 48 16 L 50 26 L 54 18 L 56 30 Z" className="fill-orange-400" />
+      <rect x="47" y="66" width="6" height="16" rx="1" />
+    </g>
+  );
+}
+
+function LightningRod() {
+  return (
+    <g fill="currentColor">
+      <rect x="47" y="30" width="6" height="58" rx="2" />
+      <path d="M 50 8 L 38 28 L 46 28 L 38 44 L 50 30 L 50 22 Z" className="fill-yellow-300" />
+      <ellipse cx="50" cy="32" rx="9" ry="4" />
+    </g>
+  );
+}
+
+function SilverRapier() {
+  return (
+    <g fill="currentColor">
+      <path d="M 50 10 L 48 60 L 50 64 L 52 60 Z" />
+      <path d="M 36 60 C 36 70 50 70 50 64 C 50 70 64 70 64 60 L 60 60 C 60 66 52 66 52 60 L 48 60 C 48 66 40 66 40 60 Z" />
+      <rect x="47" y="68" width="6" height="14" rx="1" />
+      <circle cx="50" cy="84" r="3" />
+    </g>
+  );
+}
+
+function Moonstaff() {
+  return (
+    <g fill="currentColor">
+      <rect x="47" y="32" width="6" height="56" rx="3" />
+      <path d="M 38 22 C 38 10 62 10 62 22 C 62 32 50 36 50 36 C 50 36 38 32 38 22 Z" />
+      <path
+        d="M 42 22 C 42 14 58 14 58 22 C 58 28 50 32 50 32 C 50 32 42 28 42 22 Z"
+        className="fill-slate-100"
+      />
+    </g>
+  );
+}
+
+function StarfallBow() {
+  return (
+    <g fill="currentColor">
+      <path d="M 36 14 C 22 32 22 68 36 86 L 40 82 C 28 66 28 34 40 18 Z" />
+      <rect x="36" y="14" width="2" height="72" />
+      <path
+        d="M 56 38 L 60 42 L 64 38 L 60 44 L 64 50 L 60 46 L 56 50 L 60 44 Z"
+        className="fill-yellow-200"
+      />
+    </g>
+  );
+}
+
+function Soulreaver() {
+  return (
+    <g fill="currentColor">
+      <path d="M 50 8 L 38 60 L 50 66 L 62 60 Z" />
+      <path d="M 46 20 L 50 14 L 54 20 L 50 32 Z" className="fill-purple-500" />
+      <path d="M 30 64 L 38 56 L 62 56 L 70 64 L 62 70 L 38 70 Z" />
+      <rect x="47" y="70" width="6" height="16" rx="1" />
+    </g>
+  );
+}
+
+function AstralTome() {
+  return (
+    <g fill="currentColor">
+      <rect x="24" y="16" width="52" height="70" rx="4" />
+      <rect x="24" y="16" width="8" height="70" rx="3" />
+      <circle cx="52" cy="48" r="14" className="fill-indigo-400" />
+      <circle cx="52" cy="48" r="2" className="fill-white" />
+      <circle cx="44" cy="40" r="1.5" className="fill-white" />
+      <circle cx="60" cy="40" r="1.5" className="fill-white" />
+      <circle cx="56" cy="58" r="1.5" className="fill-white" />
+      <circle cx="42" cy="56" r="1.5" className="fill-white" />
+    </g>
+  );
+}
+
+function Thunderclaws() {
+  return (
+    <g fill="currentColor">
+      <path d="M 32 16 L 28 22 L 46 70 L 50 66 L 50 60 Z" />
+      <path d="M 68 16 L 72 22 L 54 70 L 50 66 L 50 60 Z" />
+      <path d="M 38 36 L 42 30 L 38 42 L 44 38 L 40 50 Z" className="fill-yellow-300" />
+      <path d="M 62 36 L 58 30 L 62 42 L 56 38 L 60 50 Z" className="fill-yellow-300" />
+    </g>
+  );
+}
+
+function SpiritChanneler() {
+  return (
+    <g fill="currentColor">
+      <rect x="47" y="34" width="6" height="54" rx="3" />
+      <path d="M 32 26 C 32 12 50 8 50 8 C 50 8 68 12 68 26 L 60 34 L 40 34 Z" />
+      <ellipse cx="50" cy="22" rx="6" ry="9" className="fill-amber-200" />
+      <path d="M 50 12 L 50 32" stroke="white" strokeOpacity="0.4" strokeWidth="1.5" />
+    </g>
+  );
+}
+
+function WorldEnder() {
+  return (
+    <g fill="currentColor">
+      <path d="M 50 6 L 36 64 L 50 70 L 64 64 Z" />
+      <path d="M 46 14 L 50 8 L 54 14 L 50 36 Z" className="fill-red-400" />
+      <path d="M 24 70 L 34 60 L 66 60 L 76 70 L 66 78 L 34 78 Z" />
+      <path d="M 24 70 L 18 60 L 28 60 Z" />
+      <path d="M 76 70 L 82 60 L 72 60 Z" />
+      <rect x="46" y="78" width="8" height="14" rx="2" />
+      <circle cx="50" cy="92" r="5" />
+    </g>
+  );
+}
+
+function CosmicCodex() {
+  return (
+    <g fill="currentColor">
+      <rect x="20" y="12" width="60" height="78" rx="5" />
+      <rect x="20" y="12" width="10" height="78" rx="3" />
+      <rect x="34" y="20" width="42" height="62" rx="2" />
+      <circle cx="55" cy="40" r="10" className="fill-indigo-500" />
+      <circle cx="55" cy="40" r="15" fill="none" stroke="currentColor" strokeWidth="1" />
+      <circle cx="55" cy="40" r="20" fill="none" stroke="currentColor" strokeWidth="1" />
+      <circle cx="55" cy="40" r="2" className="fill-white" />
+    </g>
+  );
+}
+
+function ShadowbladeZenith() {
+  return (
+    <g fill="currentColor">
+      <path d="M 36 14 L 32 18 L 48 70 L 52 70 L 56 66 Z" />
+      <path d="M 64 14 L 68 18 L 52 70 L 48 70 L 44 66 Z" className="fill-current opacity-80" />
+      <path d="M 26 22 L 38 22 L 36 26 L 28 26 Z" />
+      <path d="M 74 22 L 62 22 L 64 26 L 72 26 Z" />
+      <circle cx="50" cy="80" r="4" className="fill-purple-400" />
+    </g>
+  );
+}
+
+function CrownOfMind() {
+  return (
+    <g fill="currentColor">
+      <rect x="22" y="48" width="56" height="14" rx="2" />
+      <path d="M 22 48 L 30 22 L 38 44 L 50 14 L 62 44 L 70 22 L 78 48 Z" />
+      <circle cx="50" cy="34" r="5" className="fill-amber-300" />
+      <circle cx="30" cy="38" r="3" className="fill-blue-300" />
+      <circle cx="70" cy="38" r="3" className="fill-blue-300" />
+      <rect x="34" y="64" width="32" height="14" rx="2" />
+      <ellipse cx="50" cy="78" rx="14" ry="8" />
+    </g>
+  );
+}
+
+// ── PR3 Armor ─────────────────────────────────────────────────────────────────
+
+function ClothShirt() {
+  return (
+    <g fill="currentColor">
+      <path d="M 32 26 L 50 22 L 68 26 L 70 40 L 68 72 L 50 78 L 32 72 L 30 40 Z" />
+      <path d="M 50 30 L 50 76" stroke="white" strokeOpacity="0.25" strokeWidth="1.5" />
+    </g>
+  );
+}
+
+function StuddedJerkin() {
+  return (
+    <g fill="currentColor">
+      <path d="M 30 26 L 50 20 L 70 26 L 74 42 L 72 72 L 50 80 L 28 72 L 26 42 Z" />
+      <circle cx="40" cy="42" r="1.6" className="fill-stone-300" />
+      <circle cx="50" cy="42" r="1.6" className="fill-stone-300" />
+      <circle cx="60" cy="42" r="1.6" className="fill-stone-300" />
+      <circle cx="40" cy="56" r="1.6" className="fill-stone-300" />
+      <circle cx="50" cy="56" r="1.6" className="fill-stone-300" />
+      <circle cx="60" cy="56" r="1.6" className="fill-stone-300" />
+    </g>
+  );
+}
+
+function ScaleMail() {
+  return (
+    <g fill="currentColor">
+      <path d="M 28 24 L 50 18 L 72 24 L 76 40 L 74 70 L 50 82 L 26 70 L 24 40 Z" />
+      <path
+        d="M 36 36 C 36 32 44 32 44 36 C 44 32 52 32 52 36 C 52 32 60 32 60 36 C 60 32 68 32 68 36"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.3"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M 36 48 C 36 44 44 44 44 48 C 44 44 52 44 52 48 C 52 44 60 44 60 48 C 60 44 68 44 68 48"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.3"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M 36 60 C 36 56 44 56 44 60 C 44 56 52 56 52 60 C 52 56 60 56 60 60 C 60 56 68 56 68 60"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.3"
+        strokeWidth="1.5"
+      />
+    </g>
+  );
+}
+
+function MageVestments() {
+  return (
+    <g fill="currentColor">
+      <path d="M 30 22 L 50 18 L 70 22 L 78 46 L 74 76 L 50 84 L 26 76 L 22 46 Z" />
+      <path d="M 50 18 L 50 84" stroke="white" strokeOpacity="0.35" strokeWidth="2" />
+      <path d="M 50 30 L 44 38 L 50 44 L 56 38 Z" className="fill-indigo-300" />
+      <path d="M 50 52 L 44 60 L 50 66 L 56 60 Z" className="fill-indigo-300" />
+    </g>
+  );
+}
+
+function ReflexLeathers() {
+  return (
+    <g fill="currentColor">
+      <path d="M 32 24 L 50 20 L 68 24 L 72 40 L 70 70 L 50 78 L 30 70 L 28 40 Z" />
+      <path d="M 38 36 L 62 36 L 60 42 L 40 42 Z" className="fill-white/20" />
+      <path d="M 38 52 L 62 52 L 60 58 L 40 58 Z" className="fill-white/20" />
+      <rect x="48" y="40" width="4" height="32" />
+    </g>
+  );
+}
+
+function MithrilMail() {
+  return (
+    <g fill="currentColor">
+      <path d="M 26 22 L 50 16 L 74 22 L 78 42 L 76 72 L 50 84 L 24 72 L 22 42 Z" />
+      <circle
+        cx="40"
+        cy="36"
+        r="2.5"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.4"
+        strokeWidth="1"
+      />
+      <circle
+        cx="50"
+        cy="36"
+        r="2.5"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.4"
+        strokeWidth="1"
+      />
+      <circle
+        cx="60"
+        cy="36"
+        r="2.5"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.4"
+        strokeWidth="1"
+      />
+      <circle
+        cx="45"
+        cy="46"
+        r="2.5"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.4"
+        strokeWidth="1"
+      />
+      <circle
+        cx="55"
+        cy="46"
+        r="2.5"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.4"
+        strokeWidth="1"
+      />
+      <circle
+        cx="40"
+        cy="56"
+        r="2.5"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.4"
+        strokeWidth="1"
+      />
+      <circle
+        cx="50"
+        cy="56"
+        r="2.5"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.4"
+        strokeWidth="1"
+      />
+      <circle
+        cx="60"
+        cy="56"
+        r="2.5"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.4"
+        strokeWidth="1"
+      />
+    </g>
+  );
+}
+
+function OracleRobes() {
+  return (
+    <g fill="currentColor">
+      <path d="M 28 20 L 50 14 L 72 20 L 80 50 L 76 80 L 50 88 L 24 80 L 20 50 Z" />
+      <circle cx="50" cy="40" r="9" className="fill-amber-200" />
+      <circle cx="50" cy="40" r="4" className="fill-current" />
+      <path d="M 50 56 L 50 84" stroke="white" strokeOpacity="0.35" strokeWidth="2" />
+    </g>
+  );
+}
+
+function SilentCloak() {
+  return (
+    <g fill="currentColor">
+      <path d="M 24 18 C 32 28 32 60 24 80 L 50 86 L 76 80 C 68 60 68 28 76 18 L 50 12 Z" />
+      <path d="M 50 12 L 50 86" stroke="black" strokeOpacity="0.35" strokeWidth="2" />
+      <circle cx="50" cy="22" r="3" className="fill-slate-400" />
+    </g>
+  );
+}
+
+function AegisOfLight() {
+  return (
+    <g fill="currentColor">
+      <path d="M 24 22 L 50 14 L 76 22 L 80 44 L 76 76 L 50 88 L 24 76 L 20 44 Z" />
+      <circle cx="50" cy="48" r="14" className="fill-amber-200" />
+      <path
+        d="M 50 38 L 52 46 L 60 46 L 54 51 L 56 59 L 50 54 L 44 59 L 46 51 L 40 46 L 48 46 Z"
+        className="fill-amber-400"
+      />
+    </g>
+  );
+}
+
+function ShadowstepCoat() {
+  return (
+    <g fill="currentColor">
+      <path d="M 24 18 L 50 14 L 76 18 L 78 44 L 74 80 L 50 90 L 26 80 L 22 44 Z" />
+      <path d="M 50 16 L 38 30 L 50 46 L 62 30 Z" className="fill-current opacity-70" />
+      <path
+        d="M 36 60 L 50 70 L 64 60"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.35"
+        strokeWidth="2"
+      />
+    </g>
+  );
+}
+
+function GuardianBulwark() {
+  return (
+    <g fill="currentColor">
+      <path d="M 18 22 L 50 12 L 82 22 L 86 48 L 80 80 L 50 92 L 20 80 L 14 48 Z" />
+      <path
+        d="M 30 32 L 50 24 L 70 32 L 72 50 L 68 70 L 50 80 L 32 70 L 28 50 Z"
+        className="fill-yellow-200"
+      />
+      <circle cx="50" cy="50" r="6" className="fill-current" />
+      <path d="M 50 36 L 56 50 L 50 64 L 44 50 Z" className="fill-current" />
+    </g>
+  );
+}
+
+function StarfireVestments() {
+  return (
+    <g fill="currentColor">
+      <path d="M 22 18 L 50 12 L 78 18 L 84 48 L 78 80 L 50 90 L 22 80 L 16 48 Z" />
+      <circle cx="38" cy="38" r="2" className="fill-yellow-200" />
+      <circle cx="62" cy="34" r="2" className="fill-yellow-200" />
+      <circle cx="50" cy="50" r="3" className="fill-yellow-200" />
+      <circle cx="34" cy="58" r="2" className="fill-yellow-200" />
+      <circle cx="68" cy="60" r="2" className="fill-yellow-200" />
+      <circle cx="46" cy="72" r="2" className="fill-yellow-200" />
+      <circle cx="58" cy="76" r="2" className="fill-yellow-200" />
+      <path d="M 50 30 L 50 84" stroke="white" strokeOpacity="0.3" strokeWidth="1.5" />
+    </g>
+  );
+}
+
+// ── PR3 Accessories ───────────────────────────────────────────────────────────
+
+function SpeedAnklet() {
+  return (
+    <g fill="currentColor">
+      <ellipse cx="50" cy="56" rx="22" ry="10" fill="none" stroke="currentColor" strokeWidth="5" />
+      <path d="M 28 56 L 22 50 L 24 60 Z" className="fill-sky-400" />
+      <path d="M 72 56 L 78 50 L 76 60 Z" className="fill-sky-400" />
+    </g>
+  );
+}
+
+function FocusPebble() {
+  return (
+    <g fill="currentColor">
+      <ellipse cx="50" cy="56" rx="22" ry="16" />
+      <ellipse cx="50" cy="50" rx="14" ry="9" className="fill-blue-300" />
+      <circle cx="48" cy="48" r="3" className="fill-white/60" />
+    </g>
+  );
+}
+
+function SpiritPendant() {
+  return (
+    <g fill="currentColor">
+      <path d="M 32 22 C 38 30 62 30 68 22" fill="none" stroke="currentColor" strokeWidth="2" />
+      <rect x="48" y="22" width="4" height="20" />
+      <path d="M 40 42 L 60 42 L 56 70 L 50 78 L 44 70 Z" />
+      <circle cx="50" cy="56" r="5" className="fill-emerald-300" />
+    </g>
+  );
+}
+
+function AgilityBand() {
+  return (
+    <g fill="currentColor">
+      <ellipse cx="50" cy="56" rx="24" ry="11" fill="none" stroke="currentColor" strokeWidth="6" />
+      <path
+        d="M 28 50 L 32 56 L 28 62"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.5"
+        strokeWidth="2"
+      />
+      <path
+        d="M 72 50 L 68 56 L 72 62"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.5"
+        strokeWidth="2"
+      />
+      <circle cx="50" cy="56" r="3" className="fill-sky-300" />
+    </g>
+  );
+}
+
+function SilverChalice() {
+  return (
+    <g fill="currentColor">
+      <path d="M 32 22 L 68 22 L 64 44 C 64 56 56 60 50 60 C 44 60 36 56 36 44 Z" />
+      <rect x="46" y="60" width="8" height="16" />
+      <ellipse cx="50" cy="80" rx="14" ry="5" />
+      <ellipse cx="50" cy="30" rx="14" ry="4" className="fill-amber-200" />
+    </g>
+  );
+}
+
+function RuneBracelet() {
+  return (
+    <g fill="currentColor">
+      <ellipse cx="50" cy="56" rx="22" ry="14" fill="none" stroke="currentColor" strokeWidth="6" />
+      <circle cx="32" cy="56" r="3" className="fill-indigo-300" />
+      <circle cx="50" cy="44" r="3" className="fill-indigo-300" />
+      <circle cx="68" cy="56" r="3" className="fill-indigo-300" />
+      <circle cx="50" cy="68" r="3" className="fill-indigo-300" />
+    </g>
+  );
+}
+
+function ThiefGloves() {
+  return (
+    <g fill="currentColor">
+      <path d="M 30 30 L 38 24 L 46 30 L 46 70 L 30 70 Z" />
+      <path d="M 70 30 L 62 24 L 54 30 L 54 70 L 70 70 Z" />
+      <rect x="30" y="34" width="16" height="3" className="fill-white/30" />
+      <rect x="54" y="34" width="16" height="3" className="fill-white/30" />
+    </g>
+  );
+}
+
+function WindWalkerBoots() {
+  return (
+    <g fill="currentColor">
+      <path d="M 24 38 L 36 38 L 36 64 L 50 64 L 50 76 L 24 76 Z" />
+      <path d="M 76 38 L 64 38 L 64 64 L 50 64 L 50 76 L 76 76 Z" />
+      <path d="M 18 50 L 26 48 L 24 56 Z" className="fill-sky-300" />
+      <path d="M 82 50 L 74 48 L 76 56 Z" className="fill-sky-300" />
+    </g>
+  );
+}
+
+function SageCirclet() {
+  return (
+    <g fill="currentColor">
+      <path
+        d="M 22 56 C 22 36 78 36 78 56 L 76 60 L 24 60 Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path d="M 22 56 L 78 56" stroke="currentColor" strokeWidth="4" />
+      <path d="M 50 36 L 46 48 L 54 48 Z" className="fill-amber-300" />
+      <circle cx="50" cy="44" r="3" className="fill-amber-200" />
+    </g>
+  );
+}
+
+function RoguesTalisman() {
+  return (
+    <g fill="currentColor">
+      <path d="M 32 22 L 68 22" stroke="currentColor" strokeWidth="2" />
+      <rect x="48" y="22" width="4" height="14" />
+      <path d="M 30 36 L 70 36 L 60 76 L 50 84 L 40 76 Z" />
+      <path d="M 42 48 L 50 56 L 58 48 L 50 68 Z" className="fill-current opacity-80" />
+      <circle cx="50" cy="56" r="3" className="fill-red-400" />
+    </g>
+  );
+}
+
+function TortoiseCharm() {
+  return (
+    <g fill="currentColor">
+      <ellipse cx="50" cy="56" rx="22" ry="16" className="fill-emerald-600" />
+      <ellipse cx="42" cy="50" rx="3" ry="2" className="fill-emerald-300" />
+      <ellipse cx="58" cy="50" rx="3" ry="2" className="fill-emerald-300" />
+      <ellipse cx="50" cy="58" rx="3" ry="2" className="fill-emerald-300" />
+      <ellipse cx="42" cy="62" rx="3" ry="2" className="fill-emerald-300" />
+      <ellipse cx="58" cy="62" rx="3" ry="2" className="fill-emerald-300" />
+      <circle cx="30" cy="56" r="4" />
+      <rect x="38" y="70" width="6" height="6" rx="1" />
+      <rect x="56" y="70" width="6" height="6" rx="1" />
+    </g>
+  );
+}
+
+function PhoenixFeather() {
+  return (
+    <g fill="currentColor">
+      <path
+        d="M 50 12 C 36 24 36 56 42 76 L 50 84 L 58 76 C 64 56 64 24 50 12 Z"
+        className="fill-orange-500"
+      />
+      <path
+        d="M 50 24 C 44 32 44 56 48 70 L 50 76 L 52 70 C 56 56 56 32 50 24 Z"
+        className="fill-yellow-300"
+      />
+      <rect x="48" y="76" width="4" height="14" />
+    </g>
+  );
+}
+
+function StormStride() {
+  return (
+    <g fill="currentColor">
+      <path d="M 22 40 L 38 40 L 38 64 L 52 64 L 52 78 L 22 78 Z" />
+      <path d="M 78 40 L 62 40 L 62 64 L 48 64 L 48 78 L 78 78 Z" />
+      <path d="M 16 52 L 24 48 L 22 54 L 28 56 L 18 60 Z" className="fill-yellow-300" />
+      <path d="M 84 52 L 76 48 L 78 54 L 72 56 L 82 60 Z" className="fill-yellow-300" />
+    </g>
+  );
+}
+
+function SigilOfClarity() {
+  return (
+    <g fill="currentColor">
+      <path d="M 30 22 L 70 22" stroke="currentColor" strokeWidth="2" />
+      <rect x="48" y="22" width="4" height="14" />
+      <circle cx="50" cy="60" r="22" />
+      <circle cx="50" cy="60" r="14" className="fill-cyan-200" />
+      <path d="M 50 48 L 56 56 L 50 60 L 44 56 Z" />
+      <path d="M 50 72 L 56 64 L 50 60 L 44 64 Z" />
+    </g>
+  );
+}
+
+function EyeOfEternity() {
+  return (
+    <g fill="currentColor">
+      <path d="M 30 22 L 70 22" stroke="currentColor" strokeWidth="2" />
+      <rect x="48" y="22" width="4" height="12" />
+      <ellipse cx="50" cy="56" rx="26" ry="18" />
+      <ellipse cx="50" cy="56" rx="18" ry="14" className="fill-indigo-300" />
+      <circle cx="50" cy="56" r="8" className="fill-indigo-700" />
+      <circle cx="50" cy="56" r="3" className="fill-white" />
+      <circle cx="38" cy="50" r="1" className="fill-white" />
+      <circle cx="62" cy="62" r="1" className="fill-white" />
+    </g>
+  );
+}
+
+function TwinSunsPendant() {
+  return (
+    <g fill="currentColor">
+      <path d="M 30 22 L 70 22" stroke="currentColor" strokeWidth="2" />
+      <rect x="48" y="22" width="4" height="14" />
+      <circle cx="40" cy="58" r="14" className="fill-amber-300" />
+      <circle cx="60" cy="58" r="14" className="fill-orange-400" />
+      <circle cx="40" cy="58" r="6" className="fill-amber-500" />
+      <circle cx="60" cy="58" r="6" className="fill-orange-600" />
+    </g>
+  );
+}
+
+// ── PR3 Consumables ───────────────────────────────────────────────────────────
+
+function ArcaneElixir() {
+  return (
+    <g fill="currentColor">
+      <rect x="42" y="12" width="16" height="8" rx="2" />
+      <rect x="46" y="20" width="8" height="6" />
+      <path d="M 32 56 C 32 38 40 28 50 28 C 60 28 68 38 68 56 L 68 76 C 68 84 60 88 50 88 C 40 88 32 84 32 76 Z" />
+      <ellipse cx="50" cy="58" rx="14" ry="20" className="fill-indigo-300" />
+      <circle cx="44" cy="50" r="2" className="fill-white" />
+      <circle cx="56" cy="64" r="2" className="fill-white" />
+      <circle cx="48" cy="70" r="1.5" className="fill-white" />
+    </g>
+  );
+}
+
+function TitanElixir() {
+  return (
+    <g fill="currentColor">
+      <rect x="40" y="10" width="20" height="10" rx="2" />
+      <rect x="44" y="20" width="12" height="6" />
+      <path d="M 26 60 C 26 36 36 26 50 26 C 64 26 74 36 74 60 L 74 78 C 74 86 64 90 50 90 C 36 90 26 86 26 78 Z" />
+      <ellipse cx="50" cy="60" rx="18" ry="22" className="fill-amber-400" />
+      <path d="M 50 40 L 46 56 L 52 56 L 48 70 L 54 56 L 50 56 Z" className="fill-yellow-200" />
+    </g>
+  );
+}
+
+function PhoenixDraught() {
+  return (
+    <g fill="currentColor">
+      <rect x="40" y="8" width="20" height="10" rx="2" />
+      <path d="M 50 18 C 40 24 38 30 42 36 C 38 30 50 22 50 18 Z" className="fill-orange-300" />
+      <path d="M 30 58 C 30 36 40 24 50 24 C 60 24 70 36 70 58 L 70 78 C 70 86 60 90 50 90 C 40 90 30 86 30 78 Z" />
+      <ellipse cx="50" cy="60" rx="16" ry="22" className="fill-orange-400" />
+      <path
+        d="M 50 36 C 44 46 44 60 46 70 L 50 76 L 54 70 C 56 60 56 46 50 36 Z"
+        className="fill-yellow-200"
+      />
+    </g>
+  );
+}
+
+function BattleStim() {
+  return (
+    <g fill="currentColor">
+      <rect x="44" y="14" width="12" height="8" rx="1" />
+      <rect x="46" y="22" width="8" height="4" />
+      <rect x="38" y="26" width="24" height="50" rx="3" />
+      <rect x="38" y="40" width="24" height="6" className="fill-emerald-400" />
+      <rect x="38" y="50" width="24" height="6" className="fill-amber-400" />
+      <rect x="38" y="60" width="24" height="6" className="fill-violet-400" />
+    </g>
+  );
+}
+
+function SpiritTea() {
+  return (
+    <g fill="currentColor">
+      <ellipse cx="50" cy="38" rx="20" ry="6" />
+      <path d="M 30 38 C 30 60 36 76 50 80 C 64 76 70 60 70 38 Z" />
+      <path d="M 70 44 C 80 44 82 60 70 64" fill="none" stroke="currentColor" strokeWidth="4" />
+      <ellipse cx="50" cy="38" rx="14" ry="3" className="fill-emerald-300" />
+      <path
+        d="M 46 18 C 44 24 48 28 50 22 C 52 28 56 24 54 18"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+    </g>
+  );
+}
+
+function SagesBrew() {
+  return (
+    <g fill="currentColor">
+      <rect x="42" y="12" width="16" height="8" rx="2" />
+      <rect x="46" y="20" width="8" height="4" />
+      <path d="M 30 56 C 30 38 38 28 50 28 C 62 28 70 38 70 56 L 70 76 C 70 84 62 88 50 88 C 38 88 30 84 30 76 Z" />
+      <ellipse cx="50" cy="50" rx="16" ry="8" className="fill-amber-400" />
+      <ellipse cx="50" cy="68" rx="16" ry="8" className="fill-violet-400" />
+      <path d="M 34 58 L 66 58" stroke="white" strokeOpacity="0.5" strokeWidth="2" />
+    </g>
+  );
+}
+
 export const ITEM_SILHOUETTES: Record<string, () => React.ReactNode> = {
   // Type-level fallbacks
   weapon: ItemWeapon,
@@ -1040,4 +1834,68 @@ export const ITEM_SILHOUETTES: Record<string, () => React.ReactNode> = {
   'minor-stamina-potion': MinorStaminaPotion,
   'stamina-potion': StaminaPotion,
   'greater-stamina-potion': GreaterStaminaPotion,
+
+  // PR3 Weapons
+  'wooden-club': WoodenClub,
+  'apprentice-wand': ApprenticeWand,
+  'leather-sling': LeatherSling,
+  'novice-charm': NoviceCharm,
+  'steel-mace': SteelMace,
+  'crystal-staff': CrystalStaff,
+  shortbow: Shortbow,
+  'spirit-totem': SpiritTotem,
+  'kris-blade': KrisBlade,
+  flameblade: Flameblade,
+  'lightning-rod': LightningRod,
+  'silver-rapier': SilverRapier,
+  moonstaff: Moonstaff,
+  'starfall-bow': StarfallBow,
+  soulreaver: Soulreaver,
+  'astral-tome': AstralTome,
+  thunderclaws: Thunderclaws,
+  'spirit-channeler': SpiritChanneler,
+  'world-ender': WorldEnder,
+  'cosmic-codex': CosmicCodex,
+  'shadowblade-zenith': ShadowbladeZenith,
+  'crown-of-mind': CrownOfMind,
+
+  // PR3 Armor
+  'cloth-shirt': ClothShirt,
+  'studded-jerkin': StuddedJerkin,
+  'scale-mail': ScaleMail,
+  'mage-vestments': MageVestments,
+  'reflex-leathers': ReflexLeathers,
+  'mithril-mail': MithrilMail,
+  'oracle-robes': OracleRobes,
+  'silent-cloak': SilentCloak,
+  'aegis-of-light': AegisOfLight,
+  'shadowstep-coat': ShadowstepCoat,
+  'guardian-bulwark': GuardianBulwark,
+  'starfire-vestments': StarfireVestments,
+
+  // PR3 Accessories
+  'speed-anklet': SpeedAnklet,
+  'focus-pebble': FocusPebble,
+  'spirit-pendant': SpiritPendant,
+  'agility-band': AgilityBand,
+  'silver-chalice': SilverChalice,
+  'rune-bracelet': RuneBracelet,
+  'thief-gloves': ThiefGloves,
+  'wind-walker-boots': WindWalkerBoots,
+  'sage-circlet': SageCirclet,
+  'rogues-talisman': RoguesTalisman,
+  'tortoise-charm': TortoiseCharm,
+  'phoenix-feather': PhoenixFeather,
+  'storm-stride': StormStride,
+  'sigil-of-clarity': SigilOfClarity,
+  'eye-of-eternity': EyeOfEternity,
+  'twin-suns-pendant': TwinSunsPendant,
+
+  // PR3 Consumables
+  'arcane-elixir': ArcaneElixir,
+  'titan-elixir': TitanElixir,
+  'phoenix-draught': PhoenixDraught,
+  'battle-stim': BattleStim,
+  'spirit-tea': SpiritTea,
+  'sages-brew': SagesBrew,
 };

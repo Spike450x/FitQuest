@@ -350,22 +350,39 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     const { updateCurrentHp, updateCurrentStamina, updateCurrentMagic } =
       useCharacterStore.getState();
 
-    if (def.effect.type === 'restore_hp') {
-      const newHp = Math.min(currentHp + def.effect.amount, maxHp);
-      hpGained = newHp - currentHp;
-      if (hpGained > 0) await updateCurrentHp(newHp);
-    } else if (def.effect.type === 'restore_stamina') {
-      const newStamina = Math.min(currentStamina + def.effect.amount, maxStamina);
-      staminaGained = newStamina - currentStamina;
-      if (staminaGained > 0) await updateCurrentStamina(newStamina);
-    } else if (def.effect.type === 'restore_magic') {
-      const character = useCharacterStore.getState().character;
-      const resolvedMax = maxMagic ?? (character ? playerMaxMagic(character) : 20);
-      const resolvedCurrent = currentMagic ?? 0;
-      const newMagic = Math.min(resolvedCurrent + def.effect.amount, resolvedMax);
-      magicGained = newMagic - resolvedCurrent;
-      if (magicGained > 0) await updateCurrentMagic(newMagic);
+    // Resolve current magic + max once for both single and multi paths.
+    const character = useCharacterStore.getState().character;
+    const resolvedMaxMagic = maxMagic ?? (character ? playerMaxMagic(character) : 20);
+    const resolvedCurrentMagic = currentMagic ?? 0;
+
+    // Per-resource pending totals — written to Firestore exactly once at the end,
+    // so a multi-restore drinks in a single document update instead of three.
+    let pendingHp = currentHp;
+    let pendingStamina = currentStamina;
+    let pendingMagic = resolvedCurrentMagic;
+
+    const applyStep = (resource: 'hp' | 'stamina' | 'magic', amount: number) => {
+      if (amount <= 0) return;
+      if (resource === 'hp') pendingHp = Math.min(pendingHp + amount, maxHp);
+      else if (resource === 'stamina')
+        pendingStamina = Math.min(pendingStamina + amount, maxStamina);
+      else pendingMagic = Math.min(pendingMagic + amount, resolvedMaxMagic);
+    };
+
+    if (def.effect.type === 'restore_hp') applyStep('hp', def.effect.amount);
+    else if (def.effect.type === 'restore_stamina') applyStep('stamina', def.effect.amount);
+    else if (def.effect.type === 'restore_magic') applyStep('magic', def.effect.amount);
+    else if (def.effect.type === 'multi') {
+      for (const step of def.effect.restores) applyStep(step.resource, step.amount);
     }
+
+    hpGained = pendingHp - currentHp;
+    staminaGained = pendingStamina - currentStamina;
+    magicGained = pendingMagic - resolvedCurrentMagic;
+
+    if (hpGained > 0) await updateCurrentHp(pendingHp);
+    if (staminaGained > 0) await updateCurrentStamina(pendingStamina);
+    if (magicGained > 0) await updateCurrentMagic(pendingMagic);
 
     // Consume one from the stack; delete the doc only when quantity reaches 0
     if (invItem.quantity > 1) {
