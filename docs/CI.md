@@ -95,6 +95,30 @@ All third-party actions are pinned to a **commit SHA** with a trailing `# vX.Y.Z
 
 Tags can be moved; commits cannot. Pinning to a SHA defends against an attacker compromising a tag and pushing a malicious workflow into our run. Dependabot reads the trailing tag comment to know what version to bump us to (see Dependabot section below).
 
+### Bundle Gate (`.github/workflows/bundle-gate.yml`)
+
+Runs on every **PR** targeting `master`. Builds the app and compares `.next/static/` sizes against the committed baseline in `docs/bundle-baseline.json`.
+
+**Regression threshold:** >10% JS growth fails the check and posts an orange Discord warning embed. CSS deltas are logged but never block. The threshold constant (`REGRESSION_THRESHOLD_PCT`) lives at the top of `scripts/bundle-stats.mjs`.
+
+**Baseline missing:** if `docs/bundle-baseline.json` doesn't exist yet (first PR after the feature was introduced), `--compare` exits 0 with a warning — no false failure.
+
+**Updating the baseline:** run this locally whenever you intentionally add something that will grow the bundle (new heavy dependency, large new route), then commit the result as part of your PR:
+
+```bash
+npm run build:ci
+node scripts/bundle-stats.mjs --write
+git add docs/bundle-baseline.json
+```
+
+You don't need to do this on every PR — only when the bundle-gate fails and the growth is intentional. If you don't update the baseline, the PR check will tell you by failing.
+
+### Deploy Announce (`.github/workflows/deploy-announce.yml`)
+
+Triggered via `workflow_run` after the `CI` workflow **completes successfully** on `master`. Posts a green Discord embed with the PR title, author, short SHA, files-changed count, and a link to the CI run.
+
+Fires only on genuine deploys — PRs, the scheduled E2E, and baseline-update commits (`[skip ci]`) never trigger it. Requires `DISCORD_WEBHOOK_URL` secret.
+
 ### Scheduled E2E (`.github/workflows/scheduled-e2e.yml`)
 
 A separate workflow that runs the full E2E suite on a daily cadence — independent of feature pushes — so regressions in flaky flows, seeded fixtures, or time-dependent code paths are surfaced even when no one pushed code that day.
@@ -244,6 +268,7 @@ These are _separate_ from the version-bump config above and are toggled in **Set
 | Unauthenticated routing regression (protected route stops redirecting)                    | E2E smoke tests (CI)                                      |
 | Login / register page regression (form fields, accessibility attributes)                  | E2E smoke tests (CI)                                      |
 | Authenticated game-route regression (heading missing, broken layout, 500 on render)       | E2E authenticated tests (CI, emulator-backed)             |
+| JS bundle grows >10% vs baseline                                                          | Bundle Gate (PR only)                                     |
 | Direct push to `master`                                                                   | pre-push (local) + branch protection (GitHub)             |
 | Compromised third-party action                                                            | SHA pinning + `permissions: contents: read`               |
 | New high/critical CVE in a dependency                                                     | `scripts/audit-check.mjs` (blocking root + functions, CI) |
