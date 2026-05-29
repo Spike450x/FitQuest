@@ -17,7 +17,7 @@ import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
 import { getActivityIconSvg } from '@/lib/activityIcons';
 import { LogActivityIcon, CombatIcon, QuestIcon, ShopIcon } from '@/components/art/action-icons';
-import { StrengthIcon, WisdomIcon, AgilityIcon } from '@/components/art/stat-icons';
+import { StrengthIcon, WisdomIcon, AgilityIcon, SpiritIcon } from '@/components/art/stat-icons';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { StatAllocModal } from '@/components/character/StatAllocModal';
 import { SubclassModal } from '@/components/character/SubclassModal';
@@ -71,6 +71,13 @@ const STAT_CONFIG = [
     label: 'Agility',
     icon: <AgilityIcon className="w-4 h-4 text-teal-500" />,
     color: 'bg-teal-400',
+    max: 50,
+  },
+  {
+    key: 'spirit' as const,
+    label: 'Spirit',
+    icon: <SpiritIcon className="w-4 h-4 text-violet-500" />,
+    color: 'bg-violet-400',
     max: 50,
   },
 ];
@@ -250,7 +257,7 @@ export default function DashboardPage() {
           </h3>
           <div className="space-y-3">
             {STAT_CONFIG.map(({ key, label, icon, color, max }) => {
-              const base = character.stats[key];
+              const base = character.stats[key] ?? 0;
               const bonus = gearBonuses[key] ?? 0;
               return (
                 <StatBar

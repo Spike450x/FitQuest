@@ -12,6 +12,7 @@ import {
   StaminaIcon,
   HealthIcon,
   DefenseIcon,
+  SpiritIcon,
 } from '@/components/art/stat-icons';
 
 export default function CharacterPage() {
@@ -53,6 +54,7 @@ export default function CharacterPage() {
                 ['Strength', classDef.statMultipliers.strength],
                 ['Wisdom', classDef.statMultipliers.wisdom],
                 ['Agility', classDef.statMultipliers.agility],
+                ['Spirit', classDef.statMultipliers.spirit],
                 ['Stamina', classDef.statMultipliers.stamina],
                 ['Health', classDef.statMultipliers.health],
                 ['Defense', classDef.statMultipliers.defense],
@@ -118,6 +120,12 @@ export default function CharacterPage() {
                 color: 'text-indigo-500',
                 label: 'Defense',
                 desc: 'Increases from workouts and sleep. Reduces damage from monster attacks. Has a 25% chance to be bypassed each round.',
+              },
+              {
+                Icon: SpiritIcon,
+                color: 'text-violet-500',
+                label: 'Spirit',
+                desc: 'Increases from meditation. Each point adds +1% spell and ability crit chance (cap 40%) and +0.5% crit damage (cap +25%).',
               },
             ].map(({ Icon, color, label, desc }) => (
               <div key={label} className="flex items-start gap-2.5">

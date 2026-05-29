@@ -7,10 +7,10 @@ import { StatBar } from './StatBar';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { getItemById, RARITY_TEXT } from '@/lib/gameLogic/items';
-import { StrengthIcon, WisdomIcon, AgilityIcon } from '@/components/art/stat-icons';
+import { StrengthIcon, WisdomIcon, AgilityIcon, SpiritIcon } from '@/components/art/stat-icons';
 import type { Character, CharacterClass } from '@/types';
 
-// The three primary combat stats shown as bars
+// The four primary combat stats shown as bars
 const STAT_CONFIG = [
   {
     key: 'strength' as const,
@@ -29,6 +29,12 @@ const STAT_CONFIG = [
     label: 'Agility',
     icon: <AgilityIcon className="w-4 h-4 text-teal-500" />,
     color: 'bg-teal-400',
+  },
+  {
+    key: 'spirit' as const,
+    label: 'Spirit',
+    icon: <SpiritIcon className="w-4 h-4 text-violet-500" />,
+    color: 'bg-violet-400',
   },
 ];
 

@@ -51,9 +51,11 @@ export function ClassSelector({ selected, onSelect }: ClassSelectorProps) {
               {(
                 [
                   ['STR', def.startingStats.strength],
+                  ['WIS', def.startingStats.wisdom],
+                  ['AGI', def.startingStats.agility],
+                  ['SPR', def.startingStats.spirit],
                   ['STA', def.startingStats.stamina],
                   ['HP', def.startingStats.health],
-                  ['WIS', def.startingStats.wisdom],
                 ] as [string, number][]
               ).map(([label, val]) => (
                 <div key={label} className="flex justify-between text-xs">
