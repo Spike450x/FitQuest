@@ -158,7 +158,7 @@ export type SpellDiceRequirementType =
 
 export interface SpellDiceRequirement {
   type: SpellDiceRequirementType;
-  diceCount: number; // how many d6 to roll (2, 3, or 4)
+  diceCount: number; // how many d6 to roll (2–5; legendaries may use 5)
   value?: number; // for sum_gte: the minimum sum; for exact_value: the face required
   length?: number; // for straight: how many consecutive values needed (default 3)
 }
@@ -176,6 +176,15 @@ export interface SpellEffect {
   defenseScalesWithWisdom?: boolean; // if true, adds character.stats.wisdom to defenseBoost
   bypassMonsterDef?: boolean; // monster defense is ignored when dealing spell damage
   lifestealPct?: number; // fraction (0–1) of damage dealt returned as HP
+  /**
+   * Damage-over-time applied to the monster (bleed / burn). On a successful cast
+   * the monster gains a DoT that ticks `perRound` damage (bypassing defense) at
+   * the start of each of the player's subsequent offensive rounds, for `rounds`
+   * rounds. Tracked on `FightState.monsterDots` keyed by spell id — re-casting the
+   * same spell refreshes its own stack; different spells (and dungeon venom) stack
+   * independently. Works in both arena and dungeon combat.
+   */
+  dotDamage?: { perRound: number; rounds: number };
 }
 
 /** All configuration needed to cast and resolve a spell in combat. */

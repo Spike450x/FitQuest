@@ -1690,6 +1690,274 @@ export const ITEM_CATALOG: ItemDef[] = [
     },
     description: 'Bitter, smoke-dark. Restores 60 Stamina and 60 Magic.',
   },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Content-scaling PR4 — 14 new spells (35-spell catalog).
+  // Introduces the `dotDamage` bleed/burn SpellEffect (ticks each offensive round,
+  // bypassing defense, stacks with dungeon venom). 11 buyable spells grow the
+  // weekly shop rotation; 3 legendary class spells are loot-only and drop from
+  // the Ancient Dragon King + the L11–14 arena monsters.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // ── PR4 Spells — Generic (all classes) ────────────────────────────────────
+  {
+    id: 'spell-cinder-spark',
+    name: 'Cinder Spark',
+    type: 'spell',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 110,
+    statBonuses: {},
+    description:
+      'A spark that catches and smoulders. +8 + WIS damage, then burns for 5/round (3 rounds).',
+    spellMechanics: {
+      requirement: { type: 'sum_gte', diceCount: 2, value: 7 },
+      effect: { damage: 8, damageScalesWithWisdom: true, dotDamage: { perRound: 5, rounds: 3 } },
+      magicCost: 3,
+      classRestriction: 'all',
+    },
+  },
+  {
+    id: 'spell-soothing-light',
+    name: 'Soothing Light',
+    type: 'spell',
+    rarity: 'uncommon',
+    tier: 2,
+    price: 95,
+    statBonuses: {},
+    description: 'A warm glow that mends and steadies. Restores 35 + WIS HP and 15 Stamina.',
+    spellMechanics: {
+      requirement: { type: 'sum_gte', diceCount: 2, value: 8 },
+      effect: { heal: 35, healScalesWithWisdom: true, restoreStamina: 15 },
+      magicCost: 3,
+      classRestriction: 'all',
+    },
+  },
+  {
+    id: 'spell-emberstorm',
+    name: 'Emberstorm',
+    type: 'spell',
+    rarity: 'rare',
+    tier: 3,
+    price: 190,
+    statBonuses: {},
+    description: 'A whirl of burning cinders. +18 + WIS damage, then burns for 8/round (3 rounds).',
+    spellMechanics: {
+      requirement: { type: 'pair', diceCount: 3 },
+      effect: { damage: 18, damageScalesWithWisdom: true, dotDamage: { perRound: 8, rounds: 3 } },
+      magicCost: 4,
+      classRestriction: 'all',
+    },
+  },
+  {
+    id: 'spell-radiant-bulwark',
+    name: 'Radiant Bulwark',
+    type: 'spell',
+    rarity: 'rare',
+    tier: 3,
+    price: 200,
+    statBonuses: {},
+    description: 'A shield of holy light. Restores 50 + WIS HP and grants +10 Defense this round.',
+    spellMechanics: {
+      requirement: { type: 'straight', diceCount: 3, length: 3 },
+      effect: { heal: 50, healScalesWithWisdom: true, defenseBoost: 10 },
+      magicCost: 5,
+      classRestriction: 'all',
+    },
+  },
+  {
+    id: 'spell-cataclysm',
+    name: 'Cataclysm',
+    type: 'spell',
+    rarity: 'epic',
+    tier: 4,
+    price: 520,
+    statBonuses: {},
+    description:
+      'Rain ruin on your foe. +35 + WIS damage, bypasses defense, then burns for 10/round (2 rounds).',
+    spellMechanics: {
+      requirement: { type: 'three_of_a_kind', diceCount: 4 },
+      effect: {
+        damage: 35,
+        damageScalesWithWisdom: true,
+        bypassMonsterDef: true,
+        dotDamage: { perRound: 10, rounds: 2 },
+      },
+      magicCost: 6,
+      classRestriction: 'all',
+    },
+  },
+  {
+    id: 'spell-divine-sanctuary',
+    name: 'Divine Sanctuary',
+    type: 'spell',
+    rarity: 'epic',
+    tier: 4,
+    price: 520,
+    statBonuses: {},
+    description:
+      'A sanctum of light — heal, stun, and shield. Restores 90 + WIS HP, stuns, +12 Defense this round.',
+    spellMechanics: {
+      requirement: { type: 'three_of_a_kind', diceCount: 4 },
+      effect: { heal: 90, healScalesWithWisdom: true, stun: true, defenseBoost: 12 },
+      magicCost: 6,
+      classRestriction: 'all',
+    },
+  },
+
+  // ── PR4 Spells — Warrior ──────────────────────────────────────────────────
+  {
+    id: 'spell-rending-cleave',
+    name: 'Rending Cleave',
+    type: 'spell',
+    rarity: 'rare',
+    tier: 3,
+    price: 210,
+    statBonuses: {},
+    description:
+      'A cleave that opens deep wounds. +22 damage, then bleeds for 8/round (3 rounds). (Warrior only)',
+    spellMechanics: {
+      requirement: { type: 'exact_value', diceCount: 3, value: 5 },
+      effect: { damage: 22, dotDamage: { perRound: 8, rounds: 3 } },
+      magicCost: 4,
+      classRestriction: 'warrior',
+    },
+  },
+  {
+    id: 'spell-seismic-slam',
+    name: 'Seismic Slam',
+    type: 'spell',
+    rarity: 'epic',
+    tier: 4,
+    price: 520,
+    statBonuses: {},
+    description:
+      'Shatter the ground beneath your foe. +38 damage, stuns, then bleeds for 9/round (2 rounds). (Warrior only)',
+    spellMechanics: {
+      requirement: { type: 'three_of_a_kind', diceCount: 4 },
+      effect: { damage: 38, stun: true, dotDamage: { perRound: 9, rounds: 2 } },
+      magicCost: 6,
+      classRestriction: 'warrior',
+    },
+  },
+
+  // ── PR4 Spells — Wizard ───────────────────────────────────────────────────
+  {
+    id: 'spell-incinerate',
+    name: 'Incinerate',
+    type: 'spell',
+    rarity: 'rare',
+    tier: 3,
+    price: 210,
+    statBonuses: {},
+    description:
+      'Set your foe ablaze. +16 + WIS damage, then burns hard for 12/round (3 rounds). (Wizard only)',
+    spellMechanics: {
+      requirement: { type: 'pair', diceCount: 3 },
+      effect: { damage: 16, damageScalesWithWisdom: true, dotDamage: { perRound: 12, rounds: 3 } },
+      magicCost: 4,
+      classRestriction: 'wizard',
+    },
+  },
+  {
+    id: 'spell-glacial-prison',
+    name: 'Glacial Prison',
+    type: 'spell',
+    rarity: 'epic',
+    tier: 4,
+    price: 540,
+    statBonuses: {},
+    description:
+      'Entomb your foe in ice. +30 + WIS damage, bypasses defense, and stuns. (Wizard only)',
+    spellMechanics: {
+      requirement: { type: 'three_of_a_kind', diceCount: 4 },
+      effect: { damage: 30, damageScalesWithWisdom: true, bypassMonsterDef: true, stun: true },
+      magicCost: 7,
+      classRestriction: 'wizard',
+    },
+  },
+
+  // ── PR4 Spells — Rogue ────────────────────────────────────────────────────
+  {
+    id: 'spell-rupture',
+    name: 'Rupture',
+    type: 'spell',
+    rarity: 'rare',
+    tier: 3,
+    price: 210,
+    statBonuses: {},
+    description:
+      'A vicious cut that won’t clot. +20 damage, bleeds for 7/round (3 rounds), 30% lifesteal. (Rogue only)',
+    spellMechanics: {
+      requirement: { type: 'straight', diceCount: 3, length: 3 },
+      effect: { damage: 20, dotDamage: { perRound: 7, rounds: 3 }, lifestealPct: 0.3 },
+      magicCost: 4,
+      classRestriction: 'rogue',
+    },
+  },
+
+  // ── PR4 Spells — Legendary (loot-only, drop from Dragon King + L11–14) ─────
+  // When adding a legendary spell, also update LEGENDARY_ITEM_IDS in
+  // functions/src/gameLogic/achievements.ts — the parity test will catch drift.
+  {
+    id: 'spell-worldbreaker',
+    name: 'Worldbreaker',
+    type: 'spell',
+    rarity: 'legendary',
+    tier: 5,
+    price: 1500,
+    lootOnly: true,
+    statBonuses: {},
+    description:
+      'The strike that ends sieges. +60 damage, bypasses defense, and stuns. (Warrior only)',
+    spellMechanics: {
+      requirement: { type: 'straight', diceCount: 4, length: 4 },
+      effect: { damage: 60, bypassMonsterDef: true, stun: true },
+      magicCost: 8,
+      classRestriction: 'warrior',
+    },
+  },
+  {
+    id: 'spell-stellar-collapse',
+    name: 'Stellar Collapse',
+    type: 'spell',
+    rarity: 'legendary',
+    tier: 5,
+    price: 1500,
+    lootOnly: true,
+    statBonuses: {},
+    description:
+      'Collapse a dying star onto your foe. +50 + WIS damage, bypasses defense, then burns for 10/round (3 rounds). (Wizard only)',
+    spellMechanics: {
+      requirement: { type: 'three_of_a_kind', diceCount: 5 },
+      effect: {
+        damage: 50,
+        damageScalesWithWisdom: true,
+        bypassMonsterDef: true,
+        dotDamage: { perRound: 10, rounds: 3 },
+      },
+      magicCost: 9,
+      classRestriction: 'wizard',
+    },
+  },
+  {
+    id: 'spell-thousand-cuts',
+    name: 'Thousand Cuts',
+    type: 'spell',
+    rarity: 'legendary',
+    tier: 5,
+    price: 1500,
+    lootOnly: true,
+    statBonuses: {},
+    description:
+      'A blur of blades — each one drinks. +35 damage, 60% lifesteal, then bleeds for 8/round (3 rounds). (Rogue only)',
+    spellMechanics: {
+      requirement: { type: 'pair', diceCount: 4 },
+      effect: { damage: 35, lifestealPct: 0.6, dotDamage: { perRound: 8, rounds: 3 } },
+      magicCost: 7,
+      classRestriction: 'rogue',
+    },
+  },
 ];
 
 const ITEM_MAP = new Map(ITEM_CATALOG.map((item) => [item.id, item]));
