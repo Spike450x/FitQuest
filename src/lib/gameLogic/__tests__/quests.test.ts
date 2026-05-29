@@ -37,13 +37,29 @@ describe('Quest pools', () => {
   it('daily pool covers all activity types with multiple variants', () => {
     const types = new Set(DAILY_QUEST_POOL.map((q) => q.requirement.activityType));
     expect(types.size).toBe(7);
-    expect(DAILY_QUEST_POOL.length).toBeGreaterThanOrEqual(24);
+    // PR5 expansion brought the pool to 61 (was 34).
+    expect(DAILY_QUEST_POOL.length).toBeGreaterThanOrEqual(60);
   });
 
   it('weekly pool covers all activity types with multiple variants', () => {
     const types = new Set(WEEKLY_QUEST_POOL.map((q) => q.requirement.activityType));
     expect(types.size).toBe(7);
-    expect(WEEKLY_QUEST_POOL.length).toBeGreaterThanOrEqual(10);
+    // PR5 expansion brought the pool to 31 (was 17).
+    expect(WEEKLY_QUEST_POOL.length).toBeGreaterThanOrEqual(30);
+  });
+
+  it('every quest grants positive xp and gold', () => {
+    for (const q of [...DAILY_QUEST_POOL, ...WEEKLY_QUEST_POOL]) {
+      expect(q.rewards.xp, `${q.id} xp`).toBeGreaterThan(0);
+      expect(q.rewards.gold, `${q.id} gold`).toBeGreaterThan(0);
+    }
+  });
+
+  it('every quest primary requirement has a positive target and a unit', () => {
+    for (const q of [...DAILY_QUEST_POOL, ...WEEKLY_QUEST_POOL]) {
+      expect(q.requirement.target, `${q.id} target`).toBeGreaterThan(0);
+      expect(typeof q.requirement.unit, `${q.id} unit`).toBe('string');
+    }
   });
 
   it('quest IDs are unique across both pools', () => {

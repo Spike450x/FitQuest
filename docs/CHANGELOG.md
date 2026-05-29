@@ -15,6 +15,16 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-29 — Bestiary + Collection + quest expansion (content-scaling PR5a)
+
+- **Bestiary surface** — new `/stats/bestiary` route. Card grid of all `MONSTER_CATALOG` monsters (sorted by level) plus the 4 dungeon bosses. Slain monsters show portrait + level + kill count + first-killed date (from `character.monstersKilled`, written since PR2); undiscovered ones show a greyed silhouette + "???". Bosses are not tracked in `monstersKilled` (that map is pruned to catalog ids), so boss-defeated state is derived from the 1:1 tier-clear achievement (`goblin-slayer` → Goblin King, etc.). Header shows total discovered / total.
+- **Collection surface** — new `/stats/collection` route. Owned-vs-total item grid grouped by type (weapons / armor / accessories / consumables / spells), each sorted common → legendary, with an overall completion % bar. Owned items render full art; unowned show greyed silhouettes. Spells render their effect-school silhouette (`SPELL_SILHOUETTES` via `spellEffectKey`) rather than a per-id item silhouette.
+- **Tab switcher** — new `src/components/stats/StatsTabs.tsx` (Link-based segmented control) added above all three stats surfaces (Overview / Bestiary / Collection).
+- **Testable derivations** — new `src/lib/gameLogic/collections.ts` exports `bestiaryProgress(character)`, `collectionProgress(ownedIds)`, `BOSS_TIER_ACHIEVEMENT`, and `tierName(tierId)`; both pages consume these so the completion math is unit-tested rather than living inline in JSX.
+- **Quest pool expansion** — `DAILY_QUEST_POOL` 34 → **61** (+27: 14 single-activity + 13 cross-habit combos, including 5 new Spirit-building meditation combos); `WEEKLY_QUEST_POOL` 17 → **31** (+14: 7 single + 7 combos). All combos pair distinct activities (no overlapping progress tracking). Existing pool-size floors raised to ≥60 daily / ≥30 weekly.
+- **OG epic spells now obtainable** — the three previously-orphaned loot-only epic spells (Titan's Fury / Void Collapse / Phantom Assault had no drop source) now drop from dungeon bosses: Phantom Assault → Broodmother (12%), Void Collapse → High Necromancer (12%), Titan's Fury → Dragon King (12%).
+- 14 new vitest specs (797 → **811**): bestiary progress (discovered/boss-defeated/catalog-prune), boss→achievement map validity, monster + item silhouette render-coverage, collection progress (0%/100%/per-type sum/all-types), quest reward positivity + requirement validity.
+
 ## 2026-05-29 — Spells + bleed/burn DoT (content-scaling PR4)
 
 - **14 new spells** in `src/lib/gameLogic/items.ts` — grows the catalog 21 → 35. 6 generic (Cinder Spark, Soothing Light, Emberstorm, Radiant Bulwark, Cataclysm, Divine Sanctuary), 2 Warrior (Rending Cleave, Seismic Slam), 2 Wizard (Incinerate, Glacial Prison), 1 Rogue (Rupture), and **3 legendary class spells** (Worldbreaker / Stellar Collapse / Thousand Cuts).

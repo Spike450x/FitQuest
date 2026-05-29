@@ -220,11 +220,11 @@ The Ancient Dragon's loot table is the primary source of legendary loot from reg
 
 ## `quests.ts` — quest pools
 
-| Export                    | Kind     | Purpose                                                                               |
-| ------------------------- | -------- | ------------------------------------------------------------------------------------- |
-| `DAILY_QUEST_POOL`        | const    | 28 daily quests across 6 activity types. 3 are picked each day via `getDailyPick`.    |
-| `WEEKLY_QUEST_POOL`       | const    | 14 weekly quests across 6 activity types. 3 are picked each week via `getWeeklyPick`. |
-| `getQuestDef(questDefId)` | function | Catalog lookup across both pools.                                                     |
+| Export                    | Kind     | Purpose                                                                                                             |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| `DAILY_QUEST_POOL`        | const    | 61 daily quests across 7 activity types (incl. 18 cross-habit combos). 3 are picked each day via `getDailyPick`.    |
+| `WEEKLY_QUEST_POOL`       | const    | 31 weekly quests across 7 activity types (incl. 10 cross-habit combos). 3 are picked each week via `getWeeklyPick`. |
+| `getQuestDef(questDefId)` | function | Catalog lookup across both pools.                                                                                   |
 
 ---
 
@@ -310,6 +310,19 @@ Tested in [`__tests__/achievements.test.ts`](../src/lib/gameLogic/__tests__/achi
 Gold rewards: `dungeon-initiate` 50g, `goblin-slayer` 100g, `web-walker` 150g, `dark-arts` 250g, `dragonheart` 500g, `legendary-haul` 200g.
 
 **Why duplicated:** Achievement award logic runs inside the `claimDungeonRun` Firestore transaction so gold + badge are stamped atomically. To avoid `@/` path-alias dependencies in the Cloud Function, the pure helpers (`LEGENDARY_ITEM_IDS`, `ACHIEVEMENT_GOLD`, `checkNewAchievements`) are mirrored in `functions/src/gameLogic/achievements.ts`. The parity test asserts `LEGENDARY_ITEM_IDS` exactly matches every `rarity: 'legendary'` item in `ITEM_CATALOG`, `ACHIEVEMENT_GOLD` values match `ACHIEVEMENTS[id].goldReward`, and `checkNewAchievements` produces the same output as `checkDungeonAchievements` for equivalent inputs.
+
+---
+
+## `collections.ts` — bestiary + collection completion
+
+Pure derivations backing the `/stats/bestiary` and `/stats/collection` surfaces. Tested in [`__tests__/collectionsPR5.test.ts`](../src/lib/gameLogic/__tests__/collectionsPR5.test.ts).
+
+| Export                         | Kind     | Purpose                                                                                                                                                                                                          |
+| ------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BOSS_TIER_ACHIEVEMENT`        | const    | Maps each `DungeonTierId` to its 1:1 tier-clear `AchievementId`. Bosses are not tracked in `monstersKilled` (pruned to `MONSTER_CATALOG` ids), so the bestiary uses the achievement as the boss-defeated signal. |
+| `tierName(tierId)`             | function | Display name for a dungeon tier (delegates to `DUNGEON_TIERS[tierId].name`).                                                                                                                                     |
+| `bestiaryProgress(character)`  | function | `{ monstersDiscovered, totalMonsters, bossesDefeated, totalBosses }` — monsters from `character.monstersKilled` (catalog-filtered), bosses from achievements.                                                    |
+| `collectionProgress(ownedIds)` | function | `{ owned, total, pct, byType[] }` — overall + per-type owned-vs-total from a `Set<itemDefId>`.                                                                                                                   |
 
 ---
 
