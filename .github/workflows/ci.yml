@@ -86,7 +86,7 @@ jobs:
           git diff --quiet docs/bundle-baseline.json || (
             git add docs/bundle-baseline.json &&
             git commit -m "chore: update bundle baseline [skip ci]" &&
-            git push
+            HUSKY=0 git push
           )
 
       - name: Run E2E suite (composite action)
