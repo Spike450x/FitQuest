@@ -20,7 +20,15 @@ function makeChar(overrides: Partial<Character> = {}): Character {
     xp: 0,
     xpToNextLevel: 100,
     gold: 0,
-    stats: { strength: 10, stamina: 10, agility: 10, health: 10, wisdom: 10, defense: 5 },
+    stats: {
+      strength: 10,
+      stamina: 10,
+      agility: 10,
+      health: 10,
+      wisdom: 10,
+      defense: 5,
+      spirit: 0,
+    },
     equippedGear: { weapon: null, armor: null, accessory: null },
     createdAt: 0,
     ...overrides,
@@ -246,7 +254,15 @@ describe('resolveSpell', () => {
       bypassMonsterDef: true,
     };
     const char = makeChar({
-      stats: { strength: 10, stamina: 10, agility: 10, health: 10, wisdom: 15, defense: 5 },
+      stats: {
+        strength: 10,
+        stamina: 10,
+        agility: 10,
+        health: 10,
+        wisdom: 15,
+        defense: 5,
+        spirit: 0,
+      },
     });
     const result = resolveSpell(effect, alwaysPass, char, makeMonster({ defense: 0 }));
     expect(result.playerDamage).toBe(10 + 15); // base + wisdom

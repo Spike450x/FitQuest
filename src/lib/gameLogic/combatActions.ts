@@ -494,7 +494,7 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
   // deals damage. Stacks on top of Eagle Eye and other outgoing passive procs.
   const abilityCrit =
     !fizzled && effectivePlayerDamage > 0
-      ? rollSpellCrit(character.stats.spirit ?? 0, effectivePlayerDamage)
+      ? rollSpellCrit(character.stats.spirit, effectivePlayerDamage)
       : { damage: effectivePlayerDamage, crit: false, multiplier: 1 };
   effectivePlayerDamage = abilityCrit.damage;
 
@@ -712,7 +712,7 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
   // actually deals damage. Heal-only and stun-only spells never crit.
   const spellCrit =
     resolution.requirementMet && resolution.playerDamage > 0
-      ? rollSpellCrit(character.stats.spirit ?? 0, resolution.playerDamage)
+      ? rollSpellCrit(character.stats.spirit, resolution.playerDamage)
       : { damage: resolution.playerDamage, crit: false, multiplier: 1 };
 
   // Absorb (Necro Shield) — applies to the crit'd spell damage.

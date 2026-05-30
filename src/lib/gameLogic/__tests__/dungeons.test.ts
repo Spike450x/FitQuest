@@ -28,7 +28,7 @@ const mockCharacter: Character = {
   xp: 0,
   xpToNextLevel: 500,
   gold: 100,
-  stats: { strength: 15, stamina: 10, agility: 12, health: 5, wisdom: 8, defense: 5 },
+  stats: { strength: 15, stamina: 10, agility: 12, health: 5, wisdom: 8, defense: 5, spirit: 0 },
   equippedGear: { weapon: null, armor: null, accessory: null },
   createdAt: 1000000,
 };
@@ -195,7 +195,7 @@ describe('resolveStatCheckOptions', () => {
     // Use dragons-keep thresholds (str:25, wis:21, agi:21) with weak character stats
     const weakChar: Character = {
       ...mockCharacter,
-      stats: { strength: 5, stamina: 5, agility: 5, health: 5, wisdom: 5, defense: 5 },
+      stats: { strength: 5, stamina: 5, agility: 5, health: 5, wisdom: 5, defense: 5, spirit: 0 },
     };
     const options = resolveStatCheckOptions('dragons-keep', weakChar, 42);
     const anyPass = options.some((o) => o.passes);

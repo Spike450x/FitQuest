@@ -1,6 +1,7 @@
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Character } from '@/types';
+import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
+import type { Character, CharacterClass, Stats } from '@/types';
 
 const CHARACTERS = 'characters';
 
@@ -28,9 +29,16 @@ export function normalizeCharacter(uid: string, raw: Record<string, unknown>): C
       throw new Error(`Character document (uid=${uid}) is missing required field: "${field}"`);
     }
   }
+  const classDef = CLASS_DEFINITIONS[raw.class as CharacterClass];
+  const rawStats = raw.stats as Partial<Stats>;
   return {
     ...(raw as unknown as Character),
     uid,
+    stats: {
+      ...(rawStats as Stats),
+      agility: rawStats.agility ?? classDef.startingStats.agility,
+      spirit: rawStats.spirit ?? classDef.startingStats.spirit,
+    },
     pendingStatPoints: (raw.pendingStatPoints as number | undefined) ?? 0,
     masteryCounts: (raw.masteryCounts as Character['masteryCounts']) ?? {},
     legendaryDryStreak: (raw.legendaryDryStreak as Record<string, number>) ?? {},
@@ -41,7 +49,25 @@ export function normalizeCharacter(uid: string, raw: Record<string, unknown>): C
 export async function getCharacterDoc(uid: string): Promise<Character | null> {
   const snap = await getDoc(doc(db, CHARACTERS, uid));
   if (!snap.exists()) return null;
-  return normalizeCharacter(uid, snap.data());
+  const raw = snap.data();
+
+  // Persist post-MVP stat additions back to Firestore on first read, so
+  // server-side readers (Cloud Functions, future scripts) see the same shape
+  // the React app sees. Idempotent — subsequent reads skip the write.
+  const rawStats = raw.stats as Partial<Stats> | undefined;
+  const classDef = CLASS_DEFINITIONS[raw.class as CharacterClass];
+  const backfill: Record<string, number> = {};
+  if (rawStats?.agility === undefined) {
+    backfill['stats.agility'] = classDef.startingStats.agility;
+  }
+  if (rawStats?.spirit === undefined) {
+    backfill['stats.spirit'] = classDef.startingStats.spirit;
+  }
+  if (Object.keys(backfill).length > 0) {
+    await updateDoc(doc(db, CHARACTERS, uid), backfill);
+  }
+
+  return normalizeCharacter(uid, raw);
 }
 
 export async function createCharacterDoc(uid: string, character: Character): Promise<void> {

@@ -9,6 +9,7 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 import { normalizeCharacter } from '../characterData';
+import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 
 describe('normalizeCharacter', () => {
   const valid = {
@@ -18,7 +19,15 @@ describe('normalizeCharacter', () => {
     xp: 0,
     xpToNextLevel: 100,
     gold: 50,
-    stats: { strength: 5, defense: 5, wisdom: 5, agility: 5, stamina: 5, health: 5 },
+    stats: {
+      strength: 5,
+      defense: 5,
+      wisdom: 5,
+      agility: 5,
+      stamina: 5,
+      health: 5,
+      spirit: 5,
+    },
     equippedGear: { weapon: null, armor: null, accessory: null },
     createdAt: 1_700_000_000_000,
   };
@@ -65,5 +74,34 @@ describe('normalizeCharacter', () => {
   it('preserves unknown extra fields (forward compat)', () => {
     const result = normalizeCharacter('uid1', { ...valid, futureField: 'x' });
     expect((result as unknown as Record<string, unknown>).futureField).toBe('x');
+  });
+
+  it('backfills agility from class starting stats when missing', () => {
+    const legacy = {
+      ...valid,
+      stats: { strength: 5, defense: 5, wisdom: 5, stamina: 5, health: 5, spirit: 5 },
+    };
+    expect(normalizeCharacter('uid1', legacy).stats.agility).toBe(
+      CLASS_DEFINITIONS.warrior.startingStats.agility,
+    );
+  });
+
+  it('backfills spirit from class starting stats when missing', () => {
+    const legacy = {
+      ...valid,
+      stats: { strength: 5, defense: 5, wisdom: 5, agility: 5, stamina: 5, health: 5 },
+    };
+    expect(normalizeCharacter('uid1', legacy).stats.spirit).toBe(
+      CLASS_DEFINITIONS.warrior.startingStats.spirit,
+    );
+  });
+
+  it('preserves existing spirit and agility values', () => {
+    const result = normalizeCharacter('uid1', {
+      ...valid,
+      stats: { ...valid.stats, agility: 42, spirit: 17 },
+    });
+    expect(result.stats.agility).toBe(42);
+    expect(result.stats.spirit).toBe(17);
   });
 });

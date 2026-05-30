@@ -29,12 +29,11 @@ export interface Stats {
   defense: number;
   /**
    * Primary stat (cap 50) — drives spell/ability crit chance and crit damage.
-   * Built via Meditation mastery (parallel to Steps→Wisdom). Optional on the
-   * interface so legacy character docs still typecheck; readers must use
-   * `(stats.spirit ?? 0)`. Backfilled by characterStore.fetchCharacter once
-   * per legacy doc, mirroring the agility migration.
+   * Built via Meditation mastery (parallel to Steps→Wisdom). Backfilled by
+   * `normalizeCharacter` and persisted by `getCharacterDoc` on first read of
+   * any legacy character document, mirroring the agility migration.
    */
-  spirit?: number;
+  spirit: number;
 }
 
 export interface EquippedGear {

@@ -102,19 +102,6 @@ describe('characterStore.fetchCharacter — TTL cache', () => {
     expect(useCharacterStore.getState().error).toBe('firestore down');
     expect(useCharacterStore.getState().loading).toBe(false);
   });
-
-  it('backfills agility on legacy character docs missing the field', async () => {
-    const legacy = baseCharacter();
-    // Cast to mutate as legacy data
-    (legacy.stats as unknown as Record<string, unknown>).agility = undefined;
-    getCharacterDocMock.mockResolvedValue(legacy);
-    await useCharacterStore.getState().fetchCharacter('uid1');
-    const startingAgility = CLASS_DEFINITIONS.warrior.startingStats.agility;
-    expect(useCharacterStore.getState().character?.stats.agility).toBe(startingAgility);
-    expect(updateCharacterDocMock).toHaveBeenCalledWith('uid1', {
-      'stats.agility': startingAgility,
-    });
-  });
 });
 
 describe('characterStore.createCharacter', () => {
@@ -180,7 +167,15 @@ describe('characterStore.awardXpAndStats', () => {
         xp: 90,
         xpToNextLevel: 100,
         level: 1,
-        stats: { strength: 5, defense: cap, wisdom: 5, agility: 5, stamina: 5, health: cap },
+        stats: {
+          strength: 5,
+          defense: cap,
+          wisdom: 5,
+          agility: 5,
+          stamina: 5,
+          health: cap,
+          spirit: 0,
+        },
       }),
     });
     await useCharacterStore.getState().awardXpAndStats(50, {});
@@ -236,7 +231,7 @@ describe('characterStore.allocateStatPoint', () => {
     useCharacterStore.setState({
       character: baseCharacter({
         pendingStatPoints: 3,
-        stats: { strength: 5, defense: 5, wisdom: 5, agility: 5, stamina: 5, health: 5 },
+        stats: { strength: 5, defense: 5, wisdom: 5, agility: 5, stamina: 5, health: 5, spirit: 0 },
       }),
     });
     await useCharacterStore.getState().allocateStatPoint('strength');
@@ -258,7 +253,15 @@ describe('characterStore.allocateStatPoint', () => {
     useCharacterStore.setState({
       character: baseCharacter({
         pendingStatPoints: 1,
-        stats: { strength: 5, defense: 5, wisdom: 5, agility: 5, stamina: cap, health: 5 },
+        stats: {
+          strength: 5,
+          defense: 5,
+          wisdom: 5,
+          agility: 5,
+          stamina: cap,
+          health: 5,
+          spirit: 0,
+        },
       }),
     });
     await useCharacterStore.getState().allocateStatPoint('stamina');
@@ -297,7 +300,7 @@ describe('characterStore.applyMasteryLocal', () => {
 
   it('increments linked stat on milestone hit', () => {
     const base = baseCharacter({
-      stats: { strength: 5, defense: 5, wisdom: 5, agility: 5, stamina: 5, health: 5 },
+      stats: { strength: 5, defense: 5, wisdom: 5, agility: 5, stamina: 5, health: 5, spirit: 0 },
       masteryCounts: { run: 9 },
     });
     useCharacterStore.setState({ character: base });

@@ -32,7 +32,15 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
     xp: 0,
     xpToNextLevel: 1000,
     gold: 0,
-    stats: { strength: 10, stamina: 10, agility: 10, health: 10, wisdom: 10, defense: 10 },
+    stats: {
+      strength: 10,
+      stamina: 10,
+      agility: 10,
+      health: 10,
+      wisdom: 10,
+      defense: 10,
+      spirit: 0,
+    },
     equippedGear: { weapon: null, armor: null, accessory: null },
     createdAt: 0,
     ...overrides,
@@ -241,7 +249,7 @@ describe('applyOutgoingPassives', () => {
     const character = makeCharacter({
       class: 'warrior',
       subclass: 'paladin',
-      stats: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 0, defense: 12 },
+      stats: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 0, defense: 12, spirit: 0 },
     });
     const result = applyOutgoingPassives(character, 100, fullHpCtx);
     // floor(12/5) = 2 → +4
@@ -253,7 +261,7 @@ describe('applyOutgoingPassives', () => {
     const character = makeCharacter({
       class: 'warrior',
       subclass: 'berserker',
-      stats: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 0, defense: 0 },
+      stats: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 0, defense: 0, spirit: 0 },
     });
     // 50% HP lost → 2 tiers → +16% → 100 → 116
     const half = applyOutgoingPassives(character, 100, { ...fullHpCtx, currentHpPct: 0.5 });
@@ -454,7 +462,15 @@ describe('applySpellDamagePassives', () => {
         makeCharacter({
           class: 'warrior',
           subclass: 'paladin',
-          stats: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 24, defense: 0 },
+          stats: {
+            strength: 0,
+            stamina: 0,
+            agility: 0,
+            health: 0,
+            wisdom: 24,
+            defense: 0,
+            spirit: 0,
+          },
         }),
         100,
       ),
@@ -469,7 +485,7 @@ describe('applySpellDamagePassives', () => {
   it('wizard Arcane Amplification: +floor(wisdom/8)', () => {
     const character = makeCharacter({
       class: 'wizard',
-      stats: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 24, defense: 0 },
+      stats: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 24, defense: 0, spirit: 0 },
     });
     // floor(24/8) = 3 → 100 + 3 = 103
     expect(applySpellDamagePassives(character, 100)).toBe(103);
@@ -479,7 +495,7 @@ describe('applySpellDamagePassives', () => {
     const character = makeCharacter({
       class: 'wizard',
       subclass: 'archmage',
-      stats: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 8, defense: 0 },
+      stats: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 8, defense: 0, spirit: 0 },
     });
     // 100 + floor(8/8)=1 → 101 → ×1.25 → round → 126
     expect(applySpellDamagePassives(character, 100)).toBe(126);
@@ -489,7 +505,7 @@ describe('applySpellDamagePassives', () => {
     const character = makeCharacter({
       class: 'wizard',
       subclass: 'warlock',
-      stats: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 16, defense: 0 },
+      stats: { strength: 0, stamina: 0, agility: 0, health: 0, wisdom: 16, defense: 0, spirit: 0 },
     });
     // 100 + floor(16/8)=2 → 102, no ×1.25
     expect(applySpellDamagePassives(character, 100)).toBe(102);
@@ -622,7 +638,7 @@ describe('getEscapeBonus + hasSureEscape', () => {
     const ranger = makeCharacter({
       class: 'rogue',
       subclass: 'ranger',
-      stats: { strength: 0, stamina: 0, agility: 12, health: 0, wisdom: 0, defense: 0 },
+      stats: { strength: 0, stamina: 0, agility: 12, health: 0, wisdom: 0, defense: 0, spirit: 0 },
     });
     expect(getEscapeBonus(ranger)).toBe(3);
   });
@@ -637,7 +653,15 @@ describe('getEscapeBonus + hasSureEscape', () => {
         makeCharacter({
           class: 'warrior',
           subclass: 'paladin',
-          stats: { strength: 0, stamina: 0, agility: 100, health: 0, wisdom: 0, defense: 0 },
+          stats: {
+            strength: 0,
+            stamina: 0,
+            agility: 100,
+            health: 0,
+            wisdom: 0,
+            defense: 0,
+            spirit: 0,
+          },
         }),
       ),
     ).toBe(0);

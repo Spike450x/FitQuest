@@ -28,7 +28,7 @@ describe('playerMaxHp parity — src vs functions copy', () => {
 
   it.each(cases)('stamina=%d health=%d matches', (stamina, health) => {
     const clientResult = playerMaxHp({
-      stats: { stamina, health, strength: 0, agility: 0, wisdom: 0, defense: 0 },
+      stats: { stamina, health, strength: 0, agility: 0, wisdom: 0, defense: 0, spirit: 0 },
       equippedGear: NO_GEAR,
     });
     const fnResult = fnMaxHp({ stamina, health }, NO_GEAR);
@@ -41,7 +41,7 @@ describe('playerMaxStamina parity — src vs functions copy', () => {
 
   it.each(cases)('stamina=%d matches', (stamina) => {
     const clientResult = playerMaxStamina({
-      stats: { stamina, strength: 0, agility: 0, health: 0, wisdom: 0, defense: 0 },
+      stats: { stamina, strength: 0, agility: 0, health: 0, wisdom: 0, defense: 0, spirit: 0 },
       equippedGear: NO_GEAR,
     });
     const fnResult = fnMaxStamina({ stamina }, NO_GEAR);
@@ -59,7 +59,7 @@ describe('playerMaxMagic parity — src vs functions copy', () => {
 
   it.each(cases)('wisdom=%d class=%s matches', (wisdom, charClass) => {
     const clientResult = playerMaxMagic({
-      stats: { wisdom, strength: 0, stamina: 0, agility: 0, health: 0, defense: 0 },
+      stats: { wisdom, strength: 0, stamina: 0, agility: 0, health: 0, defense: 0, spirit: 0 },
       class: charClass as never,
     });
     const fnResult = fnMaxMagic(wisdom, charClass);
