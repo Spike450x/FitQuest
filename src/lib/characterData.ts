@@ -43,6 +43,10 @@ export function normalizeCharacter(uid: string, raw: Record<string, unknown>): C
     masteryCounts: (raw.masteryCounts as Character['masteryCounts']) ?? {},
     legendaryDryStreak: (raw.legendaryDryStreak as Record<string, number>) ?? {},
     monstersKilled: (raw.monstersKilled as Character['monstersKilled']) ?? {},
+    totalCombatWins: (raw.totalCombatWins as number | undefined) ?? 0,
+    activityLogCounts: (raw.activityLogCounts as Character['activityLogCounts']) ?? {},
+    totalQuestsClaimed: (raw.totalQuestsClaimed as number | undefined) ?? 0,
+    weeklyQuestsClaimed: (raw.weeklyQuestsClaimed as Character['weeklyQuestsClaimed']) ?? undefined,
   };
 }
 

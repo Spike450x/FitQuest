@@ -16,6 +16,11 @@ import {
   type MasteryActivityType,
 } from './gameLogic/constants';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from './gameLogic/combat';
+import {
+  checkNewActivityAchievements,
+  checkNewMasteryAchievements,
+  sumAchievementGold,
+} from './gameLogic/achievements';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -61,6 +66,10 @@ interface LogActivityResult {
     newValue: number;
     amount: number;
   };
+  /** Achievement IDs newly unlocked by this log. */
+  newAchievements: string[];
+  /** Gold credited from achievement rewards (already added to character.gold). */
+  achievementGold: number;
 }
 
 // ─── logActivity callable ─────────────────────────────────────────────────────
@@ -166,6 +175,8 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
         eligibleAmount,
         justHitCap,
         masteryHit: false,
+        newAchievements: [],
+        achievementGold: 0,
       };
 
       // ── 3. Fetch character document (restore only — mastery reads inside transaction) ──
@@ -233,41 +244,108 @@ export const logActivity = onCall<LogActivityInput, Promise<LogActivityResult>>(
 
       await batch.commit();
 
-      // ── 4b. Mastery milestone stat award (transaction — prevents TOCTOU race) ──
-      // Read-increment-check inside a single transaction so two concurrent eligible
-      // logs cannot both see the same oldCount and both award the same milestone.
-      // Runs after the batch so the activity log is persisted even if contention
-      // causes retries here; idempotency key prevents duplicate logs on client retry.
-      if (rewardEligible && MASTERY_ACTIVITIES.has(activityType)) {
-        const type = activityType as MasteryActivityType;
-        const config = MASTERY_CONFIG[type];
+      // ── 4b. Hydration streak (water only) — server-aggregated ─────────────
+      // Pre-fetch the past 7 days of water logs once, before the txn, so the
+      // achievement checker inside the txn doesn't pay aggregate-query latency
+      // under contention. Slightly stale by milliseconds is fine — if a second
+      // water log slides in concurrently, the worst case is one missed streak
+      // award that the next water log immediately catches.
+      let waterStreakDays = 0;
+      if (rewardEligible && activityType === 'water') {
+        const sevenDaysAgoMs = startOfDayMs - 6 * 86_400_000;
+        const recentWaterSnap = await db
+          .collection('activityLogs')
+          .where('uid', '==', uid)
+          .where('type', '==', 'water')
+          .where('loggedAt', '>=', sevenDaysAgoMs)
+          .get();
+        const distinctDays = new Set<string>();
+        // Today is counted via the just-committed log (idempotent set above).
+        distinctDays.add(new Date(startOfDayMs).toISOString().slice(0, 10));
+        for (const d of recentWaterSnap.docs) {
+          const ts = d.data().loggedAt as number;
+          distinctDays.add(new Date(ts).toISOString().slice(0, 10));
+        }
+        waterStreakDays = distinctDays.size;
+      }
 
+      // ── 4c. Mastery milestone + achievement transaction ──────────────────
+      // Single transaction that:
+      //   1. Increments the lifetime activity-log counter for this type.
+      //   2. Increments masteryCounts if this is a mastery activity, awarding
+      //      +1 to the linked stat at each milestone (5/15/25/...).
+      //   3. Evaluates activity + mastery achievements against the AFTER state
+      //      and merges any new IDs into character.achievements with their
+      //      gold rewards. All in one atomic write to avoid TOCTOU.
+      if (rewardEligible) {
         await db.runTransaction(async (txn) => {
           const charSnap = await txn.get(charRef);
           if (!charSnap.exists) {
             throw new HttpsError('not-found', 'Character document not found.');
           }
           const freshData = charSnap.data()!;
-          const oldCount = (freshData.masteryCounts?.[type] as number | undefined) ?? 0;
-          const newCount = oldCount + 1;
+          const charUpdates: Record<string, unknown> = {};
 
-          const charUpdates: Record<string, unknown> = {
-            [`masteryCounts.${type}`]: newCount,
+          // Lifetime activity-log counter
+          const lifetimeBefore =
+            (freshData.activityLogCounts?.[activityType] as number | undefined) ?? 0;
+          const lifetimeAfter = lifetimeBefore + 1;
+          charUpdates[`activityLogCounts.${activityType}`] = lifetimeAfter;
+
+          // Mastery counter + linked-stat milestone (mastery activities only)
+          const masteryCountsAfter: Partial<
+            Record<'workout' | 'run' | 'steps' | 'meditation', number>
+          > = {
+            workout: freshData.masteryCounts?.workout as number | undefined,
+            run: freshData.masteryCounts?.run as number | undefined,
+            steps: freshData.masteryCounts?.steps as number | undefined,
+            meditation: freshData.masteryCounts?.meditation as number | undefined,
           };
+          if (MASTERY_ACTIVITIES.has(activityType)) {
+            const type = activityType as MasteryActivityType;
+            const config = MASTERY_CONFIG[type];
+            const oldCount = (freshData.masteryCounts?.[type] as number | undefined) ?? 0;
+            const newCount = oldCount + 1;
+            charUpdates[`masteryCounts.${type}`] = newCount;
+            masteryCountsAfter[type] = newCount;
 
-          const milestoneHit = isMasteryMilestone(newCount);
-          if (milestoneHit) {
-            const level = (freshData.level as number | undefined) ?? 1;
-            const currentStat = (freshData.stats?.[config.linkedStat] as number | undefined) ?? 0;
-            charUpdates[`stats.${config.linkedStat}`] = Math.min(
-              currentStat + 1,
-              statCap(config.linkedStat, level),
-            );
-            result.masteryHit = true;
-            result.linkedStatLabel = config.linkedStatLabel;
+            if (isMasteryMilestone(newCount)) {
+              const level = (freshData.level as number | undefined) ?? 1;
+              const currentStat = (freshData.stats?.[config.linkedStat] as number | undefined) ?? 0;
+              charUpdates[`stats.${config.linkedStat}`] = Math.min(
+                currentStat + 1,
+                statCap(config.linkedStat, level),
+              );
+              result.masteryHit = true;
+              result.linkedStatLabel = config.linkedStatLabel;
+            }
+            result.newMasteryCount = newCount;
           }
 
-          result.newMasteryCount = newCount;
+          // Achievement evaluation (activity + mastery — same checker pattern)
+          const existingAchievements: string[] = freshData.achievements ?? [];
+          const activityUnlocks = checkNewActivityAchievements({
+            existing: existingAchievements,
+            activityType,
+            activityCountAfter: lifetimeAfter,
+            waterStreakDays: activityType === 'water' ? waterStreakDays : undefined,
+          });
+          const masteryUnlocks = MASTERY_ACTIVITIES.has(activityType)
+            ? checkNewMasteryAchievements({
+                existing: existingAchievements,
+                masteryCounts: masteryCountsAfter,
+              })
+            : [];
+          const newAchievements = [...activityUnlocks, ...masteryUnlocks];
+
+          if (newAchievements.length > 0) {
+            const achievementGold = sumAchievementGold(newAchievements);
+            charUpdates.achievements = [...existingAchievements, ...newAchievements];
+            charUpdates.gold = (freshData.gold ?? 0) + achievementGold;
+            result.newAchievements = newAchievements;
+            result.achievementGold = achievementGold;
+          }
+
           txn.update(charRef, charUpdates);
         });
       }

@@ -52,6 +52,8 @@ export interface VictoryContext {
   finalStamina: number;
   finalMagic: number;
   monster: MonsterDef;
+  /** True iff the player's HP never dropped below the fight's starting HP. */
+  flawless: boolean;
 }
 
 export interface DefeatContext {
@@ -242,6 +244,7 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
         finalStamina: nextState.playerStamina,
         finalMagic: nextState.playerMagic,
         monster: nextState.monster,
+        flawless: nextState.playerHp >= nextState.playerStartHp,
       });
     } else if (nextState.outcome === 'loss') {
       await onDefeat?.({

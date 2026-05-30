@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useGameData } from '@/hooks/useGameData';
 import { useQuestStore } from '@/store/questStore';
 import { getQuestDef } from '@/lib/gameLogic/quests';
+import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
 import { QUEST_REROLL_COST } from '@/lib/gameLogic/constants';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -339,8 +340,17 @@ export default function QuestsPage() {
         emoji: '📜',
         title: `${def.name} claimed!`,
         xp: result.xpAwarded,
-        gold: result.goldAwarded,
+        gold: result.goldAwarded + result.achievementGold,
       });
+      for (const id of result.newAchievements) {
+        const ach = ACHIEVEMENTS[id];
+        if (ach) {
+          toast.success(`Achievement unlocked: ${ach.name}`, {
+            description: `${ach.emoji} +${ach.goldReward}g — ${ach.description}`,
+            duration: 7000,
+          });
+        }
+      }
     } else if (!result) {
       toast.error('Could not claim that quest. Try again.');
     }

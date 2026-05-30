@@ -1,12 +1,42 @@
 // ─── Achievements ─────────────────────────────────────────────────────────────
 
 export type AchievementId =
+  // Dungeon (shipped pre-PR5b)
   | 'dungeon-initiate'
   | 'goblin-slayer'
   | 'web-walker'
   | 'dark-arts'
   | 'dragonheart'
-  | 'legendary-haul';
+  | 'legendary-haul'
+  // Combat
+  | 'first-blood'
+  | 'centurion'
+  | 'slayer-obsidian'
+  | 'slayer-ashwyrm'
+  | 'slayer-revenant'
+  | 'slayer-djinn'
+  | 'untouched'
+  // Activity
+  | 'iron-body'
+  | 'marathoner'
+  | 'well-fed'
+  | 'well-rested'
+  | 'hydration-streak'
+  | 'enlightened'
+  // Mastery
+  | 'apprentice'
+  | 'journeyman'
+  | 'master'
+  | 'polymath'
+  // Quest
+  | 'quest-novice'
+  | 'quest-veteran'
+  | 'quest-legend'
+  | 'weekly-perfectionist'
+  // Collection
+  | 'bestiary-complete'
+  | 'legendary-hoarder'
+  | 'armory';
 
 // ─── Character ───────────────────────────────────────────────────────────────
 
@@ -77,6 +107,18 @@ export interface Character {
   dungeonRunsToday?: DungeonRunsToday;
   activeDungeonRunId?: string | null;
   achievements?: AchievementId[];
+  /** Lifetime arena combat wins — incremented inside `claimCombatVictory` CF. Drives the centurion achievement. */
+  totalCombatWins?: number;
+  /** Lifetime activity-log counts per type — incremented inside `logActivity` CF. Drives iron-body / marathoner / well-fed / well-rested / enlightened achievements. */
+  activityLogCounts?: Partial<Record<ActivityType, number>>;
+  /** Lifetime quests claimed — incremented client-side on quest claim. Drives the quest-novice/veteran/legend achievements. */
+  totalQuestsClaimed?: number;
+  /**
+   * Tracks which weekly quests have been claimed inside the current ISO week.
+   * Resets when `weekKey` changes (e.g. 2026-W22 → 2026-W23). Drives the
+   * `weekly-perfectionist` achievement (all 3 weeklies claimed in the same week).
+   */
+  weeklyQuestsClaimed?: { weekKey: string; questDefIds: string[] };
   streakData?: {
     currentStreak: number;
     longestStreak: number;

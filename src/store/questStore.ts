@@ -19,9 +19,14 @@ import {
 } from '@/lib/gameLogic/rotation';
 import { getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
 import { QUEST_REROLL_COST } from '@/lib/gameLogic/constants';
+import { checkQuestAchievements, sumAchievementGold } from '@/lib/gameLogic/achievements';
 import { updateCharacterDoc } from '@/lib/characterData';
 import { useCharacterStore } from './characterStore';
-import type { ActiveQuest, ActivityType, QuestDef } from '@/types';
+import type { AchievementId, ActiveQuest, ActivityType, QuestDef } from '@/types';
+
+function todayDateKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 const DAILY_QUEST_COUNT = 3;
 const WEEKLY_QUEST_COUNT = 3;
@@ -51,7 +56,15 @@ interface QuestStore {
    * Returns the actual scaled amounts awarded on success (use for toast display),
    * or false if the quest is not claimable.
    */
-  claimReward: (questId: string) => Promise<{ xpAwarded: number; goldAwarded: number } | false>;
+  claimReward: (questId: string) => Promise<
+    | {
+        xpAwarded: number;
+        goldAwarded: number;
+        newAchievements: AchievementId[];
+        achievementGold: number;
+      }
+    | false
+  >;
   /**
    * Replaces an active (not-yet-complete, not-yet-claimed) quest with a new
    * pick from the appropriate pool. Costs `QUEST_REROLL_COST` gold. Excludes
@@ -291,6 +304,65 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
 
       await Promise.all([awardXpAndStats(xpToAward, {}), awardGold(scaled.gold)]);
 
+      // ── Achievement evaluation (client-mirrored) ────────────────────────────
+      // The CF re-validates on the next combat/activity write, so a stale or
+      // tampered client can't pocket an unlock that the conditions don't justify.
+      // Quest XP/gold are still server-validated via Firestore rules + the
+      // sqrt-scaler + streak multiplier (rewardedXp/Gold stamped at claim time).
+      const def = getQuestDef(quest.questDefId);
+      const freshChar = useCharacterStore.getState().character;
+      let questAchievements: AchievementId[] = [];
+      let questAchievementGold = 0;
+      if (def && freshChar) {
+        const totalAfter = (freshChar.totalQuestsClaimed ?? 0) + 1;
+
+        const weekKey = deriveWeekKey(todayDateKey());
+        const prior = freshChar.weeklyQuestsClaimed;
+        const sameWeek = prior && prior.weekKey === weekKey;
+        const priorIds = sameWeek ? (prior?.questDefIds ?? []) : [];
+        const isWeekly = def.type === 'weekly';
+        const updatedWeeklyIds =
+          isWeekly && !priorIds.includes(quest.questDefId)
+            ? [...priorIds, quest.questDefId]
+            : priorIds;
+        const weeklyClaimsThisWeek = updatedWeeklyIds.length;
+
+        questAchievements = checkQuestAchievements({
+          existing: new Set(freshChar.achievements ?? []),
+          totalQuestsClaimedAfter: totalAfter,
+          weeklyClaimsThisWeek,
+        });
+        questAchievementGold = sumAchievementGold(questAchievements);
+
+        const charUpdates: Record<string, unknown> = {
+          totalQuestsClaimed: totalAfter,
+        };
+        if (isWeekly) {
+          charUpdates.weeklyQuestsClaimed = { weekKey, questDefIds: updatedWeeklyIds };
+        }
+        if (questAchievements.length > 0) {
+          charUpdates.achievements = [...(freshChar.achievements ?? []), ...questAchievements];
+          charUpdates.gold = (freshChar.gold ?? 0) + questAchievementGold;
+        }
+
+        await updateCharacterDoc(freshChar.uid, charUpdates);
+        useCharacterStore.setState({
+          character: {
+            ...freshChar,
+            totalQuestsClaimed: totalAfter,
+            ...(isWeekly
+              ? { weeklyQuestsClaimed: { weekKey, questDefIds: updatedWeeklyIds } }
+              : {}),
+            ...(questAchievements.length > 0
+              ? {
+                  achievements: [...(freshChar.achievements ?? []), ...questAchievements],
+                  gold: (freshChar.gold ?? 0) + questAchievementGold,
+                }
+              : {}),
+          },
+        });
+      }
+
       set((state) => ({
         quests: state.quests.map((q) =>
           q.id === questId
@@ -299,7 +371,12 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
         ),
       }));
 
-      return { xpAwarded: xpToAward, goldAwarded: scaled.gold };
+      return {
+        xpAwarded: xpToAward,
+        goldAwarded: scaled.gold,
+        newAchievements: questAchievements,
+        achievementGold: questAchievementGold,
+      };
     } catch (e) {
       captureError('questStore.claimReward', e);
       return false;
