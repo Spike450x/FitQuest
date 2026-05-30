@@ -94,7 +94,9 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
 | Bonus  | Personal Records                | ✅ Complete    |
 | Bonus  | Subclass System (6 subclasses)  | ✅ Complete    |
 | Bonus  | Dungeons (multi-room runs)      | ✅ Complete    |
-| Bonus  | Achievement system (6 badges)   | ✅ Complete    |
+| Bonus  | Achievement system (31 badges)  | ✅ Complete    |
+| Bonus  | Content-scaling 2× pass         | ✅ Complete    |
+| Bonus  | Spirit stat + Meditation        | ✅ Complete    |
 | Future | Champions & Raids               | 🔲 Not started |
 | Future | Guilds                          | 🔲 Not started |
 | Future | Prestige / Ascension            | 🔲 Not started |
