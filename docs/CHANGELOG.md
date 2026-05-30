@@ -867,3 +867,5 @@ Tracked here so a fresh session can see what's next without cross-referencing CL
 - **Apple Health integration** — auto-import workouts
 - **Leaderboards** — compare with other users
 - **Firebase emulators** — local Firestore + Auth for dev (priority bumps once we touch destructive migrations or multiplayer)
+
+<!-- CI trigger -->
