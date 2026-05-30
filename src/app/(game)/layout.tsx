@@ -13,6 +13,7 @@ import {
   Store,
   BarChart3,
   Trophy,
+  MoreHorizontal,
   type LucideIcon,
 } from 'lucide-react';
 import { logOut } from '@/lib/auth';
@@ -67,12 +68,23 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/collections', label: 'Collections', Icon: Trophy },
 ];
 
+// Daily gameplay loop — always visible in the mobile bar.
+const PRIMARY_NAV = NAV_ITEMS.slice(0, 5);
+// Management / browsing screens — tucked behind the "More" panel.
+const OVERFLOW_NAV = NAV_ITEMS.slice(5);
+
 export default function GameLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { character, loading } = useCharacter();
   const [collapsed, setCollapsed] = useState(true);
+  const [moreOpen, setMoreOpen] = useState(false);
   const subscribeActivity = useActivityStore((s) => s.subscribe);
+
+  // Close the overflow panel on any navigation.
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (character?.uid) subscribeActivity(character.uid);
@@ -255,13 +267,46 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         </main>
       </div>
 
+      {/* ── Mobile: overflow "More" panel ────────────────────────────────── */}
+      {moreOpen && (
+        <>
+          {/* Tap-outside backdrop */}
+          <div
+            className="fixed inset-0 z-[14] md:hidden"
+            onClick={() => setMoreOpen(false)}
+            aria-hidden="true"
+          />
+          {/* 2×2 grid of overflow nav items, floating above the bar */}
+          <div className="fixed bottom-14 left-0 right-0 z-[15] md:hidden mx-3 mb-1.5 rounded-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800/80 shadow-xl shadow-gray-900/10 dark:shadow-black/50 p-2 grid grid-cols-4 gap-1">
+            {OVERFLOW_NAV.map(({ href, label, Icon }) => {
+              const active = pathname === href || pathname.startsWith(href + '/');
+              return (
+                <CombatSafeLink
+                  key={href}
+                  href={href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl text-[11px] font-medium transition-colors ${
+                    active
+                      ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300'
+                      : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800/60 hover:text-gray-700 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" aria-hidden="true" strokeWidth={active ? 2.5 : 2} />
+                  <span className="truncate w-full text-center">{label}</span>
+                </CombatSafeLink>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {/* ── Mobile bottom nav ─────────────────────────────────────────────── */}
       <nav
         className="fixed bottom-0 left-0 right-0 md:hidden bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl backdrop-saturate-150 border-t border-gray-200/80 dark:border-slate-800/80 z-10 shadow-lg shadow-gray-900/5 dark:shadow-black/40"
         aria-label="Primary"
       >
-        <ul className="flex justify-around overflow-x-auto">
-          {NAV_ITEMS.map(({ href, label, Icon }) => {
+        <ul className="flex justify-around">
+          {PRIMARY_NAV.map(({ href, label, Icon }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <li key={href} className="flex-1 min-w-0">
@@ -287,6 +332,41 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
               </li>
             );
           })}
+          {/* More button — highlights when on any overflow route */}
+          <li className="flex-1 min-w-0">
+            {(() => {
+              const overflowActive = OVERFLOW_NAV.some(
+                ({ href }) => pathname === href || pathname.startsWith(href + '/'),
+              );
+              const highlighted = overflowActive || moreOpen;
+              return (
+                <button
+                  type="button"
+                  title="More"
+                  aria-label="More navigation options"
+                  aria-expanded={moreOpen}
+                  onClick={() => setMoreOpen((v) => !v)}
+                  className={`relative w-full flex items-center justify-center py-3 px-1 transition-all min-h-[44px] ${
+                    highlighted
+                      ? 'text-indigo-600 dark:text-indigo-300 scale-110'
+                      : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {highlighted && (
+                    <span
+                      className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-6 bg-indigo-600 dark:bg-indigo-400 rounded-b-full"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <MoreHorizontal
+                    className="w-5 h-5"
+                    aria-hidden="true"
+                    strokeWidth={moreOpen ? 2.5 : 2}
+                  />
+                </button>
+              );
+            })()}
+          </li>
         </ul>
       </nav>
     </div>
