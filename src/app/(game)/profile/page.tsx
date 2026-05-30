@@ -8,6 +8,7 @@ import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
 import { Card } from '@/components/ui/Card';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useNavPreferenceStore, MAX_PINNED } from '@/store/navPreferenceStore';
 import { SoundToggle } from '@/components/ui/SoundToggle';
 import { InstallAppButton } from '@/components/ui/InstallAppButton';
 import type { Character } from '@/types';
@@ -15,6 +16,8 @@ import { InputField } from '@/components/ui/InputField';
 
 export default function ProfilePage() {
   const { character, user } = useCharacter();
+  const pinnedHrefs = useNavPreferenceStore((s) => s.pinnedHrefs);
+  const openCustomizer = useNavPreferenceStore((s) => s.openCustomizer);
 
   if (!character || !user) return null;
 
@@ -35,6 +38,24 @@ export default function ProfilePage() {
       >
         View Achievements, Bestiary &amp; Collection →
       </Link>
+
+      <SettingsCard
+        title="Navigation"
+        description="Choose which shortcuts appear in the mobile quick-access bar."
+      >
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-gray-600 dark:text-slate-300">
+            {pinnedHrefs.length} of {MAX_PINNED} slots pinned
+          </p>
+          <button
+            type="button"
+            onClick={openCustomizer}
+            className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            Customize
+          </button>
+        </div>
+      </SettingsCard>
 
       <SettingsCard title="Appearance" description="Choose your preferred theme.">
         <div className="flex items-center justify-between">

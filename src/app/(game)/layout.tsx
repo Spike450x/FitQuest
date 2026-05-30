@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, Reorder, useReducedMotion } from 'framer-motion';
 import {
   Home,
   Swords,
@@ -16,12 +16,14 @@ import {
   Trophy,
   MoreHorizontal,
   Settings,
+  GripVertical,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { logOut } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCollectionAchievementSync } from '@/hooks/useCollectionAchievementSync';
-import { useNavPreference, MAX_PINNED } from '@/hooks/useNavPreference';
+import { useNavPreferenceStore, MAX_PINNED } from '@/store/navPreferenceStore';
 import { useActivityStore } from '@/store/activityStore';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
@@ -80,19 +82,15 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/collections', label: 'Collections', Icon: Trophy },
 ];
 
-// Stable module-level references so useNavPreference's mount effect never re-fires.
-const NAV_HREFS = NAV_ITEMS.map((i) => i.href) as readonly string[];
-const DEFAULT_PINNED_HREFS = NAV_HREFS.slice(0, MAX_PINNED) as readonly string[];
-
 export default function GameLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { character, loading } = useCharacter();
   const [collapsed, setCollapsed] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [customizerOpen, setCustomizerOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
-  const { pinnedHrefs, togglePin } = useNavPreference(NAV_HREFS, DEFAULT_PINNED_HREFS);
+  const pinnedHrefs = useNavPreferenceStore((s) => s.pinnedHrefs);
+  const openCustomizer = useNavPreferenceStore((s) => s.openCustomizer);
   // Primary bar: NAV_ITEMS order filtered to pinned hrefs.
   const primaryNav = NAV_ITEMS.filter((item) => pinnedHrefs.includes(item.href));
   // Overflow panel: everything else.
@@ -329,7 +327,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
               type="button"
               onClick={() => {
                 setMoreOpen(false);
-                setCustomizerOpen(true);
+                openCustomizer();
               }}
               className="mt-1 w-full py-2 flex items-center justify-center gap-1.5 text-[11px] font-medium text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800/40"
             >
@@ -410,37 +408,38 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         </ul>
       </nav>
 
-      <NavCustomizerModal
-        open={customizerOpen}
-        onClose={() => setCustomizerOpen(false)}
-        navItems={NAV_ITEMS}
-        pinnedHrefs={pinnedHrefs}
-        onToggle={togglePin}
-      />
+      <NavCustomizerModal />
     </div>
   );
 }
 
 // ── Nav Customizer Modal ──────────────────────────────────────────────────────
+// Store-connected, no props needed — can be opened from anywhere via
+// useNavPreferenceStore(s => s.openCustomizer)().
 
-function NavCustomizerModal({
-  open,
-  onClose,
-  navItems,
-  pinnedHrefs,
-  onToggle,
-}: {
-  open: boolean;
-  onClose: () => void;
-  navItems: NavItem[];
-  pinnedHrefs: string[];
-  onToggle: (href: string) => void;
-}) {
+function NavCustomizerModal() {
+  const customizerOpen = useNavPreferenceStore((s) => s.customizerOpen);
+  const closeCustomizer = useNavPreferenceStore((s) => s.closeCustomizer);
+  const pinnedHrefs = useNavPreferenceStore((s) => s.pinnedHrefs);
+  const togglePin = useNavPreferenceStore((s) => s.togglePin);
+  const reorderPinned = useNavPreferenceStore((s) => s.reorderPinned);
+  const prefersReducedMotion = useReducedMotion();
+
+  // Pinned in user-defined order; available in canonical NAV_ITEMS order.
+  const pinnedItems = pinnedHrefs
+    .map((h) => NAV_ITEMS.find((i) => i.href === h))
+    .filter((i): i is NavItem => !!i);
+  const availableItems = NAV_ITEMS.filter((i) => !pinnedHrefs.includes(i.href));
   const atMax = pinnedHrefs.length >= MAX_PINNED;
   const atMin = pinnedHrefs.length <= 1;
 
   return (
-    <Modal open={open} onClose={onClose} size="sm" ariaLabelledby="customizer-heading">
+    <Modal
+      open={customizerOpen}
+      onClose={closeCustomizer}
+      size="sm"
+      ariaLabelledby="customizer-heading"
+    >
       <div className="p-5 space-y-4">
         <div>
           <h2
@@ -450,49 +449,86 @@ function NavCustomizerModal({
             Customize Nav
           </h2>
           <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-            Pick up to {MAX_PINNED} items for the main bar. The rest live in &ldquo;More&rdquo;.
+            Drag to reorder · tap to add or remove · {pinnedHrefs.length}/{MAX_PINNED} pinned
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          {navItems.map(({ href, label, Icon }) => {
-            const pinned = pinnedHrefs.includes(href);
-            const disabled = (!pinned && atMax) || (pinned && atMin);
-            return (
-              <button
+        {/* Pinned items — draggable list */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">
+            Main bar
+          </p>
+          <Reorder.Group
+            axis="y"
+            values={pinnedHrefs}
+            onReorder={reorderPinned}
+            className="space-y-1.5"
+          >
+            {pinnedItems.map(({ href, label, Icon }) => (
+              <Reorder.Item
                 key={href}
-                type="button"
-                onClick={() => onToggle(href)}
-                disabled={disabled}
-                aria-pressed={pinned}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-[11px] font-medium transition-all ${
-                  pinned
-                    ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-900/40 dark:border-indigo-600 dark:text-indigo-300'
-                    : disabled
-                      ? 'bg-gray-50 border-gray-100 text-gray-300 dark:bg-slate-900/50 dark:border-slate-800 dark:text-slate-700 cursor-not-allowed opacity-50'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:border-indigo-700 dark:hover:text-indigo-300'
-                }`}
+                value={href}
+                transition={prefersReducedMotion ? { duration: 0 } : undefined}
+                className="flex items-center gap-3 px-3 py-2.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl cursor-grab active:cursor-grabbing select-none"
               >
-                <Icon className="w-5 h-5" aria-hidden="true" />
-                <span>{label}</span>
-                {pinned && (
-                  <span
-                    className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400"
-                    aria-hidden="true"
-                  />
-                )}
-              </button>
-            );
-          })}
+                <GripVertical
+                  className="w-4 h-4 text-indigo-300 dark:text-indigo-700 shrink-0"
+                  aria-hidden="true"
+                />
+                <Icon
+                  className="w-4 h-4 text-indigo-600 dark:text-indigo-300 shrink-0"
+                  aria-hidden="true"
+                />
+                <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300 flex-1 truncate">
+                  {label}
+                </span>
+                <button
+                  type="button"
+                  disabled={atMin}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePin(href);
+                  }}
+                  aria-label={`Remove ${label}`}
+                  className="text-indigo-300 dark:text-indigo-700 hover:text-rose-500 dark:hover:text-rose-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </Reorder.Item>
+            ))}
+          </Reorder.Group>
         </div>
 
-        <p className="text-[11px] text-gray-400 dark:text-slate-500 text-center tabular-nums">
-          {pinnedHrefs.length} / {MAX_PINNED} pinned
-        </p>
+        {/* Available items — tap to add */}
+        {availableItems.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">
+              {atMax ? 'More (bar is full)' : 'More — tap to add'}
+            </p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {availableItems.map(({ href, label, Icon }) => (
+                <button
+                  key={href}
+                  type="button"
+                  onClick={() => togglePin(href)}
+                  disabled={atMax}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border text-[11px] font-medium transition-all ${
+                    atMax
+                      ? 'border-gray-100 dark:border-slate-800 text-gray-300 dark:text-slate-700 cursor-not-allowed opacity-40'
+                      : 'border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" aria-hidden="true" />
+                  <span className="truncate w-full text-center">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <button
           type="button"
-          onClick={onClose}
+          onClick={closeCustomizer}
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
         >
           Done
