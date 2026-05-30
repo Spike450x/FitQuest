@@ -1,27 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { ALL_NAV_HREFS } from '@/lib/navConfig';
 
 export const MAX_PINNED = 5;
 const MIN_PINNED = 1;
-
-// Must stay in sync with NAV_ITEMS order in layout.tsx.
-const ALL_NAV_HREFS = [
-  '/dashboard',
-  '/character',
-  '/activities',
-  '/combat',
-  '/quests',
-  '/inventory',
-  '/shop',
-  '/stats',
-  '/collections',
-] as const;
 
 const DEFAULT_PINNED = ALL_NAV_HREFS.slice(0, MAX_PINNED);
 
 interface NavPreferenceState {
   pinnedHrefs: string[];
   customizerOpen: boolean;
+  /** Persisted — cleared once the user opens the customizer for the first time. */
+  hasSeenCustomizer: boolean;
   togglePin: (href: string) => void;
   reorderPinned: (newOrder: string[]) => void;
   openCustomizer: () => void;
@@ -33,6 +23,7 @@ export const useNavPreferenceStore = create<NavPreferenceState>()(
     (set, get) => ({
       pinnedHrefs: [...DEFAULT_PINNED],
       customizerOpen: false,
+      hasSeenCustomizer: false,
       togglePin: (href) => {
         const { pinnedHrefs } = get();
         if (pinnedHrefs.includes(href)) {
@@ -44,13 +35,16 @@ export const useNavPreferenceStore = create<NavPreferenceState>()(
         }
       },
       reorderPinned: (newOrder) => set({ pinnedHrefs: newOrder }),
-      openCustomizer: () => set({ customizerOpen: true }),
+      // Mark seen so the onboarding badge disappears after first open.
+      openCustomizer: () => set({ customizerOpen: true, hasSeenCustomizer: true }),
       closeCustomizer: () => set({ customizerOpen: false }),
     }),
     {
       name: 'fitquest:nav',
-      // Only persist the order; customizerOpen is transient UI state.
-      partialize: (state) => ({ pinnedHrefs: state.pinnedHrefs }),
+      partialize: (state) => ({
+        pinnedHrefs: state.pinnedHrefs,
+        hasSeenCustomizer: state.hasSeenCustomizer,
+      }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         const valid = state.pinnedHrefs.filter((h) =>

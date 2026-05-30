@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
@@ -45,9 +46,12 @@ export default function AchievementsPage() {
         </p>
       </div>
 
-      {/* Cross-tab progress summary */}
+      {/* Cross-tab progress summary — each chip is a jump-link to its tab */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-xl p-3 text-center bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900">
+        <Link
+          href="/collections"
+          className="rounded-xl p-3 text-center bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 transition-colors"
+        >
           <p className="text-xl font-bold text-indigo-700 dark:text-indigo-300 tabular-nums">
             {unlockedCount}
             <span className="text-sm font-normal text-indigo-400 dark:text-indigo-500">
@@ -55,8 +59,11 @@ export default function AchievementsPage() {
             </span>
           </p>
           <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">Achievements</p>
-        </div>
-        <div className="rounded-xl p-3 text-center bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900">
+        </Link>
+        <Link
+          href="/collections/bestiary"
+          className="rounded-xl p-3 text-center bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900 hover:bg-rose-100 dark:hover:bg-rose-950/50 transition-colors"
+        >
           <p className="text-xl font-bold text-rose-700 dark:text-rose-300 tabular-nums">
             {bestiaryFound}
             <span className="text-sm font-normal text-rose-400 dark:text-rose-500">
@@ -64,8 +71,11 @@ export default function AchievementsPage() {
             </span>
           </p>
           <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">Bestiary</p>
-        </div>
-        <div className="rounded-xl p-3 text-center bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900">
+        </Link>
+        <Link
+          href="/collections/collection"
+          className="rounded-xl p-3 text-center bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900 hover:bg-violet-100 dark:hover:bg-violet-950/50 transition-colors"
+        >
           <p className="text-xl font-bold text-violet-700 dark:text-violet-300 tabular-nums">
             {overall.owned}
             <span className="text-sm font-normal text-violet-400 dark:text-violet-500">
@@ -73,7 +83,7 @@ export default function AchievementsPage() {
             </span>
           </p>
           <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">Items</p>
-        </div>
+        </Link>
       </div>
 
       <CollectionsTabs />
