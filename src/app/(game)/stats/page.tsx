@@ -13,7 +13,6 @@ import { ACTIVITY_ICONS } from '@/lib/activityIcons';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Card } from '@/components/ui/Card';
 import { EntityArt } from '@/components/art/EntityArt';
-import { StatsTabs } from '@/components/stats/StatsTabs';
 import { useTheme } from '@/hooks/useTheme';
 import { getStreakTier, STREAK_TIERS } from '@/lib/gameLogic/streaks';
 import type { ActivityLog, ActiveQuest, InventoryItem, ActivityType, Character } from '@/types';
@@ -101,8 +100,6 @@ export default function StatsPage() {
           {character.name} · Level {character.level} {character.class}
         </p>
       </div>
-
-      <StatsTabs active="overview" />
 
       <StatsContent character={character} uid={user.uid} />
     </div>

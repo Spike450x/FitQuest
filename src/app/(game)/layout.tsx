@@ -12,6 +12,7 @@ import {
   Backpack,
   Store,
   BarChart3,
+  Trophy,
   type LucideIcon,
 } from 'lucide-react';
 import { logOut } from '@/lib/auth';
@@ -63,6 +64,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/inventory', label: 'Inventory', Icon: Backpack },
   { href: '/shop', label: 'Shop', Icon: Store },
   { href: '/stats', label: 'Stats', Icon: BarChart3 },
+  { href: '/collections', label: 'Collections', Icon: Trophy },
 ];
 
 export default function GameLayout({ children }: { children: React.ReactNode }) {
@@ -221,7 +223,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
           {/* Nav links */}
           <nav className="flex-1 py-2 px-1.5 space-y-0.5" aria-label="Primary">
             {NAV_ITEMS.map(({ href, label, Icon }) => {
-              const active = pathname === href;
+              const active = pathname === href || pathname.startsWith(href + '/');
               return (
                 <CombatSafeLink
                   key={href}
@@ -260,26 +262,27 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
       >
         <ul className="flex justify-around overflow-x-auto">
           {NAV_ITEMS.map(({ href, label, Icon }) => {
-            const active = pathname === href;
+            const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <li key={href} className="flex-1 min-w-0">
                 <CombatSafeLink
                   href={href}
+                  title={label}
+                  aria-label={label}
                   aria-current={active ? 'page' : undefined}
-                  className={`relative flex flex-col items-center gap-0.5 py-3 px-1 text-[10px] font-medium transition-all min-h-[44px] ${
+                  className={`relative flex items-center justify-center py-3 px-1 transition-all min-h-[44px] ${
                     active
-                      ? 'text-indigo-600 dark:text-indigo-300 scale-105'
+                      ? 'text-indigo-600 dark:text-indigo-300 scale-110'
                       : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-200'
                   }`}
                 >
                   {active && (
                     <span
-                      className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 bg-indigo-600 dark:bg-indigo-400 rounded-b-full"
+                      className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-6 bg-indigo-600 dark:bg-indigo-400 rounded-b-full"
                       aria-hidden="true"
                     />
                   )}
                   <Icon className="w-5 h-5" aria-hidden="true" strokeWidth={active ? 2.5 : 2} />
-                  <span className="truncate w-full text-center">{label}</span>
                 </CombatSafeLink>
               </li>
             );
