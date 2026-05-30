@@ -81,6 +81,26 @@ rsvg-convert -w 192 -h 192 icon-maskable.svg -o icon-maskable-192.png
 rsvg-convert -w 512 -h 512 icon-maskable.svg -o icon-maskable-512.png
 ```
 
+## Nav icon set
+
+Navigation icons come from [lucide-react](https://lucide.dev/) and are declared in `src/lib/navConfig.ts` — the single source of truth for both the bottom nav bar (`(game)/layout.tsx`) and the `useNavPreferenceStore` default-pin list.
+
+| Route          | Icon (lucide-react) | Rationale                          |
+| -------------- | ------------------- | ---------------------------------- |
+| `/dashboard`   | `Home`              | Standard home metaphor             |
+| `/character`   | `Swords`            | Combat/warrior identity            |
+| `/activities`  | `ClipboardList`     | Workout log / checklist            |
+| `/combat`      | `Skull`             | Danger / enemy confrontation       |
+| `/quests`      | `ScrollText`        | Fantasy quest parchment            |
+| `/inventory`   | `Backpack`          | Gear storage                       |
+| `/shop`        | `Store`             | Merchant / marketplace             |
+| `/stats`       | `BarChart3`         | Analytics / progress charts        |
+| `/collections` | `Trophy`            | Achievement / completion milestone |
+
+The overflow panel and customizer also use `MoreHorizontal` (overflow trigger), `X` (panel close), `GripVertical` (drag handle in the reorder list), and `ChevronDown` (swipe-hint affordance) — all from lucide-react, imported directly in `layout.tsx`.
+
+To swap a nav icon, update the `Icon` field for the relevant entry in `src/lib/navConfig.ts`. No other files need changing.
+
 ## Attribution
 
 All silhouettes in this pass are hand-authored, no third-party assets used. When commissioned art lands, list the artist and license here:
