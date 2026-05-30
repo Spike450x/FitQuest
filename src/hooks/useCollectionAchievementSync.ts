@@ -3,10 +3,15 @@
 import { useEffect, useRef } from 'react';
 import { useCharacterStore } from '@/store/characterStore';
 import { useInventoryStore } from '@/store/inventoryStore';
-import { updateCharacterDoc } from '@/lib/characterData';
-import { captureError } from '@/lib/errors';
 import { checkCollectionAchievements, sumAchievementGold } from '@/lib/gameLogic/achievements';
 import { bestiaryProgress } from '@/lib/gameLogic/collections';
+
+const COLLECTION_IDS = [
+  'bestiary-complete',
+  'legendary-hoarder',
+  'armory',
+  'arcane-archive',
+] as const;
 
 /**
  * Client-authoritative sync for collection-category achievements:
@@ -28,18 +33,16 @@ import { bestiaryProgress } from '@/lib/gameLogic/collections';
 export function useCollectionAchievementSync() {
   const character = useCharacterStore((s) => s.character);
   const items = useInventoryStore((s) => s.items);
+  const applyCharacterPatch = useCharacterStore((s) => s.applyCharacterPatch);
   const inFlight = useRef(false);
 
   useEffect(() => {
     if (!character || inFlight.current) return;
 
     const existing = new Set(character.achievements ?? []);
-    // Cheap short-circuit — all three already unlocked → nothing to do.
-    if (
-      existing.has('bestiary-complete') &&
-      existing.has('legendary-hoarder') &&
-      existing.has('armory')
-    ) {
+    // Cheap short-circuit — all collection achievements already unlocked →
+    // nothing to do. Recompute is wasted work when the entire set is held.
+    if (COLLECTION_IDS.every((id) => existing.has(id))) {
       return;
     }
 
@@ -63,20 +66,8 @@ export function useCollectionAchievementSync() {
     const newGold = (character.gold ?? 0) + goldDelta;
 
     inFlight.current = true;
-    (async () => {
-      try {
-        await updateCharacterDoc(character.uid, {
-          achievements: newAchievements,
-          gold: newGold,
-        });
-        useCharacterStore.setState({
-          character: { ...character, achievements: newAchievements, gold: newGold },
-        });
-      } catch (err) {
-        captureError('useCollectionAchievementSync.write', err);
-      } finally {
-        inFlight.current = false;
-      }
-    })();
-  }, [character, items]);
+    applyCharacterPatch({ achievements: newAchievements, gold: newGold }).finally(() => {
+      inFlight.current = false;
+    });
+  }, [character, items, applyCharacterPatch]);
 }

@@ -276,3 +276,48 @@ export async function seedInventoryItem(
     throw new Error(`[seed] seedInventoryItem failed: ${resp.status} ${await resp.text()}`);
   }
 }
+
+// Force-sets the streakData.lastLogDate to N days before today (UTC) and
+// optionally clears the current streak. Used by the welcome-back flow test
+// to simulate a returning player who hasn't logged in for a while.
+export async function seedAbsentStreak(uid: string, daysAgo: number): Promise<void> {
+  const today = new Date();
+  const past = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  past.setUTCDate(past.getUTCDate() - daysAgo);
+  const lastLogDate = past.toISOString().slice(0, 10);
+
+  const docUrl = `${FS_BASE}/characters/${uid}?updateMask.fieldPaths=streakData`;
+  const fields = {
+    streakData: {
+      mapValue: {
+        fields: {
+          currentStreak: { integerValue: '0' },
+          longestStreak: { integerValue: '0' },
+          lastLogDate: { stringValue: lastLogDate },
+          shields: { integerValue: '0' },
+        },
+      },
+    },
+  };
+  const resp = await fetch(docUrl, {
+    method: 'PATCH',
+    headers: authHeaders('owner'),
+    body: JSON.stringify({ fields }),
+  });
+  if (!resp.ok) {
+    throw new Error(`[seed] seedAbsentStreak failed: ${resp.status} ${await resp.text()}`);
+  }
+}
+
+// Reads a character doc's top-level fields via the owner token. Returns the
+// raw Firestore-shape value map; callers extract the fields they need.
+// Used by the daily-login flow test to verify lastLoginGrantedDate was stamped.
+export async function readCharacterFields(uid: string): Promise<Record<string, unknown>> {
+  const docUrl = `${FS_BASE}/characters/${uid}`;
+  const resp = await fetch(docUrl, { headers: authHeaders('owner') });
+  if (!resp.ok) {
+    throw new Error(`[seed] readCharacterFields failed: ${resp.status} ${await resp.text()}`);
+  }
+  const body = (await resp.json()) as { fields?: Record<string, unknown> };
+  return body.fields ?? {};
+}

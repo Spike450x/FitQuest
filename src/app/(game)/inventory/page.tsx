@@ -136,15 +136,14 @@ export default function InventoryPage() {
     const maxHp = playerMaxHp(character);
     const maxStamina = playerMaxStamina(character);
     const maxMagic = playerMaxMagic(character);
-    const result = await consumeItem(
-      inventoryItemId,
-      character.currentHp ?? maxHp,
+    const result = await consumeItem(inventoryItemId, {
+      currentHp: character.currentHp ?? maxHp,
       maxHp,
-      character.currentStamina ?? maxStamina,
+      currentStamina: character.currentStamina ?? maxStamina,
       maxStamina,
-      character.currentMagic ?? maxMagic,
+      currentMagic: character.currentMagic ?? maxMagic,
       maxMagic,
-    );
+    });
     setUsing(null);
     if (def) {
       const parts: string[] = [];

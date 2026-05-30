@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { useCharacterStore } from '@/store/characterStore';
-import { updateCharacterDoc } from '@/lib/characterData';
 import { captureError } from '@/lib/errors';
 import { todayUTC } from '@/lib/gameLogic/streaks';
 import { toast } from '@/components/ui/Toaster';
@@ -26,32 +25,40 @@ function dailyLoginBonus(level: number): { gold: number; xp: number } {
  * If competitive scoring (leaderboards) ever ships, harden this by re-checking
  * `lastLoginGrantedDate` inside `claimCombatVictory` and `logActivity` CF
  * transactions.
+ *
+ * Write order: stamps `lastLoginGrantedDate` BEFORE awarding XP/gold so a
+ * crash between writes can't replay the bonus. If the stamp succeeds and a
+ * downstream award throws, the player loses one bonus — accepted trade-off
+ * vs. the alternative of duplicating bonuses on every retry.
  */
 export function useDailyLoginBonus() {
-  const character = useCharacterStore((s) => s.character);
+  // Narrow slices so the effect doesn't fire on every HP/gold/XP field write.
+  const uid = useCharacterStore((s) => s.character?.uid);
+  const level = useCharacterStore((s) => s.character?.level);
+  const lastLoginGrantedDate = useCharacterStore((s) => s.character?.lastLoginGrantedDate);
   const awardXpAndStats = useCharacterStore((s) => s.awardXpAndStats);
   const awardGold = useCharacterStore((s) => s.awardGold);
+  const applyCharacterPatch = useCharacterStore((s) => s.applyCharacterPatch);
   const inFlight = useRef(false);
 
   useEffect(() => {
-    if (!character || inFlight.current) return;
+    if (!uid || level === undefined || inFlight.current) return;
     const today = todayUTC();
-    if (character.lastLoginGrantedDate === today) return;
+    if (lastLoginGrantedDate === today) return;
 
-    const { gold, xp } = dailyLoginBonus(character.level);
-    const charUid = character.uid;
+    const { gold, xp } = dailyLoginBonus(level);
 
     inFlight.current = true;
     (async () => {
       try {
-        // Award via existing store actions (handles level-up, stat caps,
-        // resource max updates). Then stamp the date in a single write.
+        // Stamp the date FIRST so a crash between writes can't replay the
+        // bonus. The patch action covers the Firestore write + local state
+        // setState via the shared functional-updater path.
+        await applyCharacterPatch({ lastLoginGrantedDate: today });
+        // Now award the actual reward. If either of these throws, the date
+        // is already stamped, so the bonus is lost — never duplicated.
         await awardXpAndStats(xp, {});
         await awardGold(gold);
-        await updateCharacterDoc(charUid, { lastLoginGrantedDate: today });
-        useCharacterStore.setState((s) => ({
-          character: s.character ? { ...s.character, lastLoginGrantedDate: today } : s.character,
-        }));
         toast.success(`Daily login bonus +${gold}g +${xp} XP`, {
           description: 'Shows up once per UTC day. Come back tomorrow for another!',
           duration: 6000,
@@ -62,5 +69,5 @@ export function useDailyLoginBonus() {
         inFlight.current = false;
       }
     })();
-  }, [character, awardXpAndStats, awardGold]);
+  }, [uid, level, lastLoginGrantedDate, applyCharacterPatch, awardXpAndStats, awardGold]);
 }

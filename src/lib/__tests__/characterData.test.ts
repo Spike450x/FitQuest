@@ -104,4 +104,17 @@ describe('normalizeCharacter', () => {
     expect(result.stats.agility).toBe(42);
     expect(result.stats.spirit).toBe(17);
   });
+
+  it('preserves an explicit zero for spirit and agility (in-check, not ??)', () => {
+    // Regression guard: if a future class ships with spirit: 0 (or a player
+    // ever zeroes a stat), the backfill must respect the stored 0 rather than
+    // silently re-applying the class default. Switching from `??` to an `in`
+    // check is what makes this safe.
+    const result = normalizeCharacter('uid1', {
+      ...valid,
+      stats: { ...valid.stats, agility: 0, spirit: 0 },
+    });
+    expect(result.stats.agility).toBe(0);
+    expect(result.stats.spirit).toBe(0);
+  });
 });

@@ -36,8 +36,12 @@ export function normalizeCharacter(uid: string, raw: Record<string, unknown>): C
     uid,
     stats: {
       ...(rawStats as Stats),
-      agility: rawStats.agility ?? classDef.startingStats.agility,
-      spirit: rawStats.spirit ?? classDef.startingStats.spirit,
+      // `in` check (not `??`) so a stored zero is preserved. Today no class
+      // ships with `spirit: 0` or `agility: 0`, but if one is introduced later
+      // the `??` form would silently re-backfill on every fetch.
+      agility:
+        'agility' in rawStats ? (rawStats.agility as number) : classDef.startingStats.agility,
+      spirit: 'spirit' in rawStats ? (rawStats.spirit as number) : classDef.startingStats.spirit,
     },
     pendingStatPoints: (raw.pendingStatPoints as number | undefined) ?? 0,
     masteryCounts: (raw.masteryCounts as Character['masteryCounts']) ?? {},
@@ -61,10 +65,12 @@ export async function getCharacterDoc(uid: string): Promise<Character | null> {
   const rawStats = raw.stats as Partial<Stats> | undefined;
   const classDef = CLASS_DEFINITIONS[raw.class as CharacterClass];
   const backfill: Record<string, number> = {};
-  if (rawStats?.agility === undefined) {
+  // `in` check (not `??`) so a stored zero is never re-overwritten by the
+  // class default on every read. Mirrors the normalizeCharacter logic above.
+  if (!rawStats || !('agility' in rawStats)) {
     backfill['stats.agility'] = classDef.startingStats.agility;
   }
-  if (rawStats?.spirit === undefined) {
+  if (!rawStats || !('spirit' in rawStats)) {
     backfill['stats.spirit'] = classDef.startingStats.spirit;
   }
   if (Object.keys(backfill).length > 0) {
