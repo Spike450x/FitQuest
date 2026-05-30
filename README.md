@@ -179,9 +179,9 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
   │  │  passives.ts    applyOutgoing/IncomingPassives()            │   │
   │  │                 resolveLifesteal(), SUBCLASS_CATALOG        │   │
   │  │                                                             │   │
-  │  │  items.ts       ITEM_CATALOG (gear/consumables/spells)      │   │
-  │  │  monsters.ts    MONSTER_CATALOG (10 monsters)               │   │
-  │  │  quests.ts      DAILY_QUEST_POOL (12), WEEKLY_QUEST_POOL (5)│   │
+  │  │  items.ts       ITEM_CATALOG (gear/consumables/spells, 146 items)│  │
+  │  │  monsters.ts    MONSTER_CATALOG (21 monsters)               │   │
+  │  │  quests.ts      DAILY_QUEST_POOL (61), WEEKLY_QUEST_POOL (31)│  │
   │  │  rotation.ts    getDailyPick(), getWeeklyPick(),            │   │
   │  │                 seededShuffle(), dailyExpiresAt()           │   │
   │  │  streaks.ts     computeNewStreak(), getStreakTier(),        │   │
@@ -197,14 +197,16 @@ All 5 MVP phases are complete. The app is fully playable end-to-end.
   │  ─────────────           ─────────────────────                      │
   │  Email/Password          characters/{uid}                           │
   │  Route guard via         ├─ uid, name, class, level, xp, gold       │
-  │  middleware.ts           ├─ stats { str/sta/agi/hp/wis/def }        │
+  │  middleware.ts           ├─ stats { str/sta/agi/spr/hp/wis/def }   │
   │                          ├─ equippedGear { weapon/armor/accessory } │
   │                          ├─ currentHp / currentStamina / currentMagic│
   │                          ├─ pendingStatPoints, subclass             │
   │                          ├─ masteryCounts, streakData               │
   │                          ├─ personalRecords, legendaryDryStreak     │
   │                          ├─ dungeonRunsToday, activeDungeonRunId    │
-  │                          └─ achievements[]                          │
+  │                          ├─ achievements[], monstersKilled          │
+  │                          ├─ totalCombatWins, activityLogCounts      │
+  │                          └─ totalQuestsClaimed, weeklyQuestsClaimed │
   │                                                                     │
   │                          inventory/{docId}                          │
   │                          ├─ uid, itemDefId, quantity                │
@@ -288,20 +290,21 @@ Each class has unique stat multipliers applied to every XP gain, and a unique se
 
 ### Activity Logging
 
-Log 6 real-world fitness activities. Each one grants XP and raises specific stats based on class multipliers.
+Log 7 real-world fitness activities. Each one grants XP via quest progress and raises specific stats based on class multipliers.
 
-| Activity     | Unit          | Primary Stats Gained | Resource Restored   |
-| ------------ | ------------- | -------------------- | ------------------- |
-| 🏋️ Workout   | per 30 min    | STR, STA, AGI, DEF   | —                   |
-| 🏃 Run       | per mile      | STR, STA, AGI, HP    | —                   |
-| 👣 Steps     | per 10,000    | STA, AGI, HP         | —                   |
-| 😴 Sleep     | per 8 hours   | HP, DEF              | +5 Stamina per hour |
-| 💧 Water     | per 8 glasses | HP, WIS              | +5 Magic per glass  |
-| 🥗 Nutrition | per meal      | WIS                  | +20 HP per meal     |
+| Activity      | Unit          | Primary Stats Gained | Resource Restored     |
+| ------------- | ------------- | -------------------- | --------------------- |
+| 🏋️ Workout    | per 30 min    | STR, STA, AGI, DEF   | —                     |
+| 🏃 Run        | per mile      | STR, STA, AGI, HP    | —                     |
+| 👣 Steps      | per 10,000    | STA, AGI, HP         | —                     |
+| 😴 Sleep      | per 8 hours   | HP, DEF              | +5 Stamina per hour   |
+| 💧 Water      | per 8 glasses | HP, WIS              | +5 Magic per glass    |
+| 🥗 Nutrition  | per meal      | WIS                  | +20 HP per meal       |
+| 🧘 Meditation | per minute    | SPR                  | +0.2 Magic per minute |
 
 Activity logs are persisted to Firestore. A real-time preview shows XP and stat gains before you submit. Level-up banners trigger on submission.
 
-**Mastery system:** Logging run, workout, or steps accumulates a mastery count. At log 5, then every 10 after that (5, 15, 25, …), you permanently gain +1 to the linked stat: Agility (run), Strength (workout), Wisdom (steps).
+**Mastery system:** Logging run, workout, steps, or meditation accumulates a mastery count. At log 5, then every 10 after that (5, 15, 25, …), you permanently gain +1 to the linked stat: Agility (run), Strength (workout), Wisdom (steps), Spirit (meditation).
 
 ---
 
@@ -325,7 +328,7 @@ The bonus applies only to "rare", "epic", and "legendary" items in monster loot 
 
 ### Combat System
 
-Turn-based combat against a roster of 10 monsters. Each day a rotation of 4 monsters is available (deterministic seed, changes daily).
+Turn-based combat against a roster of 21 monsters (levels 1–14). Each day a rotation of 4 monsters is available (deterministic seed, changes daily).
 
 **Combat actions each round:**
 
@@ -578,21 +581,22 @@ A dedicated profile page with:
 
 ### Stats
 
-| Stat           | Combat Role               | Activity Source           |
-| -------------- | ------------------------- | ------------------------- |
-| Strength (STR) | Physical attack damage    | Workouts, runs            |
-| Stamina (STA)  | Max HP pool, ability fuel | Runs, steps, sleep        |
-| Agility (AGI)  | Escape rolls              | Runs, steps, workouts     |
-| Health (HP)    | Max HP pool               | Runs, steps, sleep, water |
-| Wisdom (WIS)   | Magic pool, spell scaling | Water, nutrition          |
-| Defense (DEF)  | Reduces incoming damage   | Workouts, sleep           |
+| Stat           | Combat Role                                                                     | Activity Source           |
+| -------------- | ------------------------------------------------------------------------------- | ------------------------- |
+| Strength (STR) | Physical attack damage                                                          | Workouts, runs            |
+| Stamina (STA)  | Max HP pool, ability fuel                                                       | Runs, steps, sleep        |
+| Agility (AGI)  | Escape rolls                                                                    | Runs, steps, workouts     |
+| Health (HP)    | Max HP pool                                                                     | Runs, steps, sleep, water |
+| Wisdom (WIS)   | Magic pool, spell scaling                                                       | Water, nutrition          |
+| Defense (DEF)  | Reduces incoming damage                                                         | Workouts, sleep           |
+| Spirit (SPR)   | Spell + ability crit chance (+1 %/pt, cap 40 %) & damage (+0.5 %/pt, cap +25 %) | Meditation                |
 
 **Stat caps:**
 
-- Primary stats (STR, WIS, AGI): hard cap at **50**
+- Primary stats (STR, WIS, AGI, SPR): hard cap at **50**
 - Secondary stats (STA, HP, DEF): level-scaled cap of `level × 5 + 10`
 
-**Level-up bonuses (per level):** +1 HP (auto), +1 DEF (auto), +1 free stat point (player choice: STR, WIS, AGI, or STA)
+**Level-up bonuses (per level):** +1 HP (auto), +1 DEF (auto), +1 free stat point (player choice: STR, WIS, AGI, SPR, or STA)
 
 ### XP & Leveling
 
@@ -628,7 +632,7 @@ Daily combat XP    = base_xp × multiplier, where multiplier =
 
 ### Monsters
 
-10 monsters spanning levels 1–10:
+21 monsters spanning levels 1–14 (10 added in the 2× content-scaling drop). Below shows the original 10 — see [`src/lib/gameLogic/monsters.ts`](src/lib/gameLogic/monsters.ts) for the full catalog including the 10 L1–14 additions (Mud Imp, Boar Runt, Bog Lurker, Iron Husk, Frost Wraith, Gloom Knight, Obsidian Golem, Ashwyrm, Void Revenant, Storm Djinn) and their new mechanics (`siphon`, `armor-pierce`, `summon-add`):
 
 | Monster          | Level | HP  | Attack | Defense | XP  | Gold |
 | ---------------- | ----- | --- | ------ | ------- | --- | ---- |
@@ -672,9 +676,9 @@ src/
 ├── lib/
 │   └── gameLogic/
 │       ├── constants.ts     # COMBAT, RESTORE, LEVEL_UP, stat caps, XP formula, class/activity defs
-│       ├── items.ts         # Full item catalog (weapons, armor, consumables, spells) + rarity styles
-│       ├── monsters.ts      # MONSTER_CATALOG (10 monsters with loot tables)
-│       ├── quests.ts        # DAILY_QUEST_POOL (12) + WEEKLY_QUEST_POOL (5)
+│       ├── items.ts         # Full item catalog (146 items: 40 weapons / 25 armor / 30 accessories / 16 consumables / 35 spells)
+│       ├── monsters.ts      # MONSTER_CATALOG (21 monsters with loot tables, levels 1–14)
+│       ├── quests.ts        # DAILY_QUEST_POOL (61) + WEEKLY_QUEST_POOL (31)
 │       ├── rotation.ts      # Deterministic daily/weekly rotation via seeded LCG shuffle
 │       ├── abilities.ts     # 6d6 class ability system (CLASS_ABILITY_CATALOG, detectPattern)
 │       ├── spells.ts        # Spell dice rolling, requirement checks, resolveSpell
