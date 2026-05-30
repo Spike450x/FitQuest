@@ -67,7 +67,7 @@ interface QuestStore {
   >;
   /**
    * Replaces an active (not-yet-complete, not-yet-claimed) quest with a new
-   * pick from the appropriate pool. Costs `QUEST_REROLL_COST` gold. Excludes
+   * pick from the appropriate pool. Costs `questRerollCost(level)` gold. Excludes
    * the player's currently-active questDefIds so they get a genuinely new
    * quest. Returns `{ newQuestDefId, cost }` on success or `false` if the
    * reroll wasn't possible (not enough gold, quest claimed, quest completed,

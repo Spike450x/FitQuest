@@ -1,21 +1,24 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { type User } from 'firebase/auth';
 import { updateUserEmail, updateUserPassword } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
-import { ACHIEVEMENTS, POLYMATH_THRESHOLD } from '@/lib/gameLogic/achievements';
+import { POLYMATH_THRESHOLD } from '@/lib/gameLogic/achievements';
 import { Card } from '@/components/ui/Card';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useNavPreferenceStore, MAX_PINNED } from '@/store/navPreferenceStore';
 import { SoundToggle } from '@/components/ui/SoundToggle';
 import { InstallAppButton } from '@/components/ui/InstallAppButton';
-import { EntityArt } from '@/components/art/EntityArt';
 import type { Character } from '@/types';
 import { InputField } from '@/components/ui/InputField';
 
 export default function ProfilePage() {
   const { character, user } = useCharacter();
+  const pinnedHrefs = useNavPreferenceStore((s) => s.pinnedHrefs);
+  const openCustomizer = useNavPreferenceStore((s) => s.openCustomizer);
 
   if (!character || !user) return null;
 
@@ -32,7 +35,30 @@ export default function ProfilePage() {
 
       <PolymathProgress character={character} />
 
-      <AchievementGallery character={character} />
+      <Link
+        href="/collections"
+        className="block rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-4 py-3 text-sm font-medium text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors"
+      >
+        View Achievements, Bestiary &amp; Collection →
+      </Link>
+
+      <SettingsCard
+        title="Navigation"
+        description="Choose which shortcuts appear in the mobile quick-access bar."
+      >
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-gray-600 dark:text-slate-300">
+            {pinnedHrefs.length} of {MAX_PINNED} slots pinned
+          </p>
+          <button
+            type="button"
+            onClick={openCustomizer}
+            className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            Customize
+          </button>
+        </div>
+      </SettingsCard>
 
       <SettingsCard title="Appearance" description="Choose your preferred theme.">
         <div className="flex items-center justify-between">
@@ -144,87 +170,6 @@ function PolymathProgress({ character }: { character: Character }) {
           );
         })}
       </ul>
-    </Card>
-  );
-}
-
-// ── Achievement Gallery ───────────────────────────────────────────────────────
-
-function AchievementGallery({ character }: { character: Character }) {
-  const unlocked = new Set(character.achievements ?? []);
-  const all = Object.values(ACHIEVEMENTS);
-  const unlockedCount = all.filter((a) => unlocked.has(a.id)).length;
-
-  return (
-    <Card variant="default" padding="lg">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">Achievements</h3>
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-            {unlockedCount} / {all.length} unlocked
-          </p>
-        </div>
-        <div className="flex gap-1">
-          {all.map((def) => (
-            <span
-              key={def.id}
-              title={def.name}
-              className={`text-lg leading-none ${unlocked.has(def.id) ? '' : 'grayscale opacity-30'}`}
-            >
-              {def.emoji}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {all.map((def) => {
-          const isUnlocked = unlocked.has(def.id);
-          return (
-            <div
-              key={def.id}
-              className={`rounded-xl p-3 border flex gap-3 items-start ${
-                isUnlocked
-                  ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800'
-                  : 'bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-slate-700 opacity-50'
-              }`}
-            >
-              {isUnlocked ? (
-                <EntityArt
-                  category="achievement"
-                  id={def.id}
-                  size="md"
-                  fallbackEmoji={def.emoji}
-                  ariaLabel={def.name}
-                />
-              ) : (
-                <div
-                  className="text-2xl mb-1 w-14 h-14 flex items-center justify-center"
-                  aria-hidden="true"
-                >
-                  🔒
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div
-                  className={`text-xs font-bold leading-tight ${isUnlocked ? 'text-indigo-900 dark:text-indigo-200' : 'text-gray-400 dark:text-slate-500'}`}
-                >
-                  {def.name}
-                </div>
-                <div className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 leading-snug">
-                  {def.description}
-                </div>
-                {isUnlocked && (
-                  <div className="mt-2">
-                    <span className="text-xs bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 px-1.5 py-0.5 rounded font-medium">
-                      +{def.goldReward} gold earned
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
     </Card>
   );
 }
