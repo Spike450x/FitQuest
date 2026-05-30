@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   Home,
   Swords,
@@ -14,11 +15,13 @@ import {
   BarChart3,
   Trophy,
   MoreHorizontal,
+  Settings,
   type LucideIcon,
 } from 'lucide-react';
 import { logOut } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCollectionAchievementSync } from '@/hooks/useCollectionAchievementSync';
+import { useNavPreference, MAX_PINNED } from '@/hooks/useNavPreference';
 import { useActivityStore } from '@/store/activityStore';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
@@ -26,6 +29,7 @@ import { useInventoryStore } from '@/store/inventoryStore';
 import { useStatsStore } from '@/store/statsStore';
 import { useCombatStore } from '@/store/combatStore';
 import { toast } from '@/components/ui/Toaster';
+import { Modal } from '@/components/ui/Modal';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { XPBar } from '@/components/ui/XPBar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -39,7 +43,12 @@ import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
 type NavItem = { href: string; label: string; Icon: LucideIcon };
 
 /** Nav link that blocks navigation (with a toast) while combat is active. */
-function CombatSafeLink({ href, children, ...props }: React.ComponentProps<typeof Link>) {
+function CombatSafeLink({
+  href,
+  children,
+  onClick: onClickProp,
+  ...props
+}: React.ComponentProps<typeof Link>) {
   const combatActive = useCombatStore((s) => s.combatActive);
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
@@ -47,6 +56,9 @@ function CombatSafeLink({ href, children, ...props }: React.ComponentProps<typeo
       e.preventDefault();
       toast.warning('Finish or flee your current battle before navigating away.');
     }
+    // Always fire the caller's onClick so the More panel can close even when
+    // navigation is blocked by an active combat session.
+    onClickProp?.(e);
   }
 
   return (
@@ -68,10 +80,9 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/collections', label: 'Collections', Icon: Trophy },
 ];
 
-// Daily gameplay loop — always visible in the mobile bar.
-const PRIMARY_NAV = NAV_ITEMS.slice(0, 5);
-// Management / browsing screens — tucked behind the "More" panel.
-const OVERFLOW_NAV = NAV_ITEMS.slice(5);
+// Stable module-level references so useNavPreference's mount effect never re-fires.
+const NAV_HREFS = NAV_ITEMS.map((i) => i.href) as readonly string[];
+const DEFAULT_PINNED_HREFS = NAV_HREFS.slice(0, MAX_PINNED) as readonly string[];
 
 export default function GameLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -79,6 +90,13 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   const { character, loading } = useCharacter();
   const [collapsed, setCollapsed] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  const { pinnedHrefs, togglePin } = useNavPreference(NAV_HREFS, DEFAULT_PINNED_HREFS);
+  // Primary bar: NAV_ITEMS order filtered to pinned hrefs.
+  const primaryNav = NAV_ITEMS.filter((item) => pinnedHrefs.includes(item.href));
+  // Overflow panel: everything else.
+  const overflowNav = NAV_ITEMS.filter((item) => !pinnedHrefs.includes(item.href));
   const subscribeActivity = useActivityStore((s) => s.subscribe);
 
   // Close the overflow panel on any navigation.
@@ -269,36 +287,58 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
       {/* ── Mobile: overflow "More" panel ────────────────────────────────── */}
       {moreOpen && (
-        <>
-          {/* Tap-outside backdrop */}
-          <div
-            className="fixed inset-0 z-[14] md:hidden"
-            onClick={() => setMoreOpen(false)}
-            aria-hidden="true"
-          />
-          {/* 2×2 grid of overflow nav items, floating above the bar */}
-          <div className="fixed bottom-14 left-0 right-0 z-[15] md:hidden mx-3 mb-1.5 rounded-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800/80 shadow-xl shadow-gray-900/10 dark:shadow-black/50 p-2 grid grid-cols-4 gap-1">
-            {OVERFLOW_NAV.map(({ href, label, Icon }) => {
-              const active = pathname === href || pathname.startsWith(href + '/');
-              return (
-                <CombatSafeLink
-                  key={href}
-                  href={href}
-                  aria-current={active ? 'page' : undefined}
-                  className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl text-[11px] font-medium transition-colors ${
-                    active
-                      ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300'
-                      : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800/60 hover:text-gray-700 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" aria-hidden="true" strokeWidth={active ? 2.5 : 2} />
-                  <span className="truncate w-full text-center">{label}</span>
-                </CombatSafeLink>
-              );
-            })}
-          </div>
-        </>
+        <div
+          className="fixed inset-0 z-[14] md:hidden"
+          onClick={() => setMoreOpen(false)}
+          aria-hidden="true"
+        />
       )}
+      <AnimatePresence>
+        {moreOpen && (
+          <motion.div
+            key="overflow-panel"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="fixed bottom-14 left-0 right-0 z-[15] md:hidden mx-3 mb-1.5 rounded-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800/80 shadow-xl shadow-gray-900/10 dark:shadow-black/50 p-2"
+          >
+            <div className="grid grid-cols-4 gap-1">
+              {overflowNav.map(({ href, label, Icon }) => {
+                const active = pathname === href || pathname.startsWith(href + '/');
+                return (
+                  <CombatSafeLink
+                    key={href}
+                    href={href}
+                    onClick={() => setMoreOpen(false)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl text-[11px] font-medium transition-colors ${
+                      active
+                        ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300'
+                        : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800/60 hover:text-gray-700 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" aria-hidden="true" strokeWidth={active ? 2.5 : 2} />
+                    <span className="truncate w-full text-center">{label}</span>
+                  </CombatSafeLink>
+                );
+              })}
+            </div>
+            {/* Customize shortcut */}
+            <button
+              type="button"
+              onClick={() => {
+                setMoreOpen(false);
+                setCustomizerOpen(true);
+              }}
+              className="mt-1 w-full py-2 flex items-center justify-center gap-1.5 text-[11px] font-medium text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800/40"
+            >
+              <Settings className="w-3.5 h-3.5" aria-hidden="true" />
+              Customize nav
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Mobile bottom nav ─────────────────────────────────────────────── */}
       <nav
@@ -306,7 +346,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         aria-label="Primary"
       >
         <ul className="flex justify-around">
-          {PRIMARY_NAV.map(({ href, label, Icon }) => {
+          {primaryNav.map(({ href, label, Icon }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <li key={href} className="flex-1 min-w-0">
@@ -335,7 +375,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
           {/* More button — highlights when on any overflow route */}
           <li className="flex-1 min-w-0">
             {(() => {
-              const overflowActive = OVERFLOW_NAV.some(
+              const overflowActive = overflowNav.some(
                 ({ href }) => pathname === href || pathname.startsWith(href + '/'),
               );
               const highlighted = overflowActive || moreOpen;
@@ -369,6 +409,95 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
           </li>
         </ul>
       </nav>
+
+      <NavCustomizerModal
+        open={customizerOpen}
+        onClose={() => setCustomizerOpen(false)}
+        navItems={NAV_ITEMS}
+        pinnedHrefs={pinnedHrefs}
+        onToggle={togglePin}
+      />
     </div>
+  );
+}
+
+// ── Nav Customizer Modal ──────────────────────────────────────────────────────
+
+function NavCustomizerModal({
+  open,
+  onClose,
+  navItems,
+  pinnedHrefs,
+  onToggle,
+}: {
+  open: boolean;
+  onClose: () => void;
+  navItems: NavItem[];
+  pinnedHrefs: string[];
+  onToggle: (href: string) => void;
+}) {
+  const atMax = pinnedHrefs.length >= MAX_PINNED;
+  const atMin = pinnedHrefs.length <= 1;
+
+  return (
+    <Modal open={open} onClose={onClose} size="sm" ariaLabelledby="customizer-heading">
+      <div className="p-5 space-y-4">
+        <div>
+          <h2
+            id="customizer-heading"
+            className="font-semibold text-gray-900 dark:text-slate-100 text-base"
+          >
+            Customize Nav
+          </h2>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+            Pick up to {MAX_PINNED} items for the main bar. The rest live in &ldquo;More&rdquo;.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {navItems.map(({ href, label, Icon }) => {
+            const pinned = pinnedHrefs.includes(href);
+            const disabled = (!pinned && atMax) || (pinned && atMin);
+            return (
+              <button
+                key={href}
+                type="button"
+                onClick={() => onToggle(href)}
+                disabled={disabled}
+                aria-pressed={pinned}
+                className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-[11px] font-medium transition-all ${
+                  pinned
+                    ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-900/40 dark:border-indigo-600 dark:text-indigo-300'
+                    : disabled
+                      ? 'bg-gray-50 border-gray-100 text-gray-300 dark:bg-slate-900/50 dark:border-slate-800 dark:text-slate-700 cursor-not-allowed opacity-50'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:border-indigo-700 dark:hover:text-indigo-300'
+                }`}
+              >
+                <Icon className="w-5 h-5" aria-hidden="true" />
+                <span>{label}</span>
+                {pinned && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400"
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-[11px] text-gray-400 dark:text-slate-500 text-center tabular-nums">
+          {pinnedHrefs.length} / {MAX_PINNED} pinned
+        </p>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
+        >
+          Done
+        </button>
+      </div>
+    </Modal>
   );
 }
