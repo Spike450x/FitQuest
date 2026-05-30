@@ -340,7 +340,7 @@ Tested in [`__tests__/achievements.test.ts`](../src/lib/gameLogic/__tests__/achi
 
 ## `collections.ts` — bestiary + collection completion
 
-Pure derivations backing the `/stats/bestiary` and `/stats/collection` surfaces. Tested in [`__tests__/collectionsPR5.test.ts`](../src/lib/gameLogic/__tests__/collectionsPR5.test.ts).
+Pure derivations backing the `/collections/bestiary` and `/collections/collection` surfaces (the old `/stats/bestiary` and `/stats/collection` routes redirect there). Tested in [`__tests__/collectionsPR5.test.ts`](../src/lib/gameLogic/__tests__/collectionsPR5.test.ts).
 
 | Export                         | Kind     | Purpose                                                                                                                                                                                                          |
 | ------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
