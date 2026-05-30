@@ -8,8 +8,8 @@ const db = admin.firestore();
 
 export { claimDungeonRun } from './claimDungeonRun';
 export { claimCombatVictory } from './claimCombatVictory';
-export { terraWebhook } from './terraWebhook';
-export { createTerraSession } from './createTerraSession';
+export { createGarminAuthUrl, garminOAuthCallback } from './garminConnect';
+export { garminWebhook } from './garminWebhook';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ interface LogActivityInput {
 // ─── logActivity callable ─────────────────────────────────────────────────────
 //
 // Thin auth + input-validation wrapper around `logActivityCore` (shared with the
-// terraWebhook device-sync path). The core owns the authoritative write sequence:
+// garminWebhook device-sync path). The core owns the authoritative write sequence:
 // cap enforcement, mastery awards, resource restore, and achievement evaluation.
 //
 // Quest progress and streak tracking remain client-side (low fraud risk —

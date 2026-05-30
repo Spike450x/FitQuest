@@ -107,17 +107,17 @@ If the multiplier never applies (or the badge stays on 100% past win 10), check 
 
 ---
 
-### Optional — Health-data sync (Terra)
+### Optional — Health-data sync (Garmin)
 
-Only relevant once the integration is switched on. Requires a Terra account + the three Cloud Functions secrets set + the webhook registered (see [HEALTH-INTEGRATION.md § 7](HEALTH-INTEGRATION.md)). Cannot be exercised without live Terra credentials, so it is **not** in the automated suite.
+Only relevant once the integration is switched on. Requires Garmin Developer Program approval + the Cloud Functions secrets set + the OAuth redirect & Push callbacks registered (see [HEALTH-INTEGRATION.md § 7](HEALTH-INTEGRATION.md)). Cannot be exercised without live Garmin credentials, so it is **not** in the automated suite.
 
 1. Set `NEXT_PUBLIC_HEALTH_SYNC_ENABLED=true` and deploy. Go to `/profile` → "Connect a device" → `/profile/connections`.
-2. Click **Connect a device** → you're redirected to the Terra-hosted widget. Authorize a sandbox Garmin/Fitbit account.
-3. On return you land back on `/profile/connections?connected=1` with a "🎉 Device connected" toast (URL then cleans to `/profile/connections`). The provider appears in the list with an **Active** pill.
-4. In Firestore, confirm a `healthConnections/{uid}_{PROVIDER}` doc exists (`status: 'connected'`, `terraUserId`, `lastSyncAt`). Client writes to it should be **denied** by rules.
-5. Complete (or have Terra replay) a workout/steps. Within a minute a `activityLogs/{uid}_terra_*` doc appears with a `source` like `terra:GARMIN`, and the `/dashboard` feed shows a "⌚ synced" badge. Mastery/restore update exactly as for a manual log.
-6. **Idempotency** — re-send the same webhook (Terra dashboard "resend"): no duplicate log appears. For steps, send a growing daily total twice and confirm the summed step-logs equal the latest total (delta-only), and a `healthDailySnapshots/*` cursor tracks `lastValue`.
-7. **Signature** — a request with a tampered body or wrong secret returns `401` and writes nothing (`firebase functions:log`).
+2. Click **Connect Garmin** → you're redirected to Garmin's authorize page. Log in and approve.
+3. Garmin redirects to `garminOAuthCallback`, which exchanges the code and bounces you back to `/profile/connections?connected=1` with a "🎉 Garmin connected" toast (URL then cleans). Garmin appears in the list with an **Active** pill.
+4. In Firestore: a `healthConnections/{uid}_garmin` doc exists (`status: 'connected'`, `providerUserId`, `lastSyncAt`) — client writes **denied** by rules. A `healthTokens/{uid}_garmin` doc exists but is **not** client-readable (verify a client read is denied).
+5. Complete (or have Garmin re-push) a workout/steps. Within a minute an `activityLogs/{uid}_garmin_*` doc appears with `source: 'garmin'`, and the `/dashboard` feed shows a "⌚ synced" badge. Mastery/restore update exactly as for a manual log.
+6. **Idempotency** — a re-pushed event writes no duplicate. For steps, push a growing daily total twice and confirm the summed step-logs equal the latest total (delta-only), with a `healthDailySnapshots/*` cursor tracking `lastValue`.
+7. **Auth** — a push to `garminWebhook` without the correct `?token=` returns `401` and writes nothing (`firebase functions:log`).
 
 ---
 

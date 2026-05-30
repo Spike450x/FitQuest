@@ -1,23 +1,25 @@
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';
-import type { CreateTerraSessionInput, CreateTerraSessionResult } from '@/types/cloudFunctions';
+import type { CreateGarminAuthUrlInput, CreateGarminAuthUrlResult } from '@/types/cloudFunctions';
 
-const createTerraSessionFn = httpsCallable<CreateTerraSessionInput, CreateTerraSessionResult>(
+const createGarminAuthUrlFn = httpsCallable<CreateGarminAuthUrlInput, CreateGarminAuthUrlResult>(
   functions,
-  'createTerraSession',
+  'createGarminAuthUrl',
 );
 
-/** Feature flag — gates the entire connect surface until Terra creds are wired. */
+/** Feature flag — gates the entire connect surface until Garmin creds are wired. */
 export const HEALTH_SYNC_ENABLED = process.env.NEXT_PUBLIC_HEALTH_SYNC_ENABLED === 'true';
 
 /**
- * Requests a Terra widget session bound to the signed-in user and returns the
- * hosted URL to redirect the browser to. Terra handles the provider OAuth and
- * holds the tokens; we only ever see the resulting webhook data.
+ * Starts the Garmin OAuth 2.0 PKCE flow and returns the authorize URL to
+ * redirect the browser to. The Cloud Function mints + stashes the PKCE
+ * verifier server-side; the server-side callback exchanges the code for tokens
+ * (we hold them in the server-only `healthTokens` collection) and bounces the
+ * user back to `${returnOrigin}/profile/connections`.
  */
-export async function createTerraSession(
-  input: CreateTerraSessionInput,
-): Promise<CreateTerraSessionResult> {
-  const result = await createTerraSessionFn(input);
+export async function createGarminAuthUrl(
+  input: CreateGarminAuthUrlInput,
+): Promise<CreateGarminAuthUrlResult> {
+  const result = await createGarminAuthUrlFn(input);
   return result.data;
 }

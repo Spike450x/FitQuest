@@ -4,25 +4,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useHealthConnections } from '@/hooks/useHealthConnections';
-import { createTerraSession, HEALTH_SYNC_ENABLED } from '@/lib/health';
+import { createGarminAuthUrl, HEALTH_SYNC_ENABLED } from '@/lib/health';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Heading } from '@/components/ui/Heading';
 import { toast } from '@/components/ui/Toaster';
 import type { HealthConnection } from '@/types';
 
-// Friendly labels + glyphs for the providers Terra exposes through the widget.
+// Friendly labels + glyphs keyed by the lowercase provider code on the doc.
 const PROVIDER_LABELS: Record<string, { name: string; glyph: string }> = {
-  GARMIN: { name: 'Garmin', glyph: '⌚' },
-  FITBIT: { name: 'Fitbit', glyph: '⌚' },
-  OURA: { name: 'Oura', glyph: '💍' },
-  WHOOP: { name: 'WHOOP', glyph: '🎽' },
-  GOOGLE: { name: 'Google Fit', glyph: '🏃' },
-  STRAVA: { name: 'Strava', glyph: '🏅' },
-  POLAR: { name: 'Polar', glyph: '⌚' },
-  SAMSUNG: { name: 'Samsung Health', glyph: '📱' },
-  WITHINGS: { name: 'Withings', glyph: '⚖️' },
-  SUUNTO: { name: 'Suunto', glyph: '🧭' },
+  garmin: { name: 'Garmin', glyph: '⌚' },
 };
 
 function providerLabel(code: string): { name: string; glyph: string } {
@@ -40,11 +31,11 @@ export default function ConnectionsPage() {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     if (params.get('connected') === '1') {
-      toast('🎉 Device connected', {
+      toast('🎉 Garmin connected', {
         description: 'Your activity will sync automatically from now on.',
       });
     } else if (params.get('error') === '1') {
-      toast('Connection cancelled', { description: 'No device was linked.' });
+      toast('Connection failed', { description: 'Garmin was not linked. Please try again.' });
     }
     if (params.has('connected') || params.has('error')) {
       window.history.replaceState({}, '', '/profile/connections');
@@ -56,11 +47,7 @@ export default function ConnectionsPage() {
   async function handleConnect() {
     setConnecting(true);
     try {
-      const origin = window.location.origin;
-      const { url } = await createTerraSession({
-        successUrl: `${origin}/profile/connections?connected=1`,
-        failureUrl: `${origin}/profile/connections?error=1`,
-      });
+      const { url } = await createGarminAuthUrl({ returnOrigin: window.location.origin });
       window.location.href = url;
     } catch (err) {
       const message = (err as { message?: string }).message ?? 'Could not start the connection.';
@@ -82,7 +69,7 @@ export default function ConnectionsPage() {
           Connected Devices
         </Heading>
         <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-          Link a wearable to auto-log your real workouts, runs, steps and sleep — no manual entry.
+          Link your Garmin to auto-log your real workouts, runs, steps and sleep — no manual entry.
         </p>
       </div>
 
@@ -90,9 +77,8 @@ export default function ConnectionsPage() {
         <Card variant="highlight" padding="lg">
           <p className="text-sm font-semibold text-text-primary">Coming soon</p>
           <p className="text-xs text-text-muted mt-1">
-            Device sync isn&apos;t switched on for this build yet. Once enabled you&apos;ll be able
-            to connect Garmin, Fitbit, Oura, WHOOP, Google Fit and more in a couple of taps. For
-            now, log your activities on the{' '}
+            Garmin sync isn&apos;t switched on for this build yet. Once enabled you&apos;ll be able
+            to connect your Garmin account in a couple of taps. For now, log your activities on the{' '}
             <Link href="/activities" className="text-accent-primary hover:underline">
               Activities
             </Link>{' '}
@@ -104,14 +90,14 @@ export default function ConnectionsPage() {
           <Card variant="hero" padding="lg">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <p className="text-sm font-semibold text-text-primary">Add a device</p>
+                <p className="text-sm font-semibold text-text-primary">Connect Garmin</p>
                 <p className="text-xs text-text-muted mt-0.5 max-w-sm">
-                  We never see your provider password — authorization happens on the provider&apos;s
-                  own secure page.
+                  We never see your Garmin password — you authorize on Garmin&apos;s own secure
+                  page, and your real activity flows in automatically.
                 </p>
               </div>
               <Button onClick={handleConnect} loading={connecting} loadingLabel="Opening…">
-                Connect a device
+                Connect Garmin
               </Button>
             </div>
           </Card>
@@ -120,7 +106,7 @@ export default function ConnectionsPage() {
 
           <p className="text-xs text-text-muted">
             Apple Health can&apos;t be linked from the web — it lives on your iPhone and needs the
-            native app (on the roadmap). Everything above works in your browser today.
+            native app (on the roadmap). Garmin works in your browser today.
           </p>
         </>
       )}
@@ -146,7 +132,7 @@ function ConnectionList({
         </div>
         <p className="text-sm font-semibold text-text-secondary">No devices linked yet</p>
         <p className="text-xs text-text-muted mt-1">
-          Connect one above to start earning rewards from your real activity.
+          Connect Garmin above to start earning rewards from your real activity.
         </p>
       </Card>
     );

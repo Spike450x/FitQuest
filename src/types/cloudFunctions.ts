@@ -82,17 +82,15 @@ export interface LogActivityResult {
   achievementGold: number;
 }
 
-// ─── createTerraSession ───────────────────────────────────────────────────────
+// ─── createGarminAuthUrl ──────────────────────────────────────────────────────
 
-export interface CreateTerraSessionInput {
-  /** Absolute https URL Terra redirects to after a successful connect. */
-  successUrl: string;
-  /** Absolute https URL Terra redirects to if the user cancels/fails. */
-  failureUrl: string;
+export interface CreateGarminAuthUrlInput {
+  /** App origin to return the browser to after the OAuth callback completes. */
+  returnOrigin: string;
 }
 
-export interface CreateTerraSessionResult {
-  /** Hosted Terra widget URL to navigate the user to. */
+export interface CreateGarminAuthUrlResult {
+  /** Garmin OAuth 2.0 PKCE authorize URL to navigate the user to. */
   url: string;
 }
 

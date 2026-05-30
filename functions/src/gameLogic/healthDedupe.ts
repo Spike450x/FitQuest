@@ -13,7 +13,7 @@
 //     summed activityLogs equal the latest cumulative total (no double-count,
 //     and the existing daily cap still clamps rewards).
 //
-// All functions here are pure; the snapshot read/write lives in terraWebhook.
+// All functions here are pure; the snapshot read/write lives in garminWebhook.
 
 import type { ActivityType } from './activityCaps';
 
@@ -29,9 +29,9 @@ export function utcDayKey(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
-/** Idempotent doc-id suffix for a discrete session. */
-export function eventDedupeKey(sourceId: string): string {
-  return `terra_${sanitize(sourceId)}`;
+/** Idempotent doc-id suffix for a discrete session, namespaced by provider. */
+export function eventDedupeKey(provider: string, sourceId: string): string {
+  return `${sanitize(provider)}_${sanitize(sourceId)}`;
 }
 
 /**
@@ -40,11 +40,12 @@ export function eventDedupeKey(sourceId: string): string {
  * already logged), while a grown total produces a fresh doc for its delta.
  */
 export function dailyDeltaDedupeKey(
+  provider: string,
   activityType: ActivityType,
   day: string,
   newCumulative: number,
 ): string {
-  return `terra_${activityType}_${sanitize(day)}_${Math.round(newCumulative)}`;
+  return `${sanitize(provider)}_${activityType}_${sanitize(day)}_${Math.round(newCumulative)}`;
 }
 
 /** Snapshot doc id holding the last cumulative value per user/source/day/metric. */

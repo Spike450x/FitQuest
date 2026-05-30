@@ -14,7 +14,7 @@ export function normalizeHealthConnection(
     id,
     uid: (data.uid as string | undefined) ?? '',
     provider: (data.provider as string | undefined) ?? 'unknown',
-    terraUserId: data.terraUserId as string | undefined,
+    providerUserId: data.providerUserId as string | undefined,
     status: (data.status as HealthConnection['status'] | undefined) ?? 'connected',
     lastSyncAt: data.lastSyncAt as number | undefined,
   };
@@ -22,7 +22,7 @@ export function normalizeHealthConnection(
 
 /**
  * Subscribes to the signed-in user's wearable connections. Connections are
- * written server-side by terraWebhook, so this is read-only and reflects
+ * written server-side by the Garmin functions, so this is read-only and reflects
  * connect/sync events as they arrive.
  */
 export function subscribeToHealthConnections(

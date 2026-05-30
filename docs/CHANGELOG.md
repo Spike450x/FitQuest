@@ -15,14 +15,15 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
-## 2026-05-30 — Health-data integration scaffold (Terra aggregator)
+## 2026-05-30 — Health-data integration scaffold (Garmin, free)
 
-- **Auto-log real activity from wearables** (Garmin, Fitbit, Oura, WHOOP, Strava, Google Fit, …) via the Terra aggregator — feature-flagged off (`NEXT_PUBLIC_HEALTH_SYNC_ENABLED`) pending Terra credentials. Full design + runbook in [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md).
+- **Auto-log real activity from a Garmin device** — feature-flagged off (`NEXT_PUBLIC_HEALTH_SYNC_ENABLED`) pending Garmin Developer Program approval + secrets. Garmin-direct is free (no aggregator fee). Full design + runbook in [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md).
 - **Shared write core** — extracted `logActivityCore` from the `logActivity` callable so device-synced logs reuse the exact authoritative path (daily caps, mastery, restore, achievements). The `logActivity` onCall is now a thin validation wrapper (no behaviour change; existing tests guard it).
-- **New Cloud Functions** — `terraWebhook` (the repo's first `onRequest` HTTP function: HMAC-SHA256 signature verification over the raw body, payload mapping, de-dupe, ingestion) and `createTerraSession` (`onCall` widget-session generator bound to the uid). First use of Firebase Functions **secrets** (`TERRA_DEV_ID` / `TERRA_API_KEY` / `TERRA_SIGNING_SECRET`).
-- **De-dupe** — discrete sessions idempotent by provider `summary_id`; cumulative daily steps logged as positive deltas via a `healthDailySnapshots` cursor so the day's logs sum to the latest total without double-counting.
-- **New collections** — `healthConnections` (owner-read, server-write-only) and `healthDailySnapshots` (server-only). New optional `ActivityLog.source` field drives a "⌚ synced" feed badge. New `/profile/connections` UI, `lib/health.ts`, `lib/healthData.ts`, `useHealthConnections`.
-- **Tests** — 29 new functions vitest specs (mapping decision table, daily-delta dedupe, signature verify/tamper/rotation); functions suite 16 → 45. Apple Health intentionally out of scope (needs a native iOS shell — documented).
+- **New Cloud Functions** — `createGarminAuthUrl` (onCall — OAuth 2.0 PKCE start), `garminOAuthCallback` (onRequest — code→token exchange, stores tokens server-side), and `garminWebhook` (onRequest — Garmin "Push" ingestion). First `onRequest` HTTP functions + first use of Firebase Functions **secrets** (`GARMIN_CLIENT_ID` / `GARMIN_CLIENT_SECRET` / `GARMIN_WEBHOOK_TOKEN`).
+- **OAuth tokens held server-side** — new server-only `healthTokens` + `healthOAuthStates` collections (deny all client access). The client-readable `healthConnections` doc holds status only, never tokens.
+- **De-dupe** — discrete sessions idempotent by Garmin `summaryId`; cumulative daily steps logged as positive deltas via a `healthDailySnapshots` cursor so the day's logs sum to the latest total without double-counting.
+- **Client** — new optional `ActivityLog.source` (`'garmin'`) drives a "⌚ synced" feed badge; new `/profile/connections` Connect-Garmin UI, `lib/health.ts`, `lib/healthData.ts`, `useHealthConnections`. Provider-neutral core leaves the door open for a paid aggregator/second provider as a thin adapter.
+- **Tests** — 23 new functions vitest specs (Garmin payload mapping, daily-delta dedupe, PKCE challenge/state/authorize-URL); functions suite 16 → 39. Apple Health intentionally out of scope (needs a native iOS shell — documented).
 
 ## 2026-05-30 — Code-audit fix pass
 

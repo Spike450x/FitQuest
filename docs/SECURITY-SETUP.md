@@ -176,25 +176,29 @@ The `FIREBASE_TOKEN` secret is a long-lived Firebase CI token used by the CI aut
 
 ---
 
-## Cloud Functions Secrets — Terra health-data integration
+## Cloud Functions Secrets — Garmin health-data integration
 
-The health-data integration (see [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md)) is the first feature to use **Firebase Functions secrets** (`defineSecret` / Google Secret Manager) rather than `NEXT_PUBLIC_*` env vars. Three secrets back it:
+The health-data integration (see [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md)) is the first feature to use **Firebase Functions secrets** (`defineSecret` / Google Secret Manager) rather than `NEXT_PUBLIC_*` env vars. Three secrets + one non-secret param back it:
 
-| Secret                 | Used by              | Purpose                                                             |
-| ---------------------- | -------------------- | ------------------------------------------------------------------- |
-| `TERRA_DEV_ID`         | `createTerraSession` | Terra REST dev id                                                   |
-| `TERRA_API_KEY`        | `createTerraSession` | Terra REST API key (server-side only — never shipped to the client) |
-| `TERRA_SIGNING_SECRET` | `terraWebhook`       | HMAC key that authenticates inbound Terra webhooks                  |
+| Secret / param         | Used by                               | Purpose                                                                                           |
+| ---------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `GARMIN_CLIENT_ID`     | `createGarminAuthUrl`, OAuth callback | Garmin OAuth 2.0 PKCE client id                                                                   |
+| `GARMIN_CLIENT_SECRET` | `garminOAuthCallback`                 | OAuth client secret (server-side only — never shipped to the client)                              |
+| `GARMIN_WEBHOOK_TOKEN` | `garminWebhook`                       | Shared secret carried as `?token=` in the registered Push callback URL (Garmin push isn't signed) |
+| `GARMIN_REDIRECT_URI`  | callback + authorize URL (param)      | The deployed `garminOAuthCallback` URL; must be whitelisted verbatim in the Garmin portal         |
 
 **Set them with:**
 
 ```bash
-firebase functions:secrets:set TERRA_DEV_ID
-firebase functions:secrets:set TERRA_API_KEY
-firebase functions:secrets:set TERRA_SIGNING_SECRET
+firebase functions:secrets:set GARMIN_CLIENT_ID
+firebase functions:secrets:set GARMIN_CLIENT_SECRET
+firebase functions:secrets:set GARMIN_WEBHOOK_TOKEN
+# GARMIN_REDIRECT_URI is a non-secret param — set in functions/.env or the console
 ```
 
-Secrets are versioned in Secret Manager and injected at runtime — they are **not** in source, CI env, or `.env*`. Both functions degrade safely when the secrets are unset (the callable throws `failed-precondition`; the webhook acknowledges without processing), so the scaffold is inert until an operator provisions them. Rotate the signing secret if a webhook URL is exposed; `verifyTerraSignature` accepts multiple `v1` signatures to allow a zero-downtime rotation window.
+Secrets are versioned in Secret Manager and injected at runtime — **not** in source, CI env, or `.env*`. The functions degrade safely when unset (the callable throws `failed-precondition`; the webhook acknowledges without processing), so the scaffold is inert until provisioned.
+
+**OAuth token custody:** Garmin-direct means **we hold the user's OAuth tokens.** They are written to the **server-only** `healthTokens` collection (and the short-lived PKCE verifier to `healthOAuthStates`), both denying **all** client access in `firestore.rules` — tokens never reach the browser. Rotate `GARMIN_WEBHOOK_TOKEN` if the Push callback URL is exposed (then update the URL in the Garmin portal).
 
 ---
 

@@ -351,7 +351,7 @@ function ActivityFeedItem({ log }: { log: ActivityLog }) {
         {log.source && (
           <span
             className="ml-1.5 inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 text-[10px] font-semibold align-middle"
-            title={`Synced from ${log.source.replace('terra:', '')}`}
+            title="Auto-synced from your connected device"
           >
             ⌚ synced
           </span>

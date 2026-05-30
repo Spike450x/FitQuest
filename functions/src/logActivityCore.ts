@@ -31,7 +31,7 @@ import {
 //
 // Two callers share this:
 //   • logActivity (onCall)  — manual log from the form; dedupeKey = client UUID
-//   • terraWebhook (onRequest) — device-synced log; dedupeKey = provider event id
+//   • garminWebhook (onRequest) — device-synced log; dedupeKey = provider event id
 //
 // Keeping this in one place guarantees a Garmin-synced workout earns exactly the
 // same mastery / restore / achievements as a hand-typed one.
@@ -47,7 +47,7 @@ export interface LogActivityCoreInput {
    */
   dedupeKey: string;
   /**
-   * Provenance tag for synced logs, e.g. 'terra:GARMIN'. Omitted from the
+   * Provenance tag for synced logs, e.g. 'garmin'. Omitted from the
    * document entirely for manual logs so their shape is unchanged.
    */
   source?: string;

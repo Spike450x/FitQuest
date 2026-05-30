@@ -325,28 +325,34 @@ Run rewards (XP, gold, inventory items) are awarded atomically by the `claimDung
 
 ## `healthConnections/{uid}_{provider}`
 
-A user's link to one wearable provider via the **Terra** aggregator (Garmin, Fitbit, Oura, …). Mirrors [`HealthConnection`](../src/types/index.ts).
+A user's link to a wearable provider (**Garmin**). A **tokenless, client-readable** status record. Mirrors [`HealthConnection`](../src/types/index.ts).
 
 ```ts
 interface HealthConnection {
-  id: string; // `${uid}_${provider}`
+  id: string; // `${uid}_${provider}` e.g. `${uid}_garmin`
   uid: string;
-  provider: string; // Terra provider code, e.g. 'GARMIN'
-  terraUserId?: string; // Terra's opaque user id
+  provider: string; // 'garmin'
+  providerUserId?: string; // the provider's opaque user id
   status: 'connected' | 'error' | 'disconnected';
-  lastSyncAt?: number; // epoch ms of the most recent webhook
+  lastSyncAt?: number; // epoch ms of the most recent sync
 }
 ```
 
-**Written exclusively by the `terraWebhook` Cloud Function** (admin SDK, bypasses rules). The rule is owner-**read-only** — `allow create, update, delete: if false` — so a client cannot forge a "connected" record or attribute another user's device to itself. Read on the client via `subscribeToHealthConnections` (`src/lib/healthData.ts`). See [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md).
+**Written exclusively by the Garmin Cloud Functions** (admin SDK, bypasses rules). The rule is owner-**read-only** — `allow create, update, delete: if false` — so a client cannot forge a "connected" record or attribute another user's device to itself. Holds **no OAuth tokens** (see `healthTokens`). Read on the client via `subscribeToHealthConnections` (`src/lib/healthData.ts`). See [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md).
+
+---
+
+## `healthTokens/{uid}_{provider}` · `healthOAuthStates/{state}`
+
+**Secrets — fully server-only.** `healthTokens` holds the Garmin OAuth access/refresh tokens + `garminUserId`; `healthOAuthStates` holds the short-lived PKCE `codeVerifier` + `returnOrigin` keyed by the opaque `state` token (consumed once in the callback). Both rule blocks are `allow read, create, update, delete: if false` — the admin-SDK Garmin functions are the only readers/writers, so tokens never reach the browser.
 
 ---
 
 ## `healthDailySnapshots/{uid}_{provider}_{day}_{metric}`
 
-Internal de-dupe cursors holding the last-ingested cumulative value of a growing daily counter (steps), so `terraWebhook` logs only the positive delta each time a provider re-sends the day's total. Fully **server-only** — `allow read, create, update, delete: if false`; never touched by clients. Fields: `{ uid, provider, day, metric, lastValue }`.
+Internal de-dupe cursors holding the last-ingested cumulative value of a growing daily counter (steps), so `garminWebhook` logs only the positive delta each time Garmin re-sends the day's total. Fully **server-only** — `allow read, create, update, delete: if false`; never touched by clients. Fields: `{ uid, provider, day, metric, lastValue }`.
 
-> Note: the `activityLogs` schema gains an optional `source` field (e.g. `'terra:GARMIN'`) on device-synced logs. It is absent on manual logs and is written server-side by the shared `logActivityCore`.
+> Note: the `activityLogs` schema gains an optional `source` field (e.g. `'garmin'`) on device-synced logs. It is absent on manual logs and is written server-side by the shared `logActivityCore`.
 
 ---
 

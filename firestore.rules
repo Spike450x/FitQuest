@@ -380,10 +380,11 @@ service cloud.firestore {
     // ══════════════════════════════════════════════════════════════════════════
     // HEALTH CONNECTIONS — /healthConnections/{docId}
     //
-    // Wearable links (Garmin/Fitbit/…) via the Terra aggregator. Written
-    // exclusively by the terraWebhook Cloud Function (admin SDK, bypasses these
-    // rules). No client write path exists — a rogue client must not be able to
-    // forge a "connected" record or attribute another user's device to itself.
+    // Wearable links (Garmin) — a tokenless, client-readable status record.
+    // Written exclusively by the Garmin Cloud Functions (admin SDK, bypasses
+    // these rules). No client write path exists — a rogue client must not be
+    // able to forge a "connected" record or attribute another user's device to
+    // itself. OAuth tokens are NOT stored here (see /healthTokens below).
     // ══════════════════════════════════════════════════════════════════════════
 
     match /healthConnections/{docId} {
@@ -402,6 +403,24 @@ service cloud.firestore {
     // ══════════════════════════════════════════════════════════════════════════
 
     match /healthDailySnapshots/{docId} {
+      allow read, create, update, delete: if false;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // HEALTH TOKENS / OAUTH STATE — /healthTokens, /healthOAuthStates
+    //
+    // SECRETS. Garmin OAuth access/refresh tokens and the short-lived PKCE
+    // verifier. Written and read exclusively by the Garmin Cloud Functions via
+    // the admin SDK. ALL client access is denied — these must never reach the
+    // browser, which is why connection status lives in /healthConnections instead.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    match /healthTokens/{docId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /healthOAuthStates/{docId} {
       allow read, create, update, delete: if false;
     }
 

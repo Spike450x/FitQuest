@@ -1,29 +1,30 @@
-# FitQuest — Health-Data Integration (Terra)
+# FitQuest — Health-Data Integration (Garmin)
 
-Auto-log real workouts, runs, steps and sleep from wearables instead of typing
-them in. This document is the design spec **and** the operations runbook for the
-integration scaffolded in the `claude/health-data-integration-NWLGo` branch.
+Auto-log real workouts, runs, steps and sleep from a Garmin device instead of
+typing them in. This document is the design spec **and** the operations runbook
+for the integration on the `claude/health-data-integration-NWLGo` branch.
 
 Status: **scaffold landed, feature-flagged off.** Everything network-dependent
-is gated behind `NEXT_PUBLIC_HEALTH_SYNC_ENABLED` and three Cloud Functions
-secrets. The pure logic (mapping, dedupe, signature verification) and the full
-write path are implemented and unit-tested; flipping it on is an ops task
-(create a Terra account, set secrets, register the webhook), not a code task.
+is gated behind `NEXT_PUBLIC_HEALTH_SYNC_ENABLED` and Cloud Functions secrets.
+The pure logic (mapping, dedupe, PKCE) is implemented and unit-tested; turning
+it on is an ops task (get Garmin Developer approval, set secrets, register the
+push callbacks), not a code task.
 
 ---
 
-## 1. Why an aggregator, and why not Apple Health (yet)
+## 1. Why Garmin-direct (free)
 
 FitQuest is a web app / PWA on Firebase. That constraint decides the approach:
 
-| Source                 | Reachable from the web app? | Notes                                                                                                                                                                                                                                                   |
-| ---------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Apple Health**       | ❌ No                       | HealthKit has no backend/web API. Data is on-device; reaching it needs a native iOS app or a Capacitor shell. An aggregator does **not** change this.                                                                                                   |
-| **Garmin (direct)**    | ✅ Yes                      | Real server-to-server API + webhooks, but Garmin-only and needs per-provider Developer Program approval.                                                                                                                                                |
-| **Aggregator (Terra)** | ✅ Yes (chosen)             | One integration → Garmin, Fitbit, Oura, WHOOP, Strava, Google Fit, Polar, Samsung, Withings, Suunto + more. **Terra holds the provider OAuth tokens**, so we store none. Apple Health rides the same integration the day FitQuest ships a native shell. |
+| Source                      | Reachable from the web app?                                              | Cost                                                           |
+| --------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| **Apple Health**            | ❌ No — HealthKit is on-device only; needs a native iOS/Capacitor shell. | —                                                              |
+| **Garmin (direct)**         | ✅ Yes — real server-to-server OAuth 2.0 + push webhooks.                | **Free** (Developer Program has no licensing/maintenance fee). |
+| **Aggregator (Terra/Rook)** | ✅ Yes — covers 50+ providers in one integration.                        | Paid (~$249–$499/mo); no free tier.                            |
 
-We picked **Terra**: maximum device coverage per unit of work, no OAuth-token
-custody, and a clean forward path to Apple Health later.
+We chose **Garmin-direct**: $0, fits the architecture, and the ingestion core
+below is provider-neutral so a paid aggregator or a second provider can be added
+later as a thin adapter without touching the reward path.
 
 ---
 
@@ -31,146 +32,183 @@ custody, and a clean forward path to Apple Health later.
 
 ```
 User → /profile/connections (feature-flagged)
-     → createTerraSession (onCall)  → Terra generateWidgetSession (reference_id = uid)
-     → browser navigates to Terra-hosted widget → user authorizes their provider
-     → Terra stores the OAuth tokens and sends webhooks ─────────────┐
-                                                                      ▼
-Terra → terraWebhook (onRequest — the repo's FIRST HTTP function)
-        ├─ verify `terra-signature` (HMAC-SHA256 over `${t}.${rawBody}`)
-        ├─ resolve uid from reference_id (signature-trusted)
-        ├─ upsert healthConnections/{uid_provider}
-        ├─ mapTerraPayload(payload)      → [{ activityType, amount, unit, … }]  (pure)
-        ├─ dedupe (event id / daily delta)                                       (pure)
+     → createGarminAuthUrl (onCall)  → mint PKCE verifier+state, stash server-side
+     → browser → Garmin authorize page (user logs in, approves)
+     → Garmin → garminOAuthCallback (onRequest)
+                ├─ consume state → exchange code for tokens (PKCE)
+                ├─ fetch Garmin userId
+                ├─ store tokens in healthTokens (SERVER-ONLY)
+                ├─ upsert healthConnections (tokenless, client-readable)
+                └─ redirect back to /profile/connections?connected=1
+     ... later, when the user syncs their device ...
+Garmin → garminWebhook (onRequest "Push")
+        ├─ verify ?token=GARMIN_WEBHOOK_TOKEN (push is NOT HMAC-signed)
+        ├─ mapGarminPayload(body)  → owner-tagged [{ activityType, amount, … }]  (pure)
+        ├─ resolve uid via healthTokens (garminUserId → uid)
+        ├─ dedupe (event id / daily delta)                                        (pure)
         └─ logActivityCore(uid, …)  ← SHARED with the manual logActivity onCall
 ```
 
 The keystone is **`functions/src/logActivityCore.ts`**: the authoritative write
 sequence (server-side daily-cap query → log write → mastery milestone → resource
-restore → achievement evaluation) extracted out of the `logActivity` callable so
+restore → achievement evaluation), extracted from the `logActivity` callable so
 both the manual form and the webhook run _identical_ logic. A Garmin-synced run
 earns exactly the same Agility mastery, restore, quests, streaks and achievements
-as a hand-typed one. The `logActivity` callable is now a thin auth + validation
-wrapper; existing parity/behaviour tests guard the extraction.
+as a hand-typed one.
 
 ### Files
 
 **Cloud Functions (`functions/src/`)**
 
-- `logActivityCore.ts` — shared write sequence (`logActivityCore`, `LogActivityResult`).
-- `gameLogic/healthMapping.ts` — pure Terra payload → `MappedActivity[]`.
+- `logActivityCore.ts` — shared write sequence (provider-agnostic).
+- `gameLogic/healthShared.ts` — shared `MappedActivity` + clamp/round helpers.
+- `gameLogic/garminMapping.ts` — pure Garmin push payload → `MappedActivity[]`.
 - `gameLogic/healthDedupe.ts` — pure idempotency keys + daily-delta math.
-- `terraSignature.ts` — `verifyTerraSignature(rawBody, header, secret)`.
-- `healthConnections.ts` — `resolveUidForConnection`, `upsertConnection`.
-- `terraWebhook.ts` — `onRequest` ingestion endpoint.
-- `createTerraSession.ts` — `onCall` widget-session generator.
-- `index.ts` — exports both new functions; `logActivity` refactored onto the core.
+- `garminOAuth.ts` — pure OAuth 2.0 PKCE helpers + Garmin endpoint constants.
+- `garminConnect.ts` — `createGarminAuthUrl` (onCall) + `garminOAuthCallback` (onRequest).
+- `garminWebhook.ts` — `onRequest` push ingestion.
+- `healthTokens.ts` — server-only token + PKCE-state store.
+- `healthConnections.ts` — tokenless connection upsert.
+- `index.ts` — exports the three Garmin functions; `logActivity` refactored onto the core.
 
 **Client (`src/`)**
 
-- `lib/health.ts` — `createTerraSession` callable wrapper + `HEALTH_SYNC_ENABLED` flag.
+- `lib/health.ts` — `createGarminAuthUrl` wrapper + `HEALTH_SYNC_ENABLED` flag.
 - `lib/healthData.ts` — `subscribeToHealthConnections` + normalizer.
 - `hooks/useHealthConnections.ts` — live connection list (no-op when flag off).
-- `app/(game)/profile/connections/page.tsx` — Connected Devices UI.
+- `app/(game)/profile/connections/page.tsx` — Connect Garmin UI.
 - `types/index.ts` — `ActivityLog.source?`, `HealthConnection`.
-- `types/cloudFunctions.ts` — `CreateTerraSessionInput/Result`.
+- `types/cloudFunctions.ts` — `CreateGarminAuthUrl*`.
 
 ---
 
 ## 3. Data mapping (v1)
 
-| Terra event                           | Condition          | FitQuest activity | Amount                               |
-| ------------------------------------- | ------------------ | ----------------- | ------------------------------------ |
-| `activity`                            | distance ≥ 400 m   | `run`             | miles (`distance_meters / 1609.344`) |
-| `activity`                            | otherwise          | `workout`         | minutes (`activity_seconds / 60`)    |
-| `daily`                               | `steps > 0`        | `steps`           | cumulative daily steps               |
-| `sleep`                               | asleep seconds > 0 | `sleep`           | hours                                |
-| `body` / `nutrition` / `menstruation` | —                  | _ignored in v1_   | —                                    |
+| Garmin push record | Condition                | FitQuest activity | Amount                                |
+| ------------------ | ------------------------ | ----------------- | ------------------------------------- |
+| `activities[]`     | `distanceInMeters` ≥ 400 | `run`             | miles (`distanceInMeters / 1609.344`) |
+| `activities[]`     | otherwise                | `workout`         | minutes (`durationInSeconds / 60`)    |
+| `dailies[]`        | `steps > 0`              | `steps`           | cumulative daily steps                |
+| `sleeps[]`         | `durationInSeconds > 0`  | `sleep`           | hours                                 |
 
-All amounts are clamped to `ACTIVITY_AMOUNT_MAX`. The distance/duration split and
-sleep/nutrition depth are intentionally simple heuristics — refinement (explicit
-activity-type codes, walking → steps, naps) is a documented follow-up.
+All amounts are clamped to `ACTIVITY_AMOUNT_MAX`. Heuristics are intentionally
+simple; refining by `activityType` (walking→steps, naps, etc.) is a follow-up.
 
 ---
 
 ## 4. De-duplication
 
-Webhooks redeliver (Terra retries ~8× with backoff on any non-2XX), and daily
-counters re-send a growing total all day. Two idempotency models:
+Garmin re-pushes data and daily counters grow all day. Two idempotency models:
 
-- **Discrete sessions (`event`)** — a run / workout / sleep. The provider's
-  `summary_id` is stable, so the log doc id `${uid}_terra_${summary_id}` makes a
-  redelivery a no-op Firestore `set`.
+- **Discrete sessions (`event`)** — a run / workout / sleep. The `summaryId` is
+  stable, so the log doc id `${uid}_garmin_${summaryId}` makes a redelivery a
+  no-op Firestore `set`.
 - **Cumulative counters (`daily`, steps)** — a `healthDailySnapshots` doc keyed
-  by `${uid}_${provider}_${day}_steps` stores the last-ingested cumulative value.
-  Each webhook transactionally diffs against it and logs only the **positive
-  delta**, keyed by the new cumulative value. So the day's summed step-logs equal
-  the latest cumulative total — no double-count — and the existing daily cap still
-  clamps rewards. A downward correction logs nothing.
+  by `${uid}_garmin_${day}_steps` stores the last cumulative value; each push
+  transactionally logs only the **positive delta**. The day's summed step-logs
+  equal the latest total — no double-count — and the daily cap still clamps.
 
-Backdated device data is handled correctly: `logActivityCore` derives the
-daily-cap window from each log's own `loggedAt`, so a workout completed earlier
-counts against the right UTC day.
+Backdated data is handled: `logActivityCore` derives the cap window from each
+log's own `loggedAt` (Garmin `startTimeInSeconds`), so it counts to the right day.
 
 ---
 
 ## 5. Security
 
-- **Webhook auth** — every Terra event is HMAC-SHA256 signed. `terraWebhook`
-  verifies `terra-signature` against the **raw request body** with a constant-time
-  comparison before doing anything. Unsigned/invalid → `401`. Multiple `v1`
-  signatures are accepted (secret rotation).
-- **User attribution** — `reference_id` (the uid we passed at session creation) is
-  trusted _only because_ the request is signature-verified. Falls back to a
-  `terraUserId` → connection lookup.
-- **Firestore** — `healthConnections` is owner-read, **all client writes denied**
-  (written only by the admin-SDK webhook). `healthDailySnapshots` is fully
-  server-only (no client read or write).
-- **Token custody** — none. Terra holds provider OAuth tokens; FitQuest never sees
-  them.
-- **CSP** — no change required. The connect flow is a full-page navigation to a
-  Terra-hosted URL (not a `fetch`), and the webhook is inbound. If a future
-  client-side Terra call is added, add `https://*.tryterra.co` to `connect-src` in
-  `next.config.mjs`.
+- **We hold OAuth tokens** (unlike an aggregator). They live in **`healthTokens`**
+  - the short-lived PKCE verifier in **`healthOAuthStates`** — both **deny all
+    client access** in `firestore.rules`. The client-readable `healthConnections`
+    doc holds only status/provider/lastSync — **never tokens**.
+- **PKCE** (S256) protects the auth-code exchange. `state` is a one-shot CSRF
+  token consumed (read-and-deleted) in the callback.
+- **Push auth** — Garmin push is **not** signed, so `garminWebhook` requires a
+  secret `?token=GARMIN_WEBHOOK_TOKEN` in the registered callback URL **and**
+  only ingests records whose `garminUserId` maps to a stored connection.
+- **CSP** — unchanged. The connect flow is a full-page nav to a Garmin URL; the
+  webhook/callback are inbound.
 
 ---
 
 ## 6. Game balance
 
-Device-verified data is far harder to fake than typed numbers, but v1
-**keeps the existing caps and reward rules unchanged** — a synced log earns the
-same mastery / restore / achievements as a manual one, just auto-filled. This
-avoids a balance shock and keeps `/balance-check` stable. A future option — a
-modest XP/"trust" bonus for verified-source data once anti-abuse is proven — is
-deliberately deferred and must be confirmed before any reward divergence ships.
-
-Synced logs carry a `source` tag (e.g. `terra:GARMIN`) and show a "⌚ synced"
-badge in the activity feed for transparency.
+v1 **keeps caps and reward rules unchanged** — a synced log earns the same
+mastery / restore / achievements as a manual one, just auto-filled. Synced logs
+carry `source: 'garmin'` and show a "⌚ synced" feed badge. A verified-source
+XP/trust bonus is deliberately deferred (confirm before any reward divergence).
 
 ---
 
 ## 7. Operations runbook (enabling it)
 
-1. Create a [Terra](https://tryterra.co) account; note the **dev-id**, **API key**,
-   and create a webhook **destination** to get its **signing secret**.
-2. Set the Cloud Functions secrets:
-   ```bash
-   firebase functions:secrets:set TERRA_DEV_ID
-   firebase functions:secrets:set TERRA_API_KEY
-   firebase functions:secrets:set TERRA_SIGNING_SECRET
-   ```
-3. `firebase deploy --only functions:terraWebhook,functions:createTerraSession` and
-   `firebase deploy --only firestore:rules`.
-4. In the Terra dashboard, point the destination webhook at the deployed
-   `terraWebhook` URL.
-5. Set `NEXT_PUBLIC_HEALTH_SYNC_ENABLED=true` and deploy the web app.
-6. Smoke-test per [SMOKE-TEST.md](SMOKE-TEST.md § Health-data sync).
+### A. Get Garmin Developer access (the long pole — do this first)
+
+1. Apply to the **[Garmin Connect Developer Program](https://developer.garmin.com/gc-developer-program/)** → request **Health API** (and/or Activity API) access. Approval is free but can take ~1–4 weeks.
+2. Once approved, from the developer portal note your **Client ID** and **Client Secret** (OAuth 2.0 PKCE).
+3. In the portal, you'll also configure **Push** callback URLs per data type (activities, dailies, sleeps) — you set these in step C after deploying.
+
+### B. Set the Cloud Functions secrets + redirect param
+
+Pick a strong random value for the webhook token (e.g. `openssl rand -hex 24`).
+
+```bash
+firebase functions:secrets:set GARMIN_CLIENT_ID
+firebase functions:secrets:set GARMIN_CLIENT_SECRET
+firebase functions:secrets:set GARMIN_WEBHOOK_TOKEN
+```
+
+The OAuth callback URL is a non-secret param. After the first deploy you'll know
+the function URL; set it (it must match what you register at Garmin verbatim):
+
+```bash
+# functions/.env  (or set in the Firebase console → Functions → params)
+GARMIN_REDIRECT_URI=https://us-central1-fitness-rpg-claude.cloudfunctions.net/garminOAuthCallback
+```
+
+### C. Deploy + register
+
+```bash
+firebase deploy --only functions:createGarminAuthUrl,functions:garminOAuthCallback,functions:garminWebhook
+firebase deploy --only firestore:rules
+```
+
+From the deploy output, copy the URLs for `garminOAuthCallback` and `garminWebhook`. Then in the **Garmin developer portal**:
+
+- Add the **`garminOAuthCallback`** URL to your app's **OAuth redirect URIs** (must equal `GARMIN_REDIRECT_URI`).
+- Set the **Push callback URL** for each enabled data type to:
+  `https://…/garminWebhook?token=<the GARMIN_WEBHOOK_TOKEN value>`
+
+### D. Flip the flag on the web app (Vercel)
+
+- Vercel → project → **Settings → Environment Variables** → `NEXT_PUBLIC_HEALTH_SYNC_ENABLED = true` (Production) → redeploy.
+
+### E. Smoke-test
+
+See [SMOKE-TEST.md § Health-data sync](SMOKE-TEST.md).
 
 ---
 
-## 8. Out of scope (future phases)
+## 8. ⚠️ Verify post-approval (constants to confirm)
 
-- **Apple Health** — needs a Capacitor/native iOS shell + Terra mobile SDK.
-- **Historical backfill** on first connect (Terra supports a one-off data pull).
-- **Disconnect / deauth** from the UI (needs a Terra deauth callable).
-- **Verified-source reward tuning** (see §6).
-- **Deeper mapping** — explicit activity-type codes, naps, nutrition, body metrics.
+The exact values below come from the Garmin spec but are only authoritative
+inside the approved portal. They're isolated in `garminOAuth.ts` / `garminConnect.ts`
+so a fix is one line each:
+
+- `GARMIN_AUTHORIZE_URL` (`connect.garmin.com/oauth2Confirm`)
+- `GARMIN_TOKEN_URL` (`diauth.garmin.com/di-oauth2-service/oauth/token`)
+- `GARMIN_USER_ID_URL` (`apis.garmin.com/wellness-api/rest/user/id`)
+- Token request fields (confidential client: `client_secret` + PKCE `code_verifier`).
+- Push payload field names (`summaryId`, `steps`, `distanceInMeters`,
+  `durationInSeconds`, `startTimeInSeconds`, `activityType`, `userId`) — confirm
+  the `userId` field used for attribution matches what your push payloads carry.
+
+---
+
+## 9. Out of scope (future phases)
+
+- **Apple Health** — needs a Capacitor/native iOS shell.
+- **Token refresh + backfill** — Push delivers data directly so v1 needs no
+  outbound API calls; add refresh (tokens last ~3 months) when you pull history.
+- **Disconnect / deauth** from the UI.
+- **Verified-source reward tuning** (see §6) and deeper activity-type mapping.
+- **Multi-provider** — the core is provider-neutral; an aggregator/Fitbit/Strava
+  adapter would reuse `logActivityCore`, `healthDedupe`, the connections UI.

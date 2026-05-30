@@ -41,17 +41,21 @@ describe('computeDailyDelta', () => {
 });
 
 describe('dedupe keys', () => {
-  it('derives a stable event key from a provider summary id', () => {
-    expect(eventDedupeKey('abc-123')).toBe('terra_abc-123');
+  it('derives a stable provider-namespaced event key from a summary id', () => {
+    expect(eventDedupeKey('garmin', 'abc-123')).toBe('garmin_abc-123');
   });
 
   it('sanitizes unsafe characters out of ids', () => {
-    expect(eventDedupeKey('a/b#c.d')).toBe('terra_a_b_c_d');
+    expect(eventDedupeKey('garmin', 'a/b#c.d')).toBe('garmin_a_b_c_d');
   });
 
   it('keys daily deltas by the new cumulative value so growth makes a fresh id', () => {
-    expect(dailyDeltaDedupeKey('steps', '2026-05-30', 7000)).toBe('terra_steps_2026-05-30_7000');
-    expect(dailyDeltaDedupeKey('steps', '2026-05-30', 12000)).toBe('terra_steps_2026-05-30_12000');
+    expect(dailyDeltaDedupeKey('garmin', 'steps', '2026-05-30', 7000)).toBe(
+      'garmin_steps_2026-05-30_7000',
+    );
+    expect(dailyDeltaDedupeKey('garmin', 'steps', '2026-05-30', 12000)).toBe(
+      'garmin_steps_2026-05-30_12000',
+    );
   });
 
   it('builds a per-user/provider/day/metric snapshot id', () => {
