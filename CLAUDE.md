@@ -54,7 +54,7 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 **Collections page + mobile nav overhaul (2026-05-30)** — PRs #147–151. **`/collections` route** (PR #147/148): dedicated top-level hub with three sub-pages (`/collections`, `/collections/bestiary`, `/collections/collection`) mirroring the stats-page bestiary/collection views; summary strip chips link deep into each sub-page. **Mobile overflow panel** (PR #148): "More" button in the bottom nav opens a framer-motion animated overlay listing non-pinned nav items, replacing the prior drawer; panel is keyboard-accessible, closes on outside click, and is dismissed with a drag handle. **Nav customizer** (PR #148): long-press or Edit button opens a reorderable pinned-tab customizer (max 5 pins via `useNavPreferenceStore`); preferences persisted to localStorage. **PR #150** added: swipe-to-dismiss on the overflow panel (`drag="y"`, 60 px offset or 400 px/s velocity threshold + 8 ms haptic via `navigator.vibrate`); animated onboarding badge on the More button (orange ping, 3 iterations, exits with scale+fade via AnimatePresence when the customizer is first opened — `hasSeenCustomizer` persisted in Zustand); deep-link chips on the collections summary strip converted to `<Link>` with hover transitions; `src/lib/navConfig.ts` extracted as single source of truth for `NAV_ITEMS` / `ALL_NAV_HREFS` so layout and store can't drift. **PR #151** refined the bottom-sheet with a composite box-shadow (inset top-edge glass highlight + subtle upward glow + directional drop shadow, separate dark variant), capped the ping animation at 3 iterations via `[animation-iteration-count:3]` Tailwind arbitrary class, and tightened the badge exit animation timing. 14 navPreferenceStore + navConfig vitest specs added (846 → 860 total).
 
-**Active focus:** Audit fix-pass clears the slate. Next on the roadmap: **Reputation / Wanted Board** — foundation currency for all social/endgame features (daily bounties, Reputation tiers with stat bonuses). Spec: `docs/superpowers/specs/2026-05-17-future-features-roadmap-design.md`.
+**Active focus:** Audit fix-pass clears the slate. Next on the roadmap: **Reputation / Wanted Board** — foundation currency for all social/endgame features (daily bounties, Reputation tiers with stat bonuses). Spec: `docs/superpowers/specs/2026-05-17-future-features-roadmap-design.md`. The Achievements catalog view (locked/unlocked states, descriptions, gold reward display) already shipped as the default tab of `/collections`.
 
 **Next priorities (post-MVP backlog, prioritized):**
 
@@ -76,18 +76,19 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 
 ### Feature backlog (dependency order — each unlocks the next)
 
-1. **Achievements page** — `/character/achievements` full catalog with locked/unlocked states, progress hints, and gold reward display (profile badge gallery already renders all 30 IDs via `ACHIEVEMENTS`; this adds the dedicated view with per-achievement descriptions and progress indicators)
-2. **Reputation / Wanted Board** — foundation currency for all social/endgame features; daily bounties from the Wanted Board, Reputation tiers with stat bonuses; spec: `2026-05-17-future-features-roadmap-design.md`
-3. **Champions** — 10-champion roster, dungeon deployment, injury/recovery system, 7 archetypes (Warrior/Mage/Rogue/Ranger/Paladin/Necromancer/Bard), pip-dot cooldown UI; spec: `2026-05-17-champions-reputation-streaks-design.md`; requires Reputation
-4. **Guilds** — level-15 unlock, activity-aligned XP drip, rank milestones, exclusive gear; requires Reputation
-5. **Pets** — milestone/birthday unlock, 3 active slots, passive+active abilities scaled by rarity; requires Reputation/Champions groundwork
-6. **Monthly NPCs** — 6 rotating NPCs with seeded challenge pools, permanent expiry after each month, level/reputation gates; requires Champions + Reputation
-7. **Raids** — bi-weekly events, 5-day streak gate, 2+ champions required, god-tier loot, streak makeup mechanics; requires Champions + Guilds
-8. **Territory / Map** — GPS-based zone claiming, PvP disputes with 3-day response window; long-horizon feature, requires all above
-9. **Prestige / Ascension** — reset for permanent bonuses; design TBD (no spec yet)
-10. **PWA** — installable mobile experience (no spec yet; can land independently)
-11. **Apple Health integration** — auto-import workouts (no spec yet; can land independently)
-12. **Leaderboards** — compare with other users (no spec yet; requires user growth)
+- ~~**Achievements catalog view**~~ — shipped as the default tab of `/collections` (locked/unlocked states, per-achievement descriptions, gold reward display for all 31 achievements). Original proposal was `/character/achievements`; collections hub is the better home.
+
+1. **Reputation / Wanted Board** — foundation currency for all social/endgame features; daily bounties from the Wanted Board, Reputation tiers with stat bonuses; spec: `2026-05-17-future-features-roadmap-design.md`
+2. **Champions** — 10-champion roster, dungeon deployment, injury/recovery system, 7 archetypes (Warrior/Mage/Rogue/Ranger/Paladin/Necromancer/Bard), pip-dot cooldown UI; spec: `2026-05-17-champions-reputation-streaks-design.md`; requires Reputation
+3. **Guilds** — level-15 unlock, activity-aligned XP drip, rank milestones, exclusive gear; requires Reputation
+4. **Pets** — milestone/birthday unlock, 3 active slots, passive+active abilities scaled by rarity; requires Reputation/Champions groundwork
+5. **Monthly NPCs** — 6 rotating NPCs with seeded challenge pools, permanent expiry after each month, level/reputation gates; requires Champions + Reputation
+6. **Raids** — bi-weekly events, 5-day streak gate, 2+ champions required, god-tier loot, streak makeup mechanics; requires Champions + Guilds
+7. **Territory / Map** — GPS-based zone claiming, PvP disputes with 3-day response window; long-horizon feature, requires all above
+8. **Prestige / Ascension** — reset for permanent bonuses; design TBD (no spec yet)
+9. **PWA** — installable mobile experience (no spec yet; can land independently)
+10. **Apple Health integration** — auto-import workouts (no spec yet; can land independently)
+11. **Leaderboards** — compare with other users (no spec yet; requires user growth)
 
 **Update protocol:** when a feature ships, move it from "Next" to "Shipped", bump the date, and append an entry to [docs/CHANGELOG.md](docs/CHANGELOG.md). This section in CLAUDE.md is the **canonical** status snapshot — `memory/project_state.md` no longer tracks status, only deep implementation details.
 
