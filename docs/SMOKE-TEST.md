@@ -106,6 +106,20 @@ If the multiplier never applies (or the badge stays on 100% past win 10), check 
 
 ---
 
+### Optional — Health-data sync (Terra)
+
+Only relevant once the integration is switched on. Requires a Terra account + the three Cloud Functions secrets set + the webhook registered (see [HEALTH-INTEGRATION.md § 7](HEALTH-INTEGRATION.md)). Cannot be exercised without live Terra credentials, so it is **not** in the automated suite.
+
+1. Set `NEXT_PUBLIC_HEALTH_SYNC_ENABLED=true` and deploy. Go to `/profile` → "Connect a device" → `/profile/connections`.
+2. Click **Connect a device** → you're redirected to the Terra-hosted widget. Authorize a sandbox Garmin/Fitbit account.
+3. On return you land back on `/profile/connections?connected=1` with a "🎉 Device connected" toast (URL then cleans to `/profile/connections`). The provider appears in the list with an **Active** pill.
+4. In Firestore, confirm a `healthConnections/{uid}_{PROVIDER}` doc exists (`status: 'connected'`, `terraUserId`, `lastSyncAt`). Client writes to it should be **denied** by rules.
+5. Complete (or have Terra replay) a workout/steps. Within a minute a `activityLogs/{uid}_terra_*` doc appears with a `source` like `terra:GARMIN`, and the `/dashboard` feed shows a "⌚ synced" badge. Mastery/restore update exactly as for a manual log.
+6. **Idempotency** — re-send the same webhook (Terra dashboard "resend"): no duplicate log appears. For steps, send a growing daily total twice and confirm the summed step-logs equal the latest total (delta-only), and a `healthDailySnapshots/*` cursor tracks `lastValue`.
+7. **Signature** — a request with a tampered body or wrong secret returns `401` and writes nothing (`firebase functions:log`).
+
+---
+
 ## Why this exists
 
 Build + tests + typecheck don't exercise the runtime auth flow or the middleware. A dependency bump can pass all CI checks and still break Firebase init or the route guard. This 4-step smoke catches those classes of regressions without needing test credentials, and runs in ≈2 minutes.

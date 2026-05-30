@@ -176,6 +176,28 @@ The `FIREBASE_TOKEN` secret is a long-lived Firebase CI token used by the CI aut
 
 ---
 
+## Cloud Functions Secrets — Terra health-data integration
+
+The health-data integration (see [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md)) is the first feature to use **Firebase Functions secrets** (`defineSecret` / Google Secret Manager) rather than `NEXT_PUBLIC_*` env vars. Three secrets back it:
+
+| Secret                 | Used by              | Purpose                                                             |
+| ---------------------- | -------------------- | ------------------------------------------------------------------- |
+| `TERRA_DEV_ID`         | `createTerraSession` | Terra REST dev id                                                   |
+| `TERRA_API_KEY`        | `createTerraSession` | Terra REST API key (server-side only — never shipped to the client) |
+| `TERRA_SIGNING_SECRET` | `terraWebhook`       | HMAC key that authenticates inbound Terra webhooks                  |
+
+**Set them with:**
+
+```bash
+firebase functions:secrets:set TERRA_DEV_ID
+firebase functions:secrets:set TERRA_API_KEY
+firebase functions:secrets:set TERRA_SIGNING_SECRET
+```
+
+Secrets are versioned in Secret Manager and injected at runtime — they are **not** in source, CI env, or `.env*`. Both functions degrade safely when the secrets are unset (the callable throws `failed-precondition`; the webhook acknowledges without processing), so the scaffold is inert until an operator provisions them. Rotate the signing secret if a webhook URL is exposed; `verifyTerraSignature` accepts multiple `v1` signatures to allow a zero-downtime rotation window.
+
+---
+
 ### Outstanding hardening (not yet shipped)
 
 For each item below, when it ships, add a row to the Remediations Log above.

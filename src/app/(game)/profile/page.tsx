@@ -39,6 +39,13 @@ export default function ProfilePage() {
         View Achievements, Bestiary &amp; Collection →
       </Link>
 
+      <Link
+        href="/profile/connections"
+        className="block rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition-colors"
+      >
+        Connect a device — auto-log from Garmin, Fitbit &amp; more →
+      </Link>
+
       <SettingsCard
         title="Navigation"
         description="Choose which shortcuts appear in the mobile quick-access bar."

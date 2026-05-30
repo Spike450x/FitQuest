@@ -167,6 +167,33 @@ export interface ActivityLog {
    * a client from skipping the cap check and forging reward-bearing logs.
    */
   rewardEligible: boolean;
+  /**
+   * Provenance for device-synced logs, e.g. 'terra:GARMIN'. Absent on manual
+   * logs. Set server-side by the terraWebhook ingestion path; drives the
+   * "synced from device" badge in the activity feed.
+   */
+  source?: string;
+}
+
+// ─── Health-data integration (Terra aggregator) ───────────────────────────────
+
+export type HealthConnectionStatus = 'connected' | 'error' | 'disconnected';
+
+/**
+ * A user's link to one wearable provider via Terra. Written exclusively by the
+ * terraWebhook Cloud Function (admin SDK) — clients read but never write it.
+ * Doc id is `${uid}_${provider}`.
+ */
+export interface HealthConnection {
+  id: string;
+  uid: string;
+  /** Terra provider code, e.g. 'GARMIN', 'FITBIT', 'OURA'. */
+  provider: string;
+  /** Terra's opaque user id for this connection. */
+  terraUserId?: string;
+  status: HealthConnectionStatus;
+  /** Epoch ms of the most recent webhook for this connection. */
+  lastSyncAt?: number;
 }
 
 // ─── Items ───────────────────────────────────────────────────────────────────

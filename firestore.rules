@@ -376,5 +376,34 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // HEALTH CONNECTIONS — /healthConnections/{docId}
+    //
+    // Wearable links (Garmin/Fitbit/…) via the Terra aggregator. Written
+    // exclusively by the terraWebhook Cloud Function (admin SDK, bypasses these
+    // rules). No client write path exists — a rogue client must not be able to
+    // forge a "connected" record or attribute another user's device to itself.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    match /healthConnections/{docId} {
+      allow read:                   if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // HEALTH DAILY SNAPSHOTS — /healthDailySnapshots/{docId}
+    //
+    // Internal cursors holding the last-ingested cumulative value per
+    // user/provider/day/metric, so the webhook logs only the positive delta of
+    // a growing daily counter (steps). Server-only; never read or written by
+    // clients.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    match /healthDailySnapshots/{docId} {
+      allow read, create, update, delete: if false;
+    }
+
   }
 }

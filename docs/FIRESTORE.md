@@ -1,6 +1,6 @@
 # FitQuest — Firestore Data Layer
 
-Reference for the five Firestore collections, their TypeScript shapes, and the authoritative validation rules in [`firestore.rules`](../firestore.rules). Pair with [ARCHITECTURE.md](ARCHITECTURE.md) for how the app talks to these collections.
+Reference for the Firestore collections, their TypeScript shapes, and the authoritative validation rules in [`firestore.rules`](../firestore.rules). Pair with [ARCHITECTURE.md](ARCHITECTURE.md) for how the app talks to these collections.
 
 The live project is `fitness-rpg-claude`. There is no emulator setup — dev and CI use real Firestore (CI uses dummy creds via `.env.ci` and never connects in `build:ci`).
 
@@ -301,6 +301,33 @@ interface DungeonRun {
 ### The `claimDungeonRun` Cloud Function
 
 Run rewards (XP, gold, inventory items) are awarded atomically by the `claimDungeonRun` callable Cloud Function in `functions/src/claimDungeonRun.ts`. It uses a Firestore transaction to stamp `claimed: true` + final status before applying any rewards — making the claim idempotent. Inventory writes happen outside the transaction (acceptable: worst-case is a lost item, not duplicate XP). The function runs with `minInstances: 1` to eliminate cold-start latency.
+
+---
+
+## `healthConnections/{uid}_{provider}`
+
+A user's link to one wearable provider via the **Terra** aggregator (Garmin, Fitbit, Oura, …). Mirrors [`HealthConnection`](../src/types/index.ts).
+
+```ts
+interface HealthConnection {
+  id: string; // `${uid}_${provider}`
+  uid: string;
+  provider: string; // Terra provider code, e.g. 'GARMIN'
+  terraUserId?: string; // Terra's opaque user id
+  status: 'connected' | 'error' | 'disconnected';
+  lastSyncAt?: number; // epoch ms of the most recent webhook
+}
+```
+
+**Written exclusively by the `terraWebhook` Cloud Function** (admin SDK, bypasses rules). The rule is owner-**read-only** — `allow create, update, delete: if false` — so a client cannot forge a "connected" record or attribute another user's device to itself. Read on the client via `subscribeToHealthConnections` (`src/lib/healthData.ts`). See [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md).
+
+---
+
+## `healthDailySnapshots/{uid}_{provider}_{day}_{metric}`
+
+Internal de-dupe cursors holding the last-ingested cumulative value of a growing daily counter (steps), so `terraWebhook` logs only the positive delta each time a provider re-sends the day's total. Fully **server-only** — `allow read, create, update, delete: if false`; never touched by clients. Fields: `{ uid, provider, day, metric, lastValue }`.
+
+> Note: the `activityLogs` schema gains an optional `source` field (e.g. `'terra:GARMIN'`) on device-synced logs. It is absent on manual logs and is written server-side by the shared `logActivityCore`.
 
 ---
 

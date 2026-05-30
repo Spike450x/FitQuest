@@ -82,6 +82,20 @@ export interface LogActivityResult {
   achievementGold: number;
 }
 
+// ─── createTerraSession ───────────────────────────────────────────────────────
+
+export interface CreateTerraSessionInput {
+  /** Absolute https URL Terra redirects to after a successful connect. */
+  successUrl: string;
+  /** Absolute https URL Terra redirects to if the user cancels/fails. */
+  failureUrl: string;
+}
+
+export interface CreateTerraSessionResult {
+  /** Hosted Terra widget URL to navigate the user to. */
+  url: string;
+}
+
 // ─── claimCombatVictory ───────────────────────────────────────────────────────
 
 export interface ClaimCombatVictoryInput {

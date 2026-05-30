@@ -15,6 +15,15 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-30 — Health-data integration scaffold (Terra aggregator)
+
+- **Auto-log real activity from wearables** (Garmin, Fitbit, Oura, WHOOP, Strava, Google Fit, …) via the Terra aggregator — feature-flagged off (`NEXT_PUBLIC_HEALTH_SYNC_ENABLED`) pending Terra credentials. Full design + runbook in [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md).
+- **Shared write core** — extracted `logActivityCore` from the `logActivity` callable so device-synced logs reuse the exact authoritative path (daily caps, mastery, restore, achievements). The `logActivity` onCall is now a thin validation wrapper (no behaviour change; existing tests guard it).
+- **New Cloud Functions** — `terraWebhook` (the repo's first `onRequest` HTTP function: HMAC-SHA256 signature verification over the raw body, payload mapping, de-dupe, ingestion) and `createTerraSession` (`onCall` widget-session generator bound to the uid). First use of Firebase Functions **secrets** (`TERRA_DEV_ID` / `TERRA_API_KEY` / `TERRA_SIGNING_SECRET`).
+- **De-dupe** — discrete sessions idempotent by provider `summary_id`; cumulative daily steps logged as positive deltas via a `healthDailySnapshots` cursor so the day's logs sum to the latest total without double-counting.
+- **New collections** — `healthConnections` (owner-read, server-write-only) and `healthDailySnapshots` (server-only). New optional `ActivityLog.source` field drives a "⌚ synced" feed badge. New `/profile/connections` UI, `lib/health.ts`, `lib/healthData.ts`, `useHealthConnections`.
+- **Tests** — 29 new functions vitest specs (mapping decision table, daily-delta dedupe, signature verify/tamper/rotation); functions suite 16 → 45. Apple Health intentionally out of scope (needs a native iOS shell — documented).
+
 ## 2026-05-30 — 24 new achievements (content-scaling PR5b)
 
 - **24 new achievements** across 5 categories grow the catalog from 6 → 30:
