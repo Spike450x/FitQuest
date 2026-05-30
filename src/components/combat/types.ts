@@ -172,6 +172,8 @@ export interface PendingRewards {
   droppedItems: string[];
   monster: MonsterDef;
   uid: string;
+  /** True iff the player did not take any damage during the fight. Drives the `untouched` achievement. */
+  flawless: boolean;
 }
 
 // ─── Combat modifiers (dungeon-specific seam) ──────────────────────────────────

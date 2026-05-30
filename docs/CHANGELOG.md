@@ -15,6 +15,23 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-30 — 24 new achievements (content-scaling PR5b)
+
+- **24 new achievements** across 5 categories grow the catalog from 6 → 30:
+  - **Combat (7)** — `first-blood` (1st win), `centurion` (100 wins), `slayer-obsidian` / `slayer-ashwyrm` / `slayer-revenant` / `slayer-djinn` (5 kills of each L11–14 monster), `untouched` (win without taking damage).
+  - **Activity (6)** — `iron-body` / `marathoner` / `well-fed` / `well-rested` (100 logs each), `hydration-streak` (7-day water streak), `enlightened` (50 meditations).
+  - **Mastery (4)** — `apprentice` / `journeyman` / `master` (hit mastery level 5 / 15 / 25 on any primary stat), `polymath` (level 5 on STR + WIS + AGI + SPR).
+  - **Quest (4)** — `quest-novice` / `quest-veteran` / `quest-legend` (50 / 250 / 1000 quests claimed), `weekly-perfectionist` (all 3 weeklies claimed in one ISO week).
+  - **Collection (3)** — `bestiary-complete` (every monster + boss discovered), `legendary-hoarder` (every legendary item owned), `armory` (15 unique gear pieces owned at once).
+- **Server-authoritative** for combat / activity / mastery (17 IDs):
+  - `claimCombatVictory` CF gains a `flawless: boolean` input and, inside its existing transaction, increments `character.totalCombatWins` + `character.monstersKilled[monsterId].killCount`, evaluates combat achievements against the AFTER values, and merges new IDs + their gold reward atomically. Result type now returns `newAchievements: string[]` and `achievementGold: number`.
+  - `logActivity` CF folds achievement evaluation into its mastery transaction, now also tracking `character.activityLogCounts[type]` (lifetime per-activity counter, distinct from `masteryCounts`). For water logs it pre-queries the past 7 days of water docs to compute the streak before the transaction.
+- **Client-mirrored** for quest + collection (7 IDs) — `questStore.claimReward` writes quest achievement IDs directly; new `useCollectionAchievementSync` hook (mounted in `(game)/layout.tsx`) computes collection achievements from inventory + bestiary state and persists them. The next combat / activity CF transaction re-validates the same conditions, so tampered client writes are reconciled within one mutation.
+- **Parity** — `functions/src/gameLogic/achievements.ts` mirrors all 24 gold values + thresholds + checker functions. `achievements-parity.test.ts` extended from 11 → 19 assertions covering every new constant + every new checker on equivalent fixtures.
+- **Tests** — 35 new vitest specs (35 in `achievementsPR5b.test.ts` covering catalog sanity + every checker + every threshold + non-tracked-monster edge cases). 846 total tests pass (was 811). Suite still under 15 s.
+- **UI** — achievement-unlock toasts surface in three places: combat victory claim, activity log result, quest claim. Each toast shows emoji + name + description + gold. Existing profile badge gallery already renders from `ACHIEVEMENTS`, so the new 24 IDs appear there automatically.
+- **Normalization** — new `Character` fields (`totalCombatWins`, `activityLogCounts`, `totalQuestsClaimed`, `weeklyQuestsClaimed`) default in `normalizeCharacter`. Legacy character docs see the defaults on the very next fetch.
+
 ## 2026-05-29 — Bestiary + Collection + quest expansion (content-scaling PR5a)
 
 - **Bestiary surface** — new `/stats/bestiary` route. Card grid of all `MONSTER_CATALOG` monsters (sorted by level) plus the 4 dungeon bosses. Slain monsters show portrait + level + kill count + first-killed date (from `character.monstersKilled`, written since PR2); undiscovered ones show a greyed silhouette + "???". Bosses are not tracked in `monstersKilled` (that map is pruned to catalog ids), so boss-defeated state is derived from the 1:1 tier-clear achievement (`goblin-slayer` → Goblin King, etc.). Header shows total discovered / total.

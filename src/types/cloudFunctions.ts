@@ -76,6 +76,10 @@ export interface LogActivityResult {
     newValue: number;
     amount: number;
   };
+  /** Achievement IDs newly unlocked by this log. */
+  newAchievements: string[];
+  /** Gold credited from achievement rewards (already added to character.gold). */
+  achievementGold: number;
 }
 
 // ─── claimCombatVictory ───────────────────────────────────────────────────────
@@ -91,6 +95,8 @@ export interface ClaimCombatVictoryInput {
   monsterName: string;
   /** Client UUID. The combat log doc id is `${uid}_${idempotencyKey}` so retries are safe. */
   idempotencyKey: string;
+  /** True iff the player took no damage during the fight. Drives the `untouched` achievement. */
+  flawless?: boolean;
 }
 
 export interface ClaimCombatVictoryResult {
@@ -104,4 +110,8 @@ export interface ClaimCombatVictoryResult {
   winsTodayAfter: number;
   /** Whether the XP award caused a level-up. */
   leveledUp: boolean;
+  /** Achievement IDs newly unlocked by this win. */
+  newAchievements: string[];
+  /** Gold credited from achievement rewards (already added to character.gold). */
+  achievementGold: number;
 }

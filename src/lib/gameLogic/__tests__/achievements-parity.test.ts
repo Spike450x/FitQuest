@@ -13,13 +13,42 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ACHIEVEMENTS, checkDungeonAchievements } from '../achievements';
+import {
+  ACHIEVEMENTS,
+  checkDungeonAchievements,
+  checkCombatAchievements,
+  checkActivityAchievements,
+  checkMasteryAchievements,
+  SLAYER_KILL_TARGET,
+  CENTURION_WIN_TARGET,
+  HYDRATION_STREAK_DAYS,
+  POLYMATH_THRESHOLD,
+  ARMORY_UNIQUE_GEAR_TARGET,
+  MASTERY_TIERS,
+  ACTIVITY_COUNT_TARGETS,
+  ACTIVITY_COUNT_THRESHOLD,
+  QUEST_COUNT_TIERS,
+  WEEKLY_PERFECTIONIST_TARGET,
+} from '../achievements';
 import { ITEM_CATALOG } from '../items';
 import type { Character, DungeonRun, AchievementId, DungeonTierId } from '@/types';
 import {
   LEGENDARY_ITEM_IDS,
   ACHIEVEMENT_GOLD,
   checkNewAchievements,
+  checkNewCombatAchievements,
+  checkNewActivityAchievements,
+  checkNewMasteryAchievements,
+  SLAYER_KILL_TARGET as CF_SLAYER_KILL_TARGET,
+  CENTURION_WIN_TARGET as CF_CENTURION_WIN_TARGET,
+  HYDRATION_STREAK_DAYS as CF_HYDRATION_STREAK_DAYS,
+  POLYMATH_THRESHOLD as CF_POLYMATH_THRESHOLD,
+  ARMORY_UNIQUE_GEAR_TARGET as CF_ARMORY_UNIQUE_GEAR_TARGET,
+  MASTERY_TIERS as CF_MASTERY_TIERS,
+  ACTIVITY_COUNT_TARGETS as CF_ACTIVITY_COUNT_TARGETS,
+  ACTIVITY_COUNT_THRESHOLD as CF_ACTIVITY_COUNT_THRESHOLD,
+  QUEST_COUNT_TIERS as CF_QUEST_COUNT_TIERS,
+  WEEKLY_PERFECTIONIST_TARGET as CF_WEEKLY_PERFECTIONIST_TARGET,
 } from '../../../../functions/src/gameLogic/achievements';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -163,5 +192,128 @@ describe('checkNewAchievements parity — functions copy vs checkDungeonAchievem
 
   it('can award multiple achievements at once', () => {
     assertParity('dragons-keep', [], ['draconic-sigil'], 'completed');
+  });
+});
+
+// ─── PR5b — combat / activity / mastery thresholds parity ────────────────────
+
+describe('PR5b threshold + lookup parity (src ↔ functions)', () => {
+  it('combat thresholds match', () => {
+    expect(CF_SLAYER_KILL_TARGET).toBe(SLAYER_KILL_TARGET);
+    expect(CF_CENTURION_WIN_TARGET).toBe(CENTURION_WIN_TARGET);
+  });
+
+  it('activity thresholds match', () => {
+    expect(CF_HYDRATION_STREAK_DAYS).toBe(HYDRATION_STREAK_DAYS);
+    for (const [activityType, achievementId] of Object.entries(ACTIVITY_COUNT_TARGETS)) {
+      expect(CF_ACTIVITY_COUNT_TARGETS[activityType]).toBe(achievementId);
+      expect(CF_ACTIVITY_COUNT_THRESHOLD[achievementId as string]).toBe(
+        ACTIVITY_COUNT_THRESHOLD[achievementId as AchievementId],
+      );
+    }
+  });
+
+  it('mastery thresholds match', () => {
+    expect(CF_POLYMATH_THRESHOLD).toBe(POLYMATH_THRESHOLD);
+    expect(CF_MASTERY_TIERS.apprentice).toBe(MASTERY_TIERS.apprentice);
+    expect(CF_MASTERY_TIERS.journeyman).toBe(MASTERY_TIERS.journeyman);
+    expect(CF_MASTERY_TIERS.master).toBe(MASTERY_TIERS.master);
+  });
+
+  it('quest + collection thresholds match', () => {
+    expect(CF_WEEKLY_PERFECTIONIST_TARGET).toBe(WEEKLY_PERFECTIONIST_TARGET);
+    expect(CF_ARMORY_UNIQUE_GEAR_TARGET).toBe(ARMORY_UNIQUE_GEAR_TARGET);
+    for (const [id, threshold] of Object.entries(QUEST_COUNT_TIERS)) {
+      expect(CF_QUEST_COUNT_TIERS[id]).toBe(threshold);
+    }
+  });
+});
+
+describe('PR5b checker parity — src ↔ functions return identical IDs', () => {
+  it('combat: first-blood + centurion + slayer + untouched', () => {
+    const cases: Array<Parameters<typeof checkCombatAchievements>[0]> = [
+      {
+        existing: new Set(),
+        monsterId: 'obsidian-golem',
+        monsterKillsAfter: 5,
+        totalWinsAfter: 1,
+        flawless: true,
+      },
+      {
+        existing: new Set(),
+        monsterId: 'ashwyrm',
+        monsterKillsAfter: 4,
+        totalWinsAfter: 100,
+        flawless: false,
+      },
+      {
+        existing: new Set(['first-blood']),
+        monsterId: 'storm-djinn',
+        monsterKillsAfter: 5,
+        totalWinsAfter: 50,
+        flawless: true,
+      },
+      {
+        existing: new Set(),
+        monsterId: 'goblin',
+        monsterKillsAfter: 99,
+        totalWinsAfter: 0,
+        flawless: false,
+      },
+    ];
+    for (const c of cases) {
+      const src = checkCombatAchievements(c).sort();
+      const fn = checkNewCombatAchievements({
+        existing: [...c.existing],
+        monsterId: c.monsterId,
+        monsterKillsAfter: c.monsterKillsAfter,
+        totalWinsAfter: c.totalWinsAfter,
+        flawless: c.flawless,
+      }).sort();
+      expect(fn).toEqual(src);
+    }
+  });
+
+  it('activity: count thresholds + hydration streak', () => {
+    const cases: Array<Parameters<typeof checkActivityAchievements>[0]> = [
+      { existing: new Set(), activityType: 'workout', activityCountAfter: 100 },
+      { existing: new Set(['iron-body']), activityType: 'workout', activityCountAfter: 100 },
+      { existing: new Set(), activityType: 'meditation', activityCountAfter: 50 },
+      { existing: new Set(), activityType: 'water', activityCountAfter: 1, waterStreakDays: 7 },
+      { existing: new Set(), activityType: 'water', activityCountAfter: 1, waterStreakDays: 6 },
+      { existing: new Set(), activityType: 'sleep', activityCountAfter: 100 },
+    ];
+    for (const c of cases) {
+      const src = checkActivityAchievements(c).sort();
+      const fn = checkNewActivityAchievements({
+        existing: [...c.existing],
+        activityType: c.activityType,
+        activityCountAfter: c.activityCountAfter,
+        waterStreakDays: c.waterStreakDays,
+      }).sort();
+      expect(fn).toEqual(src);
+    }
+  });
+
+  it('mastery: apprentice/journeyman/master/polymath', () => {
+    const cases: Array<Parameters<typeof checkMasteryAchievements>[0]> = [
+      { existing: new Set(), masteryCounts: { workout: 5 } },
+      { existing: new Set(), masteryCounts: { run: 15 } },
+      { existing: new Set(), masteryCounts: { steps: 25 } },
+      {
+        existing: new Set(),
+        masteryCounts: { workout: 5, run: 5, steps: 5, meditation: 5 },
+      },
+      { existing: new Set(['apprentice']), masteryCounts: { workout: 5 } },
+      { existing: new Set(), masteryCounts: { workout: 4, run: 5, steps: 5, meditation: 5 } },
+    ];
+    for (const c of cases) {
+      const src = checkMasteryAchievements(c).sort();
+      const fn = checkNewMasteryAchievements({
+        existing: [...c.existing],
+        masteryCounts: c.masteryCounts,
+      }).sort();
+      expect(fn).toEqual(src);
+    }
   });
 });

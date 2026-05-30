@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { logOut } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
+import { useCollectionAchievementSync } from '@/hooks/useCollectionAchievementSync';
 import { useActivityStore } from '@/store/activityStore';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
@@ -74,6 +75,11 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (character?.uid) subscribeActivity(character.uid);
   }, [character?.uid, subscribeActivity]);
+
+  // Mirrors collection-category achievement unlocks (bestiary, legendary hoarder,
+  // armory) into the character doc. CF re-validates on the next combat/activity
+  // mutation, so tampered client writes are reconciled.
+  useCollectionAchievementSync();
 
   async function handleSignOut() {
     useActivityStore.getState().clear();

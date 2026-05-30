@@ -65,6 +65,7 @@ import {
 } from '@/lib/gameLogic/combat';
 import { getStreakLootMultiplier, getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
+import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
 import { getSubclassDef } from '@/lib/gameLogic/passives';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Card } from '@/components/ui/Card';
@@ -257,7 +258,7 @@ function CombatPageBody({ character }: { character: Character }) {
       setStaminaLocal(stamina);
       setMagicLocal(magic);
     },
-    onVictory: async ({ finalHp, finalStamina, finalMagic, monster, droppedItems }) => {
+    onVictory: async ({ finalHp, finalStamina, finalMagic, monster, droppedItems, flawless }) => {
       await updateCurrentHp(finalHp);
       await updateCurrentStamina(finalStamina);
       await updateCurrentMagic(finalMagic);
@@ -271,6 +272,7 @@ function CombatPageBody({ character }: { character: Character }) {
         droppedItems,
         monster,
         uid: character.uid,
+        flawless,
       });
     },
     onDefeat: async ({ finalHp, finalStamina, finalMagic }) => {
@@ -308,7 +310,7 @@ function CombatPageBody({ character }: { character: Character }) {
     playSound('claim');
     setClaiming(true);
 
-    const { xpReward, goldReward, droppedItems, monster: defeated, uid } = pendingRewards;
+    const { xpReward, goldReward, droppedItems, monster: defeated, uid, flawless } = pendingRewards;
     const gotLegendary = droppedItems.some((id) => {
       const def = getItemById(id);
       return def?.rarity === 'legendary';
@@ -322,6 +324,7 @@ function CombatPageBody({ character }: { character: Character }) {
         monsterId: defeated.id,
         monsterName: defeated.name,
         idempotencyKey: crypto.randomUUID(),
+        flawless,
       });
     } catch {
       toast.error("Couldn't reach the server — tap Claim Rewards again", {
@@ -331,7 +334,7 @@ function CombatPageBody({ character }: { character: Character }) {
       return;
     }
 
-    const { finalXp, multiplier, winsTodayAfter } = claim;
+    const { finalXp, multiplier, winsTodayAfter, newAchievements, achievementGold } = claim;
     setWinsToday(winsTodayAfter);
     setPendingRewards(null);
 
@@ -362,8 +365,20 @@ function CombatPageBody({ character }: { character: Character }) {
         emoji: '⚔️',
         title: `Defeated ${defeated.name}!`,
         xp: finalXp,
-        gold: goldReward,
+        gold: goldReward + achievementGold,
       });
+
+      if (newAchievements.length > 0) {
+        for (const id of newAchievements) {
+          const def = ACHIEVEMENTS[id as keyof typeof ACHIEVEMENTS];
+          if (def) {
+            toast.success(`Achievement unlocked: ${def.name}`, {
+              description: `${def.emoji} +${def.goldReward}g — ${def.description}`,
+              duration: 7000,
+            });
+          }
+        }
+      }
 
       if (lootSyncFailed) {
         toast.warning('Inventory sync failed — refresh inventory to see your drop', {

@@ -19,6 +19,7 @@ import {
 } from '@/lib/gameLogic/constants';
 import { playerMaxHp, playerMaxStamina, playerMaxMagic } from '@/lib/gameLogic/combat';
 import { computeNewStreak, getStreakTier, todayUTC } from '@/lib/gameLogic/streaks';
+import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
 import {
   toast,
   toastPersonalRecord,
@@ -193,6 +194,7 @@ export function ActivityLogForm() {
         masteryHit,
         linkedStatLabel,
         newMasteryCount,
+        newAchievements,
       } = fnResult;
       const capReached = !rewardEligible;
 
@@ -267,6 +269,18 @@ export function ActivityLogForm() {
       }
       if (masteryHit && linkedStatLabel) {
         toastMasteryMilestone(linkedStatLabel, def.label);
+      }
+
+      if (newAchievements && newAchievements.length > 0) {
+        for (const id of newAchievements) {
+          const ach = ACHIEVEMENTS[id as keyof typeof ACHIEVEMENTS];
+          if (ach) {
+            toast.success(`Achievement unlocked: ${ach.name}`, {
+              description: `${ach.emoji} +${ach.goldReward}g — ${ach.description}`,
+              duration: 7000,
+            });
+          }
+        }
       }
 
       setAmount('');

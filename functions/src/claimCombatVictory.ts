@@ -7,6 +7,7 @@ import {
   playerMaxMagic,
   combatXpDailyMultiplier,
 } from './gameLogic/combat';
+import { checkNewCombatAchievements, sumAchievementGold } from './gameLogic/achievements';
 
 const db = admin.firestore();
 
@@ -23,6 +24,8 @@ interface ClaimCombatVictoryInput {
   monsterName: string;
   /** Idempotency token from the client. Reused on retry; the same key never double-awards. */
   idempotencyKey: string;
+  /** True iff the player did not take any damage during the fight. Drives the `untouched` achievement. */
+  flawless?: boolean;
 }
 
 interface ClaimCombatVictoryResult {
@@ -36,6 +39,10 @@ interface ClaimCombatVictoryResult {
   winsTodayAfter: number;
   /** Whether the XP award caused a level-up. */
   leveledUp: boolean;
+  /** Achievement IDs newly unlocked by this win, in display order. */
+  newAchievements: string[];
+  /** Gold credited from `newAchievements` rewards. Adds to `goldReward` already. */
+  achievementGold: number;
 }
 
 // ─── claimCombatVictory callable ──────────────────────────────────────────────
@@ -64,6 +71,7 @@ export const claimCombatVictory = onCall<
 
   const uid = request.auth.uid;
   const { xpReward, goldReward, monsterId, monsterName, idempotencyKey } = request.data;
+  const flawless = request.data.flawless === true;
 
   // ── Validation ───────────────────────────────────────────────────────────
   if (!Number.isFinite(xpReward) || xpReward < 0 || xpReward > 5000) {
@@ -99,6 +107,8 @@ export const claimCombatVictory = onCall<
       xp: number;
       multiplier?: number;
       winsTodayAfter?: number;
+      newAchievements?: string[];
+      achievementGold?: number;
     };
     return {
       finalXp: data.xp,
@@ -106,6 +116,8 @@ export const claimCombatVictory = onCall<
       winsTodayBefore: (data.winsTodayAfter ?? 1) - 1,
       winsTodayAfter: data.winsTodayAfter ?? 1,
       leveledUp: false, // not tracked in the log — a duplicate request can't trigger a fresh level-up
+      newAchievements: data.newAchievements ?? [],
+      achievementGold: data.achievementGold ?? 0,
     };
   }
 
@@ -123,6 +135,8 @@ export const claimCombatVictory = onCall<
   // ── Transaction: update character (XP + gold + level-up bookkeeping) ────
   const charRef = db.collection('characters').doc(uid);
   let leveledUp = false;
+  let newAchievements: string[] = [];
+  let achievementGold = 0;
 
   await db.runTransaction(async (txn) => {
     const charSnap = await txn.get(charRef);
@@ -147,6 +161,9 @@ export const claimCombatVictory = onCall<
       currentStamina?: number;
       currentMagic?: number;
       pendingStatPoints?: number;
+      achievements?: string[];
+      totalCombatWins?: number;
+      monstersKilled?: Record<string, { killCount?: number; firstKilledAt?: number }>;
     };
 
     const { level, xp, xpToNextLevel, levelsGained } = applyXp(
@@ -155,12 +172,39 @@ export const claimCombatVictory = onCall<
     );
     leveledUp = levelsGained > 0;
 
+    // ── Combat-achievement evaluation ───────────────────────────────────────
+    // Lifetime win counter + per-monster kill counter both increment inside the
+    // same transaction, then we feed the AFTER values to the checker. This way
+    // a concurrent claim can't race past the threshold without the txn retrying.
+    const totalCombatWinsAfter = (charData.totalCombatWins ?? 0) + 1;
+    const monsterKillsBefore = charData.monstersKilled?.[monsterId]?.killCount ?? 0;
+    const monsterKillsAfter = monsterKillsBefore + 1;
+    const monsterFirstKilledAt = charData.monstersKilled?.[monsterId]?.firstKilledAt ?? Date.now();
+
+    newAchievements = checkNewCombatAchievements({
+      existing: charData.achievements ?? [],
+      monsterId,
+      monsterKillsAfter,
+      totalWinsAfter: totalCombatWinsAfter,
+      flawless,
+    });
+    achievementGold = sumAchievementGold(newAchievements);
+
     const updates: Record<string, unknown> = {
       level,
       xp,
       xpToNextLevel,
-      gold: (charData.gold ?? 0) + goldReward,
+      gold: (charData.gold ?? 0) + goldReward + achievementGold,
+      totalCombatWins: totalCombatWinsAfter,
+      [`monstersKilled.${monsterId}`]: {
+        killCount: monsterKillsAfter,
+        firstKilledAt: monsterFirstKilledAt,
+      },
     };
+
+    if (newAchievements.length > 0) {
+      updates.achievements = [...(charData.achievements ?? []), ...newAchievements];
+    }
 
     if (levelsGained > 0) {
       // Mirror awardXpAndStats: auto-stat bumps + resource restore.
@@ -198,6 +242,8 @@ export const claimCombatVictory = onCall<
     loggedAt: now,
     multiplier,
     winsTodayAfter: winsTodayBefore + 1,
+    newAchievements,
+    achievementGold,
   });
 
   return {
@@ -206,5 +252,7 @@ export const claimCombatVictory = onCall<
     winsTodayBefore,
     winsTodayAfter: winsTodayBefore + 1,
     leveledUp,
+    newAchievements,
+    achievementGold,
   };
 });
