@@ -4,22 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion, Reorder, useReducedMotion } from 'framer-motion';
-import {
-  Home,
-  Swords,
-  ClipboardList,
-  Skull,
-  ScrollText,
-  Backpack,
-  Store,
-  BarChart3,
-  Trophy,
-  MoreHorizontal,
-  Settings,
-  GripVertical,
-  X,
-  type LucideIcon,
-} from 'lucide-react';
+import { MoreHorizontal, Settings, GripVertical, X } from 'lucide-react';
+import { NAV_ITEMS, type NavItem } from '@/lib/navConfig';
 import { logOut } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCollectionAchievementSync } from '@/hooks/useCollectionAchievementSync';
@@ -41,8 +27,6 @@ import { RouteBackground } from '@/components/ui/RouteBackground';
 import { BrandMark } from '@/components/ui/BrandMark';
 import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
 import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
-
-type NavItem = { href: string; label: string; Icon: LucideIcon };
 
 /** Nav link that blocks navigation (with a toast) while combat is active. */
 function CombatSafeLink({
@@ -70,18 +54,6 @@ function CombatSafeLink({
   );
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard', Icon: Home },
-  { href: '/character', label: 'Character', Icon: Swords },
-  { href: '/activities', label: 'Activities', Icon: ClipboardList },
-  { href: '/combat', label: 'Combat', Icon: Skull },
-  { href: '/quests', label: 'Quests', Icon: ScrollText },
-  { href: '/inventory', label: 'Inventory', Icon: Backpack },
-  { href: '/shop', label: 'Shop', Icon: Store },
-  { href: '/stats', label: 'Stats', Icon: BarChart3 },
-  { href: '/collections', label: 'Collections', Icon: Trophy },
-];
-
 export default function GameLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -90,6 +62,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   const [moreOpen, setMoreOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const pinnedHrefs = useNavPreferenceStore((s) => s.pinnedHrefs);
+  const hasSeenCustomizer = useNavPreferenceStore((s) => s.hasSeenCustomizer);
   const openCustomizer = useNavPreferenceStore((s) => s.openCustomizer);
   // Primary bar: NAV_ITEMS order filtered to pinned hrefs.
   const primaryNav = NAV_ITEMS.filter((item) => pinnedHrefs.includes(item.href));
@@ -295,12 +268,22 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         {moreOpen && (
           <motion.div
             key="overflow-panel"
+            drag={prefersReducedMotion ? false : 'y'}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.4 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 60 || info.velocity.y > 400) setMoreOpen(false);
+            }}
             initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
             className="fixed bottom-14 left-0 right-0 z-[15] md:hidden mx-3 mb-1.5 rounded-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800/80 shadow-xl shadow-gray-900/10 dark:shadow-black/50 p-2"
           >
+            {/* Drag handle — hints the panel is swipe-to-dismiss on mobile */}
+            <div className="flex justify-center pb-2 pt-0.5" aria-hidden="true">
+              <div className="w-8 h-1 rounded-full bg-gray-200 dark:bg-slate-700" />
+            </div>
             <div className="grid grid-cols-4 gap-1">
               {overflowNav.map(({ href, label, Icon }) => {
                 const active = pathname === href || pathname.startsWith(href + '/');
@@ -396,11 +379,22 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
                       aria-hidden="true"
                     />
                   )}
-                  <MoreHorizontal
-                    className="w-5 h-5"
-                    aria-hidden="true"
-                    strokeWidth={moreOpen ? 2.5 : 2}
-                  />
+                  <div className="relative">
+                    <MoreHorizontal
+                      className="w-5 h-5"
+                      aria-hidden="true"
+                      strokeWidth={moreOpen ? 2.5 : 2}
+                    />
+                    {!hasSeenCustomizer && (
+                      <span
+                        className="absolute -top-0.5 -right-0.5 flex h-2 w-2"
+                        aria-hidden="true"
+                      >
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75 animate-ping" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-400" />
+                      </span>
+                    )}
+                  </div>
                 </button>
               );
             })()}
