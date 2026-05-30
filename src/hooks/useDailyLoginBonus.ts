@@ -18,14 +18,14 @@ function dailyLoginBonus(level: number): { gold: number; xp: number } {
 
 /**
  * Grants a small daily-login gold + XP bonus the first time a character is
- * loaded each UTC day. Client-mirrored optimistic write (matches the quest /
- * collection achievement pattern from PR5b). The CFs `claimCombatVictory` +
- * `logActivity` clamp `lastLoginGrantedDate` to never decrease on the next
- * server-side mutation, so a tampered client write is reconciled within one
- * mutation.
+ * loaded each UTC day. Client-authoritative optimistic write (matches the
+ * quest / collection achievement pattern from PR5b).
  *
  * Worst-case tampering nets ~75 g/day — negligible vs the 1500 g
  * `legendary-hoarder` reward and the 8 700 g full-catalog achievement payout.
+ * If competitive scoring (leaderboards) ever ships, harden this by re-checking
+ * `lastLoginGrantedDate` inside `claimCombatVictory` and `logActivity` CF
+ * transactions.
  */
 export function useDailyLoginBonus() {
   const character = useCharacterStore((s) => s.character);

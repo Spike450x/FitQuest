@@ -62,7 +62,7 @@ After the 5-PR content-scaling drop, the `/balance-check` audit surfaced five tu
 - **Server-authoritative** for combat / activity / mastery (17 IDs):
   - `claimCombatVictory` CF gains a `flawless: boolean` input and, inside its existing transaction, increments `character.totalCombatWins` + `character.monstersKilled[monsterId].killCount`, evaluates combat achievements against the AFTER values, and merges new IDs + their gold reward atomically. Result type now returns `newAchievements: string[]` and `achievementGold: number`.
   - `logActivity` CF folds achievement evaluation into its mastery transaction, now also tracking `character.activityLogCounts[type]` (lifetime per-activity counter, distinct from `masteryCounts`). For water logs it pre-queries the past 7 days of water docs to compute the streak before the transaction.
-- **Client-mirrored** for quest + collection (7 IDs) — `questStore.claimReward` writes quest achievement IDs directly; new `useCollectionAchievementSync` hook (mounted in `(game)/layout.tsx`) computes collection achievements from inventory + bestiary state and persists them. The next combat / activity CF transaction re-validates the same conditions, so tampered client writes are reconciled within one mutation.
+- **Client-authoritative** for quest + collection (7 IDs) — `questStore.claimReward` writes quest achievement IDs directly; new `useCollectionAchievementSync` hook (mounted in `(game)/layout.tsx`) computes collection achievements from inventory + bestiary state and persists them. These are optimistic client writes; the existing CF transactions do NOT re-check them. Worst-case tamper is a few hundred gold per fabricated unlock — harden via a CF re-check when competitive scoring (leaderboards) ships.
 - **Parity** — `functions/src/gameLogic/achievements.ts` mirrors all 24 gold values + thresholds + checker functions. `achievements-parity.test.ts` extended from 11 → 19 assertions covering every new constant + every new checker on equivalent fixtures.
 - **Tests** — 35 new vitest specs (35 in `achievementsPR5b.test.ts` covering catalog sanity + every checker + every threshold + non-tracked-monster edge cases). 846 total tests pass (was 811). Suite still under 15 s.
 - **UI** — achievement-unlock toasts surface in three places: combat victory claim, activity log result, quest claim. Each toast shows emoji + name + description + gold. Existing profile badge gallery already renders from `ACHIEVEMENTS`, so the new 24 IDs appear there automatically.
@@ -889,3 +889,5 @@ Tracked here so a fresh session can see what's next without cross-referencing CL
 - **Apple Health integration** — auto-import workouts
 - **Leaderboards** — compare with other users
 - **Firebase emulators** — local Firestore + Auth for dev (priority bumps once we touch destructive migrations or multiplayer)
+
+<!-- CI trigger -->

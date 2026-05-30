@@ -9,15 +9,17 @@ import { checkCollectionAchievements, sumAchievementGold } from '@/lib/gameLogic
 import { bestiaryProgress } from '@/lib/gameLogic/collections';
 
 /**
- * Client-mirrored sync for collection-category achievements (PR5b):
+ * Client-authoritative sync for collection-category achievements:
  *   - bestiary-complete    — every monster + boss discovered
  *   - legendary-hoarder    — every legendary item owned simultaneously
  *   - armory               — 15+ unique gear items owned at once
+ *   - arcane-archive       — every spell in the catalog owned
  *
- * These three live outside the server-authoritative path because they read
- * client-derived state (inventory + bestiary progress). The CF re-validates
- * the same conditions on the next combat/activity transaction, so even a
- * tampered client write is eventually reconciled.
+ * These four live outside the server-authoritative path because they read
+ * client-derived state (inventory + bestiary progress). Worst-case tamper is
+ * a few hundred gold per fabricated unlock — trivial vs the gold economy.
+ * If leaderboards or competitive scoring ever ship, fold the same check into
+ * the `claimCombatVictory` / `logActivity` CF transactions to re-validate.
  *
  * Runs once on character/inventory change. Skips if the achievements are
  * already held (single Set lookup), and writes only when at least one is
