@@ -82,13 +82,13 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   }, [character?.uid, subscribeActivity]);
 
   // Mirrors collection-category achievement unlocks (bestiary, legendary hoarder,
-  // armory, arcane-archive) into the character doc. CF re-validates on the next
-  // combat/activity mutation, so tampered client writes are reconciled.
+  // armory, arcane-archive) into the character doc. Client-authoritative for now —
+  // worst-case tamper is a few hundred gold per fabricated unlock. Harden via a CF
+  // re-check when leaderboards arrive.
   useCollectionAchievementSync();
 
-  // Grants a small once-per-UTC-day login bonus. Optimistic client write; the
-  // next combat/activity CF transaction clamps `lastLoginGrantedDate` so a
-  // tampered client cannot replay the bonus.
+  // Grants a small once-per-UTC-day login bonus. Client-authoritative optimistic
+  // write — worst-case tamper is ~75 g/day, trivial vs the gold economy.
   useDailyLoginBonus();
 
   async function handleSignOut() {

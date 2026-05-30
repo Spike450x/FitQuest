@@ -115,8 +115,9 @@ export interface Character {
   /**
    * UTC date ("YYYY-MM-DD") of the last claimed daily-login bonus. When the
    * player visits the dashboard on a new UTC day, a small gold + XP grant
-   * fires and this field is stamped. Client-mirrored optimistic write;
-   * `claimCombatVictory` + `logActivity` CFs clamp this to never decrease.
+   * fires and this field is stamped. Client-authoritative optimistic write —
+   * the CFs do not re-validate this. Worst-case tamper is ~75 g/day, trivial
+   * vs the gold economy. Harden via a CF re-check when leaderboards arrive.
    */
   lastLoginGrantedDate?: string;
   /** Lifetime quests claimed — incremented client-side on quest claim. Drives the quest-novice/veteran/legend achievements. */

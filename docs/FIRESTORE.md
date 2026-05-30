@@ -45,12 +45,14 @@ interface Character {
   currentMagic?: number; // 0–250;         undefined = full
   pendingStatPoints?: number; // 0–100
   subclass?: CharacterSubclass; // one-way set at level ≥ 10
-  masteryCounts?: { run?: number; workout?: number; steps?: number };
+  masteryCounts?: { run?: number; workout?: number; steps?: number; meditation?: number };
   streakData?: { currentStreak: number; longestStreak: number; lastLogDate: string };
   personalRecords?: Partial<
     Record<ActivityType, { value: number; loggedAt: number; unit: string }>
   >;
   legendaryDryStreak?: Record<string, number>; // kills-since-last-legendary per monster — pity system
+  /** Per-monster kill tally for the bestiary surface. Incremented on every defeat (arena + dungeon). */
+  monstersKilled?: Record<string, { killCount: number; firstKilledAt: number }>;
   dungeonRunsToday?: {
     date: string; // 'YYYY-MM-DD' UTC
     count: number; // runs started this calendar day (max 2)
@@ -58,12 +60,25 @@ interface Character {
   };
   activeDungeonRunId?: string | null; // set to runId when a run is in progress; null otherwise
   achievements?: AchievementId[]; // one-time milestone badges earned (see src/lib/gameLogic/achievements.ts)
+
+  // ── Achievement-tracking counters (added in PR5b + balance pass) ──────────
+  /** Lifetime arena combat wins. Incremented inside `claimCombatVictory` CF. Drives `centurion`. */
+  totalCombatWins?: number;
+  /** Lifetime activity-log counts per type. Incremented inside `logActivity` CF. Drives iron-body / marathoner / well-fed / well-rested / enlightened. */
+  activityLogCounts?: Partial<Record<ActivityType, number>>;
+  /** Lifetime quests claimed. Incremented client-side on `questStore.claimReward`. Drives quest-novice/-veteran/-legend. */
+  totalQuestsClaimed?: number;
+  /** Tracks weekly quests claimed inside the current ISO week (`weekKey: "YYYY-WW"`). Drives `weekly-perfectionist`. */
+  weeklyQuestsClaimed?: { weekKey: string; questDefIds: string[] };
+  /** UTC date ("YYYY-MM-DD") of the most-recent daily-login bonus grant. */
+  lastLoginGrantedDate?: string;
 }
 
 interface Stats {
   strength: number; // 0–50  (PRIMARY_STAT_CAP)
   wisdom: number; // 0–50
   agility: number; // 0–50
+  spirit: number; // 0–50  (primary; drives spell/ability crit chance + damage)
   stamina: number; // 0–600 (level-scaled at runtime)
   health: number; // 0–600
   defense: number; // 0–600
@@ -82,9 +97,13 @@ interface Stats {
 - `uid`, `class`, `createdAt` are **immutable** — write must equal the existing value.
 - All fields revalidated against the same ranges (so a buggy client cannot push `level: 200` or `gold: 1e9`).
 - `legendaryDryStreak` must be a map if present (`is map` validated in `isValidCharacterOptionals`).
+- `monstersKilled` must be a map if present.
 - `dungeonRunsToday` must be a map if present.
 - `activeDungeonRunId` must be a string or null if present.
 - `achievements` must be a list if present.
+- `totalCombatWins`, `totalQuestsClaimed` must be non-negative numbers if present.
+- `activityLogCounts`, `weeklyQuestsClaimed` must be maps if present.
+- `lastLoginGrantedDate` must be a string if present.
 - Subclass rules (`subclassIsValid`):
   - Absent → OK (not chosen yet).
   - Same as before → OK (already locked in).
