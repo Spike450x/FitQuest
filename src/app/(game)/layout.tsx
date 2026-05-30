@@ -282,13 +282,16 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.4 }}
             onDragEnd={(_, info) => {
-              if (info.offset.y > 60 || info.velocity.y > 400) setMoreOpen(false);
+              if (info.offset.y > 60 || info.velocity.y > 400) {
+                if ('vibrate' in navigator) navigator.vibrate(8);
+                setMoreOpen(false);
+              }
             }}
             initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="fixed bottom-14 left-0 right-0 z-[15] md:hidden mx-3 mb-1.5 rounded-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800/80 shadow-xl shadow-gray-900/10 dark:shadow-black/50 p-2"
+            className="fixed bottom-14 left-0 right-0 z-[15] md:hidden mx-3 mb-1.5 rounded-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_-4px_6px_rgba(0,0,0,0.03),0_20px_25px_-5px_rgba(0,0,0,0.12),0_8px_10px_-6px_rgba(0,0,0,0.08)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_-4px_6px_rgba(0,0,0,0.1),0_20px_25px_-5px_rgba(0,0,0,0.5),0_8px_10px_-6px_rgba(0,0,0,0.4)] p-2"
           >
             {/* Drag handle — hints the panel is swipe-to-dismiss on mobile */}
             <div className="flex justify-center pb-2 pt-0.5" aria-hidden="true">
@@ -395,15 +398,21 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
                       aria-hidden="true"
                       strokeWidth={moreOpen ? 2.5 : 2}
                     />
-                    {!hasSeenCustomizer && (
-                      <span
-                        className="absolute -top-0.5 -right-0.5 flex h-2 w-2"
-                        aria-hidden="true"
-                      >
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75 animate-ping" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-400" />
-                      </span>
-                    )}
+                    <AnimatePresence>
+                      {!hasSeenCustomizer && (
+                        <motion.span
+                          key="onboarding-badge"
+                          initial={{ opacity: 1, scale: 1 }}
+                          exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute -top-0.5 -right-0.5 flex h-2 w-2"
+                          aria-hidden="true"
+                        >
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75 animate-ping [animation-iteration-count:3]" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-400" />
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </button>
               );
