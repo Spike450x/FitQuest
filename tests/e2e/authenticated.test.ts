@@ -66,6 +66,19 @@ test.describe('authenticated game screens — structure smoke tests', () => {
     await expect(page.getByRole('heading', { name: /dungeon/i })).toBeVisible({ timeout: 10_000 });
   });
 
+  test('collections renders achievements heading', async ({ page }) => {
+    await page.goto('/collections');
+    await expect(page.getByRole('heading', { name: /achievements/i }).first()).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
+  test('bottom nav More button is visible on mobile viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/dashboard');
+    await expect(page.getByRole('button', { name: /more/i })).toBeVisible({ timeout: 10_000 });
+  });
+
   test('authenticated pages do not redirect to /login', async ({ page }) => {
     for (const route of [
       '/dashboard',
@@ -76,6 +89,7 @@ test.describe('authenticated game screens — structure smoke tests', () => {
       '/combat',
       '/stats',
       '/profile',
+      '/collections',
     ]) {
       await page.goto(route);
       await expect(page).not.toHaveURL(/\/login/);
