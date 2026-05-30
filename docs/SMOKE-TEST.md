@@ -89,6 +89,7 @@ If you have a test account, log in and walk through:
 4. `/combat` → run one round → spell cast → victory modal renders correctly. Daily combat XP badge sits next to "Today's Encounters" and updates after each claim.
 5. `/character` → if level ≥ 10, subclass selection works
 6. `/shop` → buy an item, equip it, stats update
+7. `/collections` → Achievements / Bestiary / Collection tabs all render; bestiary shows slain monsters; More (⋯) button in mobile nav opens the overflow panel; swipe down or tap backdrop to dismiss; long-press or "Customize nav" opens the reorderable pinned-tab customizer
 
 Watch the dev console specifically for: Next.js async-API deprecation warnings, Firebase SDK warnings, and React hydration mismatches.
 
@@ -130,7 +131,7 @@ History: introduced after the firebase 12.12 → 12.13 bump (PR #28) where the s
 
 **Steps 1–4 are now covered by the Playwright E2E smoke suite** (`tests/e2e/smoke.test.ts`) running in CI on every PR and master push. The suite asserts:
 
-- All 13 protected routes redirect to `/login` (Step 3 equivalent): `/`, `/dashboard`, `/activities`, `/combat`, `/combat/dungeons`, `/combat/dungeons/[tierId]` (tested via `/combat/dungeons/goblin-caves`), `/combat/dungeons/run`, `/character`, `/inventory`, `/shop`, `/quests`, `/profile`, `/stats`.
+- All 14 protected routes redirect to `/login` (Step 3 equivalent): `/`, `/dashboard`, `/activities`, `/combat`, `/combat/dungeons`, `/combat/dungeons/[tierId]` (tested via `/combat/dungeons/goblin-caves`), `/combat/dungeons/run`, `/character`, `/inventory`, `/shop`, `/quests`, `/profile`, `/stats`, `/collections`.
 - `/login` renders the heading, email/password inputs, submit button, and correct a11y attributes (Steps 1–2 equivalent).
 - `/register` renders the heading and link back to login (Step 4 equivalent).
 

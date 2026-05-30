@@ -90,12 +90,14 @@ export interface UseCombatEncounterOptions {
    */
   consumeItem: (
     invItemId: string,
-    playerHp: number,
-    maxHp: number,
-    playerStamina: number,
-    maxStamina: number,
-    playerMagic: number,
-    maxMagic: number,
+    resources: {
+      currentHp: number;
+      maxHp: number;
+      currentStamina: number;
+      maxStamina: number;
+      currentMagic?: number;
+      maxMagic?: number;
+    },
   ) => Promise<{ hpGained: number; staminaGained: number; magicGained: number }>;
   /** Local mirror — runs every applyResult. Do NOT persist Firestore here. */
   onResourceChange?: (snapshot: { hp: number; stamina: number; magic: number }) => void;
@@ -337,15 +339,14 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
     if (usingItem || fightState.outcome !== null) return;
     setUsingItem(invItemId);
     try {
-      const { hpGained, staminaGained, magicGained } = await consumeItem(
-        invItemId,
-        fightState.playerHp,
+      const { hpGained, staminaGained, magicGained } = await consumeItem(invItemId, {
+        currentHp: fightState.playerHp,
         maxHp,
-        fightState.playerStamina,
+        currentStamina: fightState.playerStamina,
         maxStamina,
-        fightState.playerMagic,
+        currentMagic: fightState.playerMagic,
         maxMagic,
-      );
+      });
       const res = resolveUseItemAction(buildInput(), hpGained, staminaGained, magicGained);
       // No overlay — commit immediately (skip log/outcome handling).
       setFightState(res.nextState);

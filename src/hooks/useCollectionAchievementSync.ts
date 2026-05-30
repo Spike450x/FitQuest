@@ -3,21 +3,28 @@
 import { useEffect, useRef } from 'react';
 import { useCharacterStore } from '@/store/characterStore';
 import { useInventoryStore } from '@/store/inventoryStore';
-import { updateCharacterDoc } from '@/lib/characterData';
-import { captureError } from '@/lib/errors';
 import { checkCollectionAchievements, sumAchievementGold } from '@/lib/gameLogic/achievements';
 import { bestiaryProgress } from '@/lib/gameLogic/collections';
 
+const COLLECTION_IDS = [
+  'bestiary-complete',
+  'legendary-hoarder',
+  'armory',
+  'arcane-archive',
+] as const;
+
 /**
- * Client-mirrored sync for collection-category achievements (PR5b):
+ * Client-authoritative sync for collection-category achievements:
  *   - bestiary-complete    — every monster + boss discovered
  *   - legendary-hoarder    — every legendary item owned simultaneously
  *   - armory               — 15+ unique gear items owned at once
+ *   - arcane-archive       — every spell in the catalog owned
  *
- * These three live outside the server-authoritative path because they read
- * client-derived state (inventory + bestiary progress). The CF re-validates
- * the same conditions on the next combat/activity transaction, so even a
- * tampered client write is eventually reconciled.
+ * These four live outside the server-authoritative path because they read
+ * client-derived state (inventory + bestiary progress). Worst-case tamper is
+ * a few hundred gold per fabricated unlock — trivial vs the gold economy.
+ * If leaderboards or competitive scoring ever ship, fold the same check into
+ * the `claimCombatVictory` / `logActivity` CF transactions to re-validate.
  *
  * Runs once on character/inventory change. Skips if the achievements are
  * already held (single Set lookup), and writes only when at least one is
@@ -26,18 +33,16 @@ import { bestiaryProgress } from '@/lib/gameLogic/collections';
 export function useCollectionAchievementSync() {
   const character = useCharacterStore((s) => s.character);
   const items = useInventoryStore((s) => s.items);
+  const applyCharacterPatch = useCharacterStore((s) => s.applyCharacterPatch);
   const inFlight = useRef(false);
 
   useEffect(() => {
     if (!character || inFlight.current) return;
 
     const existing = new Set(character.achievements ?? []);
-    // Cheap short-circuit — all three already unlocked → nothing to do.
-    if (
-      existing.has('bestiary-complete') &&
-      existing.has('legendary-hoarder') &&
-      existing.has('armory')
-    ) {
+    // Cheap short-circuit — all collection achievements already unlocked →
+    // nothing to do. Recompute is wasted work when the entire set is held.
+    if (COLLECTION_IDS.every((id) => existing.has(id))) {
       return;
     }
 
@@ -61,20 +66,8 @@ export function useCollectionAchievementSync() {
     const newGold = (character.gold ?? 0) + goldDelta;
 
     inFlight.current = true;
-    (async () => {
-      try {
-        await updateCharacterDoc(character.uid, {
-          achievements: newAchievements,
-          gold: newGold,
-        });
-        useCharacterStore.setState({
-          character: { ...character, achievements: newAchievements, gold: newGold },
-        });
-      } catch (err) {
-        captureError('useCollectionAchievementSync.write', err);
-      } finally {
-        inFlight.current = false;
-      }
-    })();
-  }, [character, items]);
+    applyCharacterPatch({ achievements: newAchievements, gold: newGold }).finally(() => {
+      inFlight.current = false;
+    });
+  }, [character, items, applyCharacterPatch]);
 }

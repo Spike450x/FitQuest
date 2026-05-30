@@ -18,7 +18,7 @@ import {
   deriveWeekKey,
 } from '@/lib/gameLogic/rotation';
 import { getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
-import { QUEST_REROLL_COST } from '@/lib/gameLogic/constants';
+import { questRerollCost } from '@/lib/gameLogic/constants';
 import { checkQuestAchievements, sumAchievementGold } from '@/lib/gameLogic/achievements';
 import { updateCharacterDoc } from '@/lib/characterData';
 import { useCharacterStore } from './characterStore';
@@ -26,6 +26,70 @@ import type { AchievementId, ActiveQuest, ActivityType, QuestDef } from '@/types
 
 function todayDateKey(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Post-claim side-effect: increments the lifetime / weekly counters, evaluates
+ * quest-category achievements, merges new IDs + their gold reward into the
+ * character doc via the shared `applyCharacterPatch` action.
+ *
+ * Returns the newly-unlocked IDs + their summed gold so the caller can surface
+ * them in toast. Read-modify-write happens against a fresh `getState()`
+ * snapshot — the patch action handles the functional setState so a concurrent
+ * write from another hook cannot clobber this one's local-state update.
+ *
+ * Client-authoritative: no CF re-validation today. Worst-case tamper is a few
+ * hundred gold per fabricated unlock; harden via a CF re-check when leaderboards
+ * arrive.
+ */
+async function applyQuestAchievementSideEffects(
+  quest: ActiveQuest,
+  def: QuestDef,
+): Promise<{ newAchievements: AchievementId[]; achievementGold: number }> {
+  const { character, applyCharacterPatch } = useCharacterStore.getState();
+  if (!character) return { newAchievements: [], achievementGold: 0 };
+
+  const totalAfter = (character.totalQuestsClaimed ?? 0) + 1;
+
+  // Weekly-quest tracking — counter only matters when the claim is itself a
+  // weekly quest. For daily claims we do NOT recompute weeklyClaimsThisWeek
+  // (the prior week's stale value would falsely trigger `weekly-perfectionist`
+  // re-check; the patch would be a no-op since the achievement is already held,
+  // but the logic was wrong).
+  const weekKey = deriveWeekKey(todayDateKey());
+  const prior = character.weeklyQuestsClaimed;
+  const sameWeek = prior?.weekKey === weekKey;
+  const priorIds = sameWeek ? (prior?.questDefIds ?? []) : [];
+  const isWeekly = def.type === 'weekly';
+  let updatedWeeklyIds = priorIds;
+  let weeklyClaimsThisWeek = 0;
+  if (isWeekly) {
+    updatedWeeklyIds = !priorIds.includes(quest.questDefId)
+      ? [...priorIds, quest.questDefId]
+      : priorIds;
+    weeklyClaimsThisWeek = updatedWeeklyIds.length;
+  }
+
+  const newAchievements = checkQuestAchievements({
+    existing: new Set(character.achievements ?? []),
+    totalQuestsClaimedAfter: totalAfter,
+    weeklyClaimsThisWeek,
+  });
+  const achievementGold = sumAchievementGold(newAchievements);
+
+  const patch: Partial<typeof character> = {
+    totalQuestsClaimed: totalAfter,
+  };
+  if (isWeekly) {
+    patch.weeklyQuestsClaimed = { weekKey, questDefIds: updatedWeeklyIds };
+  }
+  if (newAchievements.length > 0) {
+    patch.achievements = [...(character.achievements ?? []), ...newAchievements];
+    patch.gold = (character.gold ?? 0) + achievementGold;
+  }
+
+  await applyCharacterPatch(patch);
+  return { newAchievements, achievementGold };
 }
 
 const DAILY_QUEST_COUNT = 3;
@@ -67,7 +131,7 @@ interface QuestStore {
   >;
   /**
    * Replaces an active (not-yet-complete, not-yet-claimed) quest with a new
-   * pick from the appropriate pool. Costs `QUEST_REROLL_COST` gold. Excludes
+   * pick from the appropriate pool. Costs `questRerollCost(level)` gold. Excludes
    * the player's currently-active questDefIds so they get a genuinely new
    * quest. Returns `{ newQuestDefId, cost }` on success or `false` if the
    * reroll wasn't possible (not enough gold, quest claimed, quest completed,
@@ -304,64 +368,13 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
 
       await Promise.all([awardXpAndStats(xpToAward, {}), awardGold(scaled.gold)]);
 
-      // ── Achievement evaluation (client-mirrored) ────────────────────────────
-      // The CF re-validates on the next combat/activity write, so a stale or
-      // tampered client can't pocket an unlock that the conditions don't justify.
-      // Quest XP/gold are still server-validated via Firestore rules + the
-      // sqrt-scaler + streak multiplier (rewardedXp/Gold stamped at claim time).
+      // ── Achievement side-effects (extracted helper) ─────────────────────────
+      // Counter increments, weekly-perfectionist tracking, and any quest
+      // achievement unlocks merge atomically via `applyCharacterPatch`.
       const def = getQuestDef(quest.questDefId);
-      const freshChar = useCharacterStore.getState().character;
-      let questAchievements: AchievementId[] = [];
-      let questAchievementGold = 0;
-      if (def && freshChar) {
-        const totalAfter = (freshChar.totalQuestsClaimed ?? 0) + 1;
-
-        const weekKey = deriveWeekKey(todayDateKey());
-        const prior = freshChar.weeklyQuestsClaimed;
-        const sameWeek = prior && prior.weekKey === weekKey;
-        const priorIds = sameWeek ? (prior?.questDefIds ?? []) : [];
-        const isWeekly = def.type === 'weekly';
-        const updatedWeeklyIds =
-          isWeekly && !priorIds.includes(quest.questDefId)
-            ? [...priorIds, quest.questDefId]
-            : priorIds;
-        const weeklyClaimsThisWeek = updatedWeeklyIds.length;
-
-        questAchievements = checkQuestAchievements({
-          existing: new Set(freshChar.achievements ?? []),
-          totalQuestsClaimedAfter: totalAfter,
-          weeklyClaimsThisWeek,
-        });
-        questAchievementGold = sumAchievementGold(questAchievements);
-
-        const charUpdates: Record<string, unknown> = {
-          totalQuestsClaimed: totalAfter,
-        };
-        if (isWeekly) {
-          charUpdates.weeklyQuestsClaimed = { weekKey, questDefIds: updatedWeeklyIds };
-        }
-        if (questAchievements.length > 0) {
-          charUpdates.achievements = [...(freshChar.achievements ?? []), ...questAchievements];
-          charUpdates.gold = (freshChar.gold ?? 0) + questAchievementGold;
-        }
-
-        await updateCharacterDoc(freshChar.uid, charUpdates);
-        useCharacterStore.setState({
-          character: {
-            ...freshChar,
-            totalQuestsClaimed: totalAfter,
-            ...(isWeekly
-              ? { weeklyQuestsClaimed: { weekKey, questDefIds: updatedWeeklyIds } }
-              : {}),
-            ...(questAchievements.length > 0
-              ? {
-                  achievements: [...(freshChar.achievements ?? []), ...questAchievements],
-                  gold: (freshChar.gold ?? 0) + questAchievementGold,
-                }
-              : {}),
-          },
-        });
-      }
+      const { newAchievements, achievementGold } = def
+        ? await applyQuestAchievementSideEffects(quest, def)
+        : { newAchievements: [] as AchievementId[], achievementGold: 0 };
 
       set((state) => ({
         quests: state.quests.map((q) =>
@@ -374,8 +387,8 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       return {
         xpAwarded: xpToAward,
         goldAwarded: scaled.gold,
-        newAchievements: questAchievements,
-        achievementGold: questAchievementGold,
+        newAchievements,
+        achievementGold,
       };
     } catch (e) {
       captureError('questStore.claimReward', e);
@@ -396,7 +409,9 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
 
       // Affordability check using the latest character snapshot.
       const { character } = useCharacterStore.getState();
-      if (!character || character.gold < QUEST_REROLL_COST) return false;
+      if (!character) return false;
+      const cost = questRerollCost(character.level);
+      if (character.gold < cost) return false;
 
       // Pool by quest type. Exclude defIds the player currently holds so the
       // reroll always gives genuine variety (no rolling back into the same
@@ -413,7 +428,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       // character doc) — we accept the brief client-side window between them
       // because Firestore rules already cap any further gold delta at the
       // matching write, and the reroll is rare/explicit.
-      const newGold = character.gold - QUEST_REROLL_COST;
+      const newGold = character.gold - cost;
       // Use deleteField() (not undefined) for the no-extraTargets branch:
       // Firestore's updateDoc rejects undefined values entirely, so a bare
       // `extraProgress: undefined` payload crashes the reroll. deleteField()
@@ -449,7 +464,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
         ),
       }));
 
-      return { newQuestDefId: pick.id, cost: QUEST_REROLL_COST };
+      return { newQuestDefId: pick.id, cost };
     } catch (e) {
       captureError('questStore.rerollQuest', e);
       return false;

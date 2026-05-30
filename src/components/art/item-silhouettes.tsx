@@ -1230,6 +1230,33 @@ function CrownOfMind() {
   );
 }
 
+function MerchantsCodex() {
+  return (
+    <g fill="currentColor">
+      {/* Spine + cover */}
+      <rect x="20" y="18" width="60" height="64" rx="3" />
+      <rect x="24" y="22" width="52" height="56" className="fill-amber-100/30" />
+      {/* Coin/seal on cover */}
+      <circle cx="50" cy="50" r="11" className="fill-amber-300" />
+      <circle cx="50" cy="50" r="6" />
+      <text
+        x="50"
+        y="54"
+        textAnchor="middle"
+        fontSize="8"
+        fontWeight="700"
+        className="fill-amber-300"
+      >
+        $
+      </text>
+      {/* Page edge lines */}
+      <rect x="78" y="22" width="2" height="56" className="fill-amber-200/40" />
+      <rect x="20" y="34" width="60" height="1" className="fill-amber-200/40" />
+      <rect x="20" y="66" width="60" height="1" className="fill-amber-200/40" />
+    </g>
+  );
+}
+
 // ── PR3 Armor ─────────────────────────────────────────────────────────────────
 
 function ClothShirt() {
@@ -1432,6 +1459,31 @@ function ShadowstepCoat() {
         strokeOpacity="0.35"
         strokeWidth="2"
       />
+    </g>
+  );
+}
+
+function GildedBulwark() {
+  return (
+    <g fill="currentColor">
+      {/* Shield silhouette */}
+      <path d="M 22 18 L 50 12 L 78 18 L 80 50 L 70 78 L 50 88 L 30 78 L 20 50 Z" />
+      {/* Filigree border (lighter ring inside) */}
+      <path
+        d="M 30 24 L 50 19 L 70 24 L 71 50 L 64 70 L 50 78 L 36 70 L 29 50 Z"
+        fill="none"
+        stroke="white"
+        strokeOpacity="0.45"
+        strokeWidth="1.5"
+      />
+      {/* Coin emblem center */}
+      <circle cx="50" cy="50" r="10" className="fill-amber-300" />
+      <circle cx="50" cy="50" r="6" />
+      {/* Filigree dots */}
+      <circle cx="50" cy="26" r="1.8" className="fill-amber-300" />
+      <circle cx="50" cy="78" r="1.8" className="fill-amber-300" />
+      <circle cx="28" cy="50" r="1.6" className="fill-amber-300" />
+      <circle cx="72" cy="50" r="1.6" className="fill-amber-300" />
     </g>
   );
 }
@@ -1679,6 +1731,25 @@ function TwinSunsPendant() {
   );
 }
 
+function ChampionsSigil() {
+  return (
+    <g fill="currentColor">
+      {/* Chain */}
+      <path d="M 30 22 L 70 22" stroke="currentColor" strokeWidth="2" />
+      <rect x="48" y="22" width="4" height="14" />
+      {/* Outer medallion frame */}
+      <circle cx="50" cy="60" r="22" />
+      <circle cx="50" cy="60" r="18" className="fill-amber-100/40" />
+      {/* Four-petal balanced sigil — one wedge per primary stat */}
+      <path d="M 50 44 L 56 60 L 50 76 L 44 60 Z" className="fill-rose-400" />
+      <path d="M 50 60 L 66 60 L 50 76 L 44 60 Z" className="fill-teal-400" />
+      <path d="M 50 60 L 66 60 L 50 44 L 56 60 Z" className="fill-blue-400" />
+      <path d="M 50 60 L 34 60 L 50 44 L 44 60 Z" className="fill-violet-400" />
+      <circle cx="50" cy="60" r="3" />
+    </g>
+  );
+}
+
 // ── PR3 Consumables ───────────────────────────────────────────────────────────
 
 function ArcaneElixir() {
@@ -1858,6 +1929,7 @@ export const ITEM_SILHOUETTES: Record<string, () => React.ReactNode> = {
   'cosmic-codex': CosmicCodex,
   'shadowblade-zenith': ShadowbladeZenith,
   'crown-of-mind': CrownOfMind,
+  'merchants-codex': MerchantsCodex,
 
   // PR3 Armor
   'cloth-shirt': ClothShirt,
@@ -1872,6 +1944,7 @@ export const ITEM_SILHOUETTES: Record<string, () => React.ReactNode> = {
   'shadowstep-coat': ShadowstepCoat,
   'guardian-bulwark': GuardianBulwark,
   'starfire-vestments': StarfireVestments,
+  'gilded-bulwark': GildedBulwark,
 
   // PR3 Accessories
   'speed-anklet': SpeedAnklet,
@@ -1890,6 +1963,7 @@ export const ITEM_SILHOUETTES: Record<string, () => React.ReactNode> = {
   'sigil-of-clarity': SigilOfClarity,
   'eye-of-eternity': EyeOfEternity,
   'twin-suns-pendant': TwinSunsPendant,
+  'champions-sigil': ChampionsSigil,
 
   // PR3 Consumables
   'arcane-elixir': ArcaneElixir,

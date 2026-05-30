@@ -24,6 +24,58 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 - **New collections** — `healthConnections` (owner-read, server-write-only) and `healthDailySnapshots` (server-only). New optional `ActivityLog.source` field drives a "⌚ synced" feed badge. New `/profile/connections` UI, `lib/health.ts`, `lib/healthData.ts`, `useHealthConnections`.
 - **Tests** — 29 new functions vitest specs (mapping decision table, daily-delta dedupe, signature verify/tamper/rotation); functions suite 16 → 45. Apple Health intentionally out of scope (needs a native iOS shell — documented).
 
+## 2026-05-30 — Code-audit fix pass
+
+Closes every finding from the post-sprint code audit (2 Must Fix, 5 Should Fix, 3 Consider). No new product features — purely correctness, code-quality, and small cheap wins. Sets up a clean baseline before the Reputation arc.
+
+- **`useDailyLoginBonus` write-order bug fixed** — `lastLoginGrantedDate` is now stamped via the new `applyCharacterPatch` BEFORE any XP/gold awards. Previously, a tab close between the awards and the date stamp let the next mount replay the bonus. Trade-off: if the date-stamp succeeds and a downstream award throws, the player loses one bonus — accepted vs. duplicate-award risk.
+- **`questStore.claimReward` weekly stale-count leak fixed** — `weeklyClaimsThisWeek` is now computed only inside the `isWeekly` branch. Daily claims no longer pick up the prior week's stale weekly count (was harmless re-check no-op, but the logic was wrong and would have misfired if `weekly-perfectionist` is ever re-evaluated).
+- **New `characterStore.applyCharacterPatch(patch, opts?)` action** — owns the shared "shallow-merge patch → updateCharacterDoc → functional setState" flow that 3 client-mirrored writers were duplicating. Functional updater is mandatory inside, which eliminates the race where one hook's stale snapshot could clobber another's local-state update. Three callers migrated: `useCollectionAchievementSync`, `useDailyLoginBonus`, `questStore.claimReward` (via a new `applyQuestAchievementSideEffects` private helper).
+- **`questStore.claimReward` split** — 107-line god-method now ~30 lines after extracting `applyQuestAchievementSideEffects`. Counter increments / weekly-perfectionist tracking / achievement merge all live in the helper.
+- **`useCollectionAchievementSync` short-circuit now covers all 4 collection IDs** — previously omitted `arcane-archive`, so players holding the other three were recomputing sets on every inventory tick.
+- **`useDailyLoginBonus` narrowed store subscriptions** — depends on `uid` + `level` + `lastLoginGrantedDate` slices instead of the full character object. Effect no longer fires on every HP/gold/XP write.
+- **`inventoryStore.useConsumable` signature refactor** — 7 positional params → 1 options object `{ inventoryItemId, resources: {...} }`. Three callsites updated (inventory page, combat page, dungeon run page, `useCombatEncounter` hook).
+- **`characterData.ts` Spirit/Agility backfill** — switched from `??` to an `in` check so a stored zero is preserved rather than silently re-overwritten by the class default. Today's classes don't ship with primary stats at 0, but the regression guard is cheap and future-proof.
+- **`achievements-parity.test.ts`** — added `void-revenant` → `slayer-revenant` fixture so all 4 L11–14 slayer monsters are directly parity-asserted.
+- **`characterData.test.ts`** — new regression spec: explicit zeros for spirit + agility are preserved (the `??` → `in` switch above is what makes this safe).
+- **Tests**: 6 new vitest specs (876 → 882): 5 for `applyCharacterPatch` (no-op / patch-and-merge / functional-updater-race / skipFirestore / error capture) + 1 zero-preservation spec. Functions parity test grew from 19 → 20 assertions.
+
+## 2026-05-30 — Nav polish: bottom-sheet shadow, haptic dismiss, animated badge (PR #151)
+
+- **Bottom-sheet shadow** — composite `box-shadow` on the overflow panel: inset 1 px top highlight (glass edge) + subtle upward glow + stronger directional drop shadow in both light and dark variants. Panel reads clearly as a lifted surface above the nav bar.
+- **Haptic dismiss** — `navigator.vibrate(8)` fires on swipe-to-dismiss; guarded by `'vibrate' in navigator` (no-op on iOS / desktop).
+- **Animated badge dismiss** — onboarding dot fades + scales out via `AnimatePresence` when `hasSeenCustomizer` flips; `prefers-reduced-motion` gets an opacity-only exit. Ping stops after 3 cycles (`[animation-iteration-count:3]`) so it doesn't drain battery on first-time users who ignore the hint.
+
+## 2026-05-30 — Nav polish: swipe-dismiss, onboarding badge, deep-link chips (PR #150)
+
+- **Shared `navConfig.ts`** — `src/lib/navConfig.ts` exports `NAV_ITEMS` and `ALL_NAV_HREFS` as the single source of truth; both `layout.tsx` and `navPreferenceStore` import from it, eliminating the manual-sync drift risk. 4 unit tests validate shape + no-duplicate invariant.
+- **Swipe-to-dismiss** — framer-motion `drag="y"` with `dragElastic=0.4` and `onDragEnd` threshold (60 px offset or 400 px/s velocity); drag handle pill at panel top as a visual affordance; drag disabled under `prefers-reduced-motion`.
+- **Onboarding badge** — pulsing orange dot on the More (⋯) button until first customizer open; persisted via `hasSeenCustomizer` in `navPreferenceStore` (set to `true` on `openCustomizer`).
+- **Deep-link chips** — the 3 progress chips on `/collections` (Achievements / Bestiary / Items) are now `Link` components with hover states, jumping directly to the corresponding tab.
+
+## 2026-05-30 — /collections page: Achievements, Bestiary, Collection tabs (PRs #147–148)
+
+- **New `/collections` route** — dedicated area for the player's catalog (achievements, monsters, gear), separate from `/profile` and `/stats`. New `CollectionsTabs` switcher (Achievements / Bestiary / Collection) above all three views.
+- **Achievements tab** (`/collections`) — full 30-achievement catalog with locked/unlocked states (badge portraits, descriptions, gold-earned badges). 3-column progress summary strip at top (Achievements X/Y · Bestiary X/Y · Items X/Y) with deep-link chips. Grid: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`.
+- **Bestiary + Collection tabs** moved from `/stats/bestiary` and `/stats/collection`; old routes redirect to new locations. `StatsTabs` component deleted as dead code.
+- **Mobile nav: 5 primary + "More" overflow** — Dashboard / Character / Activities / Combat / Quests always visible; Inventory / Shop / Stats / Collections behind a `MoreHorizontal` button. 2×2 grid panel slides up above the nav bar with icon + label, auto-closes on navigation or backdrop tap, `aria-expanded` wired.
+- **Nav customizer** — drag-to-reorder pinned items via framer-motion `Reorder.Group`; toggle to add/remove; accessible from the More panel's "Customize nav" shortcut and from Profile settings. `navPreferenceStore` (Zustand persist) tracks order with stale-href backfill on rehydration.
+- **Profile** — Achievement Gallery removed; replaced with an indigo link to `/collections` and a Navigation settings card.
+
+## 2026-05-30 — Post-content-scaling balance pass
+
+After the 5-PR content-scaling drop, the `/balance-check` audit surfaced five tuning issues + three polish gaps. Single PR addresses all eight.
+
+- **Combat XP daily cap tightened** — `combatXpDailyMultiplier` 1.0× tier moved from 0–9 wins to **0–4 wins** (and matching 0.5×/0.25×/0.1× breaks shifted to 5–14 / 15–24 / 25+). Daily combat-farm ceiling drops from ~7 500 XP to ~3 500 XP — closer parity with activity-logging ceiling. Server parity test fixtures and the combat-page badge title copy updated in lockstep.
+- **Quest reroll cost scales with level** — flat 100 g replaced by `questRerollCost(level) = 100 * max(1, floor(level/5))`. Effective tiers: L1–9 = 100 g, L10–14 = 200 g, L15+ = 300 g. Low-level players see no change; high-level cherry-pickers pay proportionally more across the 61-quest pool.
+- **`MAX_STREAK_SHIELDS` raised 1 → 3** — returning players get up to three single-day-miss shields per ISO week instead of one. Dashboard shield badge now shows count when > 1 (`"🛡️ 3 shields"`).
+- **Shop-buyable legendaries** — three new legendary items with `lootOnly: false`: **Merchant's Codex** (weapon, 4 000 g, +15 WIS / +5 STA), **Champion's Sigil** (accessory, 3 500 g, +5 each to STR / WIS / AGI / SPR), **Gilded Bulwark** (armor, 5 000 g, +18 DEF / +8 HP). Stat budgets deliberately under loot-only legendaries so the loot grind remains the BIS path; these are alternates, not upgrades. Functions-side `LEGENDARY_ITEM_IDS` extended in parity; `GEAR_STAT_BONUSES` updated for resource-max math.
+- **Welcome-back ephemeral session boost** — when a player returns after a 14+ day absence with no active streak tier, they get **+30 % loot drops + +10 % XP** for the session, surfaced via a top-of-page banner. Pure derivation from `streakData.lastLogDate` — no schema change. New `useWelcomeBackActive` hook, new `WelcomeBackBanner` component, combat XP + loot multipliers `Math.max` against streak baseline.
+- **Polymath progress widget on profile** — 4 pip-rows showing mastery progress toward the `polymath` achievement (5 mastery on every primary stat). Hidden if already unlocked — surfaces all-emerald pips in that case.
+- **`arcane-archive` achievement (31st)** — own every spell in the catalog. 800 g reward, 📚 emoji. Client-mirrored via the existing `useCollectionAchievementSync` hook (matches `legendary-hoarder`).
+- **Daily login bonus** — first dashboard mount each UTC day grants `min(75, 25 + 5 × level)` gold + `min(150, 10 × level)` XP, surfaced via toast. Tracked on character via new `lastLoginGrantedDate` field. Client-mirrored optimistic write (matches PR5b quest + collection pattern).
+- **Tests** — 16 new vitest specs (846 → 862): `questRerollCost` brackets + monotonicity, `daysSinceLastLog` edge cases, `shouldOfferWelcomeBack` thresholds + fresh-account gating, `checkCollectionAchievements` arcane-archive spec. Existing combat XP unit tests + parity test fixtures updated for the tier shift.
+
 ## 2026-05-30 — 24 new achievements (content-scaling PR5b)
 
 - **24 new achievements** across 5 categories grow the catalog from 6 → 30:
@@ -35,7 +87,7 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 - **Server-authoritative** for combat / activity / mastery (17 IDs):
   - `claimCombatVictory` CF gains a `flawless: boolean` input and, inside its existing transaction, increments `character.totalCombatWins` + `character.monstersKilled[monsterId].killCount`, evaluates combat achievements against the AFTER values, and merges new IDs + their gold reward atomically. Result type now returns `newAchievements: string[]` and `achievementGold: number`.
   - `logActivity` CF folds achievement evaluation into its mastery transaction, now also tracking `character.activityLogCounts[type]` (lifetime per-activity counter, distinct from `masteryCounts`). For water logs it pre-queries the past 7 days of water docs to compute the streak before the transaction.
-- **Client-mirrored** for quest + collection (7 IDs) — `questStore.claimReward` writes quest achievement IDs directly; new `useCollectionAchievementSync` hook (mounted in `(game)/layout.tsx`) computes collection achievements from inventory + bestiary state and persists them. The next combat / activity CF transaction re-validates the same conditions, so tampered client writes are reconciled within one mutation.
+- **Client-authoritative** for quest + collection (7 IDs) — `questStore.claimReward` writes quest achievement IDs directly; new `useCollectionAchievementSync` hook (mounted in `(game)/layout.tsx`) computes collection achievements from inventory + bestiary state and persists them. These are optimistic client writes; the existing CF transactions do NOT re-check them. Worst-case tamper is a few hundred gold per fabricated unlock — harden via a CF re-check when competitive scoring (leaderboards) ships.
 - **Parity** — `functions/src/gameLogic/achievements.ts` mirrors all 24 gold values + thresholds + checker functions. `achievements-parity.test.ts` extended from 11 → 19 assertions covering every new constant + every new checker on equivalent fixtures.
 - **Tests** — 35 new vitest specs (35 in `achievementsPR5b.test.ts` covering catalog sanity + every checker + every threshold + non-tracked-monster edge cases). 846 total tests pass (was 811). Suite still under 15 s.
 - **UI** — achievement-unlock toasts surface in three places: combat victory claim, activity log result, quest claim. Each toast shows emoji + name + description + gold. Existing profile badge gallery already renders from `ACHIEVEMENTS`, so the new 24 IDs appear there automatically.
@@ -862,3 +914,7 @@ Tracked here so a fresh session can see what's next without cross-referencing CL
 - **Apple Health integration** — auto-import workouts
 - **Leaderboards** — compare with other users
 - **Firebase emulators** — local Firestore + Auth for dev (priority bumps once we touch destructive migrations or multiplayer)
+
+<!-- CI trigger -->
+
+<!-- CI trigger -->

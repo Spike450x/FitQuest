@@ -63,7 +63,13 @@ import {
   combatXpDailyMultiplier,
   combatWinsUntilNextPenalty,
 } from '@/lib/gameLogic/combat';
-import { getStreakLootMultiplier, getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
+import {
+  getStreakLootMultiplier,
+  getStreakXpMultiplier,
+  WELCOME_BACK_LOOT_MULTIPLIER,
+  WELCOME_BACK_XP_MULTIPLIER,
+} from '@/lib/gameLogic/streaks';
+import { useWelcomeBackActive } from '@/hooks/useWelcomeBackBoost';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
 import { getSubclassDef } from '@/lib/gameLogic/passives';
@@ -223,8 +229,18 @@ function CombatPageBody({ character }: { character: Character }) {
     [character, inventoryItems],
   );
 
-  // Streak-based loot multiplier — applied to rare+ item drop chances on win
-  const streakMultiplier = getStreakLootMultiplier(character?.streakData?.currentStreak ?? 0);
+  // Welcome-back session boost — active iff the player was absent ≥ 14 days
+  // and has no active streak tier. While active, loot + XP get a flat bump that
+  // overrides the normal streak multipliers (which are 1.0× at currentStreak = 0).
+  const welcomeBackActive = useWelcomeBackActive();
+
+  // Streak-based loot multiplier — applied to rare+ item drop chances on win.
+  // Welcome-back boost takes precedence at currentStreak = 0 (the only state in
+  // which it can be active, by design).
+  const baseStreakLoot = getStreakLootMultiplier(character?.streakData?.currentStreak ?? 0);
+  const streakMultiplier = welcomeBackActive
+    ? Math.max(baseStreakLoot, WELCOME_BACK_LOOT_MULTIPLIER)
+    : baseStreakLoot;
 
   /** Pity counter for the active monster — drives the legendary soft-boost in rollLoot. */
   function getPityFor(monsterId: string): number {
@@ -234,7 +250,8 @@ function CombatPageBody({ character }: { character: Character }) {
   /** Captures streak + level-scaling multipliers at call-time. */
   function getStreakBoost(): { multiplier: number; boost: (monster: MonsterDef) => number } {
     const streak = character?.streakData?.currentStreak ?? 0;
-    const multiplier = getStreakXpMultiplier(streak);
+    const baseXp = getStreakXpMultiplier(streak);
+    const multiplier = welcomeBackActive ? Math.max(baseXp, WELCOME_BACK_XP_MULTIPLIER) : baseXp;
     const playerLevel = character?.level ?? 1;
     return {
       multiplier,
@@ -775,7 +792,7 @@ function CombatPageBody({ character }: { character: Character }) {
             return (
               <div
                 className={`inline-flex flex-col items-end gap-0.5 rounded-lg border px-2.5 py-1.5 text-[11px] ${tint}`}
-                title="Daily combat XP cap — diminishing returns past 10 wins/day"
+                title="Daily combat XP cap — diminishing returns past 5 wins/day"
               >
                 <span className="font-semibold">
                   XP gain: <span className="tabular-nums">×{mult.toFixed(2)}</span>

@@ -36,7 +36,8 @@ export type AchievementId =
   // Collection
   | 'bestiary-complete'
   | 'legendary-hoarder'
-  | 'armory';
+  | 'armory'
+  | 'arcane-archive';
 
 // ─── Character ───────────────────────────────────────────────────────────────
 
@@ -111,6 +112,14 @@ export interface Character {
   totalCombatWins?: number;
   /** Lifetime activity-log counts per type — incremented inside `logActivity` CF. Drives iron-body / marathoner / well-fed / well-rested / enlightened achievements. */
   activityLogCounts?: Partial<Record<ActivityType, number>>;
+  /**
+   * UTC date ("YYYY-MM-DD") of the last claimed daily-login bonus. When the
+   * player visits the dashboard on a new UTC day, a small gold + XP grant
+   * fires and this field is stamped. Client-authoritative optimistic write —
+   * the CFs do not re-validate this. Worst-case tamper is ~75 g/day, trivial
+   * vs the gold economy. Harden via a CF re-check when leaderboards arrive.
+   */
+  lastLoginGrantedDate?: string;
   /** Lifetime quests claimed — incremented client-side on quest claim. Drives the quest-novice/veteran/legend achievements. */
   totalQuestsClaimed?: number;
   /**

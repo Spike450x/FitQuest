@@ -18,15 +18,15 @@ Every game entity has a slot in the art system. `EntityArt` looks up the silhoue
 
 ## File map
 
-| Path                                      | Purpose                                                                                                                                                                        |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/components/art/EntityArt.tsx`        | The render primitive. Routes `(category, id)` to the right silhouette + frame.                                                                                                 |
-| `src/components/art/HeraldicFrame.tsx`    | Shield / sigil / medallion frame shapes with light + dark gradients and tint variants.                                                                                         |
-| `src/components/art/silhouettes.tsx`      | Hand-authored SVG silhouettes for monsters, classes, subclasses, abilities, spells, activities, achievements, and dungeons.                                                    |
-| `src/components/art/item-silhouettes.tsx` | Hand-authored SVG silhouettes for the 55 items in `ITEM_SILHOUETTES` — split out so non-item routes (combat / character / dashboard) don't pay the cost in their shared chunk. |
-| `src/lib/entityArt.ts`                    | Helpers: `spellEffectKey(effect)`, `rarityTint(rarity)`.                                                                                                                       |
-| `src/components/ui/BrandMark.tsx`         | FitQuest crest + wordmark used in header and auth screens.                                                                                                                     |
-| `public/icons/icon.svg`                   | PWA icon master — regenerate PNGs from this with `rsvg-convert`.                                                                                                               |
+| Path                                      | Purpose                                                                                                                                                                                                                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/components/art/EntityArt.tsx`        | The render primitive. Routes `(category, id)` to the right silhouette + frame.                                                                                                                                                                                     |
+| `src/components/art/HeraldicFrame.tsx`    | Shield / sigil / medallion frame shapes with light + dark gradients and tint variants.                                                                                                                                                                             |
+| `src/components/art/silhouettes.tsx`      | Hand-authored SVG silhouettes for monsters, classes, subclasses, abilities, spells, activities, achievements, and dungeons.                                                                                                                                        |
+| `src/components/art/item-silhouettes.tsx` | Hand-authored SVG silhouettes for the ~110 items in `ITEM_SILHOUETTES` (45 OG + 56 from the PR3 content drop + 3 shop legendaries from the balance pass) — split out so non-item routes (combat / character / dashboard) don't pay the cost in their shared chunk. |
+| `src/lib/entityArt.ts`                    | Helpers: `spellEffectKey(effect)`, `rarityTint(rarity)`.                                                                                                                                                                                                           |
+| `src/components/ui/BrandMark.tsx`         | FitQuest crest + wordmark used in header and auth screens.                                                                                                                                                                                                         |
+| `public/icons/icon.svg`                   | PWA icon master — regenerate PNGs from this with `rsvg-convert`.                                                                                                                                                                                                   |
 
 ## Categories
 
@@ -80,6 +80,26 @@ rsvg-convert -w 16  -h 16  icon.svg -o favicon-16.png
 rsvg-convert -w 192 -h 192 icon-maskable.svg -o icon-maskable-192.png
 rsvg-convert -w 512 -h 512 icon-maskable.svg -o icon-maskable-512.png
 ```
+
+## Nav icon set
+
+Navigation icons come from [lucide-react](https://lucide.dev/) and are declared in `src/lib/navConfig.ts` — the single source of truth for both the bottom nav bar (`(game)/layout.tsx`) and the `useNavPreferenceStore` default-pin list.
+
+| Route          | Icon (lucide-react) | Rationale                          |
+| -------------- | ------------------- | ---------------------------------- |
+| `/dashboard`   | `Home`              | Standard home metaphor             |
+| `/character`   | `Swords`            | Combat/warrior identity            |
+| `/activities`  | `ClipboardList`     | Workout log / checklist            |
+| `/combat`      | `Skull`             | Danger / enemy confrontation       |
+| `/quests`      | `ScrollText`        | Fantasy quest parchment            |
+| `/inventory`   | `Backpack`          | Gear storage                       |
+| `/shop`        | `Store`             | Merchant / marketplace             |
+| `/stats`       | `BarChart3`         | Analytics / progress charts        |
+| `/collections` | `Trophy`            | Achievement / completion milestone |
+
+The overflow panel and customizer also use `MoreHorizontal` (overflow trigger), `X` (panel close), `GripVertical` (drag handle in the reorder list), and `ChevronDown` (swipe-hint affordance) — all from lucide-react, imported directly in `layout.tsx`.
+
+To swap a nav icon, update the `Icon` field for the relevant entry in `src/lib/navConfig.ts`. No other files need changing.
 
 ## Attribution
 

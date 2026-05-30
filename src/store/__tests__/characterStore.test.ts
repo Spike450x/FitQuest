@@ -409,3 +409,66 @@ describe('characterStore.clear', () => {
     expect(s.lastFetchedAt).toBeNull();
   });
 });
+
+describe('characterStore.applyCharacterPatch', () => {
+  it('no-ops when no character is loaded', async () => {
+    await useCharacterStore.getState().applyCharacterPatch({ gold: 999 });
+    expect(updateCharacterDocMock).not.toHaveBeenCalled();
+    expect(useCharacterStore.getState().character).toBeNull();
+  });
+
+  it('writes the patch to Firestore and shallow-merges into local state', async () => {
+    useCharacterStore.setState({ character: baseCharacter({ gold: 100 }) });
+    await useCharacterStore.getState().applyCharacterPatch({ gold: 250, totalCombatWins: 7 });
+    expect(updateCharacterDocMock).toHaveBeenCalledWith('uid1', {
+      gold: 250,
+      totalCombatWins: 7,
+    });
+    const after = useCharacterStore.getState().character;
+    expect(after?.gold).toBe(250);
+    expect(after?.totalCombatWins).toBe(7);
+    // Untouched fields preserved
+    expect(after?.name).toBe('Hero');
+  });
+
+  it('uses a functional updater so a concurrent setState is not clobbered', async () => {
+    useCharacterStore.setState({ character: baseCharacter({ gold: 100 }) });
+    // Simulate another writer landing AFTER applyCharacterPatch reads its
+    // snapshot but BEFORE Firestore resolves.
+    let release: () => void = () => {};
+    updateCharacterDocMock.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const promise = useCharacterStore.getState().applyCharacterPatch({ gold: 200 });
+    // Concurrent writer mutates a different field while the await is pending.
+    useCharacterStore.setState((s) => ({
+      character: s.character ? { ...s.character, currentHp: 42 } : null,
+    }));
+    release();
+    await promise;
+    const after = useCharacterStore.getState().character;
+    expect(after?.gold).toBe(200); // patch applied
+    expect(after?.currentHp).toBe(42); // concurrent write preserved
+  });
+
+  it('skipFirestore: true mutates only local state', async () => {
+    useCharacterStore.setState({ character: baseCharacter({ gold: 100 }) });
+    await useCharacterStore.getState().applyCharacterPatch({ gold: 250 }, { skipFirestore: true });
+    expect(updateCharacterDocMock).not.toHaveBeenCalled();
+    expect(useCharacterStore.getState().character?.gold).toBe(250);
+  });
+
+  it('captures Firestore errors without throwing', async () => {
+    useCharacterStore.setState({ character: baseCharacter({ gold: 100 }) });
+    updateCharacterDocMock.mockRejectedValueOnce(new Error('network down'));
+    // Should resolve, not reject — captureError swallows it.
+    await expect(
+      useCharacterStore.getState().applyCharacterPatch({ gold: 999 }),
+    ).resolves.toBeUndefined();
+    // Local state stays unchanged on the failed write — set() is gated on the await.
+    expect(useCharacterStore.getState().character?.gold).toBe(100);
+  });
+});

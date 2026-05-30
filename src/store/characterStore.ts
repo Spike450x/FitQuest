@@ -94,6 +94,23 @@ interface CharacterStore {
   updateMonsterPity: (monsterId: string, gotLegendary: boolean) => Promise<void>;
   /** Updates the character's display name in Firestore and Firebase Auth, then syncs local state. */
   updateName: (uid: string, name: string) => Promise<void>;
+  /**
+   * Shallow-merge `patch` into the character document and local state. Owns the
+   * Firestore write + functional setState pattern, so callers can't accidentally
+   * clobber a concurrent write with a stale snapshot. Use this for any
+   * client-authoritative write that doesn't have purpose-specific level-up or
+   * resource-cap logic (those have their own actions: `awardXpAndStats`,
+   * `updateCurrentHp`, etc.).
+   *
+   * - No-op when there is no character loaded.
+   * - When `opts.skipFirestore` is true, only the in-memory state mutates —
+   *   useful for tests and for callers that already wrote to Firestore another
+   *   way (e.g. an authoritative CF result).
+   */
+  applyCharacterPatch: (
+    patch: Partial<Character>,
+    opts?: { skipFirestore?: boolean },
+  ) => Promise<void>;
   clear: () => void;
 }
 
@@ -441,6 +458,21 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       }));
     } catch (e) {
       captureError('characterStore.updateName', e);
+    }
+  },
+
+  applyCharacterPatch: async (patch, opts) => {
+    const { character } = get();
+    if (!character) return;
+    try {
+      if (!opts?.skipFirestore) {
+        await updateCharacterDoc(character.uid, patch);
+      }
+      set((state) => ({
+        character: state.character ? { ...state.character, ...patch } : null,
+      }));
+    } catch (e) {
+      captureError('characterStore.applyCharacterPatch', e);
     }
   },
 
