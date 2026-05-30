@@ -115,10 +115,7 @@ log's own `loggedAt` (Garmin `startTimeInSeconds`), so it counts to the right da
 
 ## 5. Security
 
-- **We hold OAuth tokens** (unlike an aggregator). They live in **`healthTokens`**
-  - the short-lived PKCE verifier in **`healthOAuthStates`** — both **deny all
-    client access** in `firestore.rules`. The client-readable `healthConnections`
-    doc holds only status/provider/lastSync — **never tokens**.
+- **We hold OAuth tokens** (unlike an aggregator). Access/refresh tokens live in **`healthTokens`** and the short-lived PKCE verifier in **`healthOAuthStates`** — both **deny all client access** in `firestore.rules`. The client-readable `healthConnections` doc holds only status/provider/lastSync — **never tokens**.
 - **PKCE** (S256) protects the auth-code exchange. `state` is a one-shot CSRF
   token consumed (read-and-deleted) in the callback.
 - **Push auth** — Garmin push is **not** signed, so `garminWebhook` requires a
