@@ -37,4 +37,8 @@ export const GEAR_STAT_BONUSES: Record<string, { stamina?: number; health?: numb
   'tortoise-charm': { health: 4 },
   'guardian-bulwark': { health: 8 },
   'twin-suns-pendant': { stamina: 6 },
+
+  // ── Shop-buyable legendaries (balance pass) ─────────────────────────────────
+  'merchants-codex': { stamina: 5 },
+  'gilded-bulwark': { health: 8 },
 };

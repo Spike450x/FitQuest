@@ -157,7 +157,7 @@ function isoWeekKey(date: string): string {
 // ─── Core Logic ───────────────────────────────────────────────────────────────
 
 /** Max number of streak shields a player can hold at once. */
-export const MAX_STREAK_SHIELDS = 1;
+export const MAX_STREAK_SHIELDS = 3;
 
 /**
  * Computes the new StreakData after an activity is logged on `today`.
@@ -236,6 +236,56 @@ export function refillShieldsIfNewWeek(streak: StreakData, today: string): Strea
 /** Returns the StreakTier for a given streak day count. */
 export function getStreakTier(streak: number): StreakTier {
   return STREAK_TIERS.find((t) => streak >= t.minDays) ?? STREAK_TIERS[STREAK_TIERS.length - 1];
+}
+
+/**
+ * Days elapsed between `lastLogDate` ("YYYY-MM-DD" UTC) and `today` ("YYYY-MM-DD" UTC).
+ * Returns Infinity when there is no last-log date (fresh account / legacy doc),
+ * which makes "absent ≥ 14 days" checks treat brand-new players as not-yet-returning.
+ */
+export function daysSinceLastLog(
+  lastLogDate: string | undefined,
+  today: string = todayUTC(),
+): number {
+  if (!lastLogDate) return Infinity;
+  const a = Date.UTC(
+    Number(lastLogDate.slice(0, 4)),
+    Number(lastLogDate.slice(5, 7)) - 1,
+    Number(lastLogDate.slice(8, 10)),
+  );
+  const b = Date.UTC(
+    Number(today.slice(0, 4)),
+    Number(today.slice(5, 7)) - 1,
+    Number(today.slice(8, 10)),
+  );
+  return Math.max(0, Math.floor((b - a) / 86_400_000));
+}
+
+/** Threshold for the welcome-back ephemeral session boost. */
+export const WELCOME_BACK_ABSENCE_DAYS = 14;
+/** Loot multiplier active while the welcome-back boost is in effect. */
+export const WELCOME_BACK_LOOT_MULTIPLIER = 1.3;
+/** XP multiplier active while the welcome-back boost is in effect. */
+export const WELCOME_BACK_XP_MULTIPLIER = 1.1;
+
+/**
+ * Returns true iff the player qualifies for a welcome-back session boost:
+ * absent ≥ WELCOME_BACK_ABSENCE_DAYS AND currently no active streak tier
+ * (their `currentStreak` < the lowest tier minDays). Pure derivation — no
+ * state, no schema change. Re-evaluated on every dashboard mount.
+ */
+export function shouldOfferWelcomeBack(
+  lastLogDate: string | undefined,
+  currentStreak: number,
+  today: string = todayUTC(),
+): boolean {
+  // Fresh accounts have no lastLogDate and aren't "returning" — never offer.
+  if (!lastLogDate) return false;
+  if (daysSinceLastLog(lastLogDate, today) < WELCOME_BACK_ABSENCE_DAYS) return false;
+  // Lowest streak tier is the "Focused" entry at minDays 3 (see STREAK_TIERS).
+  // If the player has any active tier, they're not really returning from a cold gap.
+  const lowestTierMin = STREAK_TIERS[STREAK_TIERS.length - 2]?.minDays ?? 3;
+  return currentStreak < lowestTierMin;
 }
 
 /**

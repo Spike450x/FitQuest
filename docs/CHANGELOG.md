@@ -15,6 +15,20 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-30 — Post-content-scaling balance pass
+
+After the 5-PR content-scaling drop, the `/balance-check` audit surfaced five tuning issues + three polish gaps. Single PR addresses all eight.
+
+- **Combat XP daily cap tightened** — `combatXpDailyMultiplier` 1.0× tier moved from 0–9 wins to **0–4 wins** (and matching 0.5×/0.25×/0.1× breaks shifted to 5–14 / 15–24 / 25+). Daily combat-farm ceiling drops from ~7 500 XP to ~3 500 XP — closer parity with activity-logging ceiling. Server parity test fixtures and the combat-page badge title copy updated in lockstep.
+- **Quest reroll cost scales with level** — flat 100 g replaced by `questRerollCost(level) = 100 * max(1, floor(level/5))`. Effective tiers: L1–9 = 100 g, L10–14 = 200 g, L15+ = 300 g. Low-level players see no change; high-level cherry-pickers pay proportionally more across the 61-quest pool.
+- **`MAX_STREAK_SHIELDS` raised 1 → 3** — returning players get up to three single-day-miss shields per ISO week instead of one. Dashboard shield badge now shows count when > 1 (`"🛡️ 3 shields"`).
+- **Shop-buyable legendaries** — three new legendary items with `lootOnly: false`: **Merchant's Codex** (weapon, 4 000 g, +15 WIS / +5 STA), **Champion's Sigil** (accessory, 3 500 g, +5 each to STR / WIS / AGI / SPR), **Gilded Bulwark** (armor, 5 000 g, +18 DEF / +8 HP). Stat budgets deliberately under loot-only legendaries so the loot grind remains the BIS path; these are alternates, not upgrades. Functions-side `LEGENDARY_ITEM_IDS` extended in parity; `GEAR_STAT_BONUSES` updated for resource-max math.
+- **Welcome-back ephemeral session boost** — when a player returns after a 14+ day absence with no active streak tier, they get **+30 % loot drops + +10 % XP** for the session, surfaced via a top-of-page banner. Pure derivation from `streakData.lastLogDate` — no schema change. New `useWelcomeBackActive` hook, new `WelcomeBackBanner` component, combat XP + loot multipliers `Math.max` against streak baseline.
+- **Polymath progress widget on profile** — 4 pip-rows showing mastery progress toward the `polymath` achievement (5 mastery on every primary stat). Hidden if already unlocked — surfaces all-emerald pips in that case.
+- **`arcane-archive` achievement (31st)** — own every spell in the catalog. 800 g reward, 📚 emoji. Client-mirrored via the existing `useCollectionAchievementSync` hook (matches `legendary-hoarder`).
+- **Daily login bonus** — first dashboard mount each UTC day grants `min(75, 25 + 5 × level)` gold + `min(150, 10 × level)` XP, surfaced via toast. Tracked on character via new `lastLoginGrantedDate` field. Client-mirrored optimistic write (matches PR5b quest + collection pattern).
+- **Tests** — 16 new vitest specs (846 → 862): `questRerollCost` brackets + monotonicity, `daysSinceLastLog` edge cases, `shouldOfferWelcomeBack` thresholds + fresh-account gating, `checkCollectionAchievements` arcane-archive spec. Existing combat XP unit tests + parity test fixtures updated for the tier shift.
+
 ## 2026-05-30 — 24 new achievements (content-scaling PR5b)
 
 - **24 new achievements** across 5 categories grow the catalog from 6 → 30:

@@ -5,7 +5,7 @@ import { useGameData } from '@/hooks/useGameData';
 import { useQuestStore } from '@/store/questStore';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
-import { QUEST_REROLL_COST } from '@/lib/gameLogic/constants';
+import { questRerollCost } from '@/lib/gameLogic/constants';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -324,7 +324,8 @@ export default function QuestsPage() {
 
   const dailyQuests = quests.filter((q) => getQuestDef(q.questDefId)?.type === 'daily');
   const weeklyQuests = quests.filter((q) => getQuestDef(q.questDefId)?.type === 'weekly');
-  const canAffordReroll = character.gold >= QUEST_REROLL_COST;
+  const rerollCost = questRerollCost(character.level);
+  const canAffordReroll = character.gold >= rerollCost;
 
   async function handleClaim(questId: string) {
     if (claiming) return;
@@ -419,7 +420,7 @@ export default function QuestsPage() {
           claiming={claiming}
           rerolling={rerolling}
           canAffordReroll={canAffordReroll}
-          rerollCost={QUEST_REROLL_COST}
+          rerollCost={rerollCost}
           onClaim={handleClaim}
           onReroll={handleReroll}
         />
@@ -431,7 +432,7 @@ export default function QuestsPage() {
           claiming={claiming}
           rerolling={rerolling}
           canAffordReroll={canAffordReroll}
-          rerollCost={QUEST_REROLL_COST}
+          rerollCost={rerollCost}
           onClaim={handleClaim}
           onReroll={handleReroll}
         />

@@ -193,7 +193,23 @@ export const PRIMARY_STAT_CAP = 50;
  * questDefIds so they get genuine variety. Gold sink + variety pressure-valve
  * for players who roll a quest they can't complete today.
  */
-export const QUEST_REROLL_COST = 100;
+export const QUEST_REROLL_BASE = 100;
+
+/**
+ * Reroll cost scales with character level so the daily/weekly quest pools
+ * stay "cheap variety" for new players while costing high-level cherry-pickers
+ * proportionally more. With the post-PR5a pool sizes (61 daily / 31 weekly),
+ * a flat 100g lets endgame players churn through the highest-XP entries with
+ * negligible gold pressure — this stepped scale restores that pressure.
+ *
+ *   Level 1–4  → 100g
+ *   Level 5–9  → 100g (Math.floor(5/5) = 1)
+ *   Level 10–14 → 200g
+ *   Level 15+  → 300g
+ */
+export function questRerollCost(level: number): number {
+  return QUEST_REROLL_BASE * Math.max(1, Math.floor(level / 5));
+}
 
 /**
  * Level-scaled cap for secondary stats: Stamina, Health, Defense.

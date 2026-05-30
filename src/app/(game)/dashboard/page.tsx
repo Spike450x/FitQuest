@@ -183,10 +183,13 @@ export default function DashboardPage() {
                 )}
                 {(character.streakData?.shields ?? 0) > 0 && (
                   <span
-                    title="If you miss a day, this shield protects your streak. Refills each week."
+                    title="A missed day consumes one shield instead of resetting your streak. Shields refill each ISO week."
                     className="text-xs font-medium text-sky-600 bg-sky-50 border border-sky-200 rounded-full px-2 py-0.5 cursor-default"
                   >
-                    🛡️ Shield ready
+                    🛡️{' '}
+                    {(character.streakData?.shields ?? 0) === 1
+                      ? 'Shield ready'
+                      : `${character.streakData?.shields} shields`}
                   </span>
                 )}
               </div>

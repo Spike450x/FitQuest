@@ -37,6 +37,10 @@ export const LEGENDARY_ITEM_IDS = new Set([
   'spell-worldbreaker',
   'spell-stellar-collapse',
   'spell-thousand-cuts',
+  // Shop-buyable legendaries (balance pass) — sold from the shop, never dropped.
+  'merchants-codex',
+  'gilded-bulwark',
+  'champions-sigil',
 ]);
 
 // ─── Gold rewards (mirrors goldReward in src achievements.ts) ───────────────
@@ -78,6 +82,7 @@ export const ACHIEVEMENT_GOLD: Record<string, number> = {
   'bestiary-complete': 500,
   'legendary-hoarder': 1500,
   armory: 300,
+  'arcane-archive': 800,
 };
 
 // ─── Thresholds (mirrors src constants) ─────────────────────────────────────
