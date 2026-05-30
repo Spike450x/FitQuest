@@ -15,6 +15,28 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-30 — Nav polish: bottom-sheet shadow, haptic dismiss, animated badge (PR #151)
+
+- **Bottom-sheet shadow** — composite `box-shadow` on the overflow panel: inset 1 px top highlight (glass edge) + subtle upward glow + stronger directional drop shadow in both light and dark variants. Panel reads clearly as a lifted surface above the nav bar.
+- **Haptic dismiss** — `navigator.vibrate(8)` fires on swipe-to-dismiss; guarded by `'vibrate' in navigator` (no-op on iOS / desktop).
+- **Animated badge dismiss** — onboarding dot fades + scales out via `AnimatePresence` when `hasSeenCustomizer` flips; `prefers-reduced-motion` gets an opacity-only exit. Ping stops after 3 cycles (`[animation-iteration-count:3]`) so it doesn't drain battery on first-time users who ignore the hint.
+
+## 2026-05-30 — Nav polish: swipe-dismiss, onboarding badge, deep-link chips (PR #150)
+
+- **Shared `navConfig.ts`** — `src/lib/navConfig.ts` exports `NAV_ITEMS` and `ALL_NAV_HREFS` as the single source of truth; both `layout.tsx` and `navPreferenceStore` import from it, eliminating the manual-sync drift risk. 4 unit tests validate shape + no-duplicate invariant.
+- **Swipe-to-dismiss** — framer-motion `drag="y"` with `dragElastic=0.4` and `onDragEnd` threshold (60 px offset or 400 px/s velocity); drag handle pill at panel top as a visual affordance; drag disabled under `prefers-reduced-motion`.
+- **Onboarding badge** — pulsing orange dot on the More (⋯) button until first customizer open; persisted via `hasSeenCustomizer` in `navPreferenceStore` (set to `true` on `openCustomizer`).
+- **Deep-link chips** — the 3 progress chips on `/collections` (Achievements / Bestiary / Items) are now `Link` components with hover states, jumping directly to the corresponding tab.
+
+## 2026-05-30 — /collections page: Achievements, Bestiary, Collection tabs (PRs #147–148)
+
+- **New `/collections` route** — dedicated area for the player's catalog (achievements, monsters, gear), separate from `/profile` and `/stats`. New `CollectionsTabs` switcher (Achievements / Bestiary / Collection) above all three views.
+- **Achievements tab** (`/collections`) — full 30-achievement catalog with locked/unlocked states (badge portraits, descriptions, gold-earned badges). 3-column progress summary strip at top (Achievements X/Y · Bestiary X/Y · Items X/Y) with deep-link chips. Grid: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`.
+- **Bestiary + Collection tabs** moved from `/stats/bestiary` and `/stats/collection`; old routes redirect to new locations. `StatsTabs` component deleted as dead code.
+- **Mobile nav: 5 primary + "More" overflow** — Dashboard / Character / Activities / Combat / Quests always visible; Inventory / Shop / Stats / Collections behind a `MoreHorizontal` button. 2×2 grid panel slides up above the nav bar with icon + label, auto-closes on navigation or backdrop tap, `aria-expanded` wired.
+- **Nav customizer** — drag-to-reorder pinned items via framer-motion `Reorder.Group`; toggle to add/remove; accessible from the More panel's "Customize nav" shortcut and from Profile settings. `navPreferenceStore` (Zustand persist) tracks order with stale-href backfill on rehydration.
+- **Profile** — Achievement Gallery removed; replaced with an indigo link to `/collections` and a Navigation settings card.
+
 ## 2026-05-30 — Post-content-scaling balance pass
 
 After the 5-PR content-scaling drop, the `/balance-check` audit surfaced five tuning issues + three polish gaps. Single PR addresses all eight.
