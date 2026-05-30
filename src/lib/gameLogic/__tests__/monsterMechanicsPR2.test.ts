@@ -16,6 +16,7 @@ const BASE_STATS = {
   health: 10,
   wisdom: 10,
   defense: 10,
+  spirit: 0,
 };
 
 function buildCharacter(overrides: Partial<Character> = {}): Character {
