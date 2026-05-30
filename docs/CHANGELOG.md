@@ -15,6 +15,22 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-30 — Code-audit fix pass
+
+Closes every finding from the post-sprint code audit (2 Must Fix, 5 Should Fix, 3 Consider). No new product features — purely correctness, code-quality, and small cheap wins. Sets up a clean baseline before the Reputation arc.
+
+- **`useDailyLoginBonus` write-order bug fixed** — `lastLoginGrantedDate` is now stamped via the new `applyCharacterPatch` BEFORE any XP/gold awards. Previously, a tab close between the awards and the date stamp let the next mount replay the bonus. Trade-off: if the date-stamp succeeds and a downstream award throws, the player loses one bonus — accepted vs. duplicate-award risk.
+- **`questStore.claimReward` weekly stale-count leak fixed** — `weeklyClaimsThisWeek` is now computed only inside the `isWeekly` branch. Daily claims no longer pick up the prior week's stale weekly count (was harmless re-check no-op, but the logic was wrong and would have misfired if `weekly-perfectionist` is ever re-evaluated).
+- **New `characterStore.applyCharacterPatch(patch, opts?)` action** — owns the shared "shallow-merge patch → updateCharacterDoc → functional setState" flow that 3 client-mirrored writers were duplicating. Functional updater is mandatory inside, which eliminates the race where one hook's stale snapshot could clobber another's local-state update. Three callers migrated: `useCollectionAchievementSync`, `useDailyLoginBonus`, `questStore.claimReward` (via a new `applyQuestAchievementSideEffects` private helper).
+- **`questStore.claimReward` split** — 107-line god-method now ~30 lines after extracting `applyQuestAchievementSideEffects`. Counter increments / weekly-perfectionist tracking / achievement merge all live in the helper.
+- **`useCollectionAchievementSync` short-circuit now covers all 4 collection IDs** — previously omitted `arcane-archive`, so players holding the other three were recomputing sets on every inventory tick.
+- **`useDailyLoginBonus` narrowed store subscriptions** — depends on `uid` + `level` + `lastLoginGrantedDate` slices instead of the full character object. Effect no longer fires on every HP/gold/XP write.
+- **`inventoryStore.useConsumable` signature refactor** — 7 positional params → 1 options object `{ inventoryItemId, resources: {...} }`. Three callsites updated (inventory page, combat page, dungeon run page, `useCombatEncounter` hook).
+- **`characterData.ts` Spirit/Agility backfill** — switched from `??` to an `in` check so a stored zero is preserved rather than silently re-overwritten by the class default. Today's classes don't ship with primary stats at 0, but the regression guard is cheap and future-proof.
+- **`achievements-parity.test.ts`** — added `void-revenant` → `slayer-revenant` fixture so all 4 L11–14 slayer monsters are directly parity-asserted.
+- **`characterData.test.ts`** — new regression spec: explicit zeros for spirit + agility are preserved (the `??` → `in` switch above is what makes this safe).
+- **Tests**: 6 new vitest specs (876 → 882): 5 for `applyCharacterPatch` (no-op / patch-and-merge / functional-updater-race / skipFirestore / error capture) + 1 zero-preservation spec. Functions parity test grew from 19 → 20 assertions.
+
 ## 2026-05-30 — Nav polish: bottom-sheet shadow, haptic dismiss, animated badge (PR #151)
 
 - **Bottom-sheet shadow** — composite `box-shadow` on the overflow panel: inset 1 px top highlight (glass edge) + subtle upward glow + stronger directional drop shadow in both light and dark variants. Panel reads clearly as a lifted surface above the nav bar.

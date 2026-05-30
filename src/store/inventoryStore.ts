@@ -49,12 +49,14 @@ interface InventoryStore {
    */
   useConsumable: (
     inventoryItemId: string,
-    currentHp: number,
-    maxHp: number,
-    currentStamina: number,
-    maxStamina: number,
-    currentMagic?: number,
-    maxMagic?: number,
+    resources: {
+      currentHp: number;
+      maxHp: number;
+      currentStamina: number;
+      maxStamina: number;
+      currentMagic?: number;
+      maxMagic?: number;
+    },
   ) => Promise<{ hpGained: number; staminaGained: number; magicGained: number }>;
   /**
    * Add a spell to the active loadout (max MAX_EQUIPPED_SPELLS).
@@ -327,15 +329,8 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     }));
   },
 
-  useConsumable: async (
-    inventoryItemId,
-    currentHp,
-    maxHp,
-    currentStamina,
-    maxStamina,
-    currentMagic,
-    maxMagic,
-  ) => {
+  useConsumable: async (inventoryItemId, resources) => {
+    const { currentHp, maxHp, currentStamina, maxStamina, currentMagic, maxMagic } = resources;
     const { items } = get();
     const invItem = items.find((i) => i.id === inventoryItemId);
     if (!invItem) return { hpGained: 0, staminaGained: 0, magicGained: 0 };

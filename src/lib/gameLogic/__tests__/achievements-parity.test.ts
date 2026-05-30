@@ -255,6 +255,13 @@ describe('PR5b checker parity — src ↔ functions return identical IDs', () =>
       },
       {
         existing: new Set(),
+        monsterId: 'void-revenant',
+        monsterKillsAfter: 5,
+        totalWinsAfter: 25,
+        flawless: false,
+      },
+      {
+        existing: new Set(),
         monsterId: 'goblin',
         monsterKillsAfter: 99,
         totalWinsAfter: 0,
