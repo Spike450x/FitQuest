@@ -66,9 +66,9 @@ test.describe('authenticated game screens — structure smoke tests', () => {
     await expect(page.getByRole('heading', { name: /dungeon/i })).toBeVisible({ timeout: 10_000 });
   });
 
-  test('collections renders achievements heading', async ({ page }) => {
+  test('collections renders heading', async ({ page }) => {
     await page.goto('/collections');
-    await expect(page.getByRole('heading', { name: /achievements/i }).first()).toBeVisible({
+    await expect(page.getByRole('heading', { name: /collections/i }).first()).toBeVisible({
       timeout: 10_000,
     });
   });
