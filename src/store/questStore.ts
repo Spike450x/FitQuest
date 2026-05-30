@@ -18,7 +18,7 @@ import {
   deriveWeekKey,
 } from '@/lib/gameLogic/rotation';
 import { getStreakXpMultiplier } from '@/lib/gameLogic/streaks';
-import { QUEST_REROLL_COST } from '@/lib/gameLogic/constants';
+import { questRerollCost } from '@/lib/gameLogic/constants';
 import { checkQuestAchievements, sumAchievementGold } from '@/lib/gameLogic/achievements';
 import { updateCharacterDoc } from '@/lib/characterData';
 import { useCharacterStore } from './characterStore';
@@ -396,7 +396,9 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
 
       // Affordability check using the latest character snapshot.
       const { character } = useCharacterStore.getState();
-      if (!character || character.gold < QUEST_REROLL_COST) return false;
+      if (!character) return false;
+      const cost = questRerollCost(character.level);
+      if (character.gold < cost) return false;
 
       // Pool by quest type. Exclude defIds the player currently holds so the
       // reroll always gives genuine variety (no rolling back into the same
@@ -413,7 +415,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       // character doc) — we accept the brief client-side window between them
       // because Firestore rules already cap any further gold delta at the
       // matching write, and the reroll is rare/explicit.
-      const newGold = character.gold - QUEST_REROLL_COST;
+      const newGold = character.gold - cost;
       // Use deleteField() (not undefined) for the no-extraTargets branch:
       // Firestore's updateDoc rejects undefined values entirely, so a bare
       // `extraProgress: undefined` payload crashes the reroll. deleteField()
@@ -449,7 +451,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
         ),
       }));
 
-      return { newQuestDefId: pick.id, cost: QUEST_REROLL_COST };
+      return { newQuestDefId: pick.id, cost };
     } catch (e) {
       captureError('questStore.rerollQuest', e);
       return false;

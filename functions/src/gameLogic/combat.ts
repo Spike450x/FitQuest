@@ -80,13 +80,13 @@ export function playerMaxMagic(wisdom: number, charClass: string): number {
 // A parity test (functions/src/__tests__/combatXp.test.ts) cross-checks the
 // two copies. If you change one, change the other in the same commit.
 //
-//   wins 0–9   → 1.0×
-//   wins 10–19 → 0.5×
-//   wins 20–29 → 0.25×
-//   wins 30+   → 0.1×
+//   wins 0–4   → 1.0×
+//   wins 5–14  → 0.5×
+//   wins 15–24 → 0.25×
+//   wins 25+   → 0.1×
 export function combatXpDailyMultiplier(winsToday: number): number {
-  if (winsToday < 10) return 1.0;
-  if (winsToday < 20) return 0.5;
-  if (winsToday < 30) return 0.25;
+  if (winsToday < 5) return 1.0;
+  if (winsToday < 15) return 0.5;
+  if (winsToday < 25) return 0.25;
   return 0.1;
 }

@@ -198,9 +198,9 @@ export function monsterXpScaling(playerLevel: number, monsterLevel: number): num
  * the same curve at award time. A parity test guards the two copies.
  */
 export function combatXpDailyMultiplier(winsToday: number): number {
-  if (winsToday < 10) return 1.0;
-  if (winsToday < 20) return 0.5;
-  if (winsToday < 30) return 0.25;
+  if (winsToday < 5) return 1.0;
+  if (winsToday < 15) return 0.5;
+  if (winsToday < 25) return 0.25;
   return 0.1;
 }
 
@@ -213,9 +213,9 @@ export function combatWinsUntilNextPenalty(winsToday: number): {
   remaining: number;
   nextMultiplier: number;
 } | null {
-  if (winsToday < 10) return { remaining: 10 - winsToday, nextMultiplier: 0.5 };
-  if (winsToday < 20) return { remaining: 20 - winsToday, nextMultiplier: 0.25 };
-  if (winsToday < 30) return { remaining: 30 - winsToday, nextMultiplier: 0.1 };
+  if (winsToday < 5) return { remaining: 5 - winsToday, nextMultiplier: 0.5 };
+  if (winsToday < 15) return { remaining: 15 - winsToday, nextMultiplier: 0.25 };
+  if (winsToday < 25) return { remaining: 25 - winsToday, nextMultiplier: 0.1 };
   return null;
 }
 

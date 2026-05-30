@@ -47,9 +47,10 @@ describe('ACHIEVEMENTS catalog (PR5b)', () => {
     'bestiary-complete',
     'legendary-hoarder',
     'armory',
+    'arcane-archive',
   ];
 
-  it('catalog contains all 24 new achievements', () => {
+  it('catalog contains all 25 new achievements (PR5b + arcane-archive)', () => {
     for (const id of NEW_IDS) {
       expect(ACHIEVEMENTS[id], `${id} missing from ACHIEVEMENTS catalog`).toBeDefined();
     }
@@ -65,8 +66,8 @@ describe('ACHIEVEMENTS catalog (PR5b)', () => {
     }
   });
 
-  it('catalog now contains 30 achievements (6 dungeon + 24 PR5b)', () => {
-    expect(Object.keys(ACHIEVEMENTS)).toHaveLength(30);
+  it('catalog now contains 31 achievements (6 dungeon + 24 PR5b + 1 balance pass)', () => {
+    expect(Object.keys(ACHIEVEMENTS)).toHaveLength(31);
   });
 });
 
@@ -384,6 +385,26 @@ describe('checkCollectionAchievements', () => {
         bestiaryComplete: false,
       }),
     ).not.toContain('armory');
+  });
+
+  it('arcane-archive fires only when every spell in the catalog is owned', () => {
+    const allSpells = new Set(ITEM_CATALOG.filter((i) => i.type === 'spell').map((i) => i.id));
+    expect(
+      checkCollectionAchievements({
+        existing: new Set(),
+        ownedItemIds: allSpells,
+        bestiaryComplete: false,
+      }),
+    ).toContain('arcane-archive');
+    // Drop one spell → no longer qualifies
+    const allButOne = new Set([...allSpells].slice(1));
+    expect(
+      checkCollectionAchievements({
+        existing: new Set(),
+        ownedItemIds: allButOne,
+        bestiaryComplete: false,
+      }),
+    ).not.toContain('arcane-archive');
   });
 });
 

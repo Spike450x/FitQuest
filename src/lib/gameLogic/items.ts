@@ -1294,6 +1294,23 @@ export const ITEM_CATALOG: ItemDef[] = [
       'A diadem-focus worn at the brow. Magic flows through its bearer. +18 Wisdom, +12 Spirit.',
   },
 
+  // ── Shop-buyable legendaries (balance pass) ────────────────────────────────
+  // These three are the only legendaries that can be bought rather than looted —
+  // gold-rich endgame players finally have a buy target. Stat budgets are
+  // deliberately under the strongest loot-only legendaries (e.g. Godslayer +22
+  // STR > Merchant's Codex +15 WIS) so the loot grind remains the BIS path.
+  {
+    id: 'merchants-codex',
+    name: "Merchant's Codex",
+    type: 'weapon',
+    rarity: 'legendary',
+    tier: 5,
+    price: 4000,
+    statBonuses: { wisdom: 15, stamina: 5 },
+    description:
+      "A trader's enchanted ledger — coin transmuted into raw arcane power. +15 Wisdom, +5 Stamina.",
+  },
+
   // ── PR3 Armor — Common ─────────────────────────────────────────────────────
   {
     id: 'cloth-shirt',
@@ -1424,6 +1441,17 @@ export const ITEM_CATALOG: ItemDef[] = [
     lootOnly: true,
     statBonuses: { defense: 14, wisdom: 10, spirit: 6 },
     description: 'Robes woven from caught starfire. +14 Defense, +10 Wisdom, +6 Spirit.',
+  },
+  {
+    id: 'gilded-bulwark',
+    name: 'Gilded Bulwark',
+    type: 'armor',
+    rarity: 'legendary',
+    tier: 5,
+    price: 5000,
+    statBonuses: { defense: 18, health: 8 },
+    description:
+      "Plate inlaid with platinum filigree — the wealthy's last word in protection. +18 Defense, +8 Health.",
   },
 
   // ── PR3 Accessories — Common ───────────────────────────────────────────────
@@ -1597,6 +1625,17 @@ export const ITEM_CATALOG: ItemDef[] = [
     statBonuses: { strength: 10, defense: 10, stamina: 6 },
     description:
       'Two golden discs spinning in eternal opposition. +10 Strength, +10 Defense, +6 Stamina.',
+  },
+  {
+    id: 'champions-sigil',
+    name: "Champion's Sigil",
+    type: 'accessory',
+    rarity: 'legendary',
+    tier: 5,
+    price: 3500,
+    statBonuses: { strength: 5, wisdom: 5, agility: 5, spirit: 5 },
+    description:
+      "Forged from arena victors' tokens — a balanced build path for any class. +5 to each primary stat.",
   },
 
   // ── PR3 Consumables — Epic single-resource ─────────────────────────────────

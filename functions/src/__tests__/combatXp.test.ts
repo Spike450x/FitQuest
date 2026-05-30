@@ -5,23 +5,23 @@ import { combatXpDailyMultiplier as clientMultiplier } from '../../../src/lib/ga
 // ─── Server multiplier — pure logic ──────────────────────────────────────────
 
 describe('combatXpDailyMultiplier (server)', () => {
-  it('returns 1.0× for the first 10 wins of the day', () => {
+  it('returns 1.0× for the first 5 wins of the day', () => {
     expect(serverMultiplier(0)).toBe(1.0);
-    expect(serverMultiplier(9)).toBe(1.0);
+    expect(serverMultiplier(4)).toBe(1.0);
   });
 
-  it('returns 0.5× for wins 11–20', () => {
-    expect(serverMultiplier(10)).toBe(0.5);
-    expect(serverMultiplier(19)).toBe(0.5);
+  it('returns 0.5× for wins 6–15', () => {
+    expect(serverMultiplier(5)).toBe(0.5);
+    expect(serverMultiplier(14)).toBe(0.5);
   });
 
-  it('returns 0.25× for wins 21–30', () => {
-    expect(serverMultiplier(20)).toBe(0.25);
-    expect(serverMultiplier(29)).toBe(0.25);
+  it('returns 0.25× for wins 16–25', () => {
+    expect(serverMultiplier(15)).toBe(0.25);
+    expect(serverMultiplier(24)).toBe(0.25);
   });
 
-  it('floors at 0.1× from win 31 onward', () => {
-    expect(serverMultiplier(30)).toBe(0.1);
+  it('floors at 0.1× from win 26 onward', () => {
+    expect(serverMultiplier(25)).toBe(0.1);
     expect(serverMultiplier(500)).toBe(0.1);
   });
 });

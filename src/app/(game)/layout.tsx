@@ -17,6 +17,7 @@ import {
 import { logOut } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCollectionAchievementSync } from '@/hooks/useCollectionAchievementSync';
+import { useDailyLoginBonus } from '@/hooks/useDailyLoginBonus';
 import { useActivityStore } from '@/store/activityStore';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
@@ -29,6 +30,7 @@ import { XPBar } from '@/components/ui/XPBar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { InstallBanner } from '@/components/ui/InstallBanner';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
+import { WelcomeBackBanner } from '@/components/ui/WelcomeBackBanner';
 import { RouteBackground } from '@/components/ui/RouteBackground';
 import { BrandMark } from '@/components/ui/BrandMark';
 import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
@@ -77,9 +79,14 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
   }, [character?.uid, subscribeActivity]);
 
   // Mirrors collection-category achievement unlocks (bestiary, legendary hoarder,
-  // armory) into the character doc. CF re-validates on the next combat/activity
-  // mutation, so tampered client writes are reconciled.
+  // armory, arcane-archive) into the character doc. CF re-validates on the next
+  // combat/activity mutation, so tampered client writes are reconciled.
   useCollectionAchievementSync();
+
+  // Grants a small once-per-UTC-day login bonus. Optimistic client write; the
+  // next combat/activity CF transaction clamps `lastLoginGrantedDate` so a
+  // tampered client cannot replay the bonus.
+  useDailyLoginBonus();
 
   async function handleSignOut() {
     useActivityStore.getState().clear();
@@ -102,6 +109,9 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
       {/* PWA install nudge — appears after ~12 s of activity if installable */}
       <InstallBanner />
+
+      {/* Welcome-back boost banner — appears for returning players (14+ day absence) */}
+      <WelcomeBackBanner />
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <header className="border-b border-gray-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl backdrop-saturate-150 sticky top-0 z-20 h-14 shadow-sm shadow-gray-900/5 dark:shadow-black/30">

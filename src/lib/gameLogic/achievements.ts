@@ -232,6 +232,13 @@ export const ACHIEVEMENTS: Record<AchievementId, AchievementDef> = {
     goldReward: 300,
     emoji: '🗡️',
   },
+  'arcane-archive': {
+    id: 'arcane-archive',
+    name: 'Arcane Archive',
+    description: 'Own every spell in the catalog.',
+    goldReward: 800,
+    emoji: '📚',
+  },
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -412,6 +419,10 @@ const GEAR_ITEM_IDS: ReadonlySet<string> = new Set(
   ITEM_CATALOG.filter((i) => GEAR_TYPES.has(i.type)).map((i) => i.id),
 );
 
+const SPELL_ITEM_IDS: ReadonlySet<string> = new Set(
+  ITEM_CATALOG.filter((i) => i.type === 'spell').map((i) => i.id),
+);
+
 export interface CollectionAchievementInput {
   existing: ReadonlySet<AchievementId>;
   /** Item IDs currently in inventory (deduped — pass `new Set(items.map(i => i.itemId))`). */
@@ -424,6 +435,8 @@ export function checkCollectionAchievements(input: CollectionAchievementInput): 
   const ownsAllLegendaries =
     LEGENDARY_ITEM_IDS.size > 0 &&
     [...LEGENDARY_ITEM_IDS].every((id) => input.ownedItemIds.has(id));
+  const ownsAllSpells =
+    SPELL_ITEM_IDS.size > 0 && [...SPELL_ITEM_IDS].every((id) => input.ownedItemIds.has(id));
   let uniqueGear = 0;
   for (const id of input.ownedItemIds) {
     if (GEAR_ITEM_IDS.has(id)) uniqueGear++;
@@ -432,6 +445,7 @@ export function checkCollectionAchievements(input: CollectionAchievementInput): 
     ['bestiary-complete', input.bestiaryComplete],
     ['legendary-hoarder', ownsAllLegendaries],
     ['armory', uniqueGear >= ARMORY_UNIQUE_GEAR_TARGET],
+    ['arcane-archive', ownsAllSpells],
   ]);
 }
 
