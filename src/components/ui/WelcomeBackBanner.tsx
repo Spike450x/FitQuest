@@ -46,6 +46,7 @@ export function WelcomeBackBanner() {
   return (
     <div
       role="status"
+      data-testid="welcome-back-banner"
       className="px-4 py-3 bg-gradient-to-r from-amber-50 via-rose-50 to-violet-50 dark:from-amber-950/40 dark:via-rose-950/40 dark:to-violet-950/40 border-b border-amber-200/80 dark:border-amber-800/60"
     >
       <div className="max-w-7xl mx-auto flex items-center gap-3">

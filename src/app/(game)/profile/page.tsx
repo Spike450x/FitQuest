@@ -121,7 +121,7 @@ function PolymathProgress({ character }: { character: Character }) {
   const counts = character.masteryCounts ?? {};
 
   return (
-    <Card variant="default" padding="lg">
+    <Card variant="default" padding="lg" data-testid="polymath-progress">
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">
