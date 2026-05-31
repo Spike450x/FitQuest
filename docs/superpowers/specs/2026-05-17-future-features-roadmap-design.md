@@ -28,6 +28,13 @@ Territory/Map ──────────────────────
 
 ## Section 1: Core Economy — Reputation & Wanted Board
 
+> **Implementation status (2026-05-31):** **PR1 foundation SHIPPED.** Dual-track Reputation currency (`spendableReputation` wallet + monotonic `lifetimeReputation` → 5-tier rank), the `/wanted` Wanted Board with daily-rotating bounties, and the **Loot** claim path are live. Deviations / deferrals from this spec, intentionally scoped to follow-up PRs:
+>
+> - **Fight fork** — the combat-encounter path (bigger payout) is a typed seam in `bountyStore.claimBounty(id, { path: 'fight' })` but not yet wired to combat. Loot path only for now.
+> - **Rank stat bonuses** — the spec's "Reputation tiers with stat bonuses" is deferred. Rank currently gates nothing (the vendor/NPCs/raids it unlocks don't exist yet), so it ships as a visible badge + progress bar only.
+> - **Spend sinks** (champion purchases, vendor, guild switching, quest skipping) — none exist yet; `spendableReputation` only grows in PR1.
+> - **Hardening** — writes are client-mirrored via `applyCharacterPatch` (like quest claims), with rules-level delta caps + lifetime monotonicity. A `claimBounty` Cloud Function would make it server-authoritative once leaderboards arrive.
+
 ### Overview
 
 Reputation is a second currency (alongside gold) that powers mid-to-late game systems. It is earned primarily through the Wanted Board and spent across several sinks to keep it from inflating.

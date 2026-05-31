@@ -9,4 +9,5 @@ export {
   subscribeToRecentActivity,
 } from '@/lib/activityData';
 export { normalizeActiveQuest, fetchActiveQuests } from '@/lib/questData';
+export { normalizeActiveBounty, fetchActiveBounties } from '@/lib/bountyData';
 export { normalizeInventoryItem, fetchInventoryItems } from '@/lib/inventoryData';

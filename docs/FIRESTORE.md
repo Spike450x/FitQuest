@@ -72,6 +72,12 @@ interface Character {
   weeklyQuestsClaimed?: { weekKey: string; questDefIds: string[] };
   /** UTC date ("YYYY-MM-DD") of the most-recent daily-login bonus grant. */
   lastLoginGrantedDate?: string;
+
+  // ── Reputation (Wanted Board) ─────────────────────────────────────────────
+  /** Spendable Reputation wallet — earned on the Wanted Board, spent on future sinks. Client-authoritative. */
+  spendableReputation?: number;
+  /** Cumulative lifetime Reputation earned — monotonic; determines the visible rank (reputation.ts). */
+  lifetimeReputation?: number;
 }
 
 interface Stats {
@@ -104,6 +110,7 @@ interface Stats {
 - `totalCombatWins`, `totalQuestsClaimed` must be non-negative numbers if present.
 - `activityLogCounts`, `weeklyQuestsClaimed` must be maps if present.
 - `lastLoginGrantedDate` must be a string if present.
+- `spendableReputation` / `lifetimeReputation` must be non-negative ints (≤ 1,000,000) if present. `lifetimeReputation` is **monotonic** (never decreases) and per-write delta-capped at 2,000 in `isValidCharacterDelta` — a single forged write can't jump straight to Legendary. `spendableReputation` may decrease (future spend).
 - Subclass rules (`subclassIsValid`):
   - Absent → OK (not chosen yet).
   - Same as before → OK (already locked in).
@@ -221,6 +228,33 @@ interface ActiveQuest {
 ### Why the two-step claim
 
 A claim grants gold + XP. Without the `resource.data.completedAt != null` constraint, an attacker who can write to the doc could fabricate "completed and claimed" in one call. The two-step gate forces them to first write `completedAt` (which is checked against the immutable `progress` and `rewards`), then write `claimedAt` (which checks the stored completedAt, not the in-flight one).
+
+---
+
+## `activeBounties/{auto-id}`
+
+The player's currently-posted Wanted Board bounties. Auto-assigned by `useBountyStore.fetchAndAssignBounties` (3 per day from `BOUNTY_POOL`, daily-rotating) when no active set exists. Directly mirrors `activeQuests` — same uid-only read + client-side expiry filter (**no index needed**), same write-once `completedAt`/`claimedAt` state machine.
+
+```ts
+interface ActiveBounty {
+  id: string;
+  uid: string;
+  bountyDefId: string; // references BOUNTY_POOL
+  progress: number; // ≥ 0
+  extraProgress?: Record<string, number>; // multi-target bounties, keyed by activityType
+  completedAt: number | null; // write-once
+  claimedAt: number | null; // write-once, gated on completedAt
+  expiresAt: number; // unix ms — immutable
+  rewards: BountyReward; // { reputation, xp?, gold? } — immutable
+  rewardedReputation?: number; // Reputation actually awarded at claim time
+}
+```
+
+### Validation — create / update
+
+- Create: `uid == request.auth.uid`, `progress ≥ 0`, `completedAt == null`, `claimedAt == null`, `expiresAt > 0`, `rewards` is a map.
+- Update: `uid`, `bountyDefId`, `expiresAt`, `rewards` are **immutable**; `progress` stays `≥ 0` (delta ≤ 100,000); `completedAt` and `claimedAt` are write-once with the same two-step gate as `activeQuests` (claim requires the stored `completedAt` to be set). `rewardedReputation` is writable only during the `claimedAt` transition, capped at 100,000.
+- The Reputation grant itself lands on the **character** doc (delta-capped + monotonic there); this collection only governs the bounty's own state machine. Client-authoritative for PR1 — a `claimBounty` Cloud Function would harden it when leaderboards arrive.
 
 ---
 
@@ -379,7 +413,7 @@ firebase deploy --only firestore:indexes
 
 > **Index direction matters for range queries.** A `loggedAt DESC` index supports ORDER BY reads efficiently but cannot serve `loggedAt >= X` range scans — Firestore requires the range field to be ASCENDING for those. The two `combatLogs` indexes are intentionally separate for this reason.
 
-The `questStore` deliberately avoids composite queries for `activeQuests` — it filters by `uid` only and applies the `expiresAt` check client-side. No index needed there.
+The `questStore` (and `bountyStore`) deliberately avoid composite queries for `activeQuests` / `activeBounties` — they filter by `uid` only and apply the `expiresAt` check client-side. No index needed there.
 
 ### Drift protection
 

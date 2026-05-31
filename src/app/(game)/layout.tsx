@@ -14,6 +14,7 @@ import { useNavPreferenceStore, MAX_PINNED } from '@/store/navPreferenceStore';
 import { useActivityStore } from '@/store/activityStore';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
+import { useBountyStore } from '@/store/bountyStore';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { useStatsStore } from '@/store/statsStore';
 import { useCombatStore } from '@/store/combatStore';
@@ -96,6 +97,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
     useActivityStore.getState().clear();
     useCharacterStore.getState().clear();
     useQuestStore.getState().clear();
+    useBountyStore.getState().clear();
     useInventoryStore.getState().clear();
     useStatsStore.getState().clear();
     useCombatStore.getState().clear();

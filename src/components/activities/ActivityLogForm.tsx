@@ -8,6 +8,7 @@ import { dailyCapUsageFraction, DAILY_ACTIVITY_CAPS } from '@/lib/gameLogic/acti
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
+import { useBountyStore } from '@/store/bountyStore';
 import { calculateResourceRestore } from '@/lib/gameLogic/stats';
 import {
   ACTIVITY_DEFINITIONS,
@@ -109,6 +110,7 @@ export function ActivityLogForm() {
   const applyRestoreLocal = useCharacterStore((s) => s.applyRestoreLocal);
   const persistStreakAndRecord = useCharacterStore((s) => s.persistStreakAndRecord);
   const updateQuestProgress = useQuestStore((s) => s.updateQuestProgress);
+  const updateBountyProgress = useBountyStore((s) => s.updateBountyProgress);
 
   const [activeTab, setActiveTab] = useState<ActivityType>('workout');
   const [amount, setAmount] = useState('');
@@ -291,8 +293,14 @@ export function ActivityLogForm() {
       // Firestore on the next mount (fetchAndAssignQuests / fetchCharacter), so
       // the stale window is at most the current navigation session.
       if (eligibleAmount > 0) {
+        // One log feeds both reward tracks — quests (XP/gold) and Wanted Board
+        // bounties (Reputation). The double-advance is intentional: bounties are
+        // a parallel earning surface, not a replacement for quests.
         updateQuestProgress(character.uid, activeTab, eligibleAmount).catch((e) =>
           captureError('ActivityLogForm:questProgress', e),
+        );
+        updateBountyProgress(character.uid, activeTab, eligibleAmount).catch((e) =>
+          captureError('ActivityLogForm:bountyProgress', e),
         );
       }
       persistStreakAndRecord(activeTab, parsedAmount, def.unit).catch((e) =>

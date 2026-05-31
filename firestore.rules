@@ -78,7 +78,14 @@ service cloud.firestore {
       // 2000 gives comfortable headroom while still blocking sustained-drip fraud.
       return (newData.xp    - oldData.xp)    <= 2000
           && (newData.gold  - oldData.gold)  <= 2000
-          && (newData.level - oldData.level) <= 5;
+          && (newData.level - oldData.level) <= 5
+          // lifetimeReputation is monotonic (only ever earned, never spent down)
+          // and per-write delta-capped. Highest legit single-bounty grant is 120;
+          // 2000 gives generous headroom while blocking "jump straight to Legendary".
+          // Guard the `in` checks so a write that doesn't touch reputation passes.
+          && (!('lifetimeReputation' in newData) || !('lifetimeReputation' in oldData)
+              || (newData.lifetimeReputation >= oldData.lifetimeReputation
+                  && (newData.lifetimeReputation - oldData.lifetimeReputation) <= 2000));
     }
 
     function isValidCharacterOptionals(data) {
@@ -100,7 +107,11 @@ service cloud.firestore {
           && (!('legendaryDryStreak'  in data) || data.legendaryDryStreak  is map)
           && (!('dungeonRunsToday'    in data) || data.dungeonRunsToday    is map)
           && (!('activeDungeonRunId'  in data) || data.activeDungeonRunId  == null || data.activeDungeonRunId is string)
-          && (!('achievements'        in data) || data.achievements        is list);
+          && (!('achievements'        in data) || data.achievements        is list)
+          // Reputation wallets — non-negative, generous ceiling. spendable may
+          // decrease (future spend); lifetime monotonicity is enforced in the delta check.
+          && (!('spendableReputation' in data) || (data.spendableReputation is int && data.spendableReputation >= 0 && data.spendableReputation <= 1000000))
+          && (!('lifetimeReputation'  in data) || (data.lifetimeReputation  is int && data.lifetimeReputation  >= 0 && data.lifetimeReputation  <= 1000000));
     }
 
     // Subclass rules (update path only — resource.data is the existing document):
@@ -292,6 +303,60 @@ service cloud.firestore {
       allow update:       if isSignedIn()
           && resource.data.uid == request.auth.uid
           && isValidActiveQuestUpdate(request.resource.data);
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ACTIVE BOUNTIES — /activeBounties/{docId}  (Wanted Board)
+    //
+    // Mirrors activeQuests: auto-ID docs, core fields immutable after creation,
+    // completedAt/claimedAt write-once (null → timestamp). claimedAt requires the
+    // existing doc to already be completed. rewardedReputation is stamped only
+    // during the claim transition. Reputation itself lands on the character doc
+    // (delta-capped there); this rule only governs the bounty's own state machine.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    function isValidActiveBountyCreate(data) {
+      return data.uid         is string
+          && data.bountyDefId is string
+          && data.progress    is number && data.progress >= 0
+          && data.completedAt == null
+          && data.claimedAt   == null
+          && data.expiresAt   is int && data.expiresAt > 0
+          && data.rewards     is map;
+    }
+
+    function isValidActiveBountyUpdate(data) {
+      return data.uid         == resource.data.uid         // immutable
+          && data.bountyDefId == resource.data.bountyDefId // immutable
+          && data.expiresAt   == resource.data.expiresAt   // immutable
+          && data.rewards     == resource.data.rewards     // immutable
+          && data.progress    is number && data.progress >= 0
+          && (data.progress - resource.data.progress) <= 100000
+          && (!('extraProgress' in data) || data.extraProgress is map)
+          && (
+              (resource.data.completedAt != null && data.completedAt == resource.data.completedAt)
+              || (resource.data.completedAt == null && (data.completedAt == null || (data.completedAt is int && data.completedAt > 0)))
+             )
+          && (data.claimedAt == null
+              || (resource.data.claimedAt   == null
+                  && data.claimedAt         is int
+                  && data.claimedAt         > 0
+                  && resource.data.completedAt != null))
+          // rewardedReputation: only during the claim transition; 100,000 ceiling.
+          && (!('rewardedReputation' in data)
+              || (data.rewardedReputation is int && data.rewardedReputation >= 0 && data.rewardedReputation <= 100000
+                  && resource.data.claimedAt == null && data.claimedAt is int && data.claimedAt > 0));
+    }
+
+    match /activeBounties/{docId} {
+      allow read, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create:       if isSignedIn()
+          && request.resource.data.uid == request.auth.uid
+          && isValidActiveBountyCreate(request.resource.data);
+      allow update:       if isSignedIn()
+          && resource.data.uid == request.auth.uid
+          && isValidActiveBountyUpdate(request.resource.data);
     }
 
 

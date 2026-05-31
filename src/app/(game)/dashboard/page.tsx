@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useGameData } from '@/hooks/useGameData';
 import { XPBar } from '@/components/ui/XPBar';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
+import { ReputationChip } from '@/components/ui/ReputationChip';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -201,7 +202,15 @@ export default function DashboardPage() {
               </p>
             )}
           </div>
-          <GoldDisplay amount={character.gold} size="lg" />
+          <div className="flex flex-col items-end gap-1">
+            <GoldDisplay amount={character.gold} size="lg" />
+            <ReputationChip
+              lifetime={character.lifetimeReputation ?? 0}
+              spendable={character.spendableReputation ?? 0}
+              size="sm"
+              showRank
+            />
+          </div>
         </div>
         <XPBar xp={character.xp} level={character.level} xpToNextLevel={character.xpToNextLevel} />
 
