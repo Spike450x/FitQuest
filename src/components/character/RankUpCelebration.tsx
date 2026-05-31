@@ -20,8 +20,10 @@ import type { ReputationRank } from '@/types';
  */
 export function RankUpCelebration() {
   const character = useCharacterStore((s) => s.character);
+  const applyCharacterPatch = useCharacterStore((s) => s.applyCharacterPatch);
   const previousRankId = useRef<string | null>(null);
   const [shown, setShown] = useState<ReputationRank | null>(null);
+  const [equipped, setEquipped] = useState(false);
 
   useEffect(() => {
     if (!character) {
@@ -36,6 +38,7 @@ export function RankUpCelebration() {
     if (rank.id !== previousRankId.current) {
       // lifetimeReputation only ever increases, so any rank change is a rank-up.
       setShown(rank);
+      setEquipped(false);
       fireConfetti('celebration');
       playSound('levelUp');
     }
@@ -43,6 +46,16 @@ export function RankUpCelebration() {
   }, [character]);
 
   if (!character || !shown) return null;
+
+  // The rank just unlocked, so equipping its title is always valid here.
+  const alreadyEquipped = character.activeTitle === shown.id;
+
+  function equipTitle() {
+    if (!shown) return;
+    applyCharacterPatch({ activeTitle: shown.id });
+    setEquipped(true);
+    playSound('claim');
+  }
 
   return (
     <Modal open={true} onClose={() => setShown(null)} bare size="md" feel="cinematic">
@@ -78,13 +91,30 @@ export function RankUpCelebration() {
             “{shown.title}”
           </p>
           <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-            Equip it from your character sheet.
+            {equipped || alreadyEquipped
+              ? 'Equipped — it shows under your name.'
+              : 'Equip it now or pick another from your character sheet.'}
           </p>
         </div>
 
-        <Button variant="primary" size="lg" fullWidth onClick={() => setShown(null)}>
-          Continue
-        </Button>
+        {equipped || alreadyEquipped ? (
+          <Button variant="primary" size="lg" fullWidth onClick={() => setShown(null)}>
+            Continue
+          </Button>
+        ) : (
+          <div className="relative flex flex-col gap-2">
+            <Button variant="primary" size="lg" fullWidth onClick={equipTitle}>
+              Equip “{shown.title}”
+            </Button>
+            <button
+              type="button"
+              onClick={() => setShown(null)}
+              className="text-xs font-medium text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors py-1"
+            >
+              Not now
+            </button>
+          </div>
+        )}
       </motion.div>
     </Modal>
   );

@@ -15,6 +15,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-31 — Title equip-from-rank-up + combat-banner title
+
+- **Equip from the rank-up modal.** `RankUpCelebration` now offers a one-tap "Equip “{title}”" button (with a "Not now" escape) that sets `activeTitle` inline, so unlocking a title and wearing it is one step instead of a detour to the character sheet.
+- **Title on victory banners.** The equipped title (`resolveActiveTitle`) now shows under the player name on the arena and hunt victory banners — the reputation you carry into a fight.
+- Pure UI; no schema/rules/logic changes. 958 tests still green.
+
 ## 2026-05-31 — Reputation rank-up celebration + title flair
 
 - **Rank-up celebration.** New `RankUpCelebration` component (mirrors `LevelUpCelebration`, mounted in the game layout) pops a violet cinematic modal — Award glyph, confetti, sound — when the player's Reputation rank advances a tier, announcing the newly-unlocked title. Baseline-on-first-observation guard avoids false-triggering on initial load.

@@ -69,6 +69,7 @@ import {
   WELCOME_BACK_LOOT_MULTIPLIER,
   WELCOME_BACK_XP_MULTIPLIER,
 } from '@/lib/gameLogic/streaks';
+import { resolveActiveTitle } from '@/lib/gameLogic/reputation';
 import { useWelcomeBackActive } from '@/hooks/useWelcomeBackBoost';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
@@ -465,7 +466,11 @@ function CombatPageBody({ character }: { character: Character }) {
             <p className="font-display text-4xl font-bold text-indigo-700 dark:text-indigo-300 tracking-wider uppercase drop-shadow-sm">
               Victory!
             </p>
-            <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
+            <p className="text-sm text-violet-600 dark:text-violet-300 font-semibold italic mt-1">
+              {character.name}, “
+              {resolveActiveTitle(character.lifetimeReputation ?? 0, character.activeTitle)}”
+            </p>
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
               vs. {emoji} {monster.name}
             </p>
           </div>
