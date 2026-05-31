@@ -1,7 +1,7 @@
 # Combat UI Polish & Bug Fix Design
 
 **Date:** 2026-05-22  
-**Status:** Approved for implementation  
+**Status:** Shipped — 2026-05-22 (Phase 1 bug fixes) / 2026-05-23 (Phase 2 visual enhancements)  
 **Scope:** Two bug fixes (Phase 1) + five visual enhancements (Phase 2)
 
 ---

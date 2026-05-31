@@ -90,11 +90,21 @@ Or via the Firebase MCP in Claude Code:
 firebase functions get_logs
 ```
 
-Look for: no `INTERNAL` or `FAILED_PRECONDITION` errors in the first 1–2 minutes after deploy. If you see `FAILED_PRECONDITION`, the composite index is still building — wait and recheck. Currently deployed callables:
+Look for: no `INTERNAL` or `FAILED_PRECONDITION` errors in the first 1–2 minutes after deploy. If you see `FAILED_PRECONDITION`, the composite index is still building — wait and recheck. Currently deployed functions:
 
-- `logActivity` — server-authoritative activity log + daily cap enforcement + mastery / restore writes
+**Core game callables (`onCall`):**
+
+- `logActivity` — server-authoritative activity log + daily cap enforcement + mastery / restore / achievement writes (thin wrapper over the shared `logActivityCore`)
 - `claimDungeonRun` — atomic dungeon-run XP/gold/item award + achievement gold
 - `claimCombatVictory` — server-authoritative combat-win XP/gold award with diminishing-returns multiplier (P0-3)
+
+**Health-integration functions (feature-flagged; inert until their secrets are set — see below):**
+
+- `createStravaAuthUrl` / `createGarminAuthUrl` (`onCall`) — start the provider OAuth flow
+- `stravaOAuthCallback` / `garminOAuthCallback` (`onRequest` HTTP) — code → token exchange; store tokens server-side
+- `stravaWebhook` / `garminWebhook` (`onRequest` HTTP) — provider push ingestion → `logActivityCore`
+
+The 6 health functions only do real work once their secrets exist; until then they are deployed but dormant, and `NEXT_PUBLIC_HEALTH_SYNC_ENABLED` keeps the client UI hidden. See [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md) for the provisioning runbook.
 
 Run the manual smoke test ([SMOKE-TEST.md](SMOKE-TEST.md)) after any deploy that touches the auth flow or a Cloud Function the UI calls.
 
@@ -129,13 +139,34 @@ Indexes cannot be rolled back cleanly. Deleting an index requires the Function t
 
 ## Environment
 
-| Variable                 | Where set                           | Purpose                                                          |
-| ------------------------ | ----------------------------------- | ---------------------------------------------------------------- |
-| `FIREBASE_TOKEN`         | GitHub Actions secret               | CI auto-deploy — rules/indexes (step 15) and functions (step 16) |
-| `NEXT_PUBLIC_FIREBASE_*` | `.env.local` (gitignored)           | Firebase client config for dev                                   |
-| `NEXT_PUBLIC_FIREBASE_*` | `.env.ci` (committed, dummy values) | Prevents build from connecting to real Firebase during CI        |
+| Variable                          | Where set                           | Purpose                                                                         |
+| --------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
+| `FIREBASE_TOKEN`                  | GitHub Actions secret               | CI auto-deploy — rules/indexes (step 15) and functions (step 16)                |
+| `NEXT_PUBLIC_FIREBASE_*`          | `.env.local` (gitignored)           | Firebase client config for dev                                                  |
+| `NEXT_PUBLIC_FIREBASE_*`          | `.env.ci` (committed, dummy values) | Prevents build from connecting to real Firebase during CI                       |
+| `NEXT_PUBLIC_HEALTH_SYNC_ENABLED` | `.env.local` / Vercel               | Feature flag — gates the `/profile/connections` health-sync UI. Off by default. |
 
 Never commit `.env.local`. The `.env.ci` file contains intentionally non-functional values so the Next.js build succeeds in CI without live Firebase credentials.
+
+### Cloud Functions secrets (health integration)
+
+The health-integration functions are the repo's **first use of Firebase Functions secrets** — they are not env vars in `.env.local`; they live in Google Secret Manager and are bound to the functions at deploy time. The functions are deployed but dormant until these are set:
+
+| Secret                                      | Provider | Purpose                                                         |
+| ------------------------------------------- | -------- | --------------------------------------------------------------- |
+| `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` | Strava   | OAuth2 app credentials                                          |
+| `STRAVA_VERIFY_TOKEN`                       | Strava   | Webhook subscription-validation handshake token                 |
+| `STRAVA_REDIRECT_URI`                       | Strava   | OAuth callback URL (the deployed `stravaOAuthCallback` HTTP fn) |
+| `GARMIN_CLIENT_ID` / `GARMIN_CLIENT_SECRET` | Garmin   | OAuth 2.0 PKCE app credentials (enterprise-gated)               |
+| `GARMIN_WEBHOOK_TOKEN`                      | Garmin   | Webhook push verification (enterprise-gated)                    |
+
+Set each with:
+
+```bash
+firebase functions:secrets:set STRAVA_CLIENT_ID --project fitness-rpg-claude
+```
+
+Then redeploy functions so the bindings take effect. **Strava is the works-today free path** (no approval needed); **Garmin waits on enterprise Developer Program approval** plus the post-approval endpoint/payload constants flagged in the code. Full step-by-step in [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md) §7 (Strava) / §8 (Garmin).
 
 ---
 
@@ -208,3 +239,4 @@ After the first deploy:
 - **Security hardening decisions** → [SECURITY-SETUP.md](SECURITY-SETUP.md)
 - **Manual smoke test** → [SMOKE-TEST.md](SMOKE-TEST.md)
 - **Firestore schema + index documentation** → [FIRESTORE.md](FIRESTORE.md)
+- **Health-data integration design + provisioning runbook** → [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md)
