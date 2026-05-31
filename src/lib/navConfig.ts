@@ -8,6 +8,7 @@ import {
   Backpack,
   Store,
   BarChart3,
+  CalendarDays,
   Trophy,
   type LucideIcon,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/inventory', label: 'Inventory', Icon: Backpack },
   { href: '/shop', label: 'Shop', Icon: Store },
   { href: '/stats', label: 'Stats', Icon: BarChart3 },
+  { href: '/calendar', label: 'Calendar', Icon: CalendarDays },
   { href: '/collections', label: 'Collections', Icon: Trophy },
 ];
 

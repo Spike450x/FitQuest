@@ -301,6 +301,32 @@ Reputation is dual-track: a **spendable** wallet (`Character.spendableReputation
 
 ---
 
+## `calendar.ts` — activity-calendar date helpers
+
+Pure date helpers backing the read-only `/calendar` view. Days are bucketed by **local** time (a workout logged at 11 pm local belongs to "today") — deliberately different from the UTC keys in `streaks.ts`, which serve streak math.
+
+| Export                  | Kind     | Purpose                                                                                                    |
+| ----------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `localDayKey(ts)`       | function | Local-time `'YYYY-MM-DD'` key for a unix-ms timestamp or `Date`.                                           |
+| `monthMatrix(year, mo)` | function | Sunday→Saturday weeks (4–6 rows of 7 `Date`s) covering a 0-indexed month, padded with adjacent-month days. |
+| `weekDays(ref)`         | function | The 7 dates (Sun→Sat) of the week containing `ref`.                                                        |
+| `groupLogsByDay(logs)`  | function | Buckets `ActivityLog[]` into a `Record<localDayKey, ActivityLog[]>`.                                       |
+
+---
+
+## `avatars.ts` — preset avatar catalog
+
+Curated avatar crests rendered through the existing `EntityArt` heraldic-art system — no image upload, no Firebase Storage. A choice persists as `Character.avatarId`; unset falls back to the class crest.
+
+| Export                | Kind      | Purpose                                                                                       |
+| --------------------- | --------- | --------------------------------------------------------------------------------------------- |
+| `AvatarOption`        | interface | `{ id, category, label, tint? }` — references an already-registered silhouette.               |
+| `AVATAR_OPTIONS`      | const     | The selectable preset crests (classes, subclasses, monster + achievement crests).             |
+| `getAvatarOption(id)` | function  | Lookup an option by its stored id (`undefined` for unknown/empty).                            |
+| `resolveAvatar(char)` | function  | The chosen preset, or the class-crest fallback when unset/unknown. Used by `CharacterAvatar`. |
+
+---
+
 ## `rotation.ts` — deterministic daily/weekly rotation
 
 | Export                       | Purpose                                                                                                                                |

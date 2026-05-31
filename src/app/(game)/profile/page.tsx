@@ -7,32 +7,42 @@ import { updateUserEmail, updateUserPassword } from '@/lib/auth';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
 import { POLYMATH_THRESHOLD } from '@/lib/gameLogic/achievements';
+import { AVATAR_OPTIONS, resolveAvatar } from '@/lib/gameLogic/avatars';
 import { Card } from '@/components/ui/Card';
 import { ReputationRankBar } from '@/components/ui/ReputationChip';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { useNavPreferenceStore, MAX_PINNED } from '@/store/navPreferenceStore';
-import { SoundToggle } from '@/components/ui/SoundToggle';
-import { InstallAppButton } from '@/components/ui/InstallAppButton';
+import { CharacterAvatar } from '@/components/ui/CharacterAvatar';
+import { SettingsCard } from '@/components/ui/SettingsCard';
+import { EntityArt } from '@/components/art/EntityArt';
 import type { Character } from '@/types';
 import { InputField } from '@/components/ui/InputField';
 
 export default function ProfilePage() {
   const { character, user } = useCharacter();
-  const pinnedHrefs = useNavPreferenceStore((s) => s.pinnedHrefs);
-  const openCustomizer = useNavPreferenceStore((s) => s.openCustomizer);
 
   if (!character || !user) return null;
 
   return (
     <div className="space-y-5 max-w-xl">
-      <div>
-        <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
-          Account Settings
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-          {character.name} · Level {character.level} {character.class}
-        </p>
+      <div className="flex items-center gap-4">
+        <CharacterAvatar character={character} size="lg" />
+        <div>
+          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
+            Profile
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+            {character.name} · Level {character.level} {character.class}
+          </p>
+        </div>
       </div>
+
+      <Link
+        href="/settings"
+        className="block rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+      >
+        ⚙️ Settings — theme, sound, devices &amp; navigation →
+      </Link>
+
+      <AvatarPicker character={character} />
 
       <ReputationCard character={character} />
 
@@ -45,64 +55,6 @@ export default function ProfilePage() {
         View Achievements, Bestiary &amp; Collection →
       </Link>
 
-      <Link
-        href="/profile/connections"
-        className="block rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition-colors"
-      >
-        Connect a device — auto-log from Garmin, Fitbit &amp; more →
-      </Link>
-
-      <SettingsCard
-        title="Navigation"
-        description="Choose which shortcuts appear in the mobile quick-access bar."
-      >
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-gray-600 dark:text-slate-300">
-            {pinnedHrefs.length} of {MAX_PINNED} slots pinned
-          </p>
-          <button
-            type="button"
-            onClick={openCustomizer}
-            className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-          >
-            Customize
-          </button>
-        </div>
-      </SettingsCard>
-
-      <SettingsCard title="Appearance" description="Choose your preferred theme.">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-600 dark:text-slate-300">
-            Light and dark modes for your eyes.
-          </p>
-          <ThemeToggle variant="full" />
-        </div>
-      </SettingsCard>
-
-      <SettingsCard
-        title="Sound Effects"
-        description="Retro-style sound cues for dice rolls, combat, level-ups and loot drops."
-      >
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-600 dark:text-slate-300">
-            Generated in-browser. No audio files, no tracking.
-          </p>
-          <SoundToggle variant="full" />
-        </div>
-      </SettingsCard>
-
-      <SettingsCard
-        title="Install App"
-        description="Add FitQuest to your home screen for a native-app feel."
-      >
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-sm text-gray-600 dark:text-slate-300">
-            Launch in full-screen, no browser chrome. Loads faster on each visit.
-          </p>
-          <InstallAppButton />
-        </div>
-      </SettingsCard>
-
       <ChangeNameForm character={character} />
       <ChangeEmailForm user={user} />
       <ChangePasswordForm user={user} />
@@ -110,9 +62,63 @@ export default function ProfilePage() {
   );
 }
 
+// ── Avatar Picker ─────────────────────────────────────────────────────────────
+// Preset crests from the heraldic-art system — no uploads, no Firebase Storage.
+// Persisted to `Character.avatarId` via the client-mirrored applyCharacterPatch.
+
+function AvatarPicker({ character }: { character: Character }) {
+  const applyCharacterPatch = useCharacterStore((s) => s.applyCharacterPatch);
+  const selected = resolveAvatar(character).id;
+  const [saving, setSaving] = useState<string | null>(null);
+
+  async function choose(id: string) {
+    if (id === character.avatarId) return;
+    setSaving(id);
+    try {
+      await applyCharacterPatch({ avatarId: id });
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  return (
+    <SettingsCard title="Avatar" description="Pick a crest to represent you across the realm.">
+      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+        {AVATAR_OPTIONS.map((opt) => {
+          const isSelected = opt.id === selected;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => choose(opt.id)}
+              aria-pressed={isSelected}
+              title={opt.label}
+              disabled={saving !== null}
+              className={`flex flex-col items-center gap-1 rounded-xl border p-2 transition-colors ${
+                isSelected
+                  ? 'border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40'
+                  : 'border-gray-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+              } ${saving === opt.id ? 'opacity-60' : ''}`}
+            >
+              <EntityArt
+                category={opt.category}
+                id={opt.id}
+                tint={opt.tint}
+                size="sm"
+                ariaLabel={opt.label}
+              />
+              <span className="text-[10px] text-gray-500 dark:text-slate-400 truncate w-full text-center">
+                {opt.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </SettingsCard>
+  );
+}
+
 // ── Reputation ────────────────────────────────────────────────────────────────
-// Shows the player's Reputation rank + progress to the next tier, plus the
-// spendable wallet. Earned on the Wanted Board; spent on future sinks.
 
 function ReputationCard({ character }: { character: Character }) {
   return (
@@ -140,9 +146,6 @@ function ReputationCard({ character }: { character: Character }) {
 }
 
 // ── Polymath Progress ─────────────────────────────────────────────────────────
-// Surfaces progress toward the `polymath` achievement (mastery 5 on every
-// primary stat). Without this widget, players have no visibility into how
-// close they are to unlocking it.
 
 const POLYMATH_TRACKS: Array<{
   activity: 'workout' | 'run' | 'steps' | 'meditation';
@@ -418,27 +421,5 @@ function ChangePasswordForm({ user }: { user: User }) {
         </button>
       </form>
     </SettingsCard>
-  );
-}
-
-// ── Settings Card wrapper ─────────────────────────────────────────────────────
-
-function SettingsCard({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card variant="default" padding="lg">
-      <div className="mb-4">
-        <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">{title}</h3>
-        <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{description}</p>
-      </div>
-      {children}
-    </Card>
   );
 }

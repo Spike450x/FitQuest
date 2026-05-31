@@ -89,6 +89,8 @@ export interface Character {
   currentMagic?: number; // persists between battles; undefined = full magic
   pendingStatPoints?: number; // unspent level-up stat points; 0 = none pending
   subclass?: CharacterSubclass; // chosen at level 10; undefined = not yet chosen
+  /** Chosen preset avatar id (see `gameLogic/avatars.ts`); undefined = class crest. */
+  avatarId?: string;
   /** Log counts for mastery activities — incremented on each log, milestones grant +1 stat. */
   masteryCounts?: Partial<Record<'run' | 'workout' | 'steps' | 'meditation', number>>;
   /**

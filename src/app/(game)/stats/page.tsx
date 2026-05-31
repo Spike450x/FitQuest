@@ -9,7 +9,7 @@ import { useInventoryStore } from '@/store/inventoryStore';
 import { useStatsStore } from '@/store/statsStore';
 import { getItemById } from '@/lib/gameLogic/items';
 import { ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
-import { ACTIVITY_ICONS } from '@/lib/activityIcons';
+import { ACTIVITY_ICONS, ACTIVITY_COLORS } from '@/lib/activityIcons';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Card } from '@/components/ui/Card';
 import { EntityArt } from '@/components/art/EntityArt';
@@ -29,16 +29,6 @@ import {
 } from 'recharts';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-
-const ACTIVITY_COLORS: Record<ActivityType, string> = {
-  workout: '#6366f1',
-  run: '#f97316',
-  steps: '#10b981',
-  sleep: '#8b5cf6',
-  water: '#3b82f6',
-  nutrition: '#22c55e',
-  meditation: '#a78bfa',
-};
 
 type Range = '7d' | '30d' | 'all';
 

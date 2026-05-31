@@ -194,6 +194,12 @@ The **template to copy**: `SpellCard.tsx`, `LevelUpCelebration.tsx`, combat dice
 - Achievement Gallery (line 35-93) is decent — locked are grayscale, unlocked are indigo.
 - All unlocked badges look identical regardless of tier — legendary achievements should glow gold.
 
+**Update (2026-05-31) — Profile/Settings split + preset avatars + activity calendar.**
+
+- The old one-page "Account Settings" was split: **`/profile`** is identity/account (avatar, name, email, password, Reputation, Polymath, Collections link); **`/settings`** holds preferences (theme, sound, nav customizer, connections link, install). Shared `SettingsCard` extracted to `src/components/ui/SettingsCard.tsx`.
+- **Preset avatar picker** — grid of heraldic crests (`AVATAR_OPTIONS` → `EntityArt`), selected via `applyCharacterPatch({ avatarId })`. New `CharacterAvatar` component renders the chosen crest (class-crest fallback) in the profile header and the layout header button (replaces the bare initial). No image upload / Storage.
+- **`/calendar`** — read-only month/week activity calendar. Month grid uses per-day `ACTIVITY_COLORS` dots (`+N` overflow chip, ⌚ synced marker), week view lists each day, and a day-detail `Modal` shows label/amount/XP/time. Full dark-mode coverage; segmented month/week toggle reuses the stats `Range` filter styling.
+
 ### Auth (`src/app/(auth)/login/page.tsx`)
 
 - Form is a generic white card.
