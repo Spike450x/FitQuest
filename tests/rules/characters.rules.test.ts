@@ -217,3 +217,56 @@ describe('characters — update', () => {
     await assertFails(ctx.firestore().collection('characters').doc(uid).update({ xp: 10 }));
   });
 });
+
+describe('characters — reputation fields', () => {
+  const uid = 'rep-user';
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx
+        .firestore()
+        .collection('characters')
+        .doc(uid)
+        .set({ ...validCharacter(uid), lifetimeReputation: 100, bountiesCompleted: 2 });
+    });
+  });
+
+  it('allows a bounty claim write (lifetime + bounties increment)', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertSucceeds(
+      ctx.firestore().collection('characters').doc(uid).update({
+        spendableReputation: 130,
+        lifetimeReputation: 230,
+        bountiesCompleted: 3,
+      }),
+    );
+  });
+
+  it('denies a lifetimeReputation decrease (monotonic)', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx.firestore().collection('characters').doc(uid).update({ lifetimeReputation: 50 }),
+    );
+  });
+
+  it('denies a lifetimeReputation jump beyond the 2000 per-write cap', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx.firestore().collection('characters').doc(uid).update({ lifetimeReputation: 5000 }),
+    );
+  });
+
+  it('allows equipping a valid title id', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertSucceeds(
+      ctx.firestore().collection('characters').doc(uid).update({ activeTitle: 'known' }),
+    );
+  });
+
+  it('denies an invalid title id', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx.firestore().collection('characters').doc(uid).update({ activeTitle: 'overlord' }),
+    );
+  });
+});

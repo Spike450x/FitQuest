@@ -15,6 +15,16 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-31 — Reputation progression: ranks ladder, titles, tracking
+
+- **Rank ladder + titles.** Each reputation rank now grants an equippable flavorful **title** (`ReputationRank.title`: Greenhorn → the Named → the Respected → Renowned Hunter → the Legendary). New `ReputationLadder` (all 5 tiers with thresholds, what each unlocks, locked/unlocked/current) and `ReputationTitles` (tap-to-equip locked/unlocked grid → `Character.activeTitle`). New pure helpers `unlockedRanks` / `isRankUnlocked` / `resolveActiveTitle`.
+- **Character-sheet tracking.** `/character` gains a Reputation hub card — rank progress, wallet, **bounties-completed** counter, equipped title, and a collapsible ranks/titles section. Surfaced on the Wanted Board (collapsible ladder + title) and profile (title + bounties + link) too.
+- **Bounties completed.** New monotonic `Character.bountiesCompleted`, incremented on every bounty claim (loot + hunt) inside the shared grant writer; bounty-collect toasts append a "🏆 Bounty #N" trophy line.
+- **Rules:** `bountiesCompleted` (monotonic, ≤10/write) + `activeTitle` (must be a valid rank id) validators added.
+- **Tests:** +6 vitest (titles/unlockedRanks/resolveActiveTitle, store increment) + 5 rules specs (958 root tests).
+
+---
+
 ## 2026-05-31 — Activity calendar + Profile/Settings split + preset avatars
 
 - **New `/calendar` route** — a read-only month/week calendar of logged activities. Month grid shows per-day activity color-dots (+ a `+N` overflow chip and a ⌚ marker for device-synced logs); week view lists each day's activities; clicking a day opens a detail modal (label, amount/unit, XP, synced badge, time). Reuses the existing `statsStore` 500-log cache — no new store, fetch path, or Firestore index. New pure `src/lib/gameLogic/calendar.ts` (`localDayKey`, `monthMatrix`, `weekDays`, `groupLogsByDay`) — buckets by **local** day. New `Calendar` nav entry (overflow by default).
@@ -22,8 +32,6 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 - **Preset avatar picker.** New `Character.avatarId` (optional) chosen from a curated catalog of heraldic crests (`src/lib/gameLogic/avatars.ts`) rendered via `EntityArt` — no image upload, no Firebase Storage. New `CharacterAvatar` component; shown in the profile header and the layout header button (replaces the bare initial). Persisted via the client-mirrored `applyCharacterPatch`. Rule: `avatarId` validated as a `string ≤ 64 chars`.
 - **Refactor:** `ACTIVITY_COLORS` moved from the stats page into `activityIcons.ts` so the stats charts and the calendar share one source of truth.
 - **Tests:** +18 vitest specs (calendar date helpers, avatar catalog/resolution). 922 → 940 root tests.
-
----
 
 ## 2026-05-31 — Wanted Board Hunt bounties (the Fight fork, PR2)
 

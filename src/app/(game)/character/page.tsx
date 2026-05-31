@@ -1,10 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import { useCharacter } from '@/hooks/useCharacter';
 import { CharacterCard } from '@/components/character/CharacterCard';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
+import {
+  ReputationRankBar,
+  ReputationLadder,
+  ReputationTitles,
+} from '@/components/ui/ReputationChip';
+import { resolveActiveTitle } from '@/lib/gameLogic/reputation';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
+import type { Character } from '@/types';
 import {
   StrengthIcon,
   WisdomIcon,
@@ -39,6 +47,8 @@ export default function CharacterPage() {
       </h1>
 
       <CharacterCard character={character} />
+
+      <ReputationSection character={character} />
 
       {/* Lower two-column row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -139,6 +149,65 @@ export default function CharacterPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+// ─── Reputation hub ─────────────────────────────────────────────────────────────
+// The character sheet's home for Reputation tracking: rank progress, wallet,
+// bounties completed, equipped title, the full rank ladder, and the title selector.
+
+function ReputationSection({ character }: { character: Character }) {
+  const [showLadder, setShowLadder] = useState(false);
+  const lifetime = character.lifetimeReputation ?? 0;
+  const title = resolveActiveTitle(lifetime, character.activeTitle);
+
+  return (
+    <Card variant="default" padding="lg" data-testid="character-reputation">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <h3 className="font-bold text-gray-900 dark:text-slate-100">🎖️ Reputation</h3>
+          <p className="text-sm text-violet-600 dark:text-violet-300 font-medium mt-0.5">
+            “{title}”
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-sm font-bold text-violet-600 dark:text-violet-300 tabular-nums">
+            {(character.spendableReputation ?? 0).toLocaleString()} Rep
+          </p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 tabular-nums">
+            {(character.bountiesCompleted ?? 0).toLocaleString()} bounties done
+          </p>
+        </div>
+      </div>
+
+      <ReputationRankBar lifetime={lifetime} />
+
+      <button
+        type="button"
+        onClick={() => setShowLadder((v) => !v)}
+        aria-expanded={showLadder}
+        className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 transition-colors py-1.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-950/30"
+      >
+        {showLadder ? '▲ Hide ranks & titles' : '▼ View all ranks & titles'}
+      </button>
+
+      {showLadder && (
+        <div className="mt-3 space-y-4">
+          <div>
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+              Rank Ladder
+            </p>
+            <ReputationLadder lifetime={lifetime} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+              Titles — tap an unlocked title to equip it
+            </p>
+            <ReputationTitles lifetime={lifetime} activeTitle={character.activeTitle} />
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 
