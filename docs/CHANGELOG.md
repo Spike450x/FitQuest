@@ -15,6 +15,13 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-30 — Privacy Policy, Terms of Use, and legal footer
+
+- Added `/privacy` and `/terms` pages under a `(legal)` route group with a minimal branded layout (no game nav)
+- `LegalFooter` component (`© year · Privacy Policy · Terms of Use`) added to auth, game, and legal layouts
+- Register page now includes "By creating an account you agree to our Terms of Use and Privacy Policy" above the submit button
+- Connections page disclaimer links to the Privacy Policy — satisfies Strava API review requirement
+
 ## 2026-05-30 — Health-data integration scaffold (Strava + Garmin, free)
 
 - **Auto-log real runs & workouts from a connected app** — feature-flagged off (`NEXT_PUBLIC_HEALTH_SYNC_ENABLED`). Two providers share one ingestion core. Full design + runbook in [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md).
