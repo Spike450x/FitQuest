@@ -1,5 +1,11 @@
 import type { Character, MonsterDef } from '@/types';
-import { effectiveStat, effectivePlayerDefenseVsMonster, gearAttackBonus, rollD10 } from './combat';
+import {
+  effectiveStat,
+  effectivePlayerDefenseVsMonster,
+  incomingMonsterDamage,
+  gearAttackBonus,
+  rollD10,
+} from './combat';
 import { COMBAT } from './constants';
 import { applySubclassAbilityMods, getAbilityDamageMultiplier } from './passives';
 
@@ -404,9 +410,11 @@ function rollMonsterAttack(
   // Effective DEF routes through the shared helper so the class DEF multiplier
   // and monster armor-pierce stay consistent with every other combat path.
   const effectiveDef = effectivePlayerDefenseVsMonster(character, monster, playerDefFailed);
-  const rawMonsterDamage = monsterRoll + monster.attack;
-  const monsterDamage = playerDefFailed
-    ? rawMonsterDamage
-    : Math.max(0, rawMonsterDamage - effectiveDef);
+  const monsterDamage = incomingMonsterDamage(
+    character,
+    monster,
+    monsterRoll + monster.attack,
+    effectiveDef,
+  );
   return { monsterDamage, playerDefFailed };
 }

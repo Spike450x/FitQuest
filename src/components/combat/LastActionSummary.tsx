@@ -31,6 +31,9 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
         {(entry.monsterDamage ?? 0) > 0 && (
           <p className="text-red-500">
             Monster hit for {entry.monsterDamage} dmg
+            {entry.monsterAttackType === 'magic' && (
+              <span className="text-violet-500"> · 🔮 magic</span>
+            )}
             {entry.playerDefFailed ? (
               <span className="text-orange-500 font-semibold"> · 💥 Your DEF failed!</span>
             ) : (
@@ -108,6 +111,9 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
         {(entry.monsterDamage ?? 0) > 0 && (
           <p className="text-red-500">
             Monster hit back for {entry.monsterDamage} dmg
+            {entry.monsterAttackType === 'magic' && (
+              <span className="text-violet-500"> · 🔮 magic</span>
+            )}
             {entry.playerDefFailed ? (
               <span className="text-orange-500 font-semibold"> · 💥 Your DEF failed!</span>
             ) : (
@@ -182,6 +188,9 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
         {(entry.monsterDamage ?? 0) > 0 && (
           <p className="text-red-500">
             Monster hit back for {entry.monsterDamage} dmg
+            {entry.monsterAttackType === 'magic' && (
+              <span className="text-violet-500"> · 🔮 magic</span>
+            )}
             {entry.playerDefFailed ? (
               <span className="text-orange-500 font-semibold"> · 💥 Your DEF failed!</span>
             ) : (
@@ -260,6 +269,9 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
       {(entry.monsterDamage ?? 0) > 0 && (
         <p className="text-red-500">
           Monster hit back for {entry.monsterDamage} dmg
+          {entry.monsterAttackType === 'magic' && (
+            <span className="text-violet-500"> · 🔮 magic</span>
+          )}
           {entry.playerDefFailed ? (
             <span className="text-orange-500 font-semibold"> · 💥 Your DEF failed!</span>
           ) : (

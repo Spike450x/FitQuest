@@ -5,7 +5,7 @@ import { useCharacter } from '@/hooks/useCharacter';
 import { CharacterCard } from '@/components/character/CharacterCard';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { CLASS_DEFINITIONS, COMBAT } from '@/lib/gameLogic/constants';
+import { CLASS_DAMAGE_TAKEN, CLASS_DEFINITIONS, COMBAT } from '@/lib/gameLogic/constants';
 import { classDodgeChance } from '@/lib/gameLogic/combat';
 import {
   StrengthIcon,
@@ -36,6 +36,7 @@ export default function CharacterPage() {
   const isRogue = character.class === 'rogue';
   const isWizard = character.class === 'wizard';
   const dodgePct = Math.round(classDodgeChance(character) * 100);
+  const magicTaken = CLASS_DAMAGE_TAKEN[character.class].magic;
 
   // What each stat actually drives in combat — paired with the (now real)
   // class multiplier so the sheet matches the mechanics.
@@ -48,9 +49,9 @@ export default function CharacterPage() {
       effect: isRogue ? 'Escape rolls & dodge chance' : 'Escape rolls',
     },
     { key: 'spirit', label: 'Spirit', effect: 'Spell & ability crit' },
-    { key: 'stamina', label: 'Stamina', effect: 'Max HP & ability pool' },
+    { key: 'stamina', label: 'Stamina', effect: 'Ability pool (+ some HP)' },
     { key: 'health', label: 'Health', effect: 'Max HP' },
-    { key: 'defense', label: 'Defense', effect: 'Monster damage taken' },
+    { key: 'defense', label: 'Defense', effect: 'Physical damage taken' },
   ];
 
   return (
@@ -122,6 +123,36 @@ export default function CharacterPage() {
                 </p>
               </div>
             )}
+            {magicTaken !== 1 && (
+              <div
+                className={`rounded-lg px-3 py-2 border ${
+                  magicTaken > 1
+                    ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-100 dark:border-rose-900'
+                    : 'bg-sky-50 dark:bg-sky-950/40 border-sky-100 dark:border-sky-900'
+                }`}
+              >
+                <p
+                  className={`text-sm font-medium ${
+                    magicTaken > 1
+                      ? 'text-rose-700 dark:text-rose-300'
+                      : 'text-sky-700 dark:text-sky-300'
+                  }`}
+                >
+                  🔮 {magicTaken > 1 ? 'Weak to Magic' : 'Magic Ward'}
+                </p>
+                <p
+                  className={`text-xs ${
+                    magicTaken > 1
+                      ? 'text-rose-600/80 dark:text-rose-400/80'
+                      : 'text-sky-600/80 dark:text-sky-400/80'
+                  }`}
+                >
+                  {magicTaken > 1
+                    ? `Take ${Math.round((magicTaken - 1) * 100)}% more damage from magic attacks (they ignore your armor).`
+                    : `Take ${Math.round((1 - magicTaken) * 100)}% less damage from magic attacks.`}
+                </p>
+              </div>
+            )}
             <div className="rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900 px-3 py-2">
               <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
                 ⭐ {character.subclass ? 'Subclass active' : 'Subclass at level 10'}
@@ -164,8 +195,8 @@ export default function CharacterPage() {
                 label: 'Stamina',
                 desc: (
                   <>
-                    Increases from cardio and training. Raises your max HP <em>and</em> your ability
-                    stamina pool — more uses of your class abilities per fight.
+                    Increases from cardio and training. Drives your <em>ability stamina pool</em> —
+                    more uses of your class abilities per fight — and adds a little max HP.
                   </>
                 ),
               },
@@ -173,7 +204,7 @@ export default function CharacterPage() {
                 Icon: HealthIcon,
                 color: 'text-pink-500',
                 label: 'Health',
-                desc: 'Increases from sleep and hydration. Raises max HP.',
+                desc: 'Increases from sleep and hydration. Your primary max-HP stat.',
               },
               {
                 Icon: DefenseIcon,

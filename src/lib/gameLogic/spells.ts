@@ -1,5 +1,10 @@
 import type { SpellDiceRequirement, SpellEffect, ItemRarity } from '@/types';
-import { effectiveStat, effectivePlayerDefenseVsMonster, rollD10 } from './combat';
+import {
+  effectiveStat,
+  effectivePlayerDefenseVsMonster,
+  incomingMonsterDamage,
+  rollD10,
+} from './combat';
 import { COMBAT } from './constants';
 import type { Character, MonsterDef } from '@/types';
 import { applySpellDamagePassives } from './passives';
@@ -174,7 +179,12 @@ export function resolveSpell(
     const effectiveDef = playerDefFailed
       ? 0
       : effectivePlayerDefenseVsMonster(character, monster, false) + defenseBoost;
-    monsterDamage = Math.max(COMBAT.MIN_DAMAGE, monster.attack + monsterRoll - effectiveDef);
+    monsterDamage = incomingMonsterDamage(
+      character,
+      monster,
+      monster.attack + monsterRoll,
+      effectiveDef,
+    );
   }
 
   return {

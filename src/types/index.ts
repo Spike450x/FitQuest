@@ -500,6 +500,8 @@ export interface MonsterDef {
   hp: number;
   attack: number;
   defense: number;
+  /** Damage school of the monster's attacks (mitigation differs per class). Defaults to 'physical'. */
+  attackType?: 'physical' | 'magic';
   xpReward: number;
   goldReward: number;
   lootTable: Array<{ itemId: string; chance: number }>;

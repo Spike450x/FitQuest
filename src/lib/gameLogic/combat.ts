@@ -1,4 +1,4 @@
-import { COMBAT, CLASS_DEFINITIONS } from './constants';
+import { COMBAT, CLASS_DEFINITIONS, CLASS_DAMAGE_TAKEN } from './constants';
 import { getItemById } from './items';
 import type { Character, EquippedGear, MonsterDef, Stats } from '@/types';
 import {
@@ -191,6 +191,31 @@ export function effectivePlayerDefenseVsMonster(
 }
 
 /**
+ * Final monster→player damage for a single hit, before combat passives and the
+ * Rogue dodge (those run later in `resolveRoundOutcome`).
+ *
+ * - **Physical** attacks are reduced by `effectiveDef` (effective DEF + gear).
+ * - **Magic** attacks ignore armor entirely — the design point that makes
+ *   high-DEF Warriors fear casters and rewards the Wizard's arcane wards.
+ *
+ * The mitigated value is then scaled by the class's per-school damage-taken
+ * multiplier (`CLASS_DAMAGE_TAKEN`) and floored at `MIN_DAMAGE`. Callers supply
+ * `effectiveDef` because each path already computes it (including the spell
+ * ward and the defense-bypassing free attack, which pass 0).
+ */
+export function incomingMonsterDamage(
+  character: Pick<Character, 'class'>,
+  monster: MonsterDef,
+  rawAttack: number,
+  effectiveDef: number,
+): number {
+  const type = monster.attackType ?? 'physical';
+  const mult = CLASS_DAMAGE_TAKEN[character.class][type];
+  const mitigated = type === 'magic' ? rawAttack : Math.max(0, rawAttack - effectiveDef);
+  return Math.max(COMBAT.MIN_DAMAGE, Math.round(mitigated * mult));
+}
+
+/**
  * Returns the flat stamina drain from a monster's `siphon` passive, applied
  * when the monster lands a hit on the player. Zero for any other passive.
  */
@@ -347,7 +372,12 @@ export function calculateRound(
   // passive reduces what gets through.
   const playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
   const effectivePlayerDef = effectivePlayerDefenseVsMonster(character, monster, playerDefFailed);
-  const monsterDamage = Math.max(COMBAT.MIN_DAMAGE, monster.attack - effectivePlayerDef);
+  const monsterDamage = incomingMonsterDamage(
+    character,
+    monster,
+    monster.attack,
+    effectivePlayerDef,
+  );
 
   return {
     roll,
@@ -445,7 +475,7 @@ export function rollRunAway(
     // Failed escape: monster gets a free hit (armor-pierce applies).
     playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
     const effectivePlayerDef = effectivePlayerDefenseVsMonster(character, monster, playerDefFailed);
-    monsterDamage = Math.max(COMBAT.MIN_DAMAGE, monster.attack - effectivePlayerDef);
+    monsterDamage = incomingMonsterDamage(character, monster, monster.attack, effectivePlayerDef);
   }
 
   return { playerRoll, agilityBonus, monsterRoll, escaped, monsterDamage, playerDefFailed };

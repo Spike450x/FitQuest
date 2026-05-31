@@ -40,6 +40,8 @@ export interface RoundEntry {
   staminaCost?: number;
   /** Rogue dodged this round's monster hit — damage fully negated. */
   dodged?: boolean;
+  /** Damage school of the monster's counter-attack this round (for the log tag). */
+  monsterAttackType?: 'physical' | 'magic';
   // spell cast
   spellName?: string;
   spellDice?: number[];
@@ -165,6 +167,8 @@ export interface PendingSpell {
   monsterStunned: boolean;
   /** Actual damage dealt to the player by the counter-attack (0 if stunned). */
   monsterDamage: number;
+  /** Rogue dodged the counter-attack — damage fully negated (overrides monsterDamage display). */
+  dodged?: boolean;
   applyResult: () => Promise<void>;
 }
 

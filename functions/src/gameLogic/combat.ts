@@ -6,8 +6,8 @@ import { GEAR_STAT_BONUSES } from './items';
 
 // ─── COMBAT constants (inlined from src/lib/gameLogic/constants.ts) ───────────
 const BASE_HP = 50;
-const HP_PER_STAMINA = 2;
-const HP_PER_HEALTH = 1;
+const HP_PER_STAMINA = 1;
+const HP_PER_HEALTH = 2;
 const BASE_STAMINA = 20;
 const STAMINA_PER_STAT = 5;
 const BASE_MAGIC = 20;
@@ -21,9 +21,9 @@ const WIZARD_MAGIC_BONUS = 10;
 // PARITY: must match src/lib/gameLogic/constants.ts → CLASS_DEFINITIONS.
 const CLASS_POOL_MULTIPLIERS: Record<string, { stamina: number; health: number; wisdom: number }> =
   {
-    warrior: { stamina: 1.2, health: 1.0, wisdom: 0.8 },
-    wizard: { stamina: 1.0, health: 1.2, wisdom: 1.5 },
-    rogue: { stamina: 1.5, health: 0.8, wisdom: 1.0 },
+    warrior: { stamina: 1.1, health: 1.2, wisdom: 0.8 },
+    wizard: { stamina: 0.95, health: 1.0, wisdom: 1.4 },
+    rogue: { stamina: 1.4, health: 0.9, wisdom: 1.0 },
   };
 
 /** Effective (class-scaled) stat value, floored at 0. Mirrors client `effectiveStat`. */

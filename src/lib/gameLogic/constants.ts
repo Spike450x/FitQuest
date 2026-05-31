@@ -27,12 +27,12 @@ export const CLASS_DEFINITIONS: Record<
       spirit: 3,
     },
     statMultipliers: {
-      strength: 1.5,
-      stamina: 1.2,
-      agility: 0.8,
-      health: 1.0,
+      strength: 1.4,
+      stamina: 1.1,
+      agility: 0.85,
+      health: 1.2,
       wisdom: 0.8,
-      defense: 1.5,
+      defense: 1.35,
       spirit: 0.9,
     },
   },
@@ -54,12 +54,12 @@ export const CLASS_DEFINITIONS: Record<
     },
     statMultipliers: {
       strength: 0.8,
-      stamina: 1.0,
+      stamina: 0.95,
       agility: 1.0,
-      health: 1.2,
-      wisdom: 1.5,
-      defense: 0.7,
-      spirit: 1.2,
+      health: 1.0,
+      wisdom: 1.4,
+      defense: 0.8,
+      spirit: 1.25,
     },
   },
   rogue: {
@@ -78,14 +78,30 @@ export const CLASS_DEFINITIONS: Record<
     },
     statMultipliers: {
       strength: 1.2,
-      stamina: 1.5,
-      agility: 1.5,
-      health: 0.8,
+      stamina: 1.4,
+      agility: 1.4,
+      health: 0.9,
       wisdom: 1.0,
-      defense: 1.2,
+      defense: 1.05,
       spirit: 1.1,
     },
   },
+};
+
+/**
+ * Per-class incoming-damage multiplier by damage school. This is the **magic
+ * axis** of the combat triangle: physical damage is already governed entirely
+ * by effective DEF (so the Warrior's high DEF / Wizard's low DEF do the work
+ * there — no extra physical multiplier, which would double-penalize the
+ * Wizard). Magic, by contrast, **ignores armor**, so this table is where it
+ * gets its texture: the high-DEF Warrior fears casters (×1.3), the Wizard's
+ * arcane wards shrug magic off (×0.75), and the Rogue is neutral (it leans on
+ * dodge instead). 1.0 = neutral. Tunable via the balance model.
+ */
+export const CLASS_DAMAGE_TAKEN: Record<CharacterClass, { physical: number; magic: number }> = {
+  warrior: { physical: 1.0, magic: 1.3 },
+  wizard: { physical: 1.0, magic: 0.75 },
+  rogue: { physical: 1.0, magic: 1.0 },
 };
 
 // ─── Activity Definitions ─────────────────────────────────────────────────────
@@ -231,10 +247,14 @@ export function statCap(stat: keyof import('@/types').Stats, level: number): num
 export const COMBAT = {
   /** Base HP before stamina/health bonuses. */
   BASE_HP: 50,
-  /** HP gained per point of stamina. */
-  HP_PER_STAMINA: 2,
-  /** HP gained per point of health. */
-  HP_PER_HEALTH: 1,
+  /**
+   * HP gained per point of stamina. Health is the primary HP stat (×2); stamina
+   * contributes a smaller amount and mainly drives the ability pool. This split
+   * keeps the Rogue's high Stamina multiplier from doubling as a tankiness buff.
+   */
+  HP_PER_STAMINA: 1,
+  /** HP gained per point of health — the primary max-HP stat. */
+  HP_PER_HEALTH: 2,
   /** RNG range added to attack rolls (d10). */
   ATTACK_RNG_MIN: 1,
   ATTACK_RNG_MAX: 10,

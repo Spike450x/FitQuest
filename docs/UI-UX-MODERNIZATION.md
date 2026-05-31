@@ -12,6 +12,12 @@
 > a teal "💨 Dodged!" line in `BattleLogEntry`, `LastActionSummary`, and the `ActionRollOverlay`
 > result panel (driven by the new `dodged` round-log / pending field).
 
+> **2026-05-31 — Damage-type surfacing (balance pass).** Monster attacks now carry a
+> physical/magic school. `MonsterCard` shows a 🔮 Magic / ⚔️ Physical chip (magic ignores armor),
+> the combat log + `LastActionSummary` tag magic counter-hits with "🔮 magic", the
+> `SpellRollOverlay` honors Rogue dodge, and the character sheet gains a Weak-to-Magic /
+> Magic-Ward perk callout for classes whose magic mitigation isn't neutral.
+
 ## TL;DR
 
 FitQuest is currently a competent admin dashboard with RPG content pasted on top. The combat dice/floating-damage system is genuinely impressive, but everything around it — victory modals, level-ups, quest claims, loot reveals — is flat. `framer-motion`, `canvas-confetti`, `sonner`, and `lucide-react` are already installed; the visual identity push just hasn't happened yet.

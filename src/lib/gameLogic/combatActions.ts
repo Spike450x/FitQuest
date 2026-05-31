@@ -25,6 +25,7 @@ import type {
 import {
   calculateRound,
   effectiveStat,
+  incomingMonsterDamage,
   monsterArmorPierce,
   monsterSiphonAmount,
   resolveRoundOutcome,
@@ -426,6 +427,8 @@ export function resolveAttackAction(
     monsterSummonAddHp: summonAddHp > 0 ? summonAddHp : undefined,
     monsterDotDamage: pre.dotDamage > 0 ? pre.dotDamage : undefined,
     dodged: roundResult.dodged || undefined,
+    monsterAttackType:
+      actualMonsterDamage > 0 ? (stateForRound.monster.attackType ?? 'physical') : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -651,6 +654,8 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     spiritCrit: abilityCrit.crit || undefined,
     spiritCritMultiplier: abilityCrit.crit ? abilityCrit.multiplier : undefined,
     dodged: roundResult.dodged || undefined,
+    monsterAttackType:
+      actualMonsterDamage > 0 ? (stateForRound.monster.attackType ?? 'physical') : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -872,6 +877,8 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     monsterSummonAddHp: summonAddHp > 0 ? summonAddHp : undefined,
     monsterDotDamage: pre.dotDamage > 0 ? pre.dotDamage : undefined,
     dodged: roundResult.dodged || undefined,
+    monsterAttackType:
+      actualMonsterDamage > 0 ? (stateForRound.monster.attackType ?? 'physical') : undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -903,6 +910,7 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
         monsterRoll: resolution.monsterRoll,
         monsterStunned: resolution.monsterStunned,
         monsterDamage: resolution.monsterDamage,
+        dodged: roundResult.dodged || undefined,
       },
     },
   };
@@ -934,9 +942,13 @@ function resolveRecoveryAction(input: ActionInput, type: 'rest' | 'meditate'): A
   const effectiveMonster =
     input.modifiers?.effectiveMonster?.(baseRecoveryMonster, state) ?? baseRecoveryMonster;
   const monsterRoll = Math.ceil(Math.random() * 10);
-  // Rogue dodge applies even to the free recovery-window hit.
+  // Rogue dodge applies even to the free recovery-window hit. The free attack
+  // bypasses player defense (effDef = 0) but the damage-school multiplier still
+  // applies via incomingMonsterDamage.
   const dodged = rollClassDodge(character);
-  const monsterDamage = dodged ? 0 : Math.max(1, effectiveMonster.attack + monsterRoll);
+  const monsterDamage = dodged
+    ? 0
+    : incomingMonsterDamage(character, effectiveMonster, effectiveMonster.attack + monsterRoll, 0);
   const newPlayerHp = Math.max(0, state.playerHp - monsterDamage);
   const lossOutcome: 'loss' | null = newPlayerHp === 0 ? 'loss' : null;
 
@@ -951,6 +963,7 @@ function resolveRecoveryAction(input: ActionInput, type: 'rest' | 'meditate'): A
     recoveredMagic,
     monsterDamage,
     dodged: dodged || undefined,
+    monsterAttackType: monsterDamage > 0 ? (effectiveMonster.attackType ?? 'physical') : undefined,
     playerHpAfter: newPlayerHp,
     monsterHpAfter: state.monsterHp,
   };
@@ -1039,6 +1052,8 @@ export function resolveFleeAction(input: ActionInput): ActionResolution {
     monsterRunRoll: monsterRoll,
     monsterDamage: effectiveMonsterDamage,
     dodged: dodged || undefined,
+    monsterAttackType:
+      effectiveMonsterDamage > 0 ? (state.monster.attackType ?? 'physical') : undefined,
     playerDefFailed,
     playerHpAfter: newPlayerHp,
     monsterHpAfter: state.monsterHp,

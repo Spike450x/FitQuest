@@ -15,6 +15,15 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-31 — Combat & class balance pass + physical/magic damage types
+
+- **HP formula flipped to Health-primary** — `HP = 50 + STA×1 + HEALTH×2` (was `STA×2 + HEALTH×1`). Stamina now drives the ability pool and Health is the real max-HP stat, so the Rogue's high Stamina multiplier no longer doubles as tankiness. Mirrored in the Cloud Function pool copy (parity-tested per class).
+- **Class multiplier matrix compressed** — extremes pulled toward 1.0 (1.5→1.35–1.4, 0.7→0.8) and the Rogue rebuilt around dodge + abilities with low Health as its real weakness. Closes the "Rogue has no weakness / players outscale monsters" gaps from `/balance-check`.
+- **Physical/magic damage types** — new `MonsterDef.attackType` (`'physical' | 'magic'`, default physical); casters/elementals (Dark Mage, Lich King, Frost Wraith, Ashwyrm, Void Revenant, plus the Necromancer boss) tagged magic. New `incomingMonsterDamage` helper centralizes every monster→player hit: physical is reduced by effective DEF, **magic ignores armor** and is scaled by a new per-class `CLASS_DAMAGE_TAKEN` table (Warrior ×1.3 magic = fears casters, Wizard ×0.75 = arcane ward, Rogue neutral). Surfaced as a 🔮/⚔️ tag on the monster card and combat log, and a Weak-to-Magic / Magic-Ward callout on the character sheet.
+- **Monsters retuned** to the new player-power baseline (mid/late ATK + HP bumps, magic-type ATK against the no-armor path); economy/XP curves unchanged.
+- **New balance-model test** (`balanceModel.test.ts`) — per-class pools + kill-rounds + damage-taken at L1/L10/L20 as a calibration tool and regression guard. Also: Rogue dodge now surfaces in the spell-roll overlay (closes the PR #170 gap).
+- Why: the PR #170 multipliers were never play-tested as live mechanics; this tunes them, fixes the Stamina/HP double-dip, and gives the magic axis real texture. Bands are intentionally generous — the model guards against gross breakage, not false precision.
+
 ## 2026-05-31 — Class stat multipliers made real + combat affinities + Rogue dodge
 
 - **Class stat multipliers are now applied.** The per-class `statMultipliers` (Warrior STR ×1.5, Wizard DEF ×0.7, Rogue AGI/STA ×1.5, …) shown on the character sheet were pure decoration — nothing consumed them. New `effectiveStat(character, statKey)` in `combat.ts` (`floor(base × multiplier)`) is now the single source of truth, threaded through every combat and resource-pool formula: outgoing damage (STR/WIS), incoming "weak to physical" (DEF), escape (AGI), spell/ability crit (Spirit), and max HP/Stamina/Magic (STA/HEALTH/WIS). Gear bonuses stay flat.

@@ -43,6 +43,7 @@ export function BattleLogEntry({
             <p>
               <span className="text-red-500">
                 {emoji} hit for {entry.monsterDamage} dmg
+                {entry.monsterAttackType === 'magic' && ' 🔮'}
               </span>
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
@@ -91,6 +92,7 @@ export function BattleLogEntry({
             <p>
               <span className="text-red-500">
                 {emoji} hit for {entry.monsterDamage} dmg
+                {entry.monsterAttackType === 'magic' && ' 🔮'}
               </span>
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
@@ -140,6 +142,7 @@ export function BattleLogEntry({
             <p>
               <span className="text-red-500">
                 {emoji} hit for {entry.monsterDamage} dmg
+                {entry.monsterAttackType === 'magic' && ' 🔮'}
               </span>
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
@@ -212,6 +215,7 @@ export function BattleLogEntry({
             <p>
               <span className="text-red-500">
                 {emoji} hit for {entry.monsterDamage} dmg
+                {entry.monsterAttackType === 'magic' && ' 🔮'}
               </span>
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
