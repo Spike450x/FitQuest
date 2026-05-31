@@ -18,6 +18,16 @@
 > `SpellRollOverlay` honors Rogue dodge, and the character sheet gains a Weak-to-Magic /
 > Magic-Ward perk callout for classes whose magic mitigation isn't neutral.
 
+> **2026-05-31 — Combat overlay consistency pass.** The three roll overlays are now dispatched
+> through one `CombatOverlays` component mounted by every combat surface (arena, dungeon run,
+> wanted hunt), replacing a copy-pasted block per page. The **ability overlay (`DiceRollOverlay`)
+> finally shows the monster counter-attack** it always lacked — a new shared `MonsterCounterPanel`
+> (also used by `SpellRollOverlay`) renders the enemy strike with a consistent vocabulary:
+> 😵 stun, 💨 dodge, 🔮/⚔️ damage-type tag (magic shows "ignores armor", no DEF subtraction),
+> 💥 DEF-fail, and 🏆 slain on a kill. A shared `CritFlourish` (✦ Spirit Crit) now surfaces Spirit
+> crits on attacks, abilities, and spells alike. `CombatActionBar` formula sublabels (Attack /
+> Magic / Run) were corrected to use `effectiveStat`, matching the live post-PR #170 math.
+
 ## TL;DR
 
 FitQuest is currently a competent admin dashboard with RPG content pasted on top. The combat dice/floating-damage system is genuinely impressive, but everything around it — victory modals, level-ups, quest claims, loot reveals — is flat. `framer-motion`, `canvas-confetti`, `sonner`, and `lucide-react` are already installed; the visual identity push just hasn't happened yet.

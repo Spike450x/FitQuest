@@ -77,9 +77,7 @@ import { getSubclassDef } from '@/lib/gameLogic/passives';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Card } from '@/components/ui/Card';
 import { CombatArena } from '@/components/combat/CombatArena';
-import { ActionRollOverlay } from '@/components/combat/overlays/ActionRollOverlay';
-import { DiceRollOverlay } from '@/components/combat/overlays/DiceRollOverlay';
-import { SpellRollOverlay } from '@/components/combat/overlays/SpellRollOverlay';
+import { CombatOverlays } from '@/components/combat/CombatOverlays';
 import { BattleResultsModal } from '@/components/combat/BattleResultsModal';
 import { MonsterCard, MONSTER_EMOJI } from '@/components/combat/MonsterCard';
 import { AbilityReference } from '@/components/combat/AbilityReference';
@@ -700,33 +698,7 @@ function CombatPageBody({ character }: { character: Character }) {
         )}
 
         {/* Overlays */}
-        {pending.action && (
-          <ActionRollOverlay
-            pending={pending.action}
-            monster={monster}
-            playerDefStat={playerDefStat}
-          />
-        )}
-        {pending.ability && (
-          <DiceRollOverlay
-            dice={pending.ability.dice}
-            pattern={pending.ability.pattern}
-            ability={pending.ability.ability}
-            formulaBreakdown={pending.ability.formulaBreakdown}
-            onDismiss={pending.ability.applyResult}
-          />
-        )}
-        {pending.spell && (
-          <SpellRollOverlay
-            spellDef={pending.spell.spellDef}
-            dice={pending.spell.dice}
-            requirementMet={pending.spell.requirementMet}
-            monsterRoll={pending.spell.monsterRoll}
-            monsterStunned={pending.spell.monsterStunned}
-            monsterDamage={pending.spell.monsterDamage}
-            onDismiss={pending.spell.applyResult}
-          />
-        )}
+        <CombatOverlays pending={pending} monster={monster} playerDefStat={playerDefStat} />
 
         {/* Collapsible ability guide */}
         <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">

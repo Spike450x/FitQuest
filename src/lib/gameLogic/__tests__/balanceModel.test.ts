@@ -22,6 +22,8 @@ import {
   playerMaxStamina,
   playerMaxMagic,
   classDodgeChance,
+  spellCritChance,
+  spellCritDamage,
 } from '../combat';
 import { CLASS_DAMAGE_TAKEN, COMBAT } from '../constants';
 import { getMonsterById } from '../monsters';
@@ -85,7 +87,11 @@ function avgPlayerDamage(char: Character, monster: MonsterDef): number {
   const basic = Math.max(COMBAT.MIN_DAMAGE, offense + avgRoll - effMonDef);
   // Ability blend: avg 6d6 base (~4) + stat, ×1.7 blended multiplier, partial DEF.
   const ability = Math.max(COMBAT.MIN_DAMAGE, (4 + offense) * 1.7 - monster.defense * 0.4);
-  return Math.max(basic, ability);
+  // Spirit crit applies to attacks, abilities, and spells — fold its expected
+  // value in so the model mirrors the live damage path (small at low Spirit).
+  const spirit = effectiveStat(char, 'spirit');
+  const critEv = 1 + spellCritChance(spirit) * (spellCritDamage(spirit) - 1);
+  return Math.max(basic, ability) * critEv;
 }
 
 /** Average monster counter-attack damage to the player, including damage-school + dodge. */

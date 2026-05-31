@@ -15,6 +15,18 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-31 — Combat overlay consistency + meditate/attack crit fixes
+
+- **Unified roll overlays across all three combat surfaces** — new `CombatOverlays` dispatch component replaces the copy-pasted action/ability/spell overlay block in the arena, dungeon-run, and wanted-hunt pages, so every surface renders identically and future overlay changes are single-touch.
+- **Ability overlay now shows the monster counter-attack** — the `DiceRollOverlay` gained a monster-counter phase (roll, damage, stun/dodge/DEF-fail/crit tags) it never had, so abilities now read with the same dice → result → enemy-strike rhythm as attacks and spells. New shared `MonsterCounterPanel` + `CritFlourish` back the ability and spell overlays.
+- **Magic counters display correctly everywhere** — magic monster hits now show `🔮 · ignores armor` (no DEF subtraction) in the action/spell/ability overlays, matching the log and `LastActionSummary`.
+- **Meditate uses effective wisdom** — magic restore now scales by `effectiveStat(character, 'wisdom')`, so a Wizard's WIS multiplier finally boosts meditation (it previously used the raw stat — the only combat formula that didn't).
+- **Basic attacks can Spirit-crit** — `resolveAttackAction` now rolls `rollSpellCrit` like abilities and spells do; a high-Spirit build sees occasional `✦ Spirit Crit` on basic attacks. Client-only; the balance-model offense now folds in crit EV so it stays an honest mirror.
+- **Action-bar formula labels corrected** — Attack/Magic/Run sublabels were computing their stat bonus from raw stats; they now use `effectiveStat`, matching the live damage/escape math post-PR #170.
+- Why: a consistency + accuracy pass over combat — the ability overlay hiding the counter and the meditate/label using raw stats were the last places the UI disagreed with the engine.
+
+---
+
 ## 2026-05-31 — Combat & class balance pass + physical/magic damage types
 
 - **HP formula flipped to Health-primary** — `HP = 50 + STA×1 + HEALTH×2` (was `STA×2 + HEALTH×1`). Stamina now drives the ability pool and Health is the real max-HP stat, so the Rogue's high Stamina multiplier no longer doubles as tankiness. Mirrored in the Cloud Function pool copy (parity-tested per class).

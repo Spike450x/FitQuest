@@ -5,6 +5,7 @@ import { Die3D } from '@/components/ui/Die3D';
 import { playSound } from '@/hooks/useSound';
 import type { AbilityDef, DicePattern } from '@/lib/gameLogic/abilities';
 import { getHighlightedDiceIndices, PATTERN_LABEL, abilityTags } from '../AbilityReference';
+import { MonsterCounterPanel, CritFlourish } from './MonsterCounterPanel';
 
 /**
  * Ability roll overlay — animates 6d6 then reveals matched pattern (or fizzle).
@@ -25,6 +26,15 @@ export function DiceRollOverlay({
   pattern,
   ability,
   formulaBreakdown,
+  monsterRoll,
+  monsterDamage,
+  monsterStunned,
+  dodged,
+  monsterAttackType,
+  playerDefFailed,
+  spiritCrit,
+  spiritCritMultiplier,
+  outcome,
   onDismiss,
 }: {
   dice: number[];
@@ -32,6 +42,24 @@ export function DiceRollOverlay({
   ability: AbilityDef | null;
   /** Damage formula intermediates — shown when an ability hit resolves. */
   formulaBreakdown?: FormulaBreakdown;
+  /** Monster's raw d10 counter-attack roll (0 when stunned). */
+  monsterRoll: number;
+  /** Actual damage the monster dealt to the player (0 if stunned/dodged). */
+  monsterDamage: number;
+  /** True when the ability stunned the monster, skipping the counter. */
+  monsterStunned: boolean;
+  /** Rogue dodged the counter-attack — damage fully negated. */
+  dodged?: boolean;
+  /** Damage school of the monster's counter (drives the 🔮/⚔️ tag). */
+  monsterAttackType?: 'physical' | 'magic';
+  /** Player's DEF failed on the counter (physical only). */
+  playerDefFailed?: boolean;
+  /** Spirit crit fired on the ability's damage. */
+  spiritCrit?: boolean;
+  /** Multiplier applied when spiritCrit fired. */
+  spiritCritMultiplier?: number;
+  /** Fight outcome after this round resolves. */
+  outcome?: 'win' | 'loss' | null;
   onDismiss: () => Promise<void>;
 }) {
   const [phase, setPhase] = useState<'spinning' | 'settling' | 'result'>('spinning');
@@ -207,6 +235,25 @@ export function DiceRollOverlay({
               )}
             </div>
           )}
+
+          {spiritCrit && (
+            <div className="mt-2">
+              <CritFlourish multiplier={spiritCritMultiplier} />
+            </div>
+          )}
+
+          {/* Monster counter-attack — same panel the spell overlay uses */}
+          <div className="mt-3">
+            <MonsterCounterPanel
+              monsterRoll={monsterRoll}
+              monsterDamage={monsterDamage}
+              monsterStunned={monsterStunned}
+              dodged={dodged}
+              monsterAttackType={monsterAttackType}
+              playerDefFailed={playerDefFailed}
+              outcome={outcome}
+            />
+          </div>
 
           <button
             onClick={handleDismiss}

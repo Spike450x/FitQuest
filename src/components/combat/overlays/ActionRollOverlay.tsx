@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Die3D } from '@/components/ui/Die3D';
+import { CritFlourish } from './MonsterCounterPanel';
 import type { MonsterDef } from '@/types';
 import type { PendingAction } from '../types';
 
@@ -109,6 +110,7 @@ export function ActionRollOverlay({
   const isMonsterPhase = phase === 'monster_spin' || phase === 'monster_result';
   const isWin = pending.outcome === 'win';
   const isLoss = pending.outcome === 'loss';
+  const isMagicMonster = (monster.attackType ?? 'physical') === 'magic';
 
   const headerText = isRun
     ? phase === 'run_spin'
@@ -207,7 +209,9 @@ export function ActionRollOverlay({
               <p className="text-sm text-gray-500 dark:text-slate-400">
                 Monster rolled higher — hit for{' '}
                 <span className="font-semibold text-red-500">{pending.monsterDamage} dmg</span>
-                {pending.playerDefFailed ? (
+                {isMagicMonster ? (
+                  <span className="text-violet-500"> · 🔮 magic (ignores armor)</span>
+                ) : pending.playerDefFailed ? (
                   <span className="text-orange-500"> · 💥 DEF failed</span>
                 ) : (
                   <span className="text-gray-400 dark:text-slate-500"> · 🛡️ DEF held</span>
@@ -217,8 +221,14 @@ export function ActionRollOverlay({
           ) : isMonsterPhase ? (
             <div className="space-y-2">
               <div className="flex items-center justify-center gap-2 flex-wrap">
-                <span className="font-semibold text-rose-500">⚔️ {monster.attack} ATK</span>
-                {isRecovery ? (
+                <span
+                  className={`font-semibold ${isMagicMonster ? 'text-violet-500' : 'text-rose-500'}`}
+                >
+                  {isMagicMonster ? '🔮' : '⚔️'} {monster.attack} ATK
+                </span>
+                {isMagicMonster ? (
+                  <span className="text-violet-400 font-semibold text-sm">· ignores armor</span>
+                ) : isRecovery ? (
                   <span className="text-orange-500 font-semibold text-sm">· 💥 Free attack!</span>
                 ) : pending.playerDefFailed ? (
                   <span className="text-orange-500 font-semibold text-sm">· 💥 DEF failed!</span>
@@ -302,6 +312,7 @@ export function ActionRollOverlay({
                 </span>
                 <span className="text-gray-400 dark:text-slate-500 text-sm">dmg</span>
               </div>
+              {pending.spiritCrit && <CritFlourish multiplier={pending.spiritCritMultiplier} />}
               {isWin && <p className="text-sm font-semibold text-emerald-600">🏆 Monster slain!</p>}
             </div>
           )}

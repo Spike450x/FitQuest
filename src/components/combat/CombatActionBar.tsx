@@ -2,7 +2,7 @@
 
 import { COMBAT } from '@/lib/gameLogic/constants';
 import { getSpellMaxCharges } from '@/lib/gameLogic/spells';
-import { gearAttackBonus } from '@/lib/gameLogic/combat';
+import { effectiveStat, gearAttackBonus } from '@/lib/gameLogic/combat';
 import {
   canBloodPact,
   getAbilityStaminaCost,
@@ -113,7 +113,9 @@ export function CombatActionBar({
           <ActionButton
             label="⚔️ Attack"
             sublabel={(() => {
-              const stat = Math.floor(character.stats.strength * COMBAT.STRENGTH_ATTACK_FACTOR);
+              const stat = Math.floor(
+                effectiveStat(character, 'strength') * COMBAT.STRENGTH_ATTACK_FACTOR,
+              );
               const gear = gearAttackBonus(character, 'attack');
               return gear > 0 ? `d10 + ${stat} STR + ${gear} gear` : `d10 + ${stat} STR`;
             })()}
@@ -126,7 +128,9 @@ export function CombatActionBar({
           <ActionButton
             label="🔮 Magic"
             sublabel={(() => {
-              const stat = Math.floor(character.stats.wisdom * COMBAT.WISDOM_ATTACK_FACTOR);
+              const stat = Math.floor(
+                effectiveStat(character, 'wisdom') * COMBAT.WISDOM_ATTACK_FACTOR,
+              );
               const gear = gearAttackBonus(character, 'magic');
               return gear > 0 ? `d10 + ${stat} WIS + ${gear} gear` : `d10 + ${stat} WIS`;
             })()}
@@ -141,7 +145,9 @@ export function CombatActionBar({
         <ActionButton
           label="⚔️ Attack"
           sublabel={(() => {
-            const stat = Math.floor(character.stats.strength * COMBAT.STRENGTH_ATTACK_FACTOR);
+            const stat = Math.floor(
+              effectiveStat(character, 'strength') * COMBAT.STRENGTH_ATTACK_FACTOR,
+            );
             const gear = gearAttackBonus(character, 'attack');
             return gear > 0 ? `d10 + ${stat} STR + ${gear} gear` : `d10 + ${stat} STR`;
           })()}
@@ -237,7 +243,9 @@ export function CombatActionBar({
           <ActionButton
             label="🏃 Run Away"
             sublabel={(() => {
-              const agi = Math.floor((character.stats.agility ?? 0) * COMBAT.AGILITY_ESCAPE_FACTOR);
+              const agi = Math.floor(
+                effectiveStat(character, 'agility') * COMBAT.AGILITY_ESCAPE_FACTOR,
+              );
               return agi > 0 ? `d10 + ${agi} AGI vs monster` : 'd10 vs monster to flee';
             })()}
             onClick={onFlee}
