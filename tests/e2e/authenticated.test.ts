@@ -55,8 +55,22 @@ test.describe('authenticated game screens — structure smoke tests', () => {
 
   test('profile renders heading', async ({ page }) => {
     await page.goto('/profile');
-    // Profile route's h1 is "Account Settings".
-    await expect(page.getByRole('heading', { name: /account settings/i })).toBeVisible({
+    // Profile route's h1 is "Profile" (settings/preferences moved to /settings).
+    await expect(page.getByRole('heading', { name: /^profile$/i })).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
+  test('settings renders heading', async ({ page }) => {
+    await page.goto('/settings');
+    await expect(page.getByRole('heading', { name: /^settings$/i })).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
+  test('calendar renders heading', async ({ page }) => {
+    await page.goto('/calendar');
+    await expect(page.getByRole('heading', { name: /activity calendar/i })).toBeVisible({
       timeout: 10_000,
     });
   });
@@ -89,6 +103,8 @@ test.describe('authenticated game screens — structure smoke tests', () => {
       '/combat',
       '/stats',
       '/profile',
+      '/settings',
+      '/calendar',
       '/collections',
     ]) {
       await page.goto(route);
