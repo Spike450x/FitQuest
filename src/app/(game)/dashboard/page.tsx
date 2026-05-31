@@ -7,6 +7,7 @@ import { useGameData } from '@/hooks/useGameData';
 import { XPBar } from '@/components/ui/XPBar';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { ReputationChip } from '@/components/ui/ReputationChip';
+import { resolveActiveTitle } from '@/lib/gameLogic/reputation';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -168,6 +169,9 @@ export default function DashboardPage() {
             <p className="text-indigo-600 text-sm mt-0.5 font-medium">
               Level {character.level} {subclassDef ? subclassDef.name : 'Adventurer'}
               {subclassDef && <span className="ml-1.5 text-violet-500">{subclassDef.emoji}</span>}
+            </p>
+            <p className="text-violet-600 dark:text-violet-300 text-xs mt-0.5 font-semibold italic">
+              “{resolveActiveTitle(character.lifetimeReputation ?? 0, character.activeTitle)}”
             </p>
             {/* Streak badge */}
             {currentStreak > 0 && (

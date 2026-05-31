@@ -15,6 +15,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-31 — Reputation rank-up celebration + title flair
+
+- **Rank-up celebration.** New `RankUpCelebration` component (mirrors `LevelUpCelebration`, mounted in the game layout) pops a violet cinematic modal — Award glyph, confetti, sound — when the player's Reputation rank advances a tier, announcing the newly-unlocked title. Baseline-on-first-observation guard avoids false-triggering on initial load.
+- **Title flair.** The equipped title (`resolveActiveTitle`) now shows under the character name on the dashboard hero card.
+- No new game-logic exports, schema, or rules; 958 tests still green.
+
 ## 2026-05-31 — Reputation progression: ranks ladder, titles, tracking
 
 - **Rank ladder + titles.** Each reputation rank now grants an equippable flavorful **title** (`ReputationRank.title`: Greenhorn → the Named → the Respected → Renowned Hunter → the Legendary). New `ReputationLadder` (all 5 tiers with thresholds, what each unlocks, locked/unlocked/current) and `ReputationTitles` (tap-to-equip locked/unlocked grid → `Character.activeTitle`). New pure helpers `unlockedRanks` / `isRankUnlocked` / `resolveActiveTitle`.
