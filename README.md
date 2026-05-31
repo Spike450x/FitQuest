@@ -695,7 +695,7 @@ src/
 ├── lib/
 │   └── gameLogic/
 │       ├── constants.ts     # COMBAT, RESTORE, LEVEL_UP, stat caps, XP formula, class/activity defs
-│       ├── items.ts         # Full item catalog (146 items: 40 weapons / 25 armor / 30 accessories / 16 consumables / 35 spells)
+│       ├── items.ts         # Full item catalog (149 items: 41 weapons / 26 armor / 31 accessories / 16 consumables / 35 spells)
 │       ├── monsters.ts      # MONSTER_CATALOG (21 monsters with loot tables, levels 1–14)
 │       ├── quests.ts        # DAILY_QUEST_POOL (61) + WEEKLY_QUEST_POOL (31)
 │       ├── rotation.ts      # Deterministic daily/weekly rotation via seeded LCG shuffle

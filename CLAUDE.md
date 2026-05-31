@@ -108,6 +108,8 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 - `npm run test:coverage` — coverage report via `@vitest/coverage-v8`
 - `npm run build` — production build. Catches everything above + build-time issues
 - `npm run start` — serve the built output
+- `npm run validate:docs` — verify headline counts in the docs (items, spells, monsters, achievements, item silhouettes) still match the source. Zero-dependency; runs in CI. Fails with the computed numbers when a doc has drifted — update the doc prose, not the script
+- `npm run validate:indexes` — validate `firestore.indexes.json` schema + required-index coverage
 - `npm run test:rules` — Firestore security-rules tests (requires Firebase emulator). Run via: `npx firebase emulators:exec --only firestore --project demo-fitness-rpg "npm run test:rules"`. **Java 11+ must be on `PATH`** — the emulator is a JVM process. Not needed for any other dev command.
 
 **Runtime:** CI runs on Node 24. Node 20/22 still work locally but are not tested in CI — prefer Node 24 to match.
@@ -225,13 +227,17 @@ Core game systems to keep internally consistent:
 | `docs/CHANGELOG.md`                 | Any meaningful change — **bundle in the same PR, never a follow-up**                        |
 | `docs/ARCHITECTURE.md`              | New `src/lib/` file, store, route, hook, or folder; new component pattern                   |
 | `docs/UI-UX-MODERNIZATION.md`       | UI component added or changed; dark-mode coverage changed; new design pattern established   |
-| `docs/GAME-LOGIC.md`                | New or changed exported function in `src/lib/gameLogic/`                                    |
+| `docs/GAME-LOGIC.md`                | New or changed exported function in `src/lib/gameLogic/`; catalog count changed             |
 | `docs/FIRESTORE.md`                 | Schema field added/removed, collection changed, index added/removed                         |
+| `docs/ART-ASSETS.md`                | Silhouette/icon added or changed; per-item art coverage changed                             |
 | `docs/CI.md`                        | CI workflow file changed; new test suite added; husky hooks changed                         |
+| `docs/DEPLOYMENT.md`                | New Cloud Function, secret, env var, or deploy-ordering change                              |
 | `docs/SMOKE-TEST.md`                | New manual verification steps are needed for a feature                                      |
 | Spec / design docs in `docs/`       | A spec item was implemented — mark it done and note any deviations from the original design |
 
 **Quick rule:** if you touched anything in `src/lib/`, `src/components/`, `src/store/`, `src/hooks/`, `tests/`, `functions/`, or `.github/` — at least one doc probably needs updating. When in doubt, update it. A doc PR is cheap; stale docs compound silently.
+
+**Count guard:** headline counts (items, spells, monsters, achievements, item silhouettes) are enforced by `npm run validate:docs` in CI — if you add content to `items.ts` / `monsters.ts` / `achievements.ts`, the build fails until the prose in README.md / GAME-LOGIC.md / ART-ASSETS.md is updated to match. Run it locally before opening the PR.
 
 ---
 

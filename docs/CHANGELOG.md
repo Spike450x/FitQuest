@@ -27,6 +27,8 @@ Docs-only pass — no code changes. Resynced every doc whose counts/lists drifte
 - **FIRESTORE.md** — `healthConnections` header Garmin → Strava/Garmin.
 - **CLAUDE.md** — added `combat`/`activity` stores + DEPLOYMENT/HEALTH-INTEGRATION/BUGS-ENHANCEMENTS to the key-paths lists; reworded the health "Active focus" (Strava-first, not Terra); bumped the status date.
 - **Specs** — marked combat-ui-polish and discord-ops-notifications as **Shipped** (both had stale "Approved" statuses).
+- **Accuracy recount** — every headline number was re-derived from source rather than carried over. Corrected the item catalog (the README's own comment said "146 / 40 / 25 / 30" — actual is **149 items: 41 weapons / 26 armor / 31 accessories / 16 consumables / 35 spells**) and the per-item art claim (not "all" items have unique silhouettes — **105 of 114 non-spell items** do; 9 early-tier weapons use the type fallback).
+- **Drift guard (best practice)** — new `scripts/validate-doc-counts.mjs` + `npm run validate:docs`, wired into CI (step 4b). Computes item / spell / monster / achievement / silhouette counts from source and fails the build if README.md / GAME-LOGIC.md / ART-ASSETS.md drift, anchored so historical CHANGELOG entries are never matched. CLAUDE.md's pre-PR documentation checklist gained rows for ART-ASSETS / DEPLOYMENT and a count-guard note.
 
 ## 2026-05-30 — Health-data integration scaffold (Strava + Garmin, free)
 

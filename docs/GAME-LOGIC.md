@@ -194,7 +194,7 @@ Largest file by export count. Read the source for the actual passive description
 | ----------------- | -------- | ------------------------------------------------------------------------------------------ |
 | `RARITY_BADGE`    | const    | Tailwind background-color classes per rarity (`common` → gray, `legendary` → orange/gold). |
 | `RARITY_TEXT`     | const    | Tailwind text-color classes per rarity.                                                    |
-| `ITEM_CATALOG`    | const    | Every item in the game — 146 after content-scaling PR3 (40 weapons / 25 armor / 30 accessories / 16 consumables / 35 spells). Single source of truth. |
+| `ITEM_CATALOG`    | const    | Every item in the game — 149 total (41 weapons / 26 armor / 31 accessories / 16 consumables / 35 spells). Single source of truth. |
 | `getItemById(id)` | function | Catalog lookup. Returns `undefined` for unknown IDs.                                       |
 | `ConsumableEffect` | type    | Discriminated union of consumable effects. Variants: `restore` (single resource), and `multi` (`{ restores: Array<{resource, amount}> }`) for combo elixirs (Battle Stim, Spirit Tea, Sage's Brew) added in PR3. |
 | `describeConsumableEffect(effect)` | function | Human-readable label for a consumable effect (used by the inventory page + in-combat action bar). |

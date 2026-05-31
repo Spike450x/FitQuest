@@ -35,6 +35,9 @@ jobs:
       - name: Validate Firestore indexes
         run: node scripts/validate-firestore-indexes.mjs
 
+      - name: Validate documentation counts
+        run: node scripts/validate-doc-counts.mjs
+
       - name: Typecheck Cloud Functions
         run: cd functions && npm ci --prefer-offline && npx tsc --noEmit
 
