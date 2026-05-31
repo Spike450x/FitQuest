@@ -28,12 +28,12 @@ Territory/Map ──────────────────────
 
 ## Section 1: Core Economy — Reputation & Wanted Board
 
-> **Implementation status (2026-05-31):** **PR1 foundation SHIPPED.** Dual-track Reputation currency (`spendableReputation` wallet + monotonic `lifetimeReputation` → 5-tier rank), the `/wanted` Wanted Board with daily-rotating bounties, and the **Loot** claim path are live. Deviations / deferrals from this spec, intentionally scoped to follow-up PRs:
+> **Implementation status (2026-05-31):** **PR1 + PR2 SHIPPED.** Dual-track Reputation currency (`spendableReputation` wallet + monotonic `lifetimeReputation` → 5-tier rank), the `/wanted` Wanted Board, the **Loot** path (PR1), and the **Fight fork** (PR2) are live.
 >
-> - **Fight fork** — the combat-encounter path (bigger payout) is a typed seam in `bountyStore.claimBounty(id, { path: 'fight' })` but not yet wired to combat. Loot path only for now.
-> - **Rank stat bonuses** — the spec's "Reputation tiers with stat bonuses" is deferred. Rank currently gates nothing (the vendor/NPCs/raids it unlocks don't exist yet), so it ships as a visible badge + progress bar only.
-> - **Spend sinks** (champion purchases, vendor, guild switching, quest skipping) — none exist yet; `spendableReputation` only grows in PR1.
-> - **Hardening** — writes are client-mirrored via `applyCharacterPatch` (like quest claims), with rules-level delta caps + lifetime monotonicity. A `claimBounty` Cloud Function would make it server-authoritative once leaderboards arrive.
+> - **Fight fork (PR2, shipped)** — most bounties are now combat **Hunts**: the activity _tracks down_ a named, level-scaled target (the unlock), then the player fights it on `/wanted/hunt/[bountyId]`; winning collects a bigger Reputation payout via `claimBounty(id, { path: 'fight' })`. A thin set of activity-only "standing" bounties remains as the floor. Win rewards = Reputation + the fight's own XP/gold (no item loot); a loss is a soft failure (no reset, free retry). Reuses `useCombatEncounter` + the arena combat surface.
+> - **Rank stat bonuses** — still deferred. Rank gates nothing yet (the vendor/NPCs/raids it unlocks don't exist), so it remains a visible badge + progress bar.
+> - **Spend sinks** (champion purchases, vendor, guild switching, quest skipping) — none exist yet; `spendableReputation` only grows.
+> - **Hardening** — writes are client-mirrored via `applyCharacterPatch`, with rules-level delta caps + lifetime monotonicity. A `claimBounty` Cloud Function (server-authoritative Reputation) is the remaining hardening step before leaderboards.
 
 ### Overview
 

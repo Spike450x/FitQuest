@@ -49,4 +49,15 @@ describe('normalizeActiveBounty', () => {
     expect(b.completedAt).toBeNull();
     expect(b.claimedAt).toBeNull();
   });
+
+  it('defaults combatWonAt to null when absent and passes combatMonsterId through', () => {
+    const b = normalizeActiveBounty('b-doc', { ...valid, combatMonsterId: 'goblin-scout' });
+    expect(b.combatWonAt).toBeNull();
+    expect(b.combatMonsterId).toBe('goblin-scout');
+  });
+
+  it('preserves a stored combatWonAt', () => {
+    const b = normalizeActiveBounty('b-doc', { ...valid, combatWonAt: 1_700_300_000_000 });
+    expect(b.combatWonAt).toBe(1_700_300_000_000);
+  });
 });

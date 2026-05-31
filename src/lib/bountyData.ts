@@ -13,6 +13,9 @@ export function normalizeActiveBounty(id: string, data: Record<string, unknown>)
     progress: (data.progress as number | undefined) ?? 0,
     completedAt: (data.completedAt as number | null | undefined) ?? null,
     claimedAt: (data.claimedAt as number | null | undefined) ?? null,
+    // combatMonsterId passes through (undefined on standing bounties);
+    // combatWonAt defaults to null for hunt bounties not yet won.
+    combatWonAt: (data.combatWonAt as number | null | undefined) ?? null,
   } as ActiveBounty;
 }
 

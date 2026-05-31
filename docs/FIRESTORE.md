@@ -247,13 +247,17 @@ interface ActiveBounty {
   expiresAt: number; // unix ms — immutable
   rewards: BountyReward; // { reputation, xp?, gold? } — immutable
   rewardedReputation?: number; // Reputation actually awarded at claim time
+  combatMonsterId?: string; // hunt bounties: pinned level-scaled target id (immutable)
+  combatWonAt?: number | null; // hunt bounties: unix ms the fight was won
 }
 ```
 
+A **hunt** bounty (`BountyDef.kind === 'hunt'`) pins a level-scaled `combatMonsterId` at assignment; its activity requirement is the _unlock_ (→ `completedAt`), and the fight is won on the `/wanted/hunt/[bountyId]` route, stamping `combatWonAt` alongside `claimedAt`. A **standing** bounty has neither field and uses the inline loot claim.
+
 ### Validation — create / update
 
-- Create: `uid == request.auth.uid`, `progress ≥ 0`, `completedAt == null`, `claimedAt == null`, `expiresAt > 0`, `rewards` is a map.
-- Update: `uid`, `bountyDefId`, `expiresAt`, `rewards` are **immutable**; `progress` stays `≥ 0` (delta ≤ 100,000); `completedAt` and `claimedAt` are write-once with the same two-step gate as `activeQuests` (claim requires the stored `completedAt` to be set). `rewardedReputation` is writable only during the `claimedAt` transition, capped at 100,000.
+- Create: `uid == request.auth.uid`, `progress ≥ 0`, `completedAt == null`, `claimedAt == null`, `expiresAt > 0`, `rewards` is a map. `combatMonsterId` optional (string|null); `combatWonAt` must be null.
+- Update: `uid`, `bountyDefId`, `expiresAt`, `rewards`, **and `combatMonsterId`** are immutable; `progress` stays `≥ 0` (delta ≤ 100,000); `completedAt` and `claimedAt` are write-once with the same two-step gate as `activeQuests` (claim requires the stored `completedAt` to be set). `rewardedReputation` and `combatWonAt` are writable only during the `claimedAt` transition (`combatWonAt` write-once null→int, capped reputation at 100,000).
 - The Reputation grant itself lands on the **character** doc (delta-capped + monotonic there); this collection only governs the bounty's own state machine. Client-authoritative for PR1 — a `claimBounty` Cloud Function would harden it when leaderboards arrive.
 
 ---

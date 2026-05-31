@@ -323,7 +323,10 @@ service cloud.firestore {
           && data.completedAt == null
           && data.claimedAt   == null
           && data.expiresAt   is int && data.expiresAt > 0
-          && data.rewards     is map;
+          && data.rewards     is map
+          // Hunt bounties pin a level-scaled target id; combat is unwon at create.
+          && (!('combatMonsterId' in data) || data.combatMonsterId == null || data.combatMonsterId is string)
+          && (!('combatWonAt' in data) || data.combatWonAt == null);
     }
 
     function isValidActiveBountyUpdate(data) {
@@ -346,6 +349,13 @@ service cloud.firestore {
           // rewardedReputation: only during the claim transition; 100,000 ceiling.
           && (!('rewardedReputation' in data)
               || (data.rewardedReputation is int && data.rewardedReputation >= 0 && data.rewardedReputation <= 100000
+                  && resource.data.claimedAt == null && data.claimedAt is int && data.claimedAt > 0))
+          // combatMonsterId: immutable after create.
+          && (!('combatMonsterId' in data) || data.combatMonsterId == resource.data.combatMonsterId)
+          // combatWonAt: write-once null→int, only during the claim transition.
+          && (!('combatWonAt' in data)
+              || data.combatWonAt == null
+              || (resource.data.combatWonAt == null && data.combatWonAt is int && data.combatWonAt > 0
                   && resource.data.claimedAt == null && data.claimedAt is int && data.claimedAt > 0));
     }
 

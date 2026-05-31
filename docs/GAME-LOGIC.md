@@ -216,9 +216,10 @@ Items with `lootOnly: true` never appear in the shop — only in monster / boss 
 
 ## `monsters.ts` — monster catalog
 
-| Export            | Purpose                                                                                                                                                                                                                                                                                                                                                         |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MONSTER_CATALOG` | 21 monsters (levels 1–14). The original 11 cover levels 1–10 (two at level 1, Lich King at level 9, Ancient Dragon at level 10); the 2× content-scaling drop (PR2) added 10 more spanning levels 1–14. Every entry carries a `passive` and/or `active` from `MonsterPassive` / `MonsterActive` (see `src/types/index.ts`). Tested in `monsterPassives.test.ts`. |
+| Export               | Purpose                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MONSTER_CATALOG`    | 21 monsters (levels 1–14). The original 11 cover levels 1–10 (two at level 1, Lich King at level 9, Ancient Dragon at level 10); the 2× content-scaling drop (PR2) added 10 more spanning levels 1–14. Every entry carries a `passive` and/or `active` from `MonsterPassive` / `MonsterActive` (see `src/types/index.ts`). Tested in `monsterPassives.test.ts`. |
+| `getMonsterById(id)` | Map-backed catalog lookup. Used by the arena, the bestiary, and the Wanted Board hunt route to resolve a pinned target.                                                                                                                                                                                                                                         |
 
 ### Monster passive/active assignments
 
@@ -271,12 +272,18 @@ The Ancient Dragon's loot table is the primary source of legendary loot from reg
 
 ## `bounties.ts` — Wanted Board bounty pool
 
-The Wanted Board posts a daily-rotating set of fitness bounties that grant **Reputation** on completion. Bounties advance off the **same** activity logs quests do (one log feeds both surfaces — an intentional parallel earning track, not a replacement). PR1 ships the **Loot** claim path only; the Fight fork (a combat encounter for a bigger payout) lands in a follow-up PR via the `claimBounty` seam.
+The Wanted Board posts a daily-rotating set of fitness bounties that grant **Reputation**. Bounties advance off the **same** activity logs quests do (one log feeds both surfaces — an intentional parallel earning track, not a replacement). Two archetypes (`BountyDef.kind`):
 
-| Export                      | Kind     | Purpose                                                                                              |
-| --------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| `BOUNTY_POOL`               | const    | The bounty catalog (single-activity + cross-habit combos). 3 are picked each day via `getDailyPick`. |
-| `getBountyDef(bountyDefId)` | function | Catalog lookup by id.                                                                                |
+- **`'standing'`** (default) — the activity-only Loot path: log → collect Reputation (the rest-day floor). Claimed inline on `/wanted` via `claimBounty(id, { path: 'loot' })`.
+- **`'hunt'`** — the activity is an **unlock**: completing it lets the player engage a level-scaled target (pinned at assignment) in combat on `/wanted/hunt/[bountyId]`; **winning** collects a bigger Reputation payout via `claimBounty(id, { path: 'fight' })`. Hunt reps (130 / 170 / 220 by `combat.levelBand` difficulty) sit above every standing bounty.
+
+The daily board is composed of 2 hunts + 1 standing (see `bountyStore.fetchAndAssignBounties`), so it skews to combat.
+
+| Export                                      | Kind     | Purpose                                                                                                                                                                                   |
+| ------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BOUNTY_POOL`                               | const    | The bounty catalog — `'standing'` (activity-only) + `'hunt'` (combat-fork) defs.                                                                                                          |
+| `getBountyDef(bountyDefId)`                 | function | Catalog lookup by id.                                                                                                                                                                     |
+| `pickHuntMonster(playerLevel, band, seed?)` | function | Pure, deterministic level-scaled target picker for hunt bounties. `band` is RELATIVE to the player's level (offsets); the window widens until a `MONSTER_CATALOG` monster exists (total). |
 
 ---
 

@@ -413,3 +413,10 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     active: { id: 'enrage', triggerPct: 0.3, label: 'Tempest Wrath', value: 6 },
   },
 ];
+
+const MONSTER_BY_ID = new Map(MONSTER_CATALOG.map((m) => [m.id, m]));
+
+/** Map-backed catalog lookup by monster id. */
+export function getMonsterById(id: string): MonsterDef | undefined {
+  return MONSTER_BY_ID.get(id);
+}
