@@ -289,15 +289,18 @@ The daily board is composed of 2 hunts + 1 standing (see `bountyStore.fetchAndAs
 
 ## `reputation.ts` — Reputation rank math
 
-Reputation is dual-track: a **spendable** wallet (`Character.spendableReputation`) plus a cumulative **lifetime** tracker (`Character.lifetimeReputation`) that — never spent down — determines the visible Rank. Pure module (no clock, no Firestore); the earn/spend writes live in `bountyStore`.
+Reputation is dual-track: a **spendable** wallet (`Character.spendableReputation`) plus a cumulative **lifetime** tracker (`Character.lifetimeReputation`) that — never spent down — determines the visible Rank. Each rank grants an equippable **title** (`ReputationRank.title`, e.g. "the Legendary"); the player's choice lives in `Character.activeTitle`. Pure module (no clock, no Firestore); the earn/spend writes live in `bountyStore`.
 
-| Export                         | Kind      | Purpose                                                                                                                           |
-| ------------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `REPUTATION_RANKS`             | const     | The 5 ranks by ascending lifetime threshold: Newcomer (0) / Known (500) / Respected (1500) / Renowned (4000) / Legendary (10000). |
-| `reputationRank(lifetime)`     | function  | Highest rank whose threshold ≤ lifetime. Negative input clamps to Newcomer.                                                       |
-| `nextReputationRank(lifetime)` | function  | The next rank up, or `null` at the top (Legendary).                                                                               |
-| `reputationProgress(lifetime)` | function  | `{ rank, next, pctToNext, remaining, atMax }` — everything the rank progress bar needs in one call.                               |
-| `ReputationProgress`           | interface | Return shape of `reputationProgress`.                                                                                             |
+| Export                                       | Kind      | Purpose                                                                                                                            |
+| -------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `REPUTATION_RANKS`                           | const     | The 5 ranks by ascending lifetime threshold: Newcomer (0) / Known (500) / Respected (1500) / Renowned (4000) / Legendary (10000).  |
+| `reputationRank(lifetime)`                   | function  | Highest rank whose threshold ≤ lifetime. Negative input clamps to Newcomer.                                                        |
+| `nextReputationRank(lifetime)`               | function  | The next rank up, or `null` at the top (Legendary).                                                                                |
+| `reputationProgress(lifetime)`               | function  | `{ rank, next, pctToNext, remaining, atMax }` — everything the rank progress bar needs in one call.                                |
+| `ReputationProgress`                         | interface | Return shape of `reputationProgress`.                                                                                              |
+| `unlockedRanks(lifetime)`                    | function  | All ranks reached (threshold ≤ lifetime) — drives the title ladder. Always includes Newcomer.                                      |
+| `isRankUnlocked(lifetime, id)`               | function  | Whether the player has earned a given rank's title.                                                                                |
+| `resolveActiveTitle(lifetime, activeTitle?)` | function  | The title string to display: the equipped title when set + unlocked, else the current rank's title (ignores a stale/forged equip). |
 
 ---
 

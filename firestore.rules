@@ -85,7 +85,11 @@ service cloud.firestore {
           // Guard the `in` checks so a write that doesn't touch reputation passes.
           && (!('lifetimeReputation' in newData) || !('lifetimeReputation' in oldData)
               || (newData.lifetimeReputation >= oldData.lifetimeReputation
-                  && (newData.lifetimeReputation - oldData.lifetimeReputation) <= 2000));
+                  && (newData.lifetimeReputation - oldData.lifetimeReputation) <= 2000))
+          // bountiesCompleted is monotonic + small per-write delta (one claim = +1).
+          && (!('bountiesCompleted' in newData) || !('bountiesCompleted' in oldData)
+              || (newData.bountiesCompleted >= oldData.bountiesCompleted
+                  && (newData.bountiesCompleted - oldData.bountiesCompleted) <= 10));
     }
 
     function isValidCharacterOptionals(data) {
@@ -112,7 +116,10 @@ service cloud.firestore {
           // Reputation wallets — non-negative, generous ceiling. spendable may
           // decrease (future spend); lifetime monotonicity is enforced in the delta check.
           && (!('spendableReputation' in data) || (data.spendableReputation is int && data.spendableReputation >= 0 && data.spendableReputation <= 1000000))
-          && (!('lifetimeReputation'  in data) || (data.lifetimeReputation  is int && data.lifetimeReputation  >= 0 && data.lifetimeReputation  <= 1000000));
+          && (!('lifetimeReputation'  in data) || (data.lifetimeReputation  is int && data.lifetimeReputation  >= 0 && data.lifetimeReputation  <= 1000000))
+          && (!('bountiesCompleted'   in data) || (data.bountiesCompleted   is int && data.bountiesCompleted   >= 0 && data.bountiesCompleted   <= 1000000))
+          // activeTitle: the equipped rank-title id (validated against the 5 rank ids).
+          && (!('activeTitle' in data) || data.activeTitle in ['newcomer', 'known', 'respected', 'renowned', 'legendary']);
     }
 
     // Subclass rules (update path only — resource.data is the existing document):

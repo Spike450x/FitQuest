@@ -4,14 +4,15 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useGameData } from '@/hooks/useGameData';
 import { useBountyStore } from '@/store/bountyStore';
+import { useCharacterStore } from '@/store/characterStore';
 import { getBountyDef } from '@/lib/gameLogic/bounties';
 import { getMonsterById } from '@/lib/gameLogic/monsters';
 import { MONSTER_EMOJI } from '@/components/combat/MonsterCard';
-import { reputationProgress } from '@/lib/gameLogic/reputation';
+import { reputationProgress, resolveActiveTitle } from '@/lib/gameLogic/reputation';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { ReputationRankBar } from '@/components/ui/ReputationChip';
+import { ReputationRankBar, ReputationLadder } from '@/components/ui/ReputationChip';
 import { toast } from '@/components/ui/Toaster';
 import { fireConfetti } from '@/lib/confetti';
 import { playSound } from '@/hooks/useSound';
@@ -253,6 +254,7 @@ export default function WantedBoardPage() {
   const fetchAndAssignBounties = useBountyStore((s) => s.fetchAndAssignBounties);
   const claimBounty = useBountyStore((s) => s.claimBounty);
   const [claiming, setClaiming] = useState<string | null>(null);
+  const [showLadder, setShowLadder] = useState(false);
 
   useEffect(() => {
     if (character?.uid) fetchAndAssignBounties(character.uid);
@@ -276,8 +278,10 @@ export default function WantedBoardPage() {
       const extras: string[] = [];
       if (result.xpAwarded) extras.push(`+${result.xpAwarded} XP`);
       if (result.goldAwarded) extras.push(`+${result.goldAwarded} gold`);
+      const done = useCharacterStore.getState().character?.bountiesCompleted;
+      const trophy = done ? ` · 🏆 Bounty #${done}` : '';
       toast.success(`🎖️ ${def.name} — bounty collected!`, {
-        description: [`+${result.reputationAwarded} Reputation`, ...extras].join(' · '),
+        description: [`+${result.reputationAwarded} Reputation`, ...extras].join(' · ') + trophy,
       });
     } else if (!result) {
       toast.error('Could not collect that bounty. Try again.');
@@ -300,12 +304,29 @@ export default function WantedBoardPage() {
       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
         <ReputationRankBar lifetime={character.lifetimeReputation ?? 0} />
         <p className="mt-2 text-xs text-gray-400 dark:text-slate-500">
-          Wallet:{' '}
+          Title{' '}
+          <span className="font-semibold text-violet-600 dark:text-violet-300">
+            “{resolveActiveTitle(character.lifetimeReputation ?? 0, character.activeTitle)}”
+          </span>{' '}
+          · Wallet{' '}
           <span className="font-semibold text-violet-600 dark:text-violet-300">
             {(character.spendableReputation ?? 0).toLocaleString()} Rep
           </span>
-          {!progress.atMax && ' · spend it on champions, vendors and more as they arrive.'}
+          {!progress.atMax && ' · spend it as vendors and champions arrive.'}
         </p>
+        <button
+          type="button"
+          onClick={() => setShowLadder((v) => !v)}
+          aria-expanded={showLadder}
+          className="mt-2 text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 transition-colors"
+        >
+          {showLadder ? '▲ Hide all ranks' : '▼ View all ranks'}
+        </button>
+        {showLadder && (
+          <div className="mt-3">
+            <ReputationLadder lifetime={character.lifetimeReputation ?? 0} />
+          </div>
+        )}
       </div>
 
       {error && (
