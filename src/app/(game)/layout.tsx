@@ -29,6 +29,7 @@ import { RouteBackground } from '@/components/ui/RouteBackground';
 import { BrandMark } from '@/components/ui/BrandMark';
 import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
 import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
+import { LegalFooter } from '@/components/ui/LegalFooter';
 
 /** Nav link that blocks navigation (with a toast) while combat is active. */
 function CombatSafeLink({
@@ -262,7 +263,10 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
         {/* ── Main content ──────────────────────────────────────────────────── */}
         <main id="main-content" className="flex-1 min-w-0 py-6 px-4 sm:px-6 pb-24 sm:pb-20 md:pb-6">
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="max-w-7xl mx-auto">
+            {children}
+            <LegalFooter className="mt-16 pb-2" />
+          </div>
         </main>
       </div>
 
