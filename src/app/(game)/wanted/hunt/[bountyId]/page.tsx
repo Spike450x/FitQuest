@@ -10,6 +10,7 @@ import { useBountyStore } from '@/store/bountyStore';
 import { useCombatStore } from '@/store/combatStore';
 import { getBountyDef } from '@/lib/gameLogic/bounties';
 import { getMonsterById } from '@/lib/gameLogic/monsters';
+import { resolveActiveTitle } from '@/lib/gameLogic/reputation';
 import {
   playerMaxHp,
   playerMaxStamina,
@@ -247,8 +248,10 @@ function HuntFight({
 
       fireConfetti('subtle');
       playSound('victory');
+      const done = useCharacterStore.getState().character?.bountiesCompleted;
+      const trophy = done ? ` · 🏆 Bounty #${done}` : '';
       toast.success(`🎖️ Bounty collected — ${monster.name} down!`, {
-        description: `+${rep} Reputation · +${claim.finalXp} XP · +${monster.goldReward} gold`,
+        description: `+${rep} Reputation · +${claim.finalXp} XP · +${monster.goldReward} gold${trophy}`,
       });
       for (const id of claim.newAchievements) {
         const ach = ACHIEVEMENTS[id as keyof typeof ACHIEVEMENTS];
@@ -292,7 +295,11 @@ function HuntFight({
           <p className="font-display text-4xl font-bold text-violet-700 dark:text-violet-300 tracking-wider uppercase">
             Target Down!
           </p>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
+          <p className="text-sm text-violet-600 dark:text-violet-300 font-semibold italic mt-1">
+            {character.name}, “
+            {resolveActiveTitle(character.lifetimeReputation ?? 0, character.activeTitle)}”
+          </p>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
             {emoji} {monster.name} bested — collect your bounty.
           </p>
         </div>

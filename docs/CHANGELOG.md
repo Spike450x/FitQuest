@@ -32,6 +32,28 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 - **Cloud Function pool parity** — `functions/src/gameLogic/combat.ts` mirrors the class multipliers; `playerMaxHp`/`playerMaxStamina` now take `charClass`. Updated the 3 callers (`claimCombatVictory`, `claimDungeonRun`, `logActivityCore`); the client-vs-functions parity test now cross-checks pools per class.
 - Why: the sheet advertised a class scaling/affinity system that didn't exist; this makes it real and gives each class a legible combat identity. **Balance note:** multiplier values were never live — treat as a starting point pending a `/balance-check` tuning pass (esp. Rogue STA ×1.5 and Wizard WIS ×1.5, which now affect both damage and pools).
 
+## 2026-05-31 — Title equip-from-rank-up + combat-banner title
+
+- **Equip from the rank-up modal.** `RankUpCelebration` now offers a one-tap "Equip “{title}”" button (with a "Not now" escape) that sets `activeTitle` inline, so unlocking a title and wearing it is one step instead of a detour to the character sheet.
+- **Title on victory banners.** The equipped title (`resolveActiveTitle`) now shows under the player name on the arena and hunt victory banners — the reputation you carry into a fight.
+- Pure UI; no schema/rules/logic changes. 958 tests still green.
+
+## 2026-05-31 — Reputation rank-up celebration + title flair
+
+- **Rank-up celebration.** New `RankUpCelebration` component (mirrors `LevelUpCelebration`, mounted in the game layout) pops a violet cinematic modal — Award glyph, confetti, sound — when the player's Reputation rank advances a tier, announcing the newly-unlocked title. Baseline-on-first-observation guard avoids false-triggering on initial load.
+- **Title flair.** The equipped title (`resolveActiveTitle`) now shows under the character name on the dashboard hero card.
+- No new game-logic exports, schema, or rules; 958 tests still green.
+
+## 2026-05-31 — Reputation progression: ranks ladder, titles, tracking
+
+- **Rank ladder + titles.** Each reputation rank now grants an equippable flavorful **title** (`ReputationRank.title`: Greenhorn → the Named → the Respected → Renowned Hunter → the Legendary). New `ReputationLadder` (all 5 tiers with thresholds, what each unlocks, locked/unlocked/current) and `ReputationTitles` (tap-to-equip locked/unlocked grid → `Character.activeTitle`). New pure helpers `unlockedRanks` / `isRankUnlocked` / `resolveActiveTitle`.
+- **Character-sheet tracking.** `/character` gains a Reputation hub card — rank progress, wallet, **bounties-completed** counter, equipped title, and a collapsible ranks/titles section. Surfaced on the Wanted Board (collapsible ladder + title) and profile (title + bounties + link) too.
+- **Bounties completed.** New monotonic `Character.bountiesCompleted`, incremented on every bounty claim (loot + hunt) inside the shared grant writer; bounty-collect toasts append a "🏆 Bounty #N" trophy line.
+- **Rules:** `bountiesCompleted` (monotonic, ≤10/write) + `activeTitle` (must be a valid rank id) validators added.
+- **Tests:** +6 vitest (titles/unlockedRanks/resolveActiveTitle, store increment) + 5 rules specs (958 root tests).
+
+---
+
 ## 2026-05-31 — Activity calendar + Profile/Settings split + preset avatars
 
 - **New `/calendar` route** — a read-only month/week calendar of logged activities. Month grid shows per-day activity color-dots (+ a `+N` overflow chip and a ⌚ marker for device-synced logs); week view lists each day's activities; clicking a day opens a detail modal (label, amount/unit, XP, synced badge, time). Reuses the existing `statsStore` 500-log cache — no new store, fetch path, or Firestore index. New pure `src/lib/gameLogic/calendar.ts` (`localDayKey`, `monthMatrix`, `weekDays`, `groupLogsByDay`) — buckets by **local** day. New `Calendar` nav entry (overflow by default).
@@ -39,8 +61,6 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 - **Preset avatar picker.** New `Character.avatarId` (optional) chosen from a curated catalog of heraldic crests (`src/lib/gameLogic/avatars.ts`) rendered via `EntityArt` — no image upload, no Firebase Storage. New `CharacterAvatar` component; shown in the profile header and the layout header button (replaces the bare initial). Persisted via the client-mirrored `applyCharacterPatch`. Rule: `avatarId` validated as a `string ≤ 64 chars`.
 - **Refactor:** `ACTIVITY_COLORS` moved from the stats page into `activityIcons.ts` so the stats charts and the calendar share one source of truth.
 - **Tests:** +18 vitest specs (calendar date helpers, avatar catalog/resolution). 922 → 940 root tests.
-
----
 
 ## 2026-05-31 — Wanted Board Hunt bounties (the Fight fork, PR2)
 

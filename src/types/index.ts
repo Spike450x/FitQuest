@@ -144,6 +144,14 @@ export interface Character {
    * player who spends heavily keeps their hard-earned rank.
    */
   lifetimeReputation?: number;
+  /** Lifetime bounties completed (loot + hunt claims). Incremented on each claim. */
+  bountiesCompleted?: number;
+  /**
+   * The reputation-rank title the player has equipped for display. Must be a rank
+   * the player has unlocked (lifetimeReputation ≥ its threshold). Absent → the
+   * current rank's title is shown by default (see resolveActiveTitle).
+   */
+  activeTitle?: ReputationRankId;
   streakData?: {
     currentStreak: number;
     longestStreak: number;
@@ -389,6 +397,8 @@ export interface ReputationRank {
   id: ReputationRankId;
   /** Display label, e.g. "Renowned". */
   label: string;
+  /** Earned title granted at this rank, e.g. "the Legendary". Equippable once unlocked. */
+  title: string;
   /** Minimum lifetime Reputation earned to hold this rank. */
   threshold: number;
 }

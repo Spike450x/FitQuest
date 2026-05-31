@@ -55,6 +55,8 @@ export function normalizeCharacter(uid: string, raw: Record<string, unknown>): C
     // field are equivalent here, unlike the stat fields above).
     spendableReputation: (raw.spendableReputation as number | undefined) ?? 0,
     lifetimeReputation: (raw.lifetimeReputation as number | undefined) ?? 0,
+    bountiesCompleted: (raw.bountiesCompleted as number | undefined) ?? 0,
+    // activeTitle passes through untouched (undefined → current-rank title shown).
   };
 }
 

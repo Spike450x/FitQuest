@@ -30,6 +30,7 @@ import { RouteBackground } from '@/components/ui/RouteBackground';
 import { BrandMark } from '@/components/ui/BrandMark';
 import { CharacterAvatar } from '@/components/ui/CharacterAvatar';
 import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
+import { RankUpCelebration } from '@/components/character/RankUpCelebration';
 import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { LegalFooter } from '@/components/ui/LegalFooter';
 
@@ -113,6 +114,9 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
       {/* Global level-up celebration — fires whenever character.level increases */}
       <LevelUpCelebration />
+
+      {/* Global rank-up celebration — fires when the Reputation rank advances a tier */}
+      <RankUpCelebration />
 
       {/* PWA install nudge — appears after ~12 s of activity if installable */}
       <InstallBanner />
