@@ -1,11 +1,12 @@
 'use client';
 
 import type { User } from 'firebase/auth';
-import type { Character, ActivityLog, ActiveQuest } from '@/types';
+import type { Character, ActivityLog, ActiveQuest, ActiveBounty } from '@/types';
 import { useCharacter } from './useCharacter';
 import { useRecentActivity } from './useRecentActivity';
 import { useTodayKey } from './useTodayKey';
 import { useQuestStore } from '@/store/questStore';
+import { useBountyStore } from '@/store/bountyStore';
 
 export interface GameData {
   /** Authenticated Firebase user, or null while loading / unauthenticated. */
@@ -28,6 +29,12 @@ export interface GameData {
   questsLoading: boolean;
   /** Quest fetch/assign error message, or null. */
   questsError: string | null;
+  /** All active (non-expired) Wanted Board bounties from the bounty store. */
+  bounties: ActiveBounty[];
+  /** True while the bounty store is loading or assigning bounties. */
+  bountiesLoading: boolean;
+  /** Bounty fetch/assign error message, or null. */
+  bountiesError: string | null;
 }
 
 /**
@@ -43,6 +50,9 @@ export function useGameData(): GameData {
   const quests = useQuestStore((s) => s.quests);
   const questsLoading = useQuestStore((s) => s.loading);
   const questsError = useQuestStore((s) => s.error);
+  const bounties = useBountyStore((s) => s.bounties);
+  const bountiesLoading = useBountyStore((s) => s.loading);
+  const bountiesError = useBountyStore((s) => s.error);
 
   return {
     user,
@@ -55,5 +65,8 @@ export function useGameData(): GameData {
     quests,
     questsLoading,
     questsError,
+    bounties,
+    bountiesLoading,
+    bountiesError,
   };
 }

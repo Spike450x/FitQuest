@@ -51,6 +51,10 @@ export function normalizeCharacter(uid: string, raw: Record<string, unknown>): C
     activityLogCounts: (raw.activityLogCounts as Character['activityLogCounts']) ?? {},
     totalQuestsClaimed: (raw.totalQuestsClaimed as number | undefined) ?? 0,
     weeklyQuestsClaimed: (raw.weeklyQuestsClaimed as Character['weeklyQuestsClaimed']) ?? undefined,
+    // Reputation — scalar wallets, default 0 with `??` (a stored 0 and an absent
+    // field are equivalent here, unlike the stat fields above).
+    spendableReputation: (raw.spendableReputation as number | undefined) ?? 0,
+    lifetimeReputation: (raw.lifetimeReputation as number | undefined) ?? 0,
   };
 }
 

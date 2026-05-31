@@ -15,6 +15,17 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-31 — Reputation + Wanted Board (foundation slice, PR1)
+
+- **New second currency — Reputation.** Dual-track: a `spendableReputation` wallet + a monotonic `lifetimeReputation` tracker that drives a 5-tier rank (Newcomer → Known → Respected → Renowned → Legendary). New pure `src/lib/gameLogic/reputation.ts` (`REPUTATION_RANKS`, `reputationRank`, `nextReputationRank`, `reputationProgress`). Rank is a visible badge + progress bar for now; the features it gates (vendor, NPCs, raids) arrive in later PRs.
+- **New `/wanted` route — the Wanted Board.** Daily-rotating fitness bounties (`src/lib/gameLogic/bounties.ts`) that grant Reputation on completion. New `bountyStore` + `bountyData.ts` + `activeBounties` Firestore collection, all mirroring the quest system (uid-only read, client-side expiry filter, 30 s TTL). Bounties advance off the **same** activity logs quests do — one log feeds both reward tracks (intentional parallel progression).
+- **Loot claim path only.** `claimBounty(id, { path })` grants Reputation to both wallets via `characterStore.applyCharacterPatch` (client-mirrored, like quest claims). The **Fight fork** (combat encounter for a bigger payout) and a hardening `claimBounty` Cloud Function are deferred to follow-ups via the typed `path` seam.
+- **Surfaces:** Reputation chip on the dashboard (beside gold) + rank card on the profile; `Target` nav entry for `/wanted` (lands in the overflow nav by default); bounty store joins the sign-out flush.
+- **Rules:** new `activeBounties` collection validators (clone of `activeQuests`); character `spendableReputation`/`lifetimeReputation` bounded, `lifetimeReputation` monotonic and delta-capped. No new index.
+- **Tests:** +38 vitest specs (rank math, bounty pool registration, `bountyData` normalize, `bountyStore` actions incl. dual-wallet grant + deferred-fight seam). 884 → 922 root tests.
+
+---
+
 ## 2026-05-31 — Documentation audit & sync
 
 Docs-only pass — no code changes. Resynced every doc whose counts/lists drifted behind the content-scaling sprint (PR1–PR5b) and the health-data integration, and fixed a few internal contradictions.

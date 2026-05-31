@@ -269,6 +269,31 @@ The Ancient Dragon's loot table is the primary source of legendary loot from reg
 
 ---
 
+## `bounties.ts` — Wanted Board bounty pool
+
+The Wanted Board posts a daily-rotating set of fitness bounties that grant **Reputation** on completion. Bounties advance off the **same** activity logs quests do (one log feeds both surfaces — an intentional parallel earning track, not a replacement). PR1 ships the **Loot** claim path only; the Fight fork (a combat encounter for a bigger payout) lands in a follow-up PR via the `claimBounty` seam.
+
+| Export                      | Kind     | Purpose                                                                                              |
+| --------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `BOUNTY_POOL`               | const    | The bounty catalog (single-activity + cross-habit combos). 3 are picked each day via `getDailyPick`. |
+| `getBountyDef(bountyDefId)` | function | Catalog lookup by id.                                                                                |
+
+---
+
+## `reputation.ts` — Reputation rank math
+
+Reputation is dual-track: a **spendable** wallet (`Character.spendableReputation`) plus a cumulative **lifetime** tracker (`Character.lifetimeReputation`) that — never spent down — determines the visible Rank. Pure module (no clock, no Firestore); the earn/spend writes live in `bountyStore`.
+
+| Export                         | Kind      | Purpose                                                                                                                           |
+| ------------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `REPUTATION_RANKS`             | const     | The 5 ranks by ascending lifetime threshold: Newcomer (0) / Known (500) / Respected (1500) / Renowned (4000) / Legendary (10000). |
+| `reputationRank(lifetime)`     | function  | Highest rank whose threshold ≤ lifetime. Negative input clamps to Newcomer.                                                       |
+| `nextReputationRank(lifetime)` | function  | The next rank up, or `null` at the top (Legendary).                                                                               |
+| `reputationProgress(lifetime)` | function  | `{ rank, next, pctToNext, remaining, atMax }` — everything the rank progress bar needs in one call.                               |
+| `ReputationProgress`           | interface | Return shape of `reputationProgress`.                                                                                             |
+
+---
+
 ## `rotation.ts` — deterministic daily/weekly rotation
 
 | Export                       | Purpose                                                                                                                                |

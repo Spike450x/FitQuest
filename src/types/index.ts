@@ -128,6 +128,20 @@ export interface Character {
    * `weekly-perfectionist` achievement (all 3 weeklies claimed in the same week).
    */
   weeklyQuestsClaimed?: { weekKey: string; questDefIds: string[] };
+  /**
+   * Spendable Reputation wallet — earned from the Wanted Board, spent on future
+   * sinks (champions, vendor, guild switching). Decreases when spent; the
+   * lifetime tracker below is what drives the visible rank. Client-authoritative
+   * optimistic write today (mirrors the quest-claim trust model) — harden via a
+   * `claimBounty` CF re-check when leaderboards arrive.
+   */
+  spendableReputation?: number;
+  /**
+   * Cumulative lifetime Reputation ever earned — only ever increases, never
+   * spent down. Determines the visible Reputation Rank (see reputation.ts), so a
+   * player who spends heavily keeps their hard-earned rank.
+   */
+  lifetimeReputation?: number;
   streakData?: {
     currentStreak: number;
     longestStreak: number;
@@ -362,6 +376,63 @@ export interface ActiveQuest {
    * Same provenance as `rewardedXp`.
    */
   rewardedGold?: number;
+}
+
+// ─── Reputation ──────────────────────────────────────────────────────────────
+
+export type ReputationRankId = 'newcomer' | 'known' | 'respected' | 'renowned' | 'legendary';
+
+/** A single Reputation rank tier. Ordered by ascending `threshold` in REPUTATION_RANKS. */
+export interface ReputationRank {
+  id: ReputationRankId;
+  /** Display label, e.g. "Renowned". */
+  label: string;
+  /** Minimum lifetime Reputation earned to hold this rank. */
+  threshold: number;
+}
+
+// ─── Bounties (Wanted Board) ─────────────────────────────────────────────────
+
+/**
+ * Reward for completing a Wanted Board bounty. Reputation is the headline
+ * currency this surface grants; the optional xp/gold mirror QuestReward so a
+ * bounty can sweeten the pot. The Fight fork (deferred) will scale these up.
+ */
+export interface BountyReward {
+  reputation: number;
+  xp?: number;
+  gold?: number;
+}
+
+export interface BountyDef {
+  id: string;
+  name: string;
+  description: string;
+  /** Primary requirement — progress tracked in `ActiveBounty.progress`. Reuses QuestTarget. */
+  requirement: QuestTarget;
+  /** Additional targets for multi-activity bounties — tracked in `ActiveBounty.extraProgress`. */
+  extraTargets?: QuestTarget[];
+  rewards: BountyReward;
+}
+
+export interface ActiveBounty {
+  id: string;
+  uid: string;
+  bountyDefId: string;
+  /** Progress toward `BountyDef.requirement`. */
+  progress: number;
+  /** Progress toward each `BountyDef.extraTargets` entry, keyed by `activityType`. */
+  extraProgress?: Record<string, number>;
+  completedAt: number | null;
+  claimedAt: number | null;
+  expiresAt: number;
+  rewards: BountyReward;
+  /**
+   * Reputation actually awarded at claim time. Stamped by `bountyStore.claimBounty`.
+   * Absent on bounties claimed before this field existed — fall back to
+   * `rewards.reputation`.
+   */
+  rewardedReputation?: number;
 }
 
 // ─── Combat ──────────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { useCharacter } from '@/hooks/useCharacter';
 import { useCharacterStore } from '@/store/characterStore';
 import { POLYMATH_THRESHOLD } from '@/lib/gameLogic/achievements';
 import { Card } from '@/components/ui/Card';
+import { ReputationRankBar } from '@/components/ui/ReputationChip';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useNavPreferenceStore, MAX_PINNED } from '@/store/navPreferenceStore';
 import { SoundToggle } from '@/components/ui/SoundToggle';
@@ -32,6 +33,8 @@ export default function ProfilePage() {
           {character.name} · Level {character.level} {character.class}
         </p>
       </div>
+
+      <ReputationCard character={character} />
 
       <PolymathProgress character={character} />
 
@@ -104,6 +107,35 @@ export default function ProfilePage() {
       <ChangeEmailForm user={user} />
       <ChangePasswordForm user={user} />
     </div>
+  );
+}
+
+// ── Reputation ────────────────────────────────────────────────────────────────
+// Shows the player's Reputation rank + progress to the next tier, plus the
+// spendable wallet. Earned on the Wanted Board; spent on future sinks.
+
+function ReputationCard({ character }: { character: Character }) {
+  return (
+    <Card variant="default" padding="lg" data-testid="reputation-card">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">🎖️ Reputation</h3>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+            Wallet:{' '}
+            <span className="font-semibold text-violet-600 dark:text-violet-300">
+              {(character.spendableReputation ?? 0).toLocaleString()} Rep
+            </span>
+          </p>
+        </div>
+        <Link
+          href="/wanted"
+          className="shrink-0 text-xs font-semibold text-violet-600 dark:text-violet-300 hover:underline"
+        >
+          Wanted Board →
+        </Link>
+      </div>
+      <ReputationRankBar lifetime={character.lifetimeReputation ?? 0} />
+    </Card>
   );
 }
 
