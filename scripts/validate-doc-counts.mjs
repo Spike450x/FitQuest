@@ -180,9 +180,24 @@ const CHECKS = [
     regex: /(\d+) generic spells/,
     expected: spellClassCounts.all,
   },
-  { file: 'README.md', label: 'warrior spells', regex: /(\d+) Warrior spells/, expected: spellClassCounts.warrior },
-  { file: 'README.md', label: 'wizard spells', regex: /(\d+) Wizard spells/, expected: spellClassCounts.wizard },
-  { file: 'README.md', label: 'rogue spells', regex: /(\d+) Rogue spells/, expected: spellClassCounts.rogue },
+  {
+    file: 'README.md',
+    label: 'warrior spells',
+    regex: /(\d+) Warrior spells/,
+    expected: spellClassCounts.warrior,
+  },
+  {
+    file: 'README.md',
+    label: 'wizard spells',
+    regex: /(\d+) Wizard spells/,
+    expected: spellClassCounts.wizard,
+  },
+  {
+    file: 'README.md',
+    label: 'rogue spells',
+    regex: /(\d+) Rogue spells/,
+    expected: spellClassCounts.rogue,
+  },
   {
     file: 'README.md',
     label: 'monster roster (mechanics section)',
@@ -211,7 +226,8 @@ const CHECKS = [
   {
     file: 'docs/ART-ASSETS.md',
     label: 'per-item art coverage claim',
-    regex: /All (\d+) non-spell items have unique per-`id` silhouettes \((\d+) weapons, (\d+) armor, (\d+) accessories, (\d+) consumables\)/,
+    regex:
+      /All (\d+) non-spell items have unique per-`id` silhouettes \((\d+) weapons, (\d+) armor, (\d+) accessories, (\d+) consumables\)/,
     expected: [
       nonSpellItems,
       itemTypeCounts.weapon,

@@ -139,11 +139,11 @@ Indexes cannot be rolled back cleanly. Deleting an index requires the Function t
 
 ## Environment
 
-| Variable                          | Where set                           | Purpose                                                          |
-| --------------------------------- | ----------------------------------- | ---------------------------------------------------------------- |
-| `FIREBASE_TOKEN`                  | GitHub Actions secret               | CI auto-deploy — rules/indexes (step 15) and functions (step 16) |
-| `NEXT_PUBLIC_FIREBASE_*`          | `.env.local` (gitignored)           | Firebase client config for dev                                   |
-| `NEXT_PUBLIC_FIREBASE_*`          | `.env.ci` (committed, dummy values) | Prevents build from connecting to real Firebase during CI        |
+| Variable                          | Where set                           | Purpose                                                                         |
+| --------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
+| `FIREBASE_TOKEN`                  | GitHub Actions secret               | CI auto-deploy — rules/indexes (step 15) and functions (step 16)                |
+| `NEXT_PUBLIC_FIREBASE_*`          | `.env.local` (gitignored)           | Firebase client config for dev                                                  |
+| `NEXT_PUBLIC_FIREBASE_*`          | `.env.ci` (committed, dummy values) | Prevents build from connecting to real Firebase during CI                       |
 | `NEXT_PUBLIC_HEALTH_SYNC_ENABLED` | `.env.local` / Vercel               | Feature flag — gates the `/profile/connections` health-sync UI. Off by default. |
 
 Never commit `.env.local`. The `.env.ci` file contains intentionally non-functional values so the Next.js build succeeds in CI without live Firebase credentials.
@@ -152,13 +152,13 @@ Never commit `.env.local`. The `.env.ci` file contains intentionally non-functio
 
 The health-integration functions are the repo's **first use of Firebase Functions secrets** — they are not env vars in `.env.local`; they live in Google Secret Manager and are bound to the functions at deploy time. The functions are deployed but dormant until these are set:
 
-| Secret                                              | Provider | Purpose                                            |
-| --------------------------------------------------- | -------- | -------------------------------------------------- |
-| `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET`         | Strava   | OAuth2 app credentials                             |
-| `STRAVA_VERIFY_TOKEN`                               | Strava   | Webhook subscription-validation handshake token    |
-| `STRAVA_REDIRECT_URI`                               | Strava   | OAuth callback URL (the deployed `stravaOAuthCallback` HTTP fn) |
-| `GARMIN_CLIENT_ID` / `GARMIN_CLIENT_SECRET`         | Garmin   | OAuth 2.0 PKCE app credentials (enterprise-gated)  |
-| `GARMIN_WEBHOOK_TOKEN`                              | Garmin   | Webhook push verification (enterprise-gated)       |
+| Secret                                      | Provider | Purpose                                                         |
+| ------------------------------------------- | -------- | --------------------------------------------------------------- |
+| `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` | Strava   | OAuth2 app credentials                                          |
+| `STRAVA_VERIFY_TOKEN`                       | Strava   | Webhook subscription-validation handshake token                 |
+| `STRAVA_REDIRECT_URI`                       | Strava   | OAuth callback URL (the deployed `stravaOAuthCallback` HTTP fn) |
+| `GARMIN_CLIENT_ID` / `GARMIN_CLIENT_SECRET` | Garmin   | OAuth 2.0 PKCE app credentials (enterprise-gated)               |
+| `GARMIN_WEBHOOK_TOKEN`                      | Garmin   | Webhook push verification (enterprise-gated)                    |
 
 Set each with:
 

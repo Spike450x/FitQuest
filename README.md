@@ -56,23 +56,23 @@ Built with **Next.js 15**, **TypeScript**, **Tailwind CSS**, **Firebase**, and *
 
 This README covers feature breakdowns and game mechanics. Deeper engineering references live under [`docs/`](docs/):
 
-| Doc                                                        | Covers                                                                      |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)               | Layered architecture, folder map, route reference, data-flow diagrams.      |
-| [docs/FIRESTORE.md](docs/FIRESTORE.md)                     | Collections, schemas, validation rules, the security model.                 |
-| [docs/CI.md](docs/CI.md)                                   | GitHub Actions, husky hooks, Dependabot, action SHA-pinning policy.         |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                   | Firebase deploy process, environment setup, CI deploy step.                 |
-| [docs/GAME-LOGIC.md](docs/GAME-LOGIC.md)                   | Reference for every export under `src/lib/gameLogic/`.                      |
-| [docs/SECURITY-SETUP.md](docs/SECURITY-SETUP.md)           | GitHub-side hardening checklist + log of shipped remediations.              |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md)                     | Newest-first feature log.                                                   |
-| [docs/BACKLOG.md](docs/BACKLOG.md)                         | Engineering debt and deferred technical items.                              |
-| [docs/UI-UX-MODERNIZATION.md](docs/UI-UX-MODERNIZATION.md) | UI/UX audit tracking — 24-item modernization checklist.                     |
-| [docs/ART-ASSETS.md](docs/ART-ASSETS.md)                   | Heraldic art system — asset inventory, generation guide, usage rules.       |
+| Doc                                                        | Covers                                                                          |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)               | Layered architecture, folder map, route reference, data-flow diagrams.          |
+| [docs/FIRESTORE.md](docs/FIRESTORE.md)                     | Collections, schemas, validation rules, the security model.                     |
+| [docs/CI.md](docs/CI.md)                                   | GitHub Actions, husky hooks, Dependabot, action SHA-pinning policy.             |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                   | Firebase deploy process, environment setup, CI deploy step.                     |
+| [docs/GAME-LOGIC.md](docs/GAME-LOGIC.md)                   | Reference for every export under `src/lib/gameLogic/`.                          |
+| [docs/SECURITY-SETUP.md](docs/SECURITY-SETUP.md)           | GitHub-side hardening checklist + log of shipped remediations.                  |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md)                     | Newest-first feature log.                                                       |
+| [docs/BACKLOG.md](docs/BACKLOG.md)                         | Engineering debt and deferred technical items.                                  |
+| [docs/UI-UX-MODERNIZATION.md](docs/UI-UX-MODERNIZATION.md) | UI/UX audit tracking — 24-item modernization checklist.                         |
+| [docs/ART-ASSETS.md](docs/ART-ASSETS.md)                   | Heraldic art system — asset inventory, generation guide, usage rules.           |
 | [docs/HEALTH-INTEGRATION.md](docs/HEALTH-INTEGRATION.md)   | Health-data sync (Strava + Garmin) — design, OAuth flows, provisioning runbook. |
-| [docs/SMOKE-TEST.md](docs/SMOKE-TEST.md)                   | Manual smoke-test checklist for auth, middleware, and Firebase round-trips. |
-| [docs/superpowers/specs/](docs/superpowers/specs/)         | Post-MVP feature design specs (roadmap, champions, reputation, etc.).       |
-| [SECURITY.md](SECURITY.md)                                 | Vulnerability reporting policy.                                             |
-| [CLAUDE.md](CLAUDE.md)                                     | Development partner guide (commands, workflow, conventions).                |
+| [docs/SMOKE-TEST.md](docs/SMOKE-TEST.md)                   | Manual smoke-test checklist for auth, middleware, and Firebase round-trips.     |
+| [docs/superpowers/specs/](docs/superpowers/specs/)         | Post-MVP feature design specs (roadmap, champions, reputation, etc.).           |
+| [SECURITY.md](SECURITY.md)                                 | Vulnerability reporting policy.                                                 |
+| [CLAUDE.md](CLAUDE.md)                                     | Development partner guide (commands, workflow, conventions).                    |
 
 ---
 
@@ -449,14 +449,14 @@ Spells are items with `type: "spell"`. They must be purchased or looted, then eq
 
 **Spell effects (can combine):**
 
-| Effect           | Description                                                     |
-| ---------------- | --------------------------------------------------------------- |
-| `damage`         | Extra damage to monster (vs defense, unless `bypassMonsterDef`) |
-| `heal`           | HP restored to player                                           |
-| `restoreStamina` | Stamina restored to player                                      |
-| `stun`           | Monster skips its counter-attack this round                     |
-| `defenseBoost`   | Temporary defense bonus for this round                          |
-| `lifestealPct`   | Fraction of damage dealt returned as HP                         |
+| Effect           | Description                                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `damage`         | Extra damage to monster (vs defense, unless `bypassMonsterDef`)                                                         |
+| `heal`           | HP restored to player                                                                                                   |
+| `restoreStamina` | Stamina restored to player                                                                                              |
+| `stun`           | Monster skips its counter-attack this round                                                                             |
+| `defenseBoost`   | Temporary defense bonus for this round                                                                                  |
+| `lifestealPct`   | Fraction of damage dealt returned as HP                                                                                 |
 | `dotDamage`      | Bleed/burn — `{ perRound, rounds }` ticks on the monster each subsequent round, bypassing defense (content-scaling PR4) |
 
 **Wisdom scaling:** Many spells scale with the player's WIS stat. Spell cards display the formula clearly — e.g., `20 base + 8 WIS = 28 heal`.
