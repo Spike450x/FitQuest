@@ -247,8 +247,10 @@ function HuntFight({
 
       fireConfetti('subtle');
       playSound('victory');
+      const done = useCharacterStore.getState().character?.bountiesCompleted;
+      const trophy = done ? ` · 🏆 Bounty #${done}` : '';
       toast.success(`🎖️ Bounty collected — ${monster.name} down!`, {
-        description: `+${rep} Reputation · +${claim.finalXp} XP · +${monster.goldReward} gold`,
+        description: `+${rep} Reputation · +${claim.finalXp} XP · +${monster.goldReward} gold${trophy}`,
       });
       for (const id of claim.newAchievements) {
         const ach = ACHIEVEMENTS[id as keyof typeof ACHIEVEMENTS];

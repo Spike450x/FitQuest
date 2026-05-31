@@ -4,6 +4,9 @@ import {
   reputationRank,
   nextReputationRank,
   reputationProgress,
+  unlockedRanks,
+  isRankUnlocked,
+  resolveActiveTitle,
 } from '../reputation';
 
 describe('reputationRank — tier boundaries', () => {
@@ -37,6 +40,45 @@ describe('reputationRank — tier boundaries', () => {
     for (let i = 1; i < REPUTATION_RANKS.length; i++) {
       expect(REPUTATION_RANKS[i].threshold).toBeGreaterThan(REPUTATION_RANKS[i - 1].threshold);
     }
+  });
+
+  it('every rank carries a non-empty, unique title', () => {
+    const titles = REPUTATION_RANKS.map((r) => r.title);
+    for (const t of titles) expect(t.length).toBeGreaterThan(0);
+    expect(new Set(titles).size).toBe(titles.length);
+  });
+});
+
+describe('unlockedRanks / isRankUnlocked', () => {
+  it('returns only ranks at or below the lifetime total', () => {
+    expect(unlockedRanks(0).map((r) => r.id)).toEqual(['newcomer']);
+    expect(unlockedRanks(1500).map((r) => r.id)).toEqual(['newcomer', 'known', 'respected']);
+    expect(unlockedRanks(99999).length).toBe(REPUTATION_RANKS.length);
+  });
+
+  it('isRankUnlocked gates on the threshold', () => {
+    expect(isRankUnlocked(499, 'known')).toBe(false);
+    expect(isRankUnlocked(500, 'known')).toBe(true);
+    expect(isRankUnlocked(0, 'newcomer')).toBe(true);
+    expect(isRankUnlocked(10000, 'legendary')).toBe(true);
+  });
+});
+
+describe('resolveActiveTitle', () => {
+  it('falls back to the current rank title when none is equipped', () => {
+    expect(resolveActiveTitle(0)).toBe('Greenhorn');
+    expect(resolveActiveTitle(1500)).toBe('the Respected');
+  });
+
+  it('uses the equipped title when it is unlocked', () => {
+    // At 1500 the player can equip any of newcomer/known/respected.
+    expect(resolveActiveTitle(1500, 'known')).toBe('the Named');
+    expect(resolveActiveTitle(1500, 'newcomer')).toBe('Greenhorn');
+  });
+
+  it('ignores an equipped title the player has not unlocked (stale/forged)', () => {
+    // Equipped 'legendary' but only at 500 lifetime → fall back to current rank.
+    expect(resolveActiveTitle(500, 'legendary')).toBe('the Named');
   });
 });
 

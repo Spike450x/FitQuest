@@ -29,20 +29,22 @@ function hashSeed(s: string): number {
 
 /**
  * Grants Reputation to BOTH wallets — the spendable balance and the lifetime
- * tracker — in a single character write. The single earn point for PR1, called
- * from `claimBounty`'s loot path. Mirrors the read-modify-write discipline of
+ * tracker — and increments the lifetime bounties-completed counter, in a single
+ * character write. Called from BOTH claim paths (loot + fight), so each claim
+ * counts exactly once. Mirrors the read-modify-write discipline of
  * `applyQuestAchievementSideEffects`: `applyCharacterPatch` owns the Firestore
  * write + functional setState, so a concurrent gold/quest write can't clobber it.
  *
  * Client-authoritative — no CF re-validation today. Harden via a `claimBounty`
  * Cloud Function when leaderboards arrive.
  */
-async function grantReputation(amount: number): Promise<void> {
+async function grantBountyReward(amount: number): Promise<void> {
   const { character, applyCharacterPatch } = useCharacterStore.getState();
   if (!character) return;
   await applyCharacterPatch({
     spendableReputation: (character.spendableReputation ?? 0) + amount,
     lifetimeReputation: (character.lifetimeReputation ?? 0) + amount,
+    bountiesCompleted: (character.bountiesCompleted ?? 0) + 1,
   });
 }
 
@@ -235,7 +237,7 @@ export const useBountyStore = create<BountyStore>((set, get) => ({
           combatWonAt: now,
           rewardedReputation: repAwarded,
         });
-        await grantReputation(repAwarded);
+        await grantBountyReward(repAwarded);
         set((state) => ({
           bounties: state.bounties.map((b) =>
             b.id === bountyId
@@ -261,7 +263,7 @@ export const useBountyStore = create<BountyStore>((set, get) => ({
       // Reputation first (single character write), then the optional xp/gold
       // sweetener via the character store's own award actions. Sequenced so each
       // functional setState reads the prior result — no clobber.
-      await grantReputation(repAwarded);
+      await grantBountyReward(repAwarded);
       if (xpAward > 0 || goldAward > 0) {
         const { awardXpAndStats, awardGold } = useCharacterStore.getState();
         if (xpAward > 0) await awardXpAndStats(xpAward, {});

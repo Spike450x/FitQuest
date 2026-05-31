@@ -79,6 +79,10 @@ interface Character {
   spendableReputation?: number;
   /** Cumulative lifetime Reputation earned — monotonic; determines the visible rank (reputation.ts). */
   lifetimeReputation?: number;
+  /** Lifetime bounties completed (loot + hunt). Incremented on each claim; monotonic. */
+  bountiesCompleted?: number;
+  /** Equipped reputation-rank title id (must be an unlocked rank). Absent → current rank's title. */
+  activeTitle?: ReputationRankId;
 }
 
 interface Stats {
@@ -113,6 +117,7 @@ interface Stats {
 - `activityLogCounts`, `weeklyQuestsClaimed` must be maps if present.
 - `lastLoginGrantedDate` must be a string if present.
 - `spendableReputation` / `lifetimeReputation` must be non-negative ints (≤ 1,000,000) if present. `lifetimeReputation` is **monotonic** (never decreases) and per-write delta-capped at 2,000 in `isValidCharacterDelta` — a single forged write can't jump straight to Legendary. `spendableReputation` may decrease (future spend).
+- `bountiesCompleted` must be a non-negative int (≤ 1,000,000) if present; **monotonic** + delta-capped at 10/write. `activeTitle` (if present) must be one of the five rank ids (`newcomer`/`known`/`respected`/`renowned`/`legendary`).
 - Subclass rules (`subclassIsValid`):
   - Absent → OK (not chosen yet).
   - Same as before → OK (already locked in).

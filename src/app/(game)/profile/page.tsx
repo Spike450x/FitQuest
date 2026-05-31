@@ -10,6 +10,7 @@ import { POLYMATH_THRESHOLD } from '@/lib/gameLogic/achievements';
 import { AVATAR_OPTIONS, resolveAvatar } from '@/lib/gameLogic/avatars';
 import { Card } from '@/components/ui/Card';
 import { ReputationRankBar } from '@/components/ui/ReputationChip';
+import { resolveActiveTitle } from '@/lib/gameLogic/reputation';
 import { CharacterAvatar } from '@/components/ui/CharacterAvatar';
 import { SettingsCard } from '@/components/ui/SettingsCard';
 import { EntityArt } from '@/components/art/EntityArt';
@@ -126,18 +127,22 @@ function ReputationCard({ character }: { character: Character }) {
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">🎖️ Reputation</h3>
+          <p className="text-xs text-violet-600 dark:text-violet-300 font-medium mt-0.5">
+            “{resolveActiveTitle(character.lifetimeReputation ?? 0, character.activeTitle)}”
+          </p>
           <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-            Wallet:{' '}
+            Wallet{' '}
             <span className="font-semibold text-violet-600 dark:text-violet-300">
               {(character.spendableReputation ?? 0).toLocaleString()} Rep
-            </span>
+            </span>{' '}
+            · {(character.bountiesCompleted ?? 0).toLocaleString()} bounties done
           </p>
         </div>
         <Link
-          href="/wanted"
+          href="/character"
           className="shrink-0 text-xs font-semibold text-violet-600 dark:text-violet-300 hover:underline"
         >
-          Wanted Board →
+          Ranks &amp; titles →
         </Link>
       </div>
       <ReputationRankBar lifetime={character.lifetimeReputation ?? 0} />

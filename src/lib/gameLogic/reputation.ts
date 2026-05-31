@@ -8,15 +8,15 @@
  * `bountyStore`; this file only maps a lifetime total to a rank + progress.
  */
 
-import type { ReputationRank } from '@/types';
+import type { ReputationRank, ReputationRankId } from '@/types';
 
 /** Ascending by threshold. The first entry (Newcomer, 0) is the floor. */
 export const REPUTATION_RANKS: ReputationRank[] = [
-  { id: 'newcomer', label: 'Newcomer', threshold: 0 },
-  { id: 'known', label: 'Known', threshold: 500 },
-  { id: 'respected', label: 'Respected', threshold: 1500 },
-  { id: 'renowned', label: 'Renowned', threshold: 4000 },
-  { id: 'legendary', label: 'Legendary', threshold: 10000 },
+  { id: 'newcomer', label: 'Newcomer', title: 'Greenhorn', threshold: 0 },
+  { id: 'known', label: 'Known', title: 'the Named', threshold: 500 },
+  { id: 'respected', label: 'Respected', title: 'the Respected', threshold: 1500 },
+  { id: 'renowned', label: 'Renowned', title: 'Renowned Hunter', threshold: 4000 },
+  { id: 'legendary', label: 'Legendary', title: 'the Legendary', threshold: 10000 },
 ];
 
 /** Highest rank whose threshold ≤ lifetime. Negative input clamps to Newcomer. */
@@ -62,4 +62,28 @@ export function reputationProgress(lifetime: number): ReputationProgress {
   const into = value - rank.threshold;
   const pctToNext = Math.max(0, Math.min(100, Math.round((into / span) * 100)));
   return { rank, next, pctToNext, remaining: Math.max(0, next.threshold - value), atMax: false };
+}
+
+/** All ranks the player has reached (threshold ≤ lifetime). Always includes Newcomer. */
+export function unlockedRanks(lifetime: number): ReputationRank[] {
+  const value = Math.max(0, lifetime);
+  return REPUTATION_RANKS.filter((r) => value >= r.threshold);
+}
+
+/** True if the player has earned the given rank's title. */
+export function isRankUnlocked(lifetime: number, id: ReputationRankId): boolean {
+  const r = REPUTATION_RANKS.find((x) => x.id === id);
+  return !!r && Math.max(0, lifetime) >= r.threshold;
+}
+
+/**
+ * The title string to display. Uses the player's equipped `activeTitle` when it
+ * is set AND unlocked; otherwise falls back to the current rank's title. Pure —
+ * gracefully ignores a stale/forged equip the player no longer qualifies for.
+ */
+export function resolveActiveTitle(lifetime: number, activeTitle?: ReputationRankId): string {
+  if (activeTitle && isRankUnlocked(lifetime, activeTitle)) {
+    return REPUTATION_RANKS.find((r) => r.id === activeTitle)!.title;
+  }
+  return reputationRank(lifetime).title;
 }

@@ -205,10 +205,11 @@ describe('bountyStore.claimBounty', () => {
       def.rewards.reputation,
     );
 
-    // Reputation flows to BOTH wallets via applyCharacterPatch.
+    // Reputation flows to BOTH wallets + bounties-completed increments, in one patch.
     expect(applyCharacterPatchMock).toHaveBeenCalledWith({
       spendableReputation: 100 + def.rewards.reputation,
       lifetimeReputation: 100 + def.rewards.reputation,
+      bountiesCompleted: 1,
     });
 
     // The bounty doc is stamped with claimedAt + rewardedReputation.
@@ -235,10 +236,11 @@ describe('bountyStore.claimBounty', () => {
       goldAwarded: 0,
     });
 
-    // Reputation to both wallets…
+    // Reputation to both wallets + bounties-completed increment…
     expect(applyCharacterPatchMock).toHaveBeenCalledWith({
       spendableReputation: 100 + huntDef.rewards.reputation,
       lifetimeReputation: 100 + huntDef.rewards.reputation,
+      bountiesCompleted: 1,
     });
     // …but the fight's XP/gold come from the CF on the hunt page, NOT here.
     expect(awardXpAndStatsMock).not.toHaveBeenCalled();
