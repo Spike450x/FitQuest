@@ -15,6 +15,14 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-31 — Class stat multipliers made real + combat affinities + Rogue dodge
+
+- **Class stat multipliers are now applied.** The per-class `statMultipliers` (Warrior STR ×1.5, Wizard DEF ×0.7, Rogue AGI/STA ×1.5, …) shown on the character sheet were pure decoration — nothing consumed them. New `effectiveStat(character, statKey)` in `combat.ts` (`floor(base × multiplier)`) is now the single source of truth, threaded through every combat and resource-pool formula: outgoing damage (STR/WIS), incoming "weak to physical" (DEF), escape (AGI), spell/ability crit (Spirit), and max HP/Stamina/Magic (STA/HEALTH/WIS). Gear bonuses stay flat.
+- **Rogue dodge** — new `classDodgeChance` / `rollClassDodge`: a Rogue-only Agility-scaled chance (cap 25%) to fully negate a monster hit. Applied at every incoming-hit chokepoint (`resolveRoundOutcome`, recovery free hit, failed-escape hit); surfaces as a `dodged` round-log field with a "💨 Dodged!" line in the battle log, last-action summary, and action overlay.
+- **Character sheet rewrite** — the misleading "×mult" grid became an honest **Class Traits** panel describing what each multiplier does, plus class-only perks (Wizard +10 magic pool, Rogue dodge %, subclass teaser). `CharacterCard` now shows each primary stat's effective in-combat value when the class multiplier changes it.
+- **Cloud Function pool parity** — `functions/src/gameLogic/combat.ts` mirrors the class multipliers; `playerMaxHp`/`playerMaxStamina` now take `charClass`. Updated the 3 callers (`claimCombatVictory`, `claimDungeonRun`, `logActivityCore`); the client-vs-functions parity test now cross-checks pools per class.
+- Why: the sheet advertised a class scaling/affinity system that didn't exist; this makes it real and gives each class a legible combat identity. **Balance note:** multiplier values were never live — treat as a starting point pending a `/balance-check` tuning pass (esp. Rogue STA ×1.5 and Wizard WIS ×1.5, which now affect both damage and pools).
+
 ## 2026-05-31 — Activity calendar + Profile/Settings split + preset avatars
 
 - **New `/calendar` route** — a read-only month/week calendar of logged activities. Month grid shows per-day activity color-dots (+ a `+N` overflow chip and a ⌚ marker for device-synced logs); week view lists each day's activities; clicking a day opens a detail modal (label, amount/unit, XP, synced badge, time). Reuses the existing `statsStore` 500-log cache — no new store, fetch path, or Firestore index. New pure `src/lib/gameLogic/calendar.ts` (`localDayKey`, `monthMatrix`, `weekDays`, `groupLogsByDay`) — buckets by **local** day. New `Calendar` nav entry (overflow by default).

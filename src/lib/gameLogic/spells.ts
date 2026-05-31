@@ -1,5 +1,5 @@
 import type { SpellDiceRequirement, SpellEffect, ItemRarity } from '@/types';
-import { gearDefenseBonus, monsterArmorPierce, rollD10 } from './combat';
+import { effectiveStat, effectivePlayerDefenseVsMonster, rollD10 } from './combat';
 import { COMBAT } from './constants';
 import type { Character, MonsterDef } from '@/types';
 import { applySpellDamagePassives } from './passives';
@@ -136,7 +136,7 @@ export function resolveSpell(
   let monsterStunned = false;
   let defenseBoost = 0;
 
-  const wis = character.stats.wisdom ?? 0;
+  const wis = effectiveStat(character, 'wisdom');
 
   if (requirementMet) {
     // ── Deal damage ──────────────────────────────────────────────────────────
@@ -168,9 +168,12 @@ export function resolveSpell(
   let monsterRoll = 0;
   if (!monsterStunned) {
     monsterRoll = rollD10();
-    const totalDef = (character.stats.defense ?? 0) + gearDefenseBonus(character) + defenseBoost;
     playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
-    const effectiveDef = playerDefFailed ? 0 : Math.max(0, totalDef - monsterArmorPierce(monster));
+    // Effective (class-scaled) DEF + gear − armor-pierce via the shared helper,
+    // then the spell's own defenseBoost ward stacks on top (not pierced).
+    const effectiveDef = playerDefFailed
+      ? 0
+      : effectivePlayerDefenseVsMonster(character, monster, false) + defenseBoost;
     monsterDamage = Math.max(COMBAT.MIN_DAMAGE, monster.attack + monsterRoll - effectiveDef);
   }
 

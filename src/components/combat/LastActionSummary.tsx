@@ -38,6 +38,9 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
             )}
           </p>
         )}
+        {entry.dodged && (
+          <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
+        )}
       </div>
     );
   }
@@ -112,6 +115,9 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
             )}
           </p>
         )}
+        {entry.dodged && (
+          <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
+        )}
         {entry.monsterStunned && (entry.monsterDamage ?? 0) === 0 && (
           <p className="text-amber-500 text-xs">
             Monster was stunned — no counter-attack this round.
@@ -183,6 +189,9 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
             )}
           </p>
         )}
+        {entry.dodged && (
+          <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
+        )}
         {entry.monsterStunned && (entry.monsterDamage ?? 0) === 0 && (
           <p className="text-amber-500 text-xs">
             Monster was stunned — no counter-attack this round.
@@ -207,11 +216,15 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
             <span className="text-slate-700 font-semibold"> → +{entry.recoveredMagic} Magic</span>
           )}
         </p>
-        <p className="text-red-500">
-          {isRest ? '🛌' : '🧘'} Monster free attack for{' '}
-          <span className="font-semibold">{entry.monsterDamage} dmg</span>
-          <span className="text-orange-500 font-semibold"> · 💥 No defense</span>
-        </p>
+        {entry.dodged ? (
+          <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
+        ) : (
+          <p className="text-red-500">
+            {isRest ? '🛌' : '🧘'} Monster free attack for{' '}
+            <span className="font-semibold">{entry.monsterDamage} dmg</span>
+            <span className="text-orange-500 font-semibold"> · 💥 No defense</span>
+          </p>
+        )}
       </div>
     );
   }
@@ -253,6 +266,9 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
             <span className="text-gray-400 dark:text-slate-500"> · 🛡️ DEF held</span>
           )}
         </p>
+      )}
+      {entry.dodged && (
+        <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   effectivePlayerDefenseVsMonster,
+  effectiveStat,
   monsterArmorPierce,
   monsterSiphonAmount,
   calculateRound,
@@ -75,7 +76,8 @@ describe('effectivePlayerDefenseVsMonster', () => {
   it('subtracts armor-pierce from the total def', () => {
     const ch = buildCharacter();
     const m = buildMonster({ passive: { id: 'armor-pierce', label: 'P', value: 4 } });
-    expect(effectivePlayerDefenseVsMonster(ch, m, false)).toBe(10 - 4);
+    // Effective (class-scaled) DEF minus the pierce value.
+    expect(effectivePlayerDefenseVsMonster(ch, m, false)).toBe(effectiveStat(ch, 'defense') - 4);
   });
 
   it('floors at 0 when pierce exceeds def', () => {
@@ -93,7 +95,7 @@ describe('effectivePlayerDefenseVsMonster', () => {
   it('ignores other passives', () => {
     const ch = buildCharacter();
     const m = buildMonster({ passive: { id: 'thorns', label: 'T', value: 20 } });
-    expect(effectivePlayerDefenseVsMonster(ch, m, false)).toBe(10);
+    expect(effectivePlayerDefenseVsMonster(ch, m, false)).toBe(effectiveStat(ch, 'defense'));
   });
 });
 

@@ -38,6 +38,8 @@ export interface RoundEntry {
   healAmount?: number;
   monsterStunned?: boolean;
   staminaCost?: number;
+  /** Rogue dodged this round's monster hit — damage fully negated. */
+  dodged?: boolean;
   // spell cast
   spellName?: string;
   spellDice?: number[];
@@ -128,6 +130,8 @@ export interface PendingAction {
   playerDefFailed?: boolean;
   monsterDefFailed?: boolean;
   escaped?: boolean;
+  /** Rogue dodged the incoming monster hit — damage fully negated. */
+  dodged?: boolean;
   recoveredStamina?: number;
   recoveredMagic?: number;
   outcome?: 'win' | 'loss' | null;

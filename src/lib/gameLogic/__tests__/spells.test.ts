@@ -6,6 +6,7 @@ import {
   getSpellMaxCharges,
   resolveSpell,
 } from '../spells';
+import { effectiveStat } from '../combat';
 import type { SpellDiceRequirement, SpellEffect } from '@/types';
 import type { Character, MonsterDef } from '@/types';
 
@@ -265,7 +266,8 @@ describe('resolveSpell', () => {
       },
     });
     const result = resolveSpell(effect, alwaysPass, char, makeMonster({ defense: 0 }));
-    expect(result.playerDamage).toBe(10 + 15); // base + wisdom
+    // base + effective (class-scaled) wisdom
+    expect(result.playerDamage).toBe(10 + effectiveStat(char, 'wisdom'));
   });
 
   it('restores HP via heal effect', () => {

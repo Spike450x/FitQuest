@@ -24,9 +24,11 @@ import type {
 } from '@/components/combat/types';
 import {
   calculateRound,
+  effectiveStat,
   monsterArmorPierce,
   monsterSiphonAmount,
   resolveRoundOutcome,
+  rollClassDodge,
   rollRunAway,
   rollSpellCrit,
 } from './combat';
@@ -423,6 +425,7 @@ export function resolveAttackAction(
         : undefined,
     monsterSummonAddHp: summonAddHp > 0 ? summonAddHp : undefined,
     monsterDotDamage: pre.dotDamage > 0 ? pre.dotDamage : undefined,
+    dodged: roundResult.dodged || undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -458,6 +461,7 @@ export function resolveAttackAction(
         monsterDamage: actualMonsterDamage,
         playerDefFailed,
         monsterDefFailed,
+        dodged: roundResult.dodged || undefined,
         outcome,
       },
     },
@@ -494,7 +498,7 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
   // deals damage. Stacks on top of Eagle Eye and other outgoing passive procs.
   const abilityCrit =
     !fizzled && effectivePlayerDamage > 0
-      ? rollSpellCrit(character.stats.spirit, effectivePlayerDamage)
+      ? rollSpellCrit(effectiveStat(character, 'spirit'), effectivePlayerDamage)
       : { damage: effectivePlayerDamage, crit: false, multiplier: 1 };
   effectivePlayerDamage = abilityCrit.damage;
 
@@ -646,6 +650,7 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     monsterDotDamage: pre.dotDamage > 0 ? pre.dotDamage : undefined,
     spiritCrit: abilityCrit.crit || undefined,
     spiritCritMultiplier: abilityCrit.crit ? abilityCrit.multiplier : undefined,
+    dodged: roundResult.dodged || undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -712,7 +717,7 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
   // actually deals damage. Heal-only and stun-only spells never crit.
   const spellCrit =
     resolution.requirementMet && resolution.playerDamage > 0
-      ? rollSpellCrit(character.stats.spirit, resolution.playerDamage)
+      ? rollSpellCrit(effectiveStat(character, 'spirit'), resolution.playerDamage)
       : { damage: resolution.playerDamage, crit: false, multiplier: 1 };
 
   // Absorb (Necro Shield) — applies to the crit'd spell damage.
@@ -866,6 +871,7 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
         : undefined,
     monsterSummonAddHp: summonAddHp > 0 ? summonAddHp : undefined,
     monsterDotDamage: pre.dotDamage > 0 ? pre.dotDamage : undefined,
+    dodged: roundResult.dodged || undefined,
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -928,7 +934,9 @@ function resolveRecoveryAction(input: ActionInput, type: 'rest' | 'meditate'): A
   const effectiveMonster =
     input.modifiers?.effectiveMonster?.(baseRecoveryMonster, state) ?? baseRecoveryMonster;
   const monsterRoll = Math.ceil(Math.random() * 10);
-  const monsterDamage = Math.max(1, effectiveMonster.attack + monsterRoll);
+  // Rogue dodge applies even to the free recovery-window hit.
+  const dodged = rollClassDodge(character);
+  const monsterDamage = dodged ? 0 : Math.max(1, effectiveMonster.attack + monsterRoll);
   const newPlayerHp = Math.max(0, state.playerHp - monsterDamage);
   const lossOutcome: 'loss' | null = newPlayerHp === 0 ? 'loss' : null;
 
@@ -942,6 +950,7 @@ function resolveRecoveryAction(input: ActionInput, type: 'rest' | 'meditate'): A
     recoveredStamina,
     recoveredMagic,
     monsterDamage,
+    dodged: dodged || undefined,
     playerHpAfter: newPlayerHp,
     monsterHpAfter: state.monsterHp,
   };
@@ -965,6 +974,7 @@ function resolveRecoveryAction(input: ActionInput, type: 'rest' | 'meditate'): A
         dice: [recoveryRoll],
         monsterRoll,
         monsterDamage,
+        dodged: dodged || undefined,
         recoveredStamina,
         recoveredMagic,
         outcome: lossOutcome,
@@ -1016,7 +1026,10 @@ export function resolveFleeAction(input: ActionInput): ActionResolution {
     };
   }
 
-  const newPlayerHp = Math.max(0, state.playerHp - monsterDamage);
+  // Rogue dodge applies to the failed-escape free hit too.
+  const dodged = rollClassDodge(character);
+  const effectiveMonsterDamage = dodged ? 0 : monsterDamage;
+  const newPlayerHp = Math.max(0, state.playerHp - effectiveMonsterDamage);
   const runOutcome: 'loss' | null = newPlayerHp === 0 ? 'loss' : null;
   const logEntry: RoundEntry = {
     round: state.log.length + 1,
@@ -1024,7 +1037,8 @@ export function resolveFleeAction(input: ActionInput): ActionResolution {
     playerRunRoll: playerRoll,
     agilityBonus,
     monsterRunRoll: monsterRoll,
-    monsterDamage,
+    monsterDamage: effectiveMonsterDamage,
+    dodged: dodged || undefined,
     playerDefFailed,
     playerHpAfter: newPlayerHp,
     monsterHpAfter: state.monsterHp,
@@ -1044,7 +1058,8 @@ export function resolveFleeAction(input: ActionInput): ActionResolution {
         actionType: 'run',
         dice: [playerRoll, monsterRoll],
         escaped: false,
-        monsterDamage,
+        monsterDamage: effectiveMonsterDamage,
+        dodged: dodged || undefined,
         playerDefFailed,
         outcome: runOutcome,
       },

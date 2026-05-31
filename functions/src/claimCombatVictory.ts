@@ -221,8 +221,8 @@ export const claimCombatVictory = onCall<
       updates.stats = newStats;
       updates.pendingStatPoints =
         (charData.pendingStatPoints ?? 0) + LEVEL_UP.STAT_POINTS_PER_LEVEL * levelsGained;
-      updates.currentHp = playerMaxHp(newStats, charData.equippedGear);
-      updates.currentStamina = playerMaxStamina(newStats, charData.equippedGear);
+      updates.currentHp = playerMaxHp(newStats, charData.equippedGear, charData.class);
+      updates.currentStamina = playerMaxStamina(newStats, charData.equippedGear, charData.class);
       updates.currentMagic = playerMaxMagic(newStats.wisdom, charData.class);
     }
 

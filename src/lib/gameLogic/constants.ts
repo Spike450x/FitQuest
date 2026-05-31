@@ -244,6 +244,13 @@ export const COMBAT = {
   WISDOM_ATTACK_FACTOR: 1.0,
   /** Agility contribution to escape roll when running away (full stat value). */
   AGILITY_ESCAPE_FACTOR: 1.0,
+  /**
+   * Rogue-only: dodge chance gained per point of *effective* Agility. A dodged
+   * hit is fully negated (0 damage). Every other class has no dodge.
+   */
+  ROGUE_DODGE_PER_AGILITY: 0.005,
+  /** Maximum Rogue dodge chance regardless of Agility (0–1 fraction). */
+  ROGUE_DODGE_CAP: 0.25,
   /** Minimum damage dealt per hit. */
   MIN_DAMAGE: 1,
   /**
