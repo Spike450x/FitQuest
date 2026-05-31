@@ -168,7 +168,8 @@ describe('bountyStore.updateBountyProgress', () => {
 });
 
 describe('bountyStore.claimBounty', () => {
-  const def = BOUNTY_POOL.find((b) => !b.extraTargets)!;
+  const def = BOUNTY_POOL.find((b) => (b.kind ?? 'standing') === 'standing' && !b.extraTargets)!;
+  const huntDef = BOUNTY_POOL.find((b) => b.kind === 'hunt')!;
 
   function seedCompleted(overrides: Partial<ActiveBounty> = {}): ActiveBounty {
     const b: ActiveBounty = {
@@ -220,11 +221,66 @@ describe('bountyStore.claimBounty', () => {
     expect(b.rewardedReputation).toBe(def.rewards.reputation);
   });
 
-  it('the deferred fight path returns false without granting anything', async () => {
-    seedCompleted();
+  it('the fight path grants reputation + stamps combatWonAt, without XP/gold', async () => {
+    seedCompleted({
+      bountyDefId: huntDef.id,
+      rewards: huntDef.rewards,
+      combatMonsterId: 'goblin-scout',
+    });
     const result = await useBountyStore.getState().claimBounty('b1', { path: 'fight' });
-    expect(result).toBe(false);
+    expect(result).not.toBe(false);
+    expect(result).toMatchObject({
+      reputationAwarded: huntDef.rewards.reputation,
+      xpAwarded: 0,
+      goldAwarded: 0,
+    });
+
+    // Reputation to both wallets…
+    expect(applyCharacterPatchMock).toHaveBeenCalledWith({
+      spendableReputation: 100 + huntDef.rewards.reputation,
+      lifetimeReputation: 100 + huntDef.rewards.reputation,
+    });
+    // …but the fight's XP/gold come from the CF on the hunt page, NOT here.
+    expect(awardXpAndStatsMock).not.toHaveBeenCalled();
+    expect(awardGoldMock).not.toHaveBeenCalled();
+
+    // Stamps claimedAt + combatWonAt + rewardedReputation.
+    expect(updateActiveBountyDocMock).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({ rewardedReputation: huntDef.rewards.reputation }),
+    );
+    const b = useBountyStore.getState().bounties[0];
+    expect(b.claimedAt).not.toBeNull();
+    expect(b.combatWonAt).not.toBeNull();
+  });
+
+  it('rejects the fight path on a bounty that is not yet completed', async () => {
+    seedCompleted({ bountyDefId: huntDef.id, completedAt: null, combatMonsterId: 'goblin-scout' });
+    expect(await useBountyStore.getState().claimBounty('b1', { path: 'fight' })).toBe(false);
     expect(applyCharacterPatchMock).not.toHaveBeenCalled();
-    expect(updateActiveBountyDocMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('bountyStore.fetchAndAssignBounties — hunt target pinning', () => {
+  it('pins a resolvable combatMonsterId on every assigned hunt bounty', async () => {
+    const { getBountyDef } = await import('@/lib/gameLogic/bounties');
+    const { getMonsterById } = await import('@/lib/gameLogic/monsters');
+    await useBountyStore.getState().fetchAndAssignBounties('uid1', '2026-03-03');
+    const assigned = useBountyStore.getState().bounties;
+    expect(assigned.length).toBeGreaterThan(0);
+    let huntCount = 0;
+    for (const b of assigned) {
+      const d = getBountyDef(b.bountyDefId);
+      if (d?.kind === 'hunt') {
+        huntCount++;
+        expect(b.combatMonsterId).toBeTruthy();
+        expect(getMonsterById(b.combatMonsterId!)).toBeDefined();
+        expect(b.combatWonAt).toBeNull();
+      } else {
+        expect(b.combatMonsterId).toBeUndefined();
+      }
+    }
+    // The board is composed to be hunt-heavy.
+    expect(huntCount).toBeGreaterThanOrEqual(1);
   });
 });

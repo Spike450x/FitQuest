@@ -3,13 +3,29 @@ import { captureError } from '@/lib/errors';
 import { fetchWithRetry, STORE_RETRY_DELAYS } from '@/lib/retry';
 import { fetchActiveBounties } from '@/lib/fetchPlayerData';
 import { addActiveBountyDoc, updateActiveBountyDoc } from '@/lib/bountyData';
-import { BOUNTY_POOL, getBountyDef } from '@/lib/gameLogic/bounties';
+import { BOUNTY_POOL, getBountyDef, pickHuntMonster } from '@/lib/gameLogic/bounties';
 import { getDailyPick, dailyExpiresAt } from '@/lib/gameLogic/rotation';
 import { useCharacterStore } from './characterStore';
-import type { ActiveBounty, ActivityType } from '@/types';
+import type { ActiveBounty, ActivityType, BountyDef } from '@/types';
 
-const BOUNTY_COUNT = 3;
+// The daily board skews to combat: HUNT_COUNT hunts + STANDING_COUNT activity-only
+// "standing" bounties (the rest-day floor). Composed deliberately so the mix is
+// guaranteed regardless of pool ratios.
+const HUNT_COUNT = 2;
+const STANDING_COUNT = 1;
+const HUNT_POOL = BOUNTY_POOL.filter((b) => b.kind === 'hunt');
+const STANDING_POOL = BOUNTY_POOL.filter((b) => b.kind !== 'hunt');
 const FETCH_TTL_MS = 30_000;
+
+/** Stable numeric seed from a string (used to pin a hunt's level-scaled target). */
+function hashSeed(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h & 0x7fffffff;
+}
 
 /**
  * Grants Reputation to BOTH wallets — the spendable balance and the lifetime
@@ -51,8 +67,9 @@ interface BountyStore {
   updateBountyProgress: (uid: string, activityType: ActivityType, amount: number) => Promise<void>;
   /**
    * Claims a completed, unclaimed bounty. The `loot` path (default) grants
-   * Reputation immediately. The `fight` path is the deferred combat-encounter
-   * fork — it returns false in PR1 (a follow-up wires it to combat).
+   * Reputation (+ any def xp/gold) immediately. The `fight` path is called by the
+   * hunt page on combat victory — it grants Reputation + stamps combatWonAt; the
+   * fight's own XP/gold come from the claimCombatVictory CF on that page.
    * Returns the awarded amounts on success, or false if not claimable.
    */
   claimBounty: (
@@ -91,33 +108,38 @@ export const useBountyStore = create<BountyStore>((set, get) => ({
 
       const assigned: ActiveBounty[] = [];
       if (existing.length === 0) {
-        const picked = getDailyPick(BOUNTY_POOL, BOUNTY_COUNT, dateKey);
+        // Mostly hunts + a thin standing floor — composed deterministically.
+        const picked: BountyDef[] = [
+          ...getDailyPick(HUNT_POOL, HUNT_COUNT, dateKey),
+          ...getDailyPick(STANDING_POOL, STANDING_COUNT, dateKey),
+        ];
         const expiry = dailyExpiresAt();
-        const newIds = await Promise.all(
-          picked.map((def) =>
-            addActiveBountyDoc({
-              uid,
-              bountyDefId: def.id,
-              progress: 0,
-              completedAt: null,
-              claimedAt: null,
-              expiresAt: expiry,
-              rewards: def.rewards,
-            }),
-          ),
-        );
-        newIds.forEach((id, i) =>
-          assigned.push({
-            id,
+        const playerLevel = useCharacterStore.getState().character?.level ?? 1;
+
+        // Resolve + pin a level-scaled target for each hunt (stable per def+day).
+        const docs = picked.map((def) => {
+          const base = {
             uid,
-            bountyDefId: picked[i].id,
+            bountyDefId: def.id,
             progress: 0,
             completedAt: null,
             claimedAt: null,
             expiresAt: expiry,
-            rewards: picked[i].rewards,
-          }),
-        );
+            rewards: def.rewards,
+          };
+          if (def.kind === 'hunt' && def.combat) {
+            const monster = pickHuntMonster(
+              playerLevel,
+              def.combat.levelBand,
+              hashSeed(`${def.id}:${dateKey ?? ''}`),
+            );
+            return { ...base, combatMonsterId: monster.id, combatWonAt: null };
+          }
+          return base;
+        });
+
+        const newIds = await Promise.all(docs.map((d) => addActiveBountyDoc(d)));
+        newIds.forEach((id, i) => assigned.push({ id, ...docs[i] }));
       }
 
       set({
@@ -201,11 +223,29 @@ export const useBountyStore = create<BountyStore>((set, get) => ({
       const bounty = bounties.find((b) => b.id === bountyId);
       if (!bounty || bounty.completedAt === null || bounty.claimedAt !== null) return false;
 
-      // ── Fight fork (deferred) ───────────────────────────────────────────────
-      // The combat-encounter path that yields a larger payout slots in here:
-      // hand off to useCombatEncounter and only stamp claimedAt + grant the
-      // scaled reward on victory. Returns false in PR1 so the seam is explicit.
-      if (path === 'fight') return false;
+      // ── Fight fork ──────────────────────────────────────────────────────────
+      // Called by the hunt page ON VICTORY (the combat itself runs there and the
+      // fight's XP/gold come from the claimCombatVictory CF). Here we only grant
+      // the bounty's Reputation and stamp claimedAt + combatWonAt + rewardedReputation.
+      if (path === 'fight') {
+        const repAwarded = bounty.rewards.reputation;
+        const now = Date.now();
+        await updateActiveBountyDoc(bountyId, {
+          claimedAt: now,
+          combatWonAt: now,
+          rewardedReputation: repAwarded,
+        });
+        await grantReputation(repAwarded);
+        set((state) => ({
+          bounties: state.bounties.map((b) =>
+            b.id === bountyId
+              ? { ...b, claimedAt: now, combatWonAt: now, rewardedReputation: repAwarded }
+              : b,
+          ),
+        }));
+        // XP/gold are NOT granted here — the hunt page's claimCombatVictory CF owns them.
+        return { reputationAwarded: repAwarded, xpAwarded: 0, goldAwarded: 0 };
+      }
 
       // ── Loot path ───────────────────────────────────────────────────────────
       const repAwarded = bounty.rewards.reputation;

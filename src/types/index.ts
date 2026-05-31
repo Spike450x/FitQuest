@@ -415,6 +415,17 @@ export interface BountyDef {
   /** Additional targets for multi-activity bounties — tracked in `ActiveBounty.extraProgress`. */
   extraTargets?: QuestTarget[];
   rewards: BountyReward;
+  /**
+   * Bounty archetype. `'standing'` (default) is the activity-only loot path — log
+   * → collect Reputation. `'hunt'` makes the activity an UNLOCK: completing it lets
+   * the player engage a level-scaled target in combat; winning collects the reward.
+   */
+  kind?: 'hunt' | 'standing';
+  /**
+   * Present only on `kind: 'hunt'`. At assignment a concrete monster is drawn from
+   * MONSTER_CATALOG within this player-level band and pinned to the ActiveBounty.
+   */
+  combat?: { levelBand: { min: number; max: number } };
 }
 
 export interface ActiveBounty {
@@ -435,6 +446,13 @@ export interface ActiveBounty {
    * `rewards.reputation`.
    */
   rewardedReputation?: number;
+  /**
+   * For hunt bounties: the MONSTER_CATALOG id pinned at assignment (level-scaled to
+   * the player). Immutable. Absent on standing bounties.
+   */
+  combatMonsterId?: string;
+  /** For hunt bounties: unix ms the combat was won. Stamped alongside `claimedAt`. */
+  combatWonAt?: number | null;
 }
 
 // ─── Combat ──────────────────────────────────────────────────────────────────

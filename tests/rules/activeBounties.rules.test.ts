@@ -187,3 +187,74 @@ describe('activeBounties — rewardedReputation scoping', () => {
     );
   });
 });
+
+describe('activeBounties — hunt combat fields', () => {
+  const uid = 'user1';
+
+  it('allows creating a hunt bounty with combatMonsterId + combatWonAt null', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertSucceeds(
+      ctx
+        .firestore()
+        .collection('activeBounties')
+        .add({ ...validBounty(uid), combatMonsterId: 'goblin-scout', combatWonAt: null }),
+    );
+  });
+
+  it('denies creating a bounty with combatWonAt already set', async () => {
+    const ctx = testEnv.authenticatedContext(uid);
+    await assertFails(
+      ctx
+        .firestore()
+        .collection('activeBounties')
+        .add({ ...validBounty(uid), combatMonsterId: 'goblin-scout', combatWonAt: Date.now() }),
+    );
+  });
+
+  describe('update', () => {
+    beforeEach(async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        // Completed hunt, unclaimed, target pinned — valid target for a fight claim.
+        await ctx
+          .firestore()
+          .collection('activeBounties')
+          .doc('h1')
+          .set({
+            ...validBounty(uid),
+            completedAt: Date.now(),
+            combatMonsterId: 'goblin-scout',
+            combatWonAt: null,
+          });
+      });
+    });
+
+    it('allows stamping combatWonAt during the claim transition', async () => {
+      const ctx = testEnv.authenticatedContext(uid);
+      await assertSucceeds(
+        ctx.firestore().collection('activeBounties').doc('h1').update({
+          claimedAt: Date.now(),
+          combatWonAt: Date.now(),
+          rewardedReputation: 150,
+        }),
+      );
+    });
+
+    it('denies stamping combatWonAt without the claim transition', async () => {
+      const ctx = testEnv.authenticatedContext(uid);
+      await assertFails(
+        ctx.firestore().collection('activeBounties').doc('h1').update({ combatWonAt: Date.now() }),
+      );
+    });
+
+    it('denies mutating combatMonsterId (immutable)', async () => {
+      const ctx = testEnv.authenticatedContext(uid);
+      await assertFails(
+        ctx
+          .firestore()
+          .collection('activeBounties')
+          .doc('h1')
+          .update({ combatMonsterId: 'ancient-dragon' }),
+      );
+    });
+  });
+});
