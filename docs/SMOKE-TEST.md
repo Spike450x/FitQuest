@@ -107,9 +107,18 @@ If the multiplier never applies (or the badge stays on 100% past win 10), check 
 
 ---
 
-### Optional — Health-data sync (Garmin)
+### Optional — Health-data sync (Strava + Garmin)
 
-Only relevant once the integration is switched on. Requires Garmin Developer Program approval + the Cloud Functions secrets set + the OAuth redirect & Push callbacks registered (see [HEALTH-INTEGRATION.md § 7](HEALTH-INTEGRATION.md)). Cannot be exercised without live Garmin credentials, so it is **not** in the automated suite.
+Only relevant once a provider is switched on. Cannot be exercised without live provider credentials, so it is **not** in the automated suite. See [HEALTH-INTEGRATION.md § 7](HEALTH-INTEGRATION.md).
+
+**Strava (works today):**
+
+1. Create a Strava API app + push subscription, set the secrets, `NEXT_PUBLIC_HEALTH_SYNC_ENABLED=true`, deploy.
+2. `/profile/connections` → **Connect Strava** → authorize on Strava → land back with "🎉 Device connected" and a **Strava · Active** row. Firestore: `healthConnections/{uid}_strava` (tokenless), `healthTokens/{uid}_strava` (not client-readable).
+3. Record an activity in Strava (or sync one from a Garmin/Apple Watch). Within ~a minute an `activityLogs/{uid}_strava_*` doc appears with `source:'strava'` and the "⌚ synced" dashboard badge. A run ≥ 0.25 mi maps to `run` (miles); otherwise `workout` (minutes). Mastery/restore update as for a manual log.
+4. **Token refresh** — after 6 h, the next event still ingests (the webhook refreshes the access token first). **Idempotency** — re-firing the same activity writes no duplicate. **Handshake** — re-creating the subscription succeeds (the webhook echoes `hub.challenge`); a GET with a wrong `hub.verify_token` returns `403`.
+
+**Garmin (only once approved):**
 
 1. Set `NEXT_PUBLIC_HEALTH_SYNC_ENABLED=true` and deploy. Go to `/profile` → "Connect a device" → `/profile/connections`.
 2. Click **Connect Garmin** → you're redirected to Garmin's authorize page. Log in and approve.

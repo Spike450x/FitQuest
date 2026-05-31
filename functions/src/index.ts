@@ -10,6 +10,8 @@ export { claimDungeonRun } from './claimDungeonRun';
 export { claimCombatVictory } from './claimCombatVictory';
 export { createGarminAuthUrl, garminOAuthCallback } from './garminConnect';
 export { garminWebhook } from './garminWebhook';
+export { createStravaAuthUrl, stravaOAuthCallback } from './stravaConnect';
+export { stravaWebhook } from './stravaWebhook';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

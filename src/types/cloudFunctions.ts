@@ -82,17 +82,23 @@ export interface LogActivityResult {
   achievementGold: number;
 }
 
-// ─── createGarminAuthUrl ──────────────────────────────────────────────────────
+// ─── Device connect (Garmin / Strava) ─────────────────────────────────────────
+// Both providers share the same callable shape: pass the app origin to return
+// to, get back a provider authorize URL to navigate the browser to.
 
-export interface CreateGarminAuthUrlInput {
+export interface ConnectAuthUrlInput {
   /** App origin to return the browser to after the OAuth callback completes. */
   returnOrigin: string;
 }
 
-export interface CreateGarminAuthUrlResult {
-  /** Garmin OAuth 2.0 PKCE authorize URL to navigate the user to. */
+export interface ConnectAuthUrlResult {
+  /** Provider authorize URL to navigate the user to. */
   url: string;
 }
+
+// Back-compat aliases.
+export type CreateGarminAuthUrlInput = ConnectAuthUrlInput;
+export type CreateGarminAuthUrlResult = ConnectAuthUrlResult;
 
 // ─── claimCombatVictory ───────────────────────────────────────────────────────
 

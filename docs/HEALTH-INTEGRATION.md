@@ -1,14 +1,21 @@
-# FitQuest — Health-Data Integration (Garmin)
+# FitQuest — Health-Data Integration (Strava + Garmin)
 
-Auto-log real workouts, runs, steps and sleep from a Garmin device instead of
-typing them in. This document is the design spec **and** the operations runbook
-for the integration on the `claude/health-data-integration-NWLGo` branch.
+Auto-log real runs and workouts from a connected app instead of typing them in.
+This document is the design spec **and** the operations runbook for the
+integration on the `claude/health-data-integration-NWLGo` branch.
 
-Status: **scaffold landed, feature-flagged off.** Everything network-dependent
-is gated behind `NEXT_PUBLIC_HEALTH_SYNC_ENABLED` and Cloud Functions secrets.
-The pure logic (mapping, dedupe, PKCE) is implemented and unit-tested; turning
-it on is an ops task (get Garmin Developer approval, set secrets, register the
-push callbacks), not a code task.
+**Two providers ship behind one feature flag, sharing one ingestion core:**
+
+- **Strava — the works-today path.** Free, self-serve API (no approval). Covers
+  runs + workouts, including ones recorded on a Garmin/Apple Watch/Fitbit that
+  the user syncs to Strava. No steps or sleep (Strava has neither).
+- **Garmin-direct — coded, gated on approval.** Adds steps + sleep, but Garmin's
+  Connect Developer Program is **enterprise-only** (an application, may be
+  denied). The code is complete and inert until its secrets are set.
+
+Status: **scaffold landed, feature-flagged off** (`NEXT_PUBLIC_HEALTH_SYNC_ENABLED`).
+The pure logic (mapping, dedupe, PKCE) is implemented and unit-tested; turning a
+provider on is an ops task (set its secrets, register its webhook), not a code task.
 
 ---
 
@@ -22,9 +29,24 @@ FitQuest is a web app / PWA on Firebase. That constraint decides the approach:
 | **Garmin (direct)**         | ✅ Yes — real server-to-server OAuth 2.0 + push webhooks.                | **Free** (Developer Program has no licensing/maintenance fee). |
 | **Aggregator (Terra/Rook)** | ✅ Yes — covers 50+ providers in one integration.                        | Paid (~$249–$499/mo); no free tier.                            |
 
-We chose **Garmin-direct**: $0, fits the architecture, and the ingestion core
-below is provider-neutral so a paid aggregator or a second provider can be added
-later as a thin adapter without touching the reward path.
+We enable **Strava first** ($0, self-serve, works today) and ship **Garmin-direct**
+alongside it for whenever its enterprise approval lands. The ingestion core is
+provider-neutral, so each provider is a thin adapter (OAuth + payload mapping)
+over the same authoritative write path — and a paid aggregator could be added
+the same way later.
+
+### Strava-specific shape (differs from Garmin)
+
+- **OAuth 2.0** (authorization-code, no PKCE). Access tokens last **~6 hours**, so
+  `stravaApi.getValidAccessToken` transparently refreshes (and re-persists) using
+  the long-lived refresh token before each fetch.
+- **Notification webhook** (not push): a Strava event carries only an object id,
+  so `stravaWebhook` fetches `GET /activities/{id}` and maps that. It also answers
+  Strava's **GET subscription-validation handshake** (echo `hub.challenge`).
+- **Files:** `gameLogic/stravaMapping.ts` (pure), `stravaOAuth.ts`, `stravaApi.ts`
+  (refresh + fetch), `stravaConnect.ts` (`createStravaAuthUrl` + `stravaOAuthCallback`),
+  `stravaWebhook.ts`. Shares `logActivityCore`, `healthDedupe`, `healthTokens`,
+  `healthConnections`, and the `/profile/connections` UI with Garmin.
 
 ---
 
@@ -130,14 +152,41 @@ log's own `loggedAt` (Garmin `startTimeInSeconds`), so it counts to the right da
 
 v1 **keeps caps and reward rules unchanged** — a synced log earns the same
 mastery / restore / achievements as a manual one, just auto-filled. Synced logs
-carry `source: 'garmin'` and show a "⌚ synced" feed badge. A verified-source
-XP/trust bonus is deliberately deferred (confirm before any reward divergence).
+carry `source: 'strava'` / `'garmin'` and show a "⌚ synced" feed badge. A
+verified-source XP/trust bonus is deliberately deferred (confirm before any
+reward divergence).
 
 ---
 
 ## 7. Operations runbook (enabling it)
 
-### A. Get Garmin Developer access (the long pole — do this first)
+### Strava (works today — recommended first)
+
+1. Create an API app at **<https://www.strava.com/settings/api>** → note the
+   **Client ID** + **Client Secret**. Set the **Authorization Callback Domain**
+   to your Cloud Functions host (e.g. `us-central1-fitness-rpg-claude.cloudfunctions.net`).
+2. Pick a random verify token (`openssl rand -hex 24`) and set the secrets + the
+   callback param:
+   ```bash
+   firebase functions:secrets:set STRAVA_CLIENT_ID
+   firebase functions:secrets:set STRAVA_CLIENT_SECRET
+   firebase functions:secrets:set STRAVA_VERIFY_TOKEN
+   # STRAVA_REDIRECT_URI (non-secret param) = the deployed stravaOAuthCallback URL
+   ```
+3. Deploy: `firebase deploy --only functions:createStravaAuthUrl,functions:stravaOAuthCallback,functions:stravaWebhook,firestore:rules`.
+4. Create the **push subscription** once (Strava GETs your webhook to validate it,
+   expecting the `hub.challenge` echo the function already implements):
+   ```bash
+   curl -X POST https://www.strava.com/api/v3/push_subscriptions \
+     -F client_id=<id> -F client_secret=<secret> \
+     -F callback_url=https://…/stravaWebhook \
+     -F verify_token=<STRAVA_VERIFY_TOKEN>
+   ```
+5. Flip the web flag (step D below) → `/profile/connections` → **Connect Strava**.
+
+### Garmin (only once the Developer Program approves you)
+
+#### A. Get Garmin Developer access (the long pole)
 
 1. Apply to the **[Garmin Connect Developer Program](https://developer.garmin.com/gc-developer-program/)** → request **Health API** (and/or Activity API) access. Approval is free but can take ~1–4 weeks.
 2. Once approved, from the developer portal note your **Client ID** and **Client Secret** (OAuth 2.0 PKCE).

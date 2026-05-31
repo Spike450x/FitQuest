@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCharacter } from '@/hooks/useCharacter';
 import { useHealthConnections } from '@/hooks/useHealthConnections';
-import { createGarminAuthUrl, HEALTH_SYNC_ENABLED } from '@/lib/health';
+import { createConnectAuthUrl, HEALTH_SYNC_ENABLED, type ConnectProvider } from '@/lib/health';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Heading } from '@/components/ui/Heading';
@@ -13,6 +13,7 @@ import type { HealthConnection } from '@/types';
 
 // Friendly labels + glyphs keyed by the lowercase provider code on the doc.
 const PROVIDER_LABELS: Record<string, { name: string; glyph: string }> = {
+  strava: { name: 'Strava', glyph: '🏅' },
   garmin: { name: 'Garmin', glyph: '⌚' },
 };
 
@@ -23,7 +24,7 @@ function providerLabel(code: string): { name: string; glyph: string } {
 export default function ConnectionsPage() {
   const { character, user } = useCharacter();
   const { connections, loading } = useHealthConnections(user?.uid);
-  const [connecting, setConnecting] = useState(false);
+  const [connecting, setConnecting] = useState<ConnectProvider | null>(null);
 
   // Surface the post-redirect outcome without forcing a Suspense boundary
   // (reading window.location avoids the useSearchParams prerender constraint).
@@ -31,11 +32,11 @@ export default function ConnectionsPage() {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     if (params.get('connected') === '1') {
-      toast('🎉 Garmin connected', {
+      toast('🎉 Device connected', {
         description: 'Your activity will sync automatically from now on.',
       });
     } else if (params.get('error') === '1') {
-      toast('Connection failed', { description: 'Garmin was not linked. Please try again.' });
+      toast('Connection failed', { description: 'Nothing was linked. Please try again.' });
     }
     if (params.has('connected') || params.has('error')) {
       window.history.replaceState({}, '', '/profile/connections');
@@ -44,15 +45,17 @@ export default function ConnectionsPage() {
 
   if (!character || !user) return null;
 
-  async function handleConnect() {
-    setConnecting(true);
+  async function handleConnect(provider: ConnectProvider) {
+    setConnecting(provider);
     try {
-      const { url } = await createGarminAuthUrl({ returnOrigin: window.location.origin });
+      const { url } = await createConnectAuthUrl(provider, {
+        returnOrigin: window.location.origin,
+      });
       window.location.href = url;
     } catch (err) {
       const message = (err as { message?: string }).message ?? 'Could not start the connection.';
       toast('Connection failed', { description: message });
-      setConnecting(false);
+      setConnecting(null);
     }
   }
 
@@ -69,7 +72,7 @@ export default function ConnectionsPage() {
           Connected Devices
         </Heading>
         <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-          Link your Garmin to auto-log your real workouts, runs, steps and sleep — no manual entry.
+          Link an app to auto-log your real runs and workouts — no manual entry.
         </p>
       </div>
 
@@ -77,8 +80,9 @@ export default function ConnectionsPage() {
         <Card variant="highlight" padding="lg">
           <p className="text-sm font-semibold text-text-primary">Coming soon</p>
           <p className="text-xs text-text-muted mt-1">
-            Garmin sync isn&apos;t switched on for this build yet. Once enabled you&apos;ll be able
-            to connect your Garmin account in a couple of taps. For now, log your activities on the{' '}
+            Device sync isn&apos;t switched on for this build yet. Once enabled you&apos;ll be able
+            to connect Strava (and your Garmin watch through it) in a couple of taps. For now, log
+            your activities on the{' '}
             <Link href="/activities" className="text-accent-primary hover:underline">
               Activities
             </Link>{' '}
@@ -90,14 +94,18 @@ export default function ConnectionsPage() {
           <Card variant="hero" padding="lg">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <p className="text-sm font-semibold text-text-primary">Connect Garmin</p>
+                <p className="text-sm font-semibold text-text-primary">Connect Strava</p>
                 <p className="text-xs text-text-muted mt-0.5 max-w-sm">
-                  We never see your Garmin password — you authorize on Garmin&apos;s own secure
-                  page, and your real activity flows in automatically.
+                  Free, instant. Already use a Garmin, Apple Watch or Fitbit? If it syncs to Strava,
+                  those runs and workouts flow into FitQuest automatically.
                 </p>
               </div>
-              <Button onClick={handleConnect} loading={connecting} loadingLabel="Opening…">
-                Connect Garmin
+              <Button
+                onClick={() => handleConnect('strava')}
+                loading={connecting === 'strava'}
+                loadingLabel="Opening…"
+              >
+                Connect Strava
               </Button>
             </div>
           </Card>
@@ -105,8 +113,8 @@ export default function ConnectionsPage() {
           <ConnectionList connections={connections} loading={loading} />
 
           <p className="text-xs text-text-muted">
-            Apple Health can&apos;t be linked from the web — it lives on your iPhone and needs the
-            native app (on the roadmap). Garmin works in your browser today.
+            Steps and sleep don&apos;t come through Strava. Native Garmin sync (which adds those) is
+            on the roadmap once Garmin approves API access; Apple Health needs a native iOS app.
           </p>
         </>
       )}
@@ -128,11 +136,11 @@ function ConnectionList({
     return (
       <Card variant="default" padding="lg" className="text-center">
         <div className="text-3xl mb-2" aria-hidden="true">
-          ⌚
+          🏅
         </div>
-        <p className="text-sm font-semibold text-text-secondary">No devices linked yet</p>
+        <p className="text-sm font-semibold text-text-secondary">No apps linked yet</p>
         <p className="text-xs text-text-muted mt-1">
-          Connect Garmin above to start earning rewards from your real activity.
+          Connect Strava above to start earning rewards from your real activity.
         </p>
       </Card>
     );

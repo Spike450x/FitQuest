@@ -12,7 +12,7 @@ import {
   eventDedupeKey,
   utcDayKey,
 } from './gameLogic/healthDedupe';
-import { findUidByGarminUserId } from './healthTokens';
+import { findUidByProviderUserId } from './healthTokens';
 
 const db = admin.firestore();
 const PROVIDER = 'garmin';
@@ -60,7 +60,7 @@ export const garminWebhook = onRequest(
       try {
         let uid = uidCache.get(garminUserId);
         if (uid === undefined) {
-          uid = await findUidByGarminUserId(db, garminUserId);
+          uid = await findUidByProviderUserId(db, PROVIDER, garminUserId);
           uidCache.set(garminUserId, uid);
         }
         if (!uid) continue; // unknown user — ignore

@@ -176,9 +176,20 @@ The `FIREBASE_TOKEN` secret is a long-lived Firebase CI token used by the CI aut
 
 ---
 
-## Cloud Functions Secrets — Garmin health-data integration
+## Cloud Functions Secrets — health-data integration (Strava + Garmin)
 
-The health-data integration (see [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md)) is the first feature to use **Firebase Functions secrets** (`defineSecret` / Google Secret Manager) rather than `NEXT_PUBLIC_*` env vars. Three secrets + one non-secret param back it:
+The health-data integration (see [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md)) is the first feature to use **Firebase Functions secrets** (`defineSecret` / Google Secret Manager) rather than `NEXT_PUBLIC_*` env vars. Each provider has its own secret set; the functions degrade safely (callable throws `failed-precondition`; webhook no-ops) until provisioned.
+
+**Strava (works today):**
+
+| Secret / param         | Used by                                  | Purpose                                                                       |
+| ---------------------- | ---------------------------------------- | ----------------------------------------------------------------------------- |
+| `STRAVA_CLIENT_ID`     | `createStravaAuthUrl`, callback, webhook | Strava OAuth2 client id                                                       |
+| `STRAVA_CLIENT_SECRET` | `stravaOAuthCallback`, `stravaWebhook`   | OAuth client secret (also used for the 6-hour token refresh)                  |
+| `STRAVA_VERIFY_TOKEN`  | `stravaWebhook`                          | Echoed in the subscription-validation handshake; rejects stray GETs           |
+| `STRAVA_REDIRECT_URI`  | callback + authorize URL (param)         | Deployed `stravaOAuthCallback` URL; its domain = Strava app's callback domain |
+
+**Garmin (pending enterprise approval):** Three secrets + one non-secret param back it —
 
 | Secret / param         | Used by                               | Purpose                                                                                           |
 | ---------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------- |

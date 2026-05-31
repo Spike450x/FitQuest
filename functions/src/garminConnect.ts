@@ -129,7 +129,7 @@ export const garminOAuthCallback = onRequest(
       await saveTokens(db, {
         uid: saved.uid,
         provider: PROVIDER,
-        garminUserId,
+        providerUserId: garminUserId,
         accessToken: token.access_token,
         refreshToken: token.refresh_token,
         expiresAt: token.expires_in ? Date.now() + token.expires_in * 1000 : undefined,
