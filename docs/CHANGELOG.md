@@ -31,6 +31,13 @@ Docs-only pass — no code changes. Resynced every doc whose counts/lists drifte
 - **GAME-LOGIC.md dungeons section rewritten** — it referenced 8 functions that no longer exist (`DUNGEON_BOSS_DEFS`, `generateDungeonRooms`, `getStatCheckThreshold`, `getStatCheckDamage`, `resolveStatCheck`, `getWeekSeedForDungeon`, `applyBossEnrage`, `isBossEnrageTriggered`). Replaced with the actual 27 `dungeons.ts` exports. Also documented 30+ other previously-missing exports (Spirit-crit + pity constants, `scaleQuestRewards`, activity-cap helpers, `rotationExpiresAt`, mastery/restore sets, `RARITY_CARD`, collection return types).
 - **Drift guard (best practice)** — new `scripts/validate-doc-counts.mjs` + `npm run validate:docs`, wired into CI (step 4b). Three classes of check: (1) **counts** (items/spells/monsters/achievements/quest-pools/silhouettes) anchored so historical CHANGELOG entries are never matched; (2) **silhouette coverage** — every non-spell item must have a per-id silhouette; (3) **export coverage** — every `src/lib/gameLogic/*` export must appear in GAME-LOGIC.md or be on an explicit exemption list. This catches renamed/removed/added symbols, the exact drift that had rotted the dungeons section. CLAUDE.md's pre-PR checklist gained ART-ASSETS / DEPLOYMENT rows and a count-guard note.
 
+## 2026-05-30 — Privacy Policy, Terms of Use, and legal footer
+
+- Added `/privacy` and `/terms` pages under a `(legal)` route group with a minimal branded layout (no game nav)
+- `LegalFooter` component (`© year · Privacy Policy · Terms of Use`) added to auth, game, and legal layouts
+- Register page now includes "By creating an account you agree to our Terms of Use and Privacy Policy" above the submit button
+- Connections page disclaimer links to the Privacy Policy — satisfies Strava API review requirement
+
 ## 2026-05-30 — Health-data integration scaffold (Strava + Garmin, free)
 
 - **Auto-log real runs & workouts from a connected app** — feature-flagged off (`NEXT_PUBLIC_HEALTH_SYNC_ENABLED`). Two providers share one ingestion core. Full design + runbook in [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md).

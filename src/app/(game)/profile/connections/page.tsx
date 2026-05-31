@@ -112,6 +112,20 @@ export default function ConnectionsPage() {
 
           <ConnectionList connections={connections} loading={loading} />
 
+          <Card variant="flat" padding="md">
+            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-1">
+              Early access — developer accounts only
+            </p>
+            <p className="text-xs text-text-muted">
+              Strava sync is live but currently limited to the developer&apos;s account while
+              awaiting Strava&apos;s API review. Public access for all users is coming soon. See our{' '}
+              <Link href="/privacy" className="text-accent-primary hover:underline">
+                Privacy Policy
+              </Link>{' '}
+              for details on how your activity data is used.
+            </p>
+          </Card>
+
           <p className="text-xs text-text-muted">
             Steps and sleep don&apos;t come through Strava. Native Garmin sync (which adds those) is
             on the roadmap once Garmin approves API access; Apple Health needs a native iOS app.
