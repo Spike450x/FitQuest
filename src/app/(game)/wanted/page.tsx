@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useGameData } from '@/hooks/useGameData';
 import { useBountyStore } from '@/store/bountyStore';
 import { getBountyDef } from '@/lib/gameLogic/bounties';
+import { getMonsterById } from '@/lib/gameLogic/monsters';
+import { MONSTER_EMOJI } from '@/components/combat/MonsterCard';
 import { reputationProgress } from '@/lib/gameLogic/reputation';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -109,6 +112,9 @@ function BountyCard({
   const isClaimed = bounty.claimedAt !== null;
   const isClaiming = claiming === bounty.id;
   const isMultiTarget = (def.extraTargets?.length ?? 0) > 0;
+  const isHunt = def.kind === 'hunt';
+  const quarry = isHunt && bounty.combatMonsterId ? getMonsterById(bounty.combatMonsterId) : null;
+  const quarryEmoji = quarry ? (MONSTER_EMOJI[quarry.id] ?? '👾') : '';
 
   return (
     <div
@@ -126,7 +132,14 @@ function BountyCard({
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">{def.name}</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">
+              {quarry ? `Wanted: ${quarryEmoji} ${quarry.name}` : def.name}
+            </h3>
+            {isHunt && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300">
+                Hunt
+              </span>
+            )}
             {isClaimed && (
               <span
                 data-testid={`bounty-claimed-badge-${bounty.id}`}
@@ -137,11 +150,13 @@ function BountyCard({
             )}
             {isComplete && !isClaimed && (
               <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
-                Complete!
+                {isHunt ? 'Tracked!' : 'Complete!'}
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{def.description}</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+            {quarry ? `${def.description} (Lv ${quarry.level})` : def.description}
+          </p>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <RewardSummary bounty={bounty} claimed={isClaimed} />
@@ -181,23 +196,39 @@ function BountyCard({
         })}
       </div>
 
-      {/* Claim (Loot) button — the Fight fork lands in a follow-up PR */}
-      {isComplete && !isClaimed && (
-        <button
-          onClick={() => onClaim(bounty.id)}
-          disabled={!!claiming}
-          data-testid={`bounty-claim-btn-${bounty.id}`}
-          className="relative w-full overflow-hidden bg-gradient-to-r from-violet-500 via-violet-400 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 hover:shadow-lg hover:shadow-violet-500/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none text-white text-xs font-bold py-2 rounded-lg transition-all active:scale-[0.98] group"
-        >
-          <span
-            className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent transition-transform duration-700"
-            aria-hidden="true"
-          />
-          <span className="relative">
-            {isClaiming ? 'Collecting…' : `Take the loot · +${def.rewards.reputation} Rep`}
-          </span>
-        </button>
-      )}
+      {/* Hunt: route to the fight once tracked. Standing: claim the loot inline. */}
+      {isComplete &&
+        !isClaimed &&
+        (isHunt ? (
+          <Link
+            href={`/wanted/hunt/${bounty.id}`}
+            data-testid={`bounty-hunt-btn-${bounty.id}`}
+            className="relative block w-full overflow-hidden text-center bg-gradient-to-r from-violet-600 via-violet-500 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 hover:shadow-lg hover:shadow-violet-500/40 text-white text-xs font-bold py-2 rounded-lg transition-all active:scale-[0.98] group"
+          >
+            <span
+              className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent transition-transform duration-700"
+              aria-hidden="true"
+            />
+            <span className="relative">
+              ⚔️ Hunt {quarry ? quarry.name : 'target'} · +{def.rewards.reputation} Rep
+            </span>
+          </Link>
+        ) : (
+          <button
+            onClick={() => onClaim(bounty.id)}
+            disabled={!!claiming}
+            data-testid={`bounty-claim-btn-${bounty.id}`}
+            className="relative w-full overflow-hidden bg-gradient-to-r from-violet-500 via-violet-400 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 hover:shadow-lg hover:shadow-violet-500/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none text-white text-xs font-bold py-2 rounded-lg transition-all active:scale-[0.98] group"
+          >
+            <span
+              className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent transition-transform duration-700"
+              aria-hidden="true"
+            />
+            <span className="relative">
+              {isClaiming ? 'Collecting…' : `Take the loot · +${def.rewards.reputation} Rep`}
+            </span>
+          </button>
+        ))}
     </div>
   );
 }

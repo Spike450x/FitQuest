@@ -15,6 +15,14 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-31 — Wanted Board Hunt bounties (the Fight fork, PR2)
+
+- **Hunt bounties.** Most Wanted Board bounties are now combat **Hunts**: logging the activity _tracks down_ a named, level-scaled target (the unlock), then the player fights it on a new `/wanted/hunt/[bountyId]` route; **winning** collects the Reputation. A thin set of activity-only "standing" bounties stays as the rest-day floor. The daily board is composed as 2 hunts + 1 standing.
+- **Combat reuse.** The hunt route mounts the real `useCombatEncounter` and reuses the arena's combat surface (third consumer after arena + dungeon-run). Win → `claimCombatVictory` CF for XP/gold (no item loot) + Reputation via the now-wired `claimBounty(id, { path: 'fight' })`. **Loss is a soft failure** — no character reset; the unlock persists for a free retry. Hunt targets are pinned at assignment via the pure `pickHuntMonster(level, band, seed)`; hunts pay more Reputation than any standing bounty (130/170/220 by difficulty band).
+- **Schema/rules.** `BountyDef` gains `kind` + `combat.levelBand`; `ActiveBounty` gains `combatMonsterId` (immutable) + `combatWonAt` (write-once during claim). `activeBounties` rules extended; new `getMonsterById` lookup in `monsters.ts`.
+- **Risk noted:** hunt wins route through `claimCombatVictory`, so they count toward the daily combat-XP cap + bestiary (intended — a hunt is combat; the hunt page surfaces the XP-multiplier warning).
+- **Tests:** +12 vitest (rank/pool/store/pin) + 5 rules specs (934 root + 127 rules pass).
+
 ## 2026-05-31 — Reputation + Wanted Board (foundation slice, PR1)
 
 - **New second currency — Reputation.** Dual-track: a `spendableReputation` wallet + a monotonic `lifetimeReputation` tracker that drives a 5-tier rank (Newcomer → Known → Respected → Renowned → Legendary). New pure `src/lib/gameLogic/reputation.ts` (`REPUTATION_RANKS`, `reputationRank`, `nextReputationRank`, `reputationProgress`). Rank is a visible badge + progress bar for now; the features it gates (vendor, NPCs, raids) arrive in later PRs.
