@@ -112,5 +112,5 @@ All silhouettes in this pass are hand-authored, no third-party assets used. When
 ## Future work
 
 - **Commissioned art** — replace the geometric silhouettes with bespoke painted portraits. The system supports drop-in replacement: change one function or swap to a `<img>` route, no callsite changes.
-- **Per-item art** ✅ — All 55 non-spell items now have unique per-`id` silhouettes (18 weapons, 13 armor, 14 accessories, 10 consumables). The 21 spells use the `SPELL_SILHOUETTES` map by spell effect key. Type-level fallbacks (`weapon`/`armor`/`accessory`/`consumable`) remain in `ITEM_SILHOUETTES` as safety nets for any catalog additions before a dedicated silhouette is authored.
+- **Per-item art** ✅ — All ~110 non-spell items now have unique per-`id` silhouettes (40 weapons, 25 armor, 30 accessories, 16 consumables across the post-content-scaling catalog). The 35 spells use the `SPELL_SILHOUETTES` map by spell effect key. Type-level fallbacks (`weapon`/`armor`/`accessory`/`consumable`) remain in `ITEM_SILHOUETTES` as safety nets for any catalog additions before a dedicated silhouette is authored.
 - **Animated assets** — Lottie / SMIL animations for legendary loot reveals and boss intros. `EntityArt` would gain an optional `motion` prop pointing to a Lottie file.

@@ -68,6 +68,7 @@ This README covers feature breakdowns and game mechanics. Deeper engineering ref
 | [docs/BACKLOG.md](docs/BACKLOG.md)                         | Engineering debt and deferred technical items.                              |
 | [docs/UI-UX-MODERNIZATION.md](docs/UI-UX-MODERNIZATION.md) | UI/UX audit tracking — 24-item modernization checklist.                     |
 | [docs/ART-ASSETS.md](docs/ART-ASSETS.md)                   | Heraldic art system — asset inventory, generation guide, usage rules.       |
+| [docs/HEALTH-INTEGRATION.md](docs/HEALTH-INTEGRATION.md)   | Health-data sync (Strava + Garmin) — design, OAuth flows, provisioning runbook. |
 | [docs/SMOKE-TEST.md](docs/SMOKE-TEST.md)                   | Manual smoke-test checklist for auth, middleware, and Firebase round-trips. |
 | [docs/superpowers/specs/](docs/superpowers/specs/)         | Post-MVP feature design specs (roadmap, champions, reputation, etc.).       |
 | [SECURITY.md](SECURITY.md)                                 | Vulnerability reporting policy.                                             |
@@ -419,13 +420,14 @@ All Wizards share **Mana Barrier** (absorb up to 10 damage per round from magic 
 
 Spells are items with `type: "spell"`. They must be purchased or looted, then equipped in a loadout (up to 5 spells) before entering combat.
 
-**Spell catalog — 21 spells total:**
+**Spell catalog — 35 spells total** (14 added in the 2× content-scaling drop):
 
-- 6 generic spells (all classes)
-- 5 Warrior spells
-- 5 Wizard spells
-- 5 Rogue spells
-- 3 epic spells are loot-only (one per class, dropped from hard monsters)
+- 12 generic spells (all classes)
+- 8 Warrior spells
+- 8 Wizard spells
+- 7 Rogue spells
+- 6 are loot-only (never sold): 3 epic class spells (Titan's Fury / Void Collapse / Phantom Assault, now also boss drops) + 3 legendary class spells (Worldbreaker / Stellar Collapse / Thousand Cuts, dropped by the Dragon King + L11–14 monsters)
+- The 5 buyable spells featured each week rotate via the shop's weekly rotation
 
 **How casting works:**
 
@@ -455,8 +457,11 @@ Spells are items with `type: "spell"`. They must be purchased or looted, then eq
 | `stun`           | Monster skips its counter-attack this round                     |
 | `defenseBoost`   | Temporary defense bonus for this round                          |
 | `lifestealPct`   | Fraction of damage dealt returned as HP                         |
+| `dotDamage`      | Bleed/burn — `{ perRound, rounds }` ticks on the monster each subsequent round, bypassing defense (content-scaling PR4) |
 
 **Wisdom scaling:** Many spells scale with the player's WIS stat. Spell cards display the formula clearly — e.g., `20 base + 8 WIS = 28 heal`.
+
+**Spirit crit:** Spells (and class abilities) can critically hit based on the player's SPR stat — `+1 %` crit chance per point (cap 40 %) and `+0.5 %` crit damage per point (cap +25 %). Fires only on a successful, damage-dealing cast.
 
 **Magic resource:**
 
@@ -506,9 +511,9 @@ Pack management is handled from the **Inventory → Consumables** tab.
 
 ### Quests
 
-**Daily quests:** 3 quests active per day, drawn from a pool of 12 (2 per activity type). Rotate deterministically — same quests for all players on a given day.
+**Daily quests:** 3 quests active per day, drawn from a pool of 61 (across all 7 activity types, including cross-habit combos). Rotate deterministically — same quests for all players on a given day.
 
-**Weekly quests:** 3 quests active per week, drawn from a pool of 5 (one per activity type). Rotate deterministically — same quests for all players in a given week.
+**Weekly quests:** 3 quests active per week, drawn from a pool of 31 (across all 7 activity types, including cross-habit combos). Rotate deterministically — same quests for all players in a given week.
 
 Quest progress updates automatically as you log activities. Rewards (XP + gold) are claimed manually via a button. Quests expire at the end of the day/week with a live countdown timer.
 
@@ -553,7 +558,9 @@ Multi-room dungeon runs with escalating loot, seeded weekly layouts, and a boss 
 
 ### Achievement System
 
-One-time milestone badges earned through dungeon progression. Each badge awards gold once, displayed in the profile page achievement gallery.
+**31 one-time milestone badges** across six categories. Each badge awards gold once and appears in the profile badge gallery and the `/collections` catalog (with locked/unlocked states). Most are server-authoritative (awarded atomically inside the `claimCombatVictory` / `logActivity` / `claimDungeonRun` Cloud Functions); quest and collection badges are client-mirrored. See [`src/lib/gameLogic/achievements.ts`](src/lib/gameLogic/achievements.ts).
+
+**Dungeon (6):**
 
 | Badge               | Condition                                    | Gold |
 | ------------------- | -------------------------------------------- | ---- |
@@ -563,6 +570,16 @@ One-time milestone badges earned through dungeon progression. Each badge awards 
 | 💀 Dark Arts        | Clear the Dark Sanctum                       | 250g |
 | 🔥 Dragonheart      | Clear Dragon's Keep                          | 500g |
 | ⭐ Legendary Haul   | Receive a legendary item from a dungeon boss | 200g |
+
+**Combat (7):** First Blood (first arena win, 50g), Centurion (100 wins, 300g), the four Slayer badges (defeat 5 each of Obsidian Golem / Ashwyrm / Void Revenant / Storm Djinn, 150g each), and Untouched (win a fight without taking damage, 200g).
+
+**Activity (6):** Iron Body (100 workouts), Marathoner (100 runs), Well-Fed (100 nutrition logs), Well-Rested (100 sleep logs) — 200g each; Like Water (water 7 days running, 150g); Enlightened (50 meditation sessions, 250g).
+
+**Mastery (4):** Apprentice (mastery 5 on any primary stat, 50g), Journeyman (15, 150g), Master (25, 300g), Polymath (mastery 5 on all of STR/WIS/AGI/SPR, 500g).
+
+**Quest (4):** Quest Novice (50 quests, 100g), Quest Veteran (250, 300g), Quest Legend (1000, 1000g), Weekly Perfectionist (claim all 3 weekly quests in one week, 400g).
+
+**Collection (4):** Bestiary Complete (discover every monster + boss, 500g), Legendary Hoarder (own every legendary at once, 1500g), Armory (own 15+ unique gear pieces, 300g), Arcane Archive (own every spell, 800g).
 
 ---
 
@@ -626,9 +643,9 @@ Ability/Spell round = monster counter-attack adds d10 + monster.attack − playe
 Escape roll        = d10 + AGI vs monster d10
 
 Daily combat XP    = base_xp × multiplier, where multiplier =
-                     1.0  if wins_today < 10
-                     0.5  if wins_today < 20
-                     0.25 if wins_today < 30
+                     1.0  if wins_today < 5
+                     0.5  if wins_today < 15
+                     0.25 if wins_today < 25
                      0.1  otherwise        (gold is NOT diminished)
 ```
 

@@ -87,6 +87,13 @@ Tested in [`__tests__/combat.test.ts`](../src/lib/gameLogic/__tests__/combat.tes
 | `monsterXpScaling(playerLvl, monsterLvl)`    | Returns the player-over-monster XP scaling for top-tier monsters (level ≥ 8). +8% per level above, capped at 2.0×. Returns 1.0× for low-tier monsters so grinding the Goblin Scout at level 20 never becomes optimal.                                                                                                                                                                                                                                                      |
 | `combatXpDailyMultiplier(winsToday)`         | Daily diminishing-returns multiplier on **combat-win XP** (gold is never diminished). `1.0×` for wins 1–4, `0.5×` at wins 5–14, `0.25×` at 15–24, `0.1×` floor at 25+. Tightened in the balance pass from the original `0–9 / 10–19 / 20–29 / 30+` breakpoints. Mirrored in `functions/src/gameLogic/combat.ts` because the authoritative application happens inside the `claimCombatVictory` Cloud Function. Parity-tested in `functions/src/__tests__/combatXp.test.ts`. |
 | `combatWinsUntilNextPenalty(winsToday)`      | UI helper for the "Daily combat XP" badge on the combat page. Returns `{ remaining, nextMultiplier }` describing the next breakpoint, or `null` once the floor (25+ wins) is reached.                                                                                                                                                                                                                                                                                      |
+| `spellCritChance(spirit)`                    | Spirit → spell/ability crit chance: `+1%` per point, capped at `40%` (content-scaling PR1).                                                                                                                                                                                                                                                                                                                                                                                |
+| `spellCritDamage(spirit)`                    | Spirit → crit damage bonus: `+0.5%` per point, capped at `+25%` (PR1).                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `rollSpellCrit(spirit)`                      | Rolls a spell/ability crit using `spellCritChance(spirit)`. Returns `{ crit, multiplier }`. Wired into `resolveAbilityAction` / `resolveSpellAction` — fires only on a successful, damage-dealing action. Mirrored in `functions/src/gameLogic/combat.ts`.                                                                                                                                                                                                                  |
+| `monsterArmorPierce(monster)`                | Flat player-DEF reduction from a monster's `armor-pierce` passive (`0` if absent). PR2.                                                                                                                                                                                                                                                                                                                                                                                    |
+| `effectivePlayerDefenseVsMonster(char, monster)` | Player effective DEF after subtracting `monsterArmorPierce`. Used by `calculateRound` / `rollRunAway` / spell counter / `rollMonsterAttack`. PR2.                                                                                                                                                                                                                                                                                                                      |
+| `monsterSiphonAmount(monster)`               | Player-stamina drain from a monster's `siphon` passive per landed hit (`0` if absent). Applied post-damage in all three combat resolvers; surfaces as `monsterSiphon` in the round log. PR2.                                                                                                                                                                                                                                                                               |
+| `effectiveMonsterMaxHp(state)`               | Monster max HP including any one-time `summon-add` bonus (`FightState.monsterBonusHp`). Regen / vampiric caps clamp against this. PR2.                                                                                                                                                                                                                                                                                                                                      |
 
 ---
 
@@ -118,6 +125,8 @@ Tested in [`__tests__/spells.test.ts`](../src/lib/gameLogic/__tests__/spells.tes
 | `resolveSpell(character, monster, spell, dice)` | Full spell resolution: cost, requirement check, effect application, passive mods.                                                                         |
 | `getHighlightedSpellDiceIndices(req, dice)`     | Returns which dice indices to highlight in the UI (the dice that satisfy the requirement).                                                                |
 | `getSpellMaxCharges(rarity?)`                   | Per-rarity max charges per encounter (common 2, uncommon/rare 3, epic 4, legendary 5). Falls back to `COMBAT.SPELL_MAX_CHARGES` when rarity is undefined. |
+
+The spell **catalog** (35 spells after content-scaling PR4 — 14 added) lives in `ITEM_CATALOG` (`items.ts`) as items with `type: 'spell'`, not in this module. PR4 added the `SpellEffect.dotDamage` field (`{ perRound, rounds }`) — a bleed/burn applied to the monster on a successful cast and ticked at the start of each subsequent offensive round (bypassing defense) via `FightState.monsterDots`. DoTs are ticked in `runPreAction` (inside `combatActions.ts`) so they work in both arena and dungeon with zero modifier plumbing. Spell/ability crits roll via `rollSpellCrit` (see `combat.ts`).
 
 ---
 
@@ -185,10 +194,14 @@ Largest file by export count. Read the source for the actual passive description
 | ----------------- | -------- | ------------------------------------------------------------------------------------------ |
 | `RARITY_BADGE`    | const    | Tailwind background-color classes per rarity (`common` → gray, `legendary` → orange/gold). |
 | `RARITY_TEXT`     | const    | Tailwind text-color classes per rarity.                                                    |
-| `ITEM_CATALOG`    | const    | Every item in the game (gear, consumables, spells). Single source of truth.                |
+| `ITEM_CATALOG`    | const    | Every item in the game — 146 after content-scaling PR3 (40 weapons / 25 armor / 30 accessories / 16 consumables / 35 spells). Single source of truth. |
 | `getItemById(id)` | function | Catalog lookup. Returns `undefined` for unknown IDs.                                       |
+| `ConsumableEffect` | type    | Discriminated union of consumable effects. Variants: `restore` (single resource), and `multi` (`{ restores: Array<{resource, amount}> }`) for combo elixirs (Battle Stim, Spirit Tea, Sage's Brew) added in PR3. |
+| `describeConsumableEffect(effect)` | function | Human-readable label for a consumable effect (used by the inventory page + in-combat action bar). |
+| `consumableEffectColorClass(effect)` | function | Tailwind text-color class for the effect's resource(s).                                  |
+| `consumableEffectColorHex(effect)` | function | Hex color for the effect's resource(s) (chart/badge use).                                  |
 
-Items with `lootOnly: true` never appear in the shop — only in monster loot tables.
+Items with `lootOnly: true` never appear in the shop — only in monster / boss loot tables.
 
 ---
 
@@ -196,7 +209,7 @@ Items with `lootOnly: true` never appear in the shop — only in monster loot ta
 
 | Export            | Purpose                                                                                                                                                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MONSTER_CATALOG` | 11 monsters (levels 1–10; two at level 1, Lich King at level 9, Ancient Dragon at level 10). Every entry carries a `passive` or `active` from `MonsterPassive` / `MonsterActive` (see `src/types/index.ts`). Tested in `monsterPassives.test.ts`. |
+| `MONSTER_CATALOG` | 21 monsters (levels 1–14). The original 11 cover levels 1–10 (two at level 1, Lich King at level 9, Ancient Dragon at level 10); the 2× content-scaling drop (PR2) added 10 more spanning levels 1–14. Every entry carries a `passive` and/or `active` from `MonsterPassive` / `MonsterActive` (see `src/types/index.ts`). Tested in `monsterPassives.test.ts`. |
 
 ### Monster passive/active assignments
 
@@ -213,6 +226,23 @@ Items with `lootOnly: true` never appear in the shop — only in monster loot ta
 | Dark Mage        | 8   | Passive: `vampiric` (Life Tap)           | Heals 30% of its own counter-attack damage |
 | Lich King        | 9   | Active: `harden` @ 50% HP (Bone Shield)  | Permanently boosts DEF +6                  |
 | Ancient Dragon   | 10  | Passive: `thorns` (Dragon Scales)        | Reflects 25% of incoming player damage     |
+
+### Content-scaling additions (PR2 — 10 monsters, levels 1–14)
+
+These thicken low-level variety and fill the level 11–14 progression gap, and introduce three new mechanics: `siphon` (drains player stamina per landed hit), `armor-pierce` (flat reduction to player effective DEF), and `summon-add` (one-time HP bump to current + cap).
+
+| Monster        | Lvl | Mechanic                                       | Detail                                             |
+| -------------- | --- | ---------------------------------------------- | -------------------------------------------------- |
+| Mud Imp        | 1   | Passive: `siphon` (Sticky Grip)                | Drains 1 player stamina per landed hit             |
+| Boar Runt      | 2   | Active: `enrage` @ 50% HP (Tusk Charge)        | Permanently boosts ATK +3                          |
+| Bog Lurker     | 4   | Passive: `siphon` (Mire Grasp)                 | Drains 2 player stamina per landed hit             |
+| Iron Husk      | 5   | Passive: `armor-pierce` (Sundering Strike)     | Reduces player effective DEF by 2                  |
+| Frost Wraith   | 6   | Passive: `siphon` (Numbing Chill)              | Drains 3 player stamina per landed hit             |
+| Gloom Knight   | 8   | Active: `harden` @ 40% HP (Oathbreaker Bulwark)| Permanently boosts DEF +5                          |
+| Obsidian Golem | 11  | Passive: `armor-pierce` (Volcanic Edge)        | Reduces player effective DEF by 4                  |
+| Ashwyrm        | 12  | Passive: `thorns` (Cinder Hide)                | Reflects 22% of incoming player damage             |
+| Void Revenant  | 13  | Active: `summon-add` @ 50% HP (Echo Reinforcements) | One-time +60 HP to current + cap              |
+| Storm Djinn    | 14  | Passive: `vampiric` (Skyfeast) + Active: `enrage` @ 30% HP (Tempest Wrath) | Heals 25% of its counter; ATK +6 on enrage |
 
 Dungeon boss rooms (`isBossRoom`) suppress the passive/active badge UI and do not apply `passive`/`active` fields — bosses use the existing `CombatModifiers` seam.
 
@@ -334,7 +364,7 @@ Tested in [`__tests__/achievements.test.ts`](../src/lib/gameLogic/__tests__/achi
 - **Server-authoritative (17 IDs):** combat / activity / mastery achievements are evaluated inside `claimCombatVictory` (combat) and `logActivity` (activity + mastery) Cloud Functions. Gold + badge merge atomically with the existing transaction. Tamper-proof.
 - **Client-mirrored (14 IDs):** dungeon (6), quest (4), collection (4) achievements are written from the client. Dungeon achievements live inside the `claimDungeonRun` CF transaction; the rest are optimistic client writes. **The current CF transactions do NOT re-validate quest or collection achievements** — they're written once and trusted. Worst-case tamper is a few hundred gold per fabricated unlock; harden when leaderboards arrive.
 
-**Why parity-duplicated:** Achievement award logic runs inside Firestore transactions, so the helpers (`LEGENDARY_ITEM_IDS`, `ACHIEVEMENT_GOLD`, `checkNew*` mirrors, all thresholds) are mirrored in `functions/src/gameLogic/achievements.ts` to avoid `@/` path-alias dependencies. The parity test (`achievements-parity.test.ts`, 19 assertions) cross-checks every constant + threshold + checker output between the two copies on equivalent fixtures.
+**Why parity-duplicated:** Achievement award logic runs inside Firestore transactions, so the helpers (`LEGENDARY_ITEM_IDS`, `ACHIEVEMENT_GOLD`, `checkNew*` mirrors, all thresholds) are mirrored in `functions/src/gameLogic/achievements.ts` to avoid `@/` path-alias dependencies. The parity test (`achievements-parity.test.ts`, 20 assertions) cross-checks every constant + threshold + checker output between the two copies on equivalent fixtures.
 
 ---
 

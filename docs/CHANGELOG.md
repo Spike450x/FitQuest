@@ -15,6 +15,19 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-31 — Documentation audit & sync
+
+Docs-only pass — no code changes. Resynced every doc whose counts/lists drifted behind the content-scaling sprint (PR1–PR5b) and the health-data integration, and fixed a few internal contradictions.
+
+- **GAME-LOGIC.md** — `monsters.ts` corrected 11 → 21 monsters (levels 1–14) with a new table for the 10 PR2 additions and their `siphon` / `armor-pierce` / `summon-add` mechanics; added the PR1/PR2 `combat.ts` exports (`spellCritChance`, `spellCritDamage`, `rollSpellCrit`, `monsterArmorPierce`, `effectivePlayerDefenseVsMonster`, `monsterSiphonAmount`, `effectiveMonsterMaxHp`); noted the 35-spell catalog + `SpellEffect.dotDamage`; documented the `ConsumableEffect` union + helpers; bumped the achievements parity-test count to 20.
+- **ARCHITECTURE.md** — fixed "Five Zustand stores" → "Eight" (the table already listed eight); added the missing hooks (`useGameData`, `useHealthConnections`, `useSound`, `useTheme`); item silhouettes 55 → ~110; reframed the Garmin-only health entries to cover Strava (works-today) + Garmin.
+- **DEPLOYMENT.md** — added the 6 health Cloud Functions to the deployed-functions list, a new "Cloud Functions secrets" subsection (Strava/Garmin secrets + `firebase functions:secrets:set`), the `NEXT_PUBLIC_HEALTH_SYNC_ENABLED` env row, and a HEALTH-INTEGRATION cross-ref.
+- **README.md** — Spell catalog 21 → 35 (+ `dotDamage` and Spirit-crit notes); quest pools 12/5 → 61/31; combat-XP multiplier breakpoints corrected to 5/15/25; Achievement System reframed to all 31 badges across 6 categories; added HEALTH-INTEGRATION to the docs table.
+- **ART-ASSETS.md** — reconciled the "Future work" item/spell counts (55/21 → ~110/35).
+- **FIRESTORE.md** — `healthConnections` header Garmin → Strava/Garmin.
+- **CLAUDE.md** — added `combat`/`activity` stores + DEPLOYMENT/HEALTH-INTEGRATION/BUGS-ENHANCEMENTS to the key-paths lists; reworded the health "Active focus" (Strava-first, not Terra); bumped the status date.
+- **Specs** — marked combat-ui-polish and discord-ops-notifications as **Shipped** (both had stale "Approved" statuses).
+
 ## 2026-05-30 — Health-data integration scaffold (Strava + Garmin, free)
 
 - **Auto-log real runs & workouts from a connected app** — feature-flagged off (`NEXT_PUBLIC_HEALTH_SYNC_ENABLED`). Two providers share one ingestion core. Full design + runbook in [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md).

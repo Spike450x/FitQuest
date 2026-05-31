@@ -325,7 +325,7 @@ Run rewards (XP, gold, inventory items) are awarded atomically by the `claimDung
 
 ## `healthConnections/{uid}_{provider}`
 
-A user's link to a wearable provider (**Garmin**). A **tokenless, client-readable** status record. Mirrors [`HealthConnection`](../src/types/index.ts).
+A user's link to a wearable provider (**Strava / Garmin**). A **tokenless, client-readable** status record. Mirrors [`HealthConnection`](../src/types/index.ts).
 
 ```ts
 interface HealthConnection {

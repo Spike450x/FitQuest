@@ -1,7 +1,7 @@
 # Discord Ops Notifications — Design Spec
 
 **Date:** 2026-05-25  
-**Status:** Approved  
+**Status:** Shipped — 2026-05-25 (`.github/actions/discord-notify`, wired into `ci.yml`, `bundle-gate.yml`, `deploy-announce.yml`, `scheduled-e2e.yml`)  
 **Scope:** GitHub Actions CI infra only — no application code changes
 
 ---
