@@ -29,6 +29,20 @@ export const ACTIVITY_ICONS: Record<ActivityType, string> = {
 /** Fallback used when a string-keyed lookup misses (defensive). */
 export const ACTIVITY_ICON_FALLBACK = '📋';
 
+/**
+ * Brand color per activity type. Single source of truth shared by the stats
+ * charts and the activity calendar so the two surfaces never drift.
+ */
+export const ACTIVITY_COLORS: Record<ActivityType, string> = {
+  workout: '#6366f1',
+  run: '#f97316',
+  steps: '#10b981',
+  sleep: '#8b5cf6',
+  water: '#3b82f6',
+  nutrition: '#22c55e',
+  meditation: '#a78bfa',
+};
+
 export function getActivityIcon(type: ActivityType | string): string {
   return (ACTIVITY_ICONS as Record<string, string>)[type] ?? ACTIVITY_ICON_FALLBACK;
 }

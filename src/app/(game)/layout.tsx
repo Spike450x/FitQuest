@@ -28,6 +28,7 @@ import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { WelcomeBackBanner } from '@/components/ui/WelcomeBackBanner';
 import { RouteBackground } from '@/components/ui/RouteBackground';
 import { BrandMark } from '@/components/ui/BrandMark';
+import { CharacterAvatar } from '@/components/ui/CharacterAvatar';
 import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
 import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { LegalFooter } from '@/components/ui/LegalFooter';
@@ -177,13 +178,13 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
                 title="Profile"
                 aria-label={`Profile (${character.name})`}
                 aria-current={pathname === '/profile' ? 'page' : undefined}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors border ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center overflow-hidden transition-colors border ${
                   pathname === '/profile'
-                    ? 'bg-indigo-600 text-white border-indigo-600 dark:bg-indigo-500 dark:border-indigo-500'
-                    : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-indigo-900/40 dark:hover:border-indigo-700 dark:hover:text-indigo-300'
+                    ? 'border-indigo-500 ring-2 ring-indigo-300 dark:ring-indigo-700'
+                    : 'border-gray-200 hover:border-indigo-300 dark:border-slate-700 dark:hover:border-indigo-700'
                 }`}
               >
-                {character.name.charAt(0).toUpperCase()}
+                <CharacterAvatar character={character} size="sm" />
               </Link>
             )}
             <button

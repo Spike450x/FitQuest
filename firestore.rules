@@ -107,6 +107,7 @@ service cloud.firestore {
           && (!('legendaryDryStreak'  in data) || data.legendaryDryStreak  is map)
           && (!('dungeonRunsToday'    in data) || data.dungeonRunsToday    is map)
           && (!('activeDungeonRunId'  in data) || data.activeDungeonRunId  == null || data.activeDungeonRunId is string)
+          && (!('avatarId'            in data) || (data.avatarId is string && data.avatarId.size() <= 64))
           && (!('achievements'        in data) || data.achievements        is list)
           // Reputation wallets — non-negative, generous ceiling. spendable may
           // decrease (future spend); lifetime monotonicity is enforced in the delta check.

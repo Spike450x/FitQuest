@@ -45,6 +45,7 @@ interface Character {
   currentMagic?: number; // 0–250;         undefined = full
   pendingStatPoints?: number; // 0–100
   subclass?: CharacterSubclass; // one-way set at level ≥ 10
+  avatarId?: string; // chosen preset avatar crest id (see gameLogic/avatars.ts); undefined = class crest
   masteryCounts?: { run?: number; workout?: number; steps?: number; meditation?: number };
   streakData?: { currentStreak: number; longestStreak: number; lastLogDate: string };
   personalRecords?: Partial<
@@ -106,6 +107,7 @@ interface Stats {
 - `monstersKilled` must be a map if present.
 - `dungeonRunsToday` must be a map if present.
 - `activeDungeonRunId` must be a string or null if present.
+- `avatarId` must be a string of ≤ 64 chars if present (`isValidCharacterOptionals`).
 - `achievements` must be a list if present.
 - `totalCombatWins`, `totalQuestsClaimed` must be non-negative numbers if present.
 - `activityLogCounts`, `weeklyQuestsClaimed` must be maps if present.

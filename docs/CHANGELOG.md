@@ -15,6 +15,16 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-31 — Activity calendar + Profile/Settings split + preset avatars
+
+- **New `/calendar` route** — a read-only month/week calendar of logged activities. Month grid shows per-day activity color-dots (+ a `+N` overflow chip and a ⌚ marker for device-synced logs); week view lists each day's activities; clicking a day opens a detail modal (label, amount/unit, XP, synced badge, time). Reuses the existing `statsStore` 500-log cache — no new store, fetch path, or Firestore index. New pure `src/lib/gameLogic/calendar.ts` (`localDayKey`, `monthMatrix`, `weekDays`, `groupLogsByDay`) — buckets by **local** day. New `Calendar` nav entry (overflow by default).
+- **Profile / Settings split.** `/profile` is now identity/account only (avatar, name, email, password, Reputation, Polymath, Collections link). New `/settings` route holds app preferences (theme, sound, navigation customizer, device connections link, install). Shared `SettingsCard` extracted to `src/components/ui/SettingsCard.tsx`; the two pages cross-link.
+- **Preset avatar picker.** New `Character.avatarId` (optional) chosen from a curated catalog of heraldic crests (`src/lib/gameLogic/avatars.ts`) rendered via `EntityArt` — no image upload, no Firebase Storage. New `CharacterAvatar` component; shown in the profile header and the layout header button (replaces the bare initial). Persisted via the client-mirrored `applyCharacterPatch`. Rule: `avatarId` validated as a `string ≤ 64 chars`.
+- **Refactor:** `ACTIVITY_COLORS` moved from the stats page into `activityIcons.ts` so the stats charts and the calendar share one source of truth.
+- **Tests:** +18 vitest specs (calendar date helpers, avatar catalog/resolution). 922 → 940 root tests.
+
+---
+
 ## 2026-05-31 — Reputation + Wanted Board (foundation slice, PR1)
 
 - **New second currency — Reputation.** Dual-track: a `spendableReputation` wallet + a monotonic `lifetimeReputation` tracker that drives a 5-tier rank (Newcomer → Known → Respected → Renowned → Legendary). New pure `src/lib/gameLogic/reputation.ts` (`REPUTATION_RANKS`, `reputationRank`, `nextReputationRank`, `reputationProgress`). Rank is a visible badge + progress bar for now; the features it gates (vendor, NPCs, raids) arrive in later PRs.
