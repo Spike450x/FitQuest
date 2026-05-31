@@ -107,6 +107,29 @@ If the multiplier never applies (or the badge stays on 100% past win 10), check 
 
 ---
 
+### Optional — Health-data sync (Strava + Garmin)
+
+Only relevant once a provider is switched on. Cannot be exercised without live provider credentials, so it is **not** in the automated suite. See [HEALTH-INTEGRATION.md § 7](HEALTH-INTEGRATION.md).
+
+**Strava (works today):**
+
+1. Create a Strava API app + push subscription, set the secrets, `NEXT_PUBLIC_HEALTH_SYNC_ENABLED=true`, deploy.
+2. `/profile/connections` → **Connect Strava** → authorize on Strava → land back with "🎉 Device connected" and a **Strava · Active** row. Firestore: `healthConnections/{uid}_strava` (tokenless), `healthTokens/{uid}_strava` (not client-readable).
+3. Record an activity in Strava (or sync one from a Garmin/Apple Watch). Within ~a minute an `activityLogs/{uid}_strava_*` doc appears with `source:'strava'` and the "⌚ synced" dashboard badge. A run ≥ 0.25 mi maps to `run` (miles); otherwise `workout` (minutes). Mastery/restore update as for a manual log.
+4. **Token refresh** — after 6 h, the next event still ingests (the webhook refreshes the access token first). **Idempotency** — re-firing the same activity writes no duplicate. **Handshake** — re-creating the subscription succeeds (the webhook echoes `hub.challenge`); a GET with a wrong `hub.verify_token` returns `403`.
+
+**Garmin (only once approved):**
+
+1. Set `NEXT_PUBLIC_HEALTH_SYNC_ENABLED=true` and deploy. Go to `/profile` → "Connect a device" → `/profile/connections`.
+2. Click **Connect Garmin** → you're redirected to Garmin's authorize page. Log in and approve.
+3. Garmin redirects to `garminOAuthCallback`, which exchanges the code and bounces you back to `/profile/connections?connected=1` with a "🎉 Garmin connected" toast (URL then cleans). Garmin appears in the list with an **Active** pill.
+4. In Firestore: a `healthConnections/{uid}_garmin` doc exists (`status: 'connected'`, `providerUserId`, `lastSyncAt`) — client writes **denied** by rules. A `healthTokens/{uid}_garmin` doc exists but is **not** client-readable (verify a client read is denied).
+5. Complete (or have Garmin re-push) a workout/steps. Within a minute an `activityLogs/{uid}_garmin_*` doc appears with `source: 'garmin'`, and the `/dashboard` feed shows a "⌚ synced" badge. Mastery/restore update exactly as for a manual log.
+6. **Idempotency** — a re-pushed event writes no duplicate. For steps, push a growing daily total twice and confirm the summed step-logs equal the latest total (delta-only), with a `healthDailySnapshots/*` cursor tracking `lastValue`.
+7. **Auth** — a push to `garminWebhook` without the correct `?token=` returns `401` and writes nothing (`firebase functions:log`).
+
+---
+
 ## Why this exists
 
 Build + tests + typecheck don't exercise the runtime auth flow or the middleware. A dependency bump can pass all CI checks and still break Firebase init or the route guard. This 4-step smoke catches those classes of regressions without needing test credentials, and runs in ≈2 minutes.

@@ -176,6 +176,43 @@ The `FIREBASE_TOKEN` secret is a long-lived Firebase CI token used by the CI aut
 
 ---
 
+## Cloud Functions Secrets — health-data integration (Strava + Garmin)
+
+The health-data integration (see [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md)) is the first feature to use **Firebase Functions secrets** (`defineSecret` / Google Secret Manager) rather than `NEXT_PUBLIC_*` env vars. Each provider has its own secret set; the functions degrade safely (callable throws `failed-precondition`; webhook no-ops) until provisioned.
+
+**Strava (works today):**
+
+| Secret / param         | Used by                                  | Purpose                                                                       |
+| ---------------------- | ---------------------------------------- | ----------------------------------------------------------------------------- |
+| `STRAVA_CLIENT_ID`     | `createStravaAuthUrl`, callback, webhook | Strava OAuth2 client id                                                       |
+| `STRAVA_CLIENT_SECRET` | `stravaOAuthCallback`, `stravaWebhook`   | OAuth client secret (also used for the 6-hour token refresh)                  |
+| `STRAVA_VERIFY_TOKEN`  | `stravaWebhook`                          | Echoed in the subscription-validation handshake; rejects stray GETs           |
+| `STRAVA_REDIRECT_URI`  | callback + authorize URL (param)         | Deployed `stravaOAuthCallback` URL; its domain = Strava app's callback domain |
+
+**Garmin (pending enterprise approval):** Three secrets + one non-secret param back it —
+
+| Secret / param         | Used by                               | Purpose                                                                                           |
+| ---------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `GARMIN_CLIENT_ID`     | `createGarminAuthUrl`, OAuth callback | Garmin OAuth 2.0 PKCE client id                                                                   |
+| `GARMIN_CLIENT_SECRET` | `garminOAuthCallback`                 | OAuth client secret (server-side only — never shipped to the client)                              |
+| `GARMIN_WEBHOOK_TOKEN` | `garminWebhook`                       | Shared secret carried as `?token=` in the registered Push callback URL (Garmin push isn't signed) |
+| `GARMIN_REDIRECT_URI`  | callback + authorize URL (param)      | The deployed `garminOAuthCallback` URL; must be whitelisted verbatim in the Garmin portal         |
+
+**Set them with:**
+
+```bash
+firebase functions:secrets:set GARMIN_CLIENT_ID
+firebase functions:secrets:set GARMIN_CLIENT_SECRET
+firebase functions:secrets:set GARMIN_WEBHOOK_TOKEN
+# GARMIN_REDIRECT_URI is a non-secret param — set in functions/.env or the console
+```
+
+Secrets are versioned in Secret Manager and injected at runtime — **not** in source, CI env, or `.env*`. The functions degrade safely when unset (the callable throws `failed-precondition`; the webhook acknowledges without processing), so the scaffold is inert until provisioned.
+
+**OAuth token custody:** Garmin-direct means **we hold the user's OAuth tokens.** They are written to the **server-only** `healthTokens` collection (and the short-lived PKCE verifier to `healthOAuthStates`), both denying **all** client access in `firestore.rules` — tokens never reach the browser. Rotate `GARMIN_WEBHOOK_TOKEN` if the Push callback URL is exposed (then update the URL in the Garmin portal).
+
+---
+
 ### Outstanding hardening (not yet shipped)
 
 For each item below, when it ships, add a row to the Remediations Log above.

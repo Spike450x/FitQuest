@@ -15,6 +15,19 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-05-30 — Health-data integration scaffold (Strava + Garmin, free)
+
+- **Auto-log real runs & workouts from a connected app** — feature-flagged off (`NEXT_PUBLIC_HEALTH_SYNC_ENABLED`). Two providers share one ingestion core. Full design + runbook in [HEALTH-INTEGRATION.md](HEALTH-INTEGRATION.md).
+- **Strava — the works-today path** (free, self-serve, no approval; also pulls Garmin/Apple Watch/Fitbit workouts that the user syncs to Strava). `createStravaAuthUrl` + `stravaOAuthCallback` (OAuth2, no PKCE) + `stravaWebhook` (subscription-validation handshake + notification → `GET /activities/{id}` → map). 6-hour tokens auto-refresh via `stravaApi.getValidAccessToken`. No steps/sleep (Strava has neither).
+- **Garmin-direct — coded, gated on enterprise approval** (adds steps + sleep): `createGarminAuthUrl` (OAuth 2.0 PKCE) + `garminOAuthCallback` + `garminWebhook` (Push). Inert until its secrets are set.
+- **Shared write core** — extracted `logActivityCore` from the `logActivity` callable so device-synced logs reuse the exact authoritative path (daily caps, mastery, restore, achievements). The `logActivity` onCall is now a thin validation wrapper (no behaviour change; existing tests guard it).
+- **New Cloud Functions** — `createGarminAuthUrl` (onCall — OAuth 2.0 PKCE start), `garminOAuthCallback` (onRequest — code→token exchange, stores tokens server-side), and `garminWebhook` (onRequest — Garmin "Push" ingestion). First `onRequest` HTTP functions + first use of Firebase Functions **secrets** (`GARMIN_CLIENT_ID` / `GARMIN_CLIENT_SECRET` / `GARMIN_WEBHOOK_TOKEN`).
+- **OAuth tokens held server-side** — new server-only `healthTokens` + `healthOAuthStates` collections (deny all client access). The client-readable `healthConnections` doc holds status only, never tokens.
+- **De-dupe** — discrete sessions idempotent by Garmin `summaryId`; cumulative daily steps logged as positive deltas via a `healthDailySnapshots` cursor so the day's logs sum to the latest total without double-counting.
+- **Client** — new optional `ActivityLog.source` (`'garmin'`) drives a "⌚ synced" feed badge; new `/profile/connections` Connect-Garmin UI, `lib/health.ts`, `lib/healthData.ts`, `useHealthConnections`. Provider-neutral core leaves the door open for a paid aggregator/second provider as a thin adapter.
+- **OAuth tokens held server-side** — provider-neutral `healthTokens` + `healthOAuthStates` collections (deny all client access); the client-readable `healthConnections` holds status only. New optional `ActivityLog.source` (`'strava'`/`'garmin'`) drives a "⌚ synced" feed badge.
+- **Tests** — 28 new functions vitest specs (Strava + Garmin payload mapping, daily-delta dedupe, PKCE helpers); functions suite 16 → 44. Apple Health intentionally out of scope (needs a native iOS shell — documented).
+
 ## 2026-05-30 — Code-audit fix pass
 
 Closes every finding from the post-sprint code audit (2 Must Fix, 5 Should Fix, 3 Consider). No new product features — purely correctness, code-quality, and small cheap wins. Sets up a clean baseline before the Reputation arc.

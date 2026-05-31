@@ -176,6 +176,34 @@ export interface ActivityLog {
    * a client from skipping the cap check and forging reward-bearing logs.
    */
   rewardEligible: boolean;
+  /**
+   * Provenance for device-synced logs, e.g. 'garmin'. Absent on manual logs.
+   * Set server-side by the garminWebhook ingestion path; drives the
+   * "synced from device" badge in the activity feed.
+   */
+  source?: string;
+}
+
+// ─── Health-data integration (Garmin) ─────────────────────────────────────────
+
+export type HealthConnectionStatus = 'connected' | 'error' | 'disconnected';
+
+/**
+ * A user's link to one wearable provider (Garmin today). Written exclusively by
+ * the provider Cloud Functions (admin SDK) — clients read but never write it,
+ * and it holds NO OAuth tokens (those live in the server-only `healthTokens`
+ * collection). Doc id is `${uid}_${provider}`.
+ */
+export interface HealthConnection {
+  id: string;
+  uid: string;
+  /** Provider code, e.g. 'garmin'. */
+  provider: string;
+  /** The provider's opaque user id for this connection. */
+  providerUserId?: string;
+  status: HealthConnectionStatus;
+  /** Epoch ms of the most recent sync for this connection. */
+  lastSyncAt?: number;
 }
 
 // ─── Items ───────────────────────────────────────────────────────────────────

@@ -376,5 +376,53 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // HEALTH CONNECTIONS — /healthConnections/{docId}
+    //
+    // Wearable links (Strava / Garmin) — a tokenless, client-readable status
+    // record. Written exclusively by the provider Cloud Functions (admin SDK, bypasses
+    // these rules). No client write path exists — a rogue client must not be
+    // able to forge a "connected" record or attribute another user's device to
+    // itself. OAuth tokens are NOT stored here (see /healthTokens below).
+    // ══════════════════════════════════════════════════════════════════════════
+
+    match /healthConnections/{docId} {
+      allow read:                   if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // HEALTH DAILY SNAPSHOTS — /healthDailySnapshots/{docId}
+    //
+    // Internal cursors holding the last-ingested cumulative value per
+    // user/provider/day/metric, so the webhook logs only the positive delta of
+    // a growing daily counter (steps). Server-only; never read or written by
+    // clients.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    match /healthDailySnapshots/{docId} {
+      allow read, create, update, delete: if false;
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // HEALTH TOKENS / OAUTH STATE — /healthTokens, /healthOAuthStates
+    //
+    // SECRETS. Provider OAuth access/refresh tokens and the short-lived PKCE
+    // verifier. Written and read exclusively by the provider Cloud Functions via
+    // the admin SDK. ALL client access is denied — these must never reach the
+    // browser, which is why connection status lives in /healthConnections instead.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    match /healthTokens/{docId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /healthOAuthStates/{docId} {
+      allow read, create, update, delete: if false;
+    }
+
   }
 }
