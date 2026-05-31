@@ -108,7 +108,7 @@ A gamified fitness web app built as a full Fitness × Fantasy RPG hybrid. Player
 - `npm run test:coverage` — coverage report via `@vitest/coverage-v8`
 - `npm run build` — production build. Catches everything above + build-time issues
 - `npm run start` — serve the built output
-- `npm run validate:docs` — verify headline counts in the docs (items, spells, monsters, achievements, item silhouettes) still match the source. Zero-dependency; runs in CI. Fails with the computed numbers when a doc has drifted — update the doc prose, not the script
+- `npm run validate:docs` — verify the docs match source: headline counts (items, spells, monsters, achievements, quest pools, silhouettes), per-item silhouette coverage, and GAME-LOGIC.md export coverage. Zero-dependency; runs in CI. Fails with the computed values when a doc has drifted — update the doc prose, not the script
 - `npm run validate:indexes` — validate `firestore.indexes.json` schema + required-index coverage
 - `npm run test:rules` — Firestore security-rules tests (requires Firebase emulator). Run via: `npx firebase emulators:exec --only firestore --project demo-fitness-rpg "npm run test:rules"`. **Java 11+ must be on `PATH`** — the emulator is a JVM process. Not needed for any other dev command.
 

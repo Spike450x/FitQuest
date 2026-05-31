@@ -1,8 +1,9 @@
 /**
  * FitQuest item silhouettes — extracted from silhouettes.tsx for route-level
  * code splitting. Only the shop and inventory routes render item cards, so
- * keeping these 55 SVG functions in their own module means combat/character/
- * dashboard routes never include them in their shared chunk.
+ * keeping these SVG functions in their own module (one per non-spell item, plus
+ * type-level fallbacks) means combat/character/dashboard routes never include
+ * them in their shared chunk.
  *
  * Conventions match silhouettes.tsx:
  *   - Fills only (the heraldic frame supplies the outline ring)

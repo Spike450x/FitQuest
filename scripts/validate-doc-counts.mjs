@@ -1,23 +1,26 @@
 /**
- * Validates that headline counts in the docs match the code.
+ * Validates that the docs match the code — counts AND export coverage.
  * Zero dependencies — runs on plain Node.
  *
- * Why: docs drift silently. The item catalog, spell catalog, monster roster,
- * and achievement list grow over time, and prose like "21 monsters" or
- * "149 items" in README.md / GAME-LOGIC.md / ART-ASSETS.md falls behind.
- * This script computes the real numbers from source and fails CI if a
- * documented number no longer matches — turning silent drift into a build error.
+ * Why: docs drift silently. Catalogs grow ("21 monsters" → 22), functions get
+ * renamed (the dungeons section once documented `generateDungeonRooms` long
+ * after it became `generateDungeonLayout`), and prose falls behind. This script
+ * computes the truth from source and fails CI when a doc no longer matches —
+ * turning silent drift into a build error.
  *
- * How it works:
- *   1. Derive canonical counts from the source files (the single source of truth).
- *   2. For each check, find an anchored phrase in a canonical doc and assert the
- *      number(s) it contains equal the computed value(s).
- *   3. Anchors are specific enough that historical CHANGELOG entries (which keep
- *      old numbers on purpose) are never matched.
+ * Three classes of check:
+ *   1. Counts — items / spells / monsters / achievements / quest pools / item
+ *      silhouettes. Anchored on stable phrasing in the canonical doc so dated
+ *      CHANGELOG entries (which keep old numbers on purpose) are never matched.
+ *   2. Silhouette coverage — every non-spell item must have a per-id silhouette.
+ *   3. GAME-LOGIC export coverage — every symbol exported from
+ *      `src/lib/gameLogic/*` must appear in GAME-LOGIC.md, unless it is on the
+ *      DOC_EXEMPT list below (with a reason). Catches new undocumented exports.
  *
- * When code changes a count: this script auto-detects the new number. The build
- * then fails until the doc prose is updated — by design. Update the doc, not this
- * script. Only touch the CHECKS table if you rephrase an anchor or add a new fact.
+ * When code changes: this script auto-detects the new value. The build then
+ * fails until the doc prose is updated — by design. Update the doc, not the
+ * script. Touch the CHECKS table or DOC_EXEMPT list only when you intentionally
+ * rephrase an anchor, add a fact, or add a deliberately-internal export.
  */
 
 import { readFileSync, readdirSync } from 'fs';
@@ -34,18 +37,22 @@ const itemsSrc = read('src/lib/gameLogic/items.ts');
 
 // Sequential scan: each item object has an `id:` then a `type:` line.
 const itemTypeCounts = { weapon: 0, armor: 0, accessory: 0, consumable: 0, spell: 0 };
+const nonSpellIds = [];
 {
-  let pendingId = false;
+  let curId = null;
   for (const line of itemsSrc.split('\n')) {
-    if (/^\s+id: '[a-z0-9-]+',/.test(line)) pendingId = true;
+    const idm = line.match(/^\s+id: '([a-z0-9-]+)',/);
+    if (idm) curId = idm[1];
     const t = line.match(/^\s+type: '(weapon|armor|accessory|consumable|spell)',/);
-    if (t && pendingId) {
+    if (t && curId) {
       itemTypeCounts[t[1]]++;
-      pendingId = false;
+      if (t[1] !== 'spell') nonSpellIds.push(curId);
+      curId = null;
     }
   }
 }
 const itemsTotal = Object.values(itemTypeCounts).reduce((a, b) => a + b, 0);
+const nonSpellItems = nonSpellIds.length;
 
 // Spell class split — only spell items carry `classRestriction`.
 const spellClassCounts = { all: 0, warrior: 0, wizard: 0, rogue: 0 };
@@ -54,45 +61,51 @@ for (const m of itemsSrc.matchAll(/^\s+classRestriction: '(all|warrior|wizard|ro
 }
 
 // Monsters — top-level `id: '...',` lines (passive/active ids are inline, not line-start).
-const monstersSrc = read('src/lib/gameLogic/monsters.ts');
-const monsterCount = (monstersSrc.match(/^\s+id: '[a-z0-9-]+',/gm) || []).length;
+const monsterCount = (read('src/lib/gameLogic/monsters.ts').match(/^\s+id: '[a-z0-9-]+',/gm) || [])
+  .length;
 
 // Achievements — one `name:` per definition.
-const achSrc = read('src/lib/gameLogic/achievements.ts');
-const achievementCount = (achSrc.match(/^\s+name: '/gm) || []).length;
+const achievementCount = (read('src/lib/gameLogic/achievements.ts').match(/^\s+name: '/gm) || [])
+  .length;
 
-// Stores & hooks — file counts.
+// Quest pools — count `id: '` entries inside each array literal.
+const questsSrc = read('src/lib/gameLogic/quests.ts');
+const poolSize = (constName) => {
+  const start = questsSrc.indexOf(constName);
+  const open = questsSrc.indexOf('[', start);
+  const close = questsSrc.indexOf('\n];', open);
+  return (questsSrc.slice(open, close).match(/id: '/g) || []).length;
+};
+const dailyQuests = poolSize('DAILY_QUEST_POOL');
+const weeklyQuests = poolSize('WEEKLY_QUEST_POOL');
+
+// Stores & hooks — file counts (informational).
 const storeCount = readdirSync(resolve(root, 'src/store')).filter((f) => f.endsWith('.ts')).length;
 const hookCount = readdirSync(resolve(root, 'src/hooks')).filter((f) => f.endsWith('.ts')).length;
 
-// Per-id item silhouettes + coverage of non-spell items.
+// Item silhouettes — parse the ITEM_SILHOUETTES object body for BOTH quoted
+// (kebab) keys and unquoted identifier keys (single-word ids need no quotes).
 const silSrc = read('src/components/art/item-silhouettes.tsx');
-const silKeys = new Set([...silSrc.matchAll(/^\s+'([a-z0-9-]+)':/gm)].map((m) => m[1]));
-const perIdSilhouettes = silKeys.size;
-const nonSpellItems = itemsTotal - itemTypeCounts.spell;
-
-// Which non-spell item ids lack a per-id silhouette.
-const nonSpellIds = [];
+const silKeys = new Set();
 {
-  let curId = null;
-  for (const line of itemsSrc.split('\n')) {
-    const idm = line.match(/^\s+id: '([a-z0-9-]+)',/);
-    if (idm) curId = idm[1];
-    const t = line.match(/^\s+type: '(weapon|armor|accessory|consumable)',/);
-    if (t && curId) {
-      nonSpellIds.push(curId);
-      curId = null;
-    }
+  const start = silSrc.indexOf('ITEM_SILHOUETTES');
+  const open = silSrc.indexOf('{', start);
+  const close = silSrc.indexOf('\n};', open);
+  const fallbacks = new Set(['weapon', 'armor', 'accessory', 'consumable']);
+  for (const line of silSrc.slice(open + 1, close).split('\n')) {
+    const m = line.match(/^\s+'([a-z0-9-]+)':/) || line.match(/^\s+([A-Za-z][A-Za-z0-9]*):/);
+    if (m && !fallbacks.has(m[1])) silKeys.add(m[1]);
   }
 }
+const perIdSilhouettes = silKeys.size;
 const missingSilhouettes = nonSpellIds.filter((id) => !silKeys.has(id)).sort();
 
 // ─── Checks ───────────────────────────────────────────────────────────────────
 //
 // { file, label, regex, expected }
-//   regex: one capture group per expected number; `expected` is a number or
-//          an array of numbers (matched positionally to the groups).
-//   The anchor must match at least once; every match must equal `expected`.
+//   regex: one capture group per expected number; `expected` is a number or an
+//          array (matched positionally). Anchor must match ≥1×; every match
+//          must equal `expected`.
 //
 const CHECKS = [
   // ── GAME-LOGIC.md ──
@@ -127,6 +140,18 @@ const CHECKS = [
     label: 'spell catalog size',
     regex: /\((\d+) spells after content-scaling PR4/,
     expected: itemTypeCounts.spell,
+  },
+  {
+    file: 'docs/GAME-LOGIC.md',
+    label: 'daily quest pool',
+    regex: /(\d+) daily quests across/,
+    expected: dailyQuests,
+  },
+  {
+    file: 'docs/GAME-LOGIC.md',
+    label: 'weekly quest pool',
+    regex: /(\d+) weekly quests across/,
+    expected: weeklyQuests,
   },
   // ── README.md ──
   {
@@ -170,20 +195,71 @@ const CHECKS = [
     regex: /\*\*(\d+) one-time milestone badges\*\*/,
     expected: achievementCount,
   },
+  {
+    file: 'README.md',
+    label: 'quest pools (file tree)',
+    regex: /DAILY_QUEST_POOL \((\d+)\) \+ WEEKLY_QUEST_POOL \((\d+)\)/,
+    expected: [dailyQuests, weeklyQuests],
+  },
   // ── ART-ASSETS.md ──
   {
     file: 'docs/ART-ASSETS.md',
     label: 'per-id silhouettes + non-spell coverage',
-    regex: /(\d+) unique per-`id` silhouettes[\s\S]*?Covers (\d+) of the (\d+) non-spell items/,
-    expected: [perIdSilhouettes, perIdSilhouettes, nonSpellItems],
+    regex: /(\d+) unique per-`id` silhouettes \(one for every non-spell item\)/,
+    expected: perIdSilhouettes,
   },
   {
     file: 'docs/ART-ASSETS.md',
-    label: 'silhouette gap (missing count)',
-    regex: /remaining (\d+) fall back/,
-    expected: missingSilhouettes.length,
+    label: 'per-item art coverage claim',
+    regex: /All (\d+) non-spell items have unique per-`id` silhouettes \((\d+) weapons, (\d+) armor, (\d+) accessories, (\d+) consumables\)/,
+    expected: [
+      nonSpellItems,
+      itemTypeCounts.weapon,
+      itemTypeCounts.armor,
+      itemTypeCounts.accessory,
+      itemTypeCounts.consumable,
+    ],
   },
 ];
+
+// ─── GAME-LOGIC export coverage ───────────────────────────────────────────────
+//
+// Every symbol exported from src/lib/gameLogic/* must be mentioned in
+// GAME-LOGIC.md, unless it is intentionally internal and listed here.
+//
+const DOC_EXEMPT = new Set([
+  // Achievement-checker input shapes — folded into their checker-function rows.
+  'ActivityAchievementInput',
+  'CollectionAchievementInput',
+  'CombatAchievementInput',
+  'MasteryAchievementInput',
+  'QuestAchievementInput',
+  // Combat round-resolution I/O — internal to calculateRound / resolveRoundOutcome.
+  'RoundOutcomeInput',
+  'RoundOutcomeResult',
+  // combatActions overlay payload type — described narratively via ActionResolution.
+  'PendingPayload',
+]);
+
+function gameLogicExports() {
+  const names = new Set();
+  const dir = resolve(root, 'src/lib/gameLogic');
+  for (const f of readdirSync(dir).filter((f) => f.endsWith('.ts') && !f.endsWith('.d.ts'))) {
+    const src = readFileSync(resolve(dir, f), 'utf8');
+    for (const m of src.matchAll(
+      /^export (?:const|function|class|enum|interface|type) ([A-Za-z0-9_]+)/gm,
+    )) {
+      names.add(m[1]);
+    }
+    for (const m of src.matchAll(/^export \{([^}]+)\}/gm)) {
+      for (const part of m[1].split(',')) {
+        const n = part.split(' as ').pop().trim();
+        if (n) names.add(n);
+      }
+    }
+  }
+  return names;
+}
 
 // ─── Run ────────────────────────────────────────────────────────────────────
 
@@ -198,16 +274,14 @@ for (const check of CHECKS) {
 
   if (matches.length === 0) {
     console.error(
-      `✗ ${check.file}: anchor for "${check.label}" not found — the doc phrasing changed or the line was removed. Expected to find a phrase matching ${check.regex}.`,
+      `✗ ${check.file}: anchor for "${check.label}" not found — the doc phrasing changed or the line was removed. Expected a phrase matching ${check.regex}.`,
     );
     errors++;
     continue;
   }
-
   for (const m of matches) {
     const got = expected.map((_, i) => Number(m[i + 1]));
-    const mismatch = got.some((g, i) => g !== expected[i]);
-    if (mismatch) {
+    if (got.some((g, i) => g !== expected[i])) {
       console.error(
         `✗ ${check.file}: "${check.label}" says [${got.join(', ')}] but code has [${expected.join(', ')}]. Update the doc.`,
       );
@@ -216,16 +290,35 @@ for (const check of CHECKS) {
   }
 }
 
+// Silhouette coverage invariant.
+if (missingSilhouettes.length > 0) {
+  console.error(
+    `✗ ${missingSilhouettes.length} non-spell item(s) have no per-id silhouette in item-silhouettes.tsx: ${missingSilhouettes.join(', ')}. Author a silhouette + register it in ITEM_SILHOUETTES.`,
+  );
+  errors++;
+}
+
+// Export coverage.
+const exports = gameLogicExports();
+const docText = load('docs/GAME-LOGIC.md');
+const undocumented = [...exports].filter((e) => !DOC_EXEMPT.has(e) && !docText.includes(e)).sort();
+if (undocumented.length > 0) {
+  console.error(
+    `✗ ${undocumented.length} gameLogic export(s) not documented in GAME-LOGIC.md (add a row, or add to DOC_EXEMPT with a reason): ${undocumented.join(', ')}`,
+  );
+  errors++;
+}
+
 // ─── Summary ──────────────────────────────────────────────────────────────────
 
 if (errors > 0) {
   console.error(
-    `\n✗ ${errors} documentation count mismatch(es). The numbers above are computed from source — update the docs to match.`,
+    `\n✗ ${errors} documentation mismatch(es). Numbers/exports above are computed from source — update the docs to match.`,
   );
   process.exit(1);
 }
 
-console.log('✓ Documentation counts match source. Canonical values:');
+console.log('✓ Documentation matches source. Canonical values:');
 console.log(
   `  items=${itemsTotal} (w=${itemTypeCounts.weapon} a=${itemTypeCounts.armor} ` +
     `acc=${itemTypeCounts.accessory} con=${itemTypeCounts.consumable} spell=${itemTypeCounts.spell}) ` +
@@ -233,10 +326,13 @@ console.log(
     `wiz=${spellClassCounts.wizard} rog=${spellClassCounts.rogue}`,
 );
 console.log(
-  `  monsters=${monsterCount} | achievements=${achievementCount} | stores=${storeCount} | hooks=${hookCount}`,
+  `  monsters=${monsterCount} | achievements=${achievementCount} | quests=${dailyQuests}d/${weeklyQuests}w ` +
+    `| stores=${storeCount} | hooks=${hookCount}`,
 );
 console.log(
-  `  item silhouettes: ${perIdSilhouettes} per-id for ${nonSpellItems} non-spell items ` +
-    `(${missingSilhouettes.length} on type fallback${missingSilhouettes.length ? ': ' + missingSilhouettes.join(', ') : ''})`,
+  `  item silhouettes: ${perIdSilhouettes} per-id covering all ${nonSpellItems} non-spell items (0 gaps)`,
 );
-console.log(`  ${CHECKS.length} doc-count checks passed.`);
+console.log(
+  `  gameLogic exports: ${exports.size} total, ${exports.size - undocumented.length - DOC_EXEMPT.size} documented + ${DOC_EXEMPT.size} exempt`,
+);
+console.log(`  ${CHECKS.length} count checks + silhouette coverage + export coverage all passed.`);
