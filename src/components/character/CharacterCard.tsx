@@ -5,7 +5,7 @@ import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { EntityArt } from '@/components/art/EntityArt';
 import { StatBar } from './StatBar';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
-import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
+import { effectiveStat, playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { getItemById, RARITY_TEXT } from '@/lib/gameLogic/items';
 import { StrengthIcon, WisdomIcon, AgilityIcon, SpiritIcon } from '@/components/art/stat-icons';
 import type { Character, CharacterClass } from '@/types';
@@ -153,6 +153,14 @@ export function CharacterCard({ character }: CharacterCardProps) {
           {STAT_CONFIG.map(({ key, label, icon, color }) => {
             const base = character.stats[key] ?? 0;
             const bonus = gearBonuses[key] ?? 0;
+            // Effective combat value = class-scaled base + flat gear. Surfaced
+            // when the class multiplier changes it, so the bar (allocation) and
+            // the real in-combat number are both visible.
+            const combatValue = effectiveStat(character, key) + bonus;
+            const gearNote = bonus > 0 ? `+${bonus} gear` : undefined;
+            const combatNote =
+              classDef.statMultipliers[key] !== 1 ? `⚔ ${combatValue} in combat` : undefined;
+            const suffix = [gearNote, combatNote].filter(Boolean).join(' · ') || undefined;
             return (
               <StatBar
                 key={key}
@@ -161,7 +169,7 @@ export function CharacterCard({ character }: CharacterCardProps) {
                 max={50}
                 color={color}
                 icon={icon}
-                suffix={bonus > 0 ? `+${bonus} gear` : undefined}
+                suffix={suffix}
               />
             );
           })}

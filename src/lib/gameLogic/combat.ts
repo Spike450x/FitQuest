@@ -1,4 +1,4 @@
-import { COMBAT } from './constants';
+import { COMBAT, CLASS_DEFINITIONS, CLASS_DAMAGE_TAKEN } from './constants';
 import { getItemById } from './items';
 import type { Character, EquippedGear, MonsterDef, Stats } from '@/types';
 import {
@@ -9,14 +9,60 @@ import {
 } from './passives';
 import type { PassiveContext, IncomingPassiveResult, PerRoundPassives } from './passives';
 
+// ─── Effective (class-scaled) stats ────────────────────────────────────────────
+// The character sheet advertises per-class stat multipliers (Warrior STR ×1.5,
+// Wizard DEF ×0.7, Rogue AGI ×1.5, …). `effectiveStat` is the single source of
+// truth that makes those multipliers REAL: every combat and resource-pool
+// formula consumes the effective value, not the raw stat. Gear bonuses are
+// class-neutral and are added flat by the caller (never scaled here).
+//
+// PARITY: the resource-pool consumers (playerMaxHp/Stamina/Magic) are mirrored
+// in functions/src/gameLogic/combat.ts — keep the multiplier math in sync.
+
+/**
+ * A character's effective value for a stat in combat: base stat scaled by the
+ * class multiplier (`CLASS_DEFINITIONS[class].statMultipliers`), floored at 0.
+ */
+export function effectiveStat(
+  character: Pick<Character, 'stats' | 'class'>,
+  statKey: keyof Stats,
+): number {
+  const base = Math.max(0, character.stats[statKey] ?? 0);
+  const mult = CLASS_DEFINITIONS[character.class].statMultipliers[statKey];
+  return Math.floor(base * mult);
+}
+
+// ─── Rogue dodge ───────────────────────────────────────────────────────────────
+// The one piece of class identity that can't be expressed as a stat multiplier:
+// a Rogue's Agility grants a chance to fully negate an incoming monster hit.
+
+/**
+ * Chance (0–1) that the Rogue dodges an incoming monster hit. Scales with the
+ * Rogue's *effective* Agility and is capped; zero for every other class.
+ */
+export function classDodgeChance(character: Pick<Character, 'stats' | 'class'>): number {
+  if (character.class !== 'rogue') return 0;
+  const agility = effectiveStat(character, 'agility');
+  return Math.min(COMBAT.ROGUE_DODGE_CAP, agility * COMBAT.ROGUE_DODGE_PER_AGILITY);
+}
+
+/** Roll whether a Rogue dodges this monster hit. RNG injected so tests can pin it. */
+export function rollClassDodge(
+  character: Pick<Character, 'stats' | 'class'>,
+  rng: () => number = Math.random,
+): boolean {
+  const chance = classDodgeChance(character);
+  return chance > 0 && rng() < chance;
+}
+
 /**
  * Total magic pool available to the player.
- * Scales with wisdom stat; wizards receive an additional class bonus.
+ * Scales with effective wisdom; wizards receive an additional flat class bonus.
  */
 export function playerMaxMagic(character: Pick<Character, 'stats' | 'class'>): number {
   return (
     COMBAT.BASE_MAGIC +
-    character.stats.wisdom * COMBAT.MAGIC_PER_WISDOM +
+    effectiveStat(character, 'wisdom') * COMBAT.MAGIC_PER_WISDOM +
     (character.class === 'wizard' ? COMBAT.WIZARD_MAGIC_BONUS : 0)
   );
 }
@@ -137,8 +183,36 @@ export function effectivePlayerDefenseVsMonster(
   defFailed: boolean,
 ): number {
   if (defFailed) return 0;
-  const totalDef = (character.stats.defense ?? 0) + gearDefenseBonus(character);
+  // Effective DEF (class-scaled) + flat gear DEF. The class multiplier here is
+  // the incoming damage affinity — Wizard DEF ×0.7 = "weak to physical",
+  // Warrior DEF ×1.5 = tanky.
+  const totalDef = effectiveStat(character, 'defense') + gearDefenseBonus(character);
   return Math.max(0, totalDef - monsterArmorPierce(monster));
+}
+
+/**
+ * Final monster→player damage for a single hit, before combat passives and the
+ * Rogue dodge (those run later in `resolveRoundOutcome`).
+ *
+ * - **Physical** attacks are reduced by `effectiveDef` (effective DEF + gear).
+ * - **Magic** attacks ignore armor entirely — the design point that makes
+ *   high-DEF Warriors fear casters and rewards the Wizard's arcane wards.
+ *
+ * The mitigated value is then scaled by the class's per-school damage-taken
+ * multiplier (`CLASS_DAMAGE_TAKEN`) and floored at `MIN_DAMAGE`. Callers supply
+ * `effectiveDef` because each path already computes it (including the spell
+ * ward and the defense-bypassing free attack, which pass 0).
+ */
+export function incomingMonsterDamage(
+  character: Pick<Character, 'class'>,
+  monster: MonsterDef,
+  rawAttack: number,
+  effectiveDef: number,
+): number {
+  const type = monster.attackType ?? 'physical';
+  const mult = CLASS_DAMAGE_TAKEN[character.class][type];
+  const mitigated = type === 'magic' ? rawAttack : Math.max(0, rawAttack - effectiveDef);
+  return Math.max(COMBAT.MIN_DAMAGE, Math.round(mitigated * mult));
 }
 
 /**
@@ -220,26 +294,31 @@ export function combatWinsUntilNextPenalty(winsToday: number): {
 }
 
 /**
- * Total HP available to the player.
- * Includes health and stamina bonuses from all equipped gear.
+ * Total HP available to the player. Uses effective (class-scaled) stamina and
+ * health; gear bonuses are added flat. Mirrored in functions/ (pool parity).
  */
-export function playerMaxHp(character: Pick<Character, 'stats' | 'equippedGear'>): number {
+export function playerMaxHp(
+  character: Pick<Character, 'stats' | 'equippedGear' | 'class'>,
+): number {
   const gear = totalGearBonuses(character.equippedGear);
   return (
     COMBAT.BASE_HP +
-    (character.stats.stamina + (gear.stamina ?? 0)) * COMBAT.HP_PER_STAMINA +
-    (character.stats.health + (gear.health ?? 0)) * COMBAT.HP_PER_HEALTH
+    (effectiveStat(character, 'stamina') + (gear.stamina ?? 0)) * COMBAT.HP_PER_STAMINA +
+    (effectiveStat(character, 'health') + (gear.health ?? 0)) * COMBAT.HP_PER_HEALTH
   );
 }
 
 /**
- * Stamina pool available at the start of a fight.
- * Includes stamina bonuses from all equipped gear.
+ * Stamina pool available at the start of a fight. Uses effective (class-scaled)
+ * stamina; gear bonuses are added flat. Mirrored in functions/ (pool parity).
  */
-export function playerMaxStamina(character: Pick<Character, 'stats' | 'equippedGear'>): number {
+export function playerMaxStamina(
+  character: Pick<Character, 'stats' | 'equippedGear' | 'class'>,
+): number {
   const gear = totalGearBonuses(character.equippedGear);
   return (
-    COMBAT.BASE_STAMINA + (character.stats.stamina + (gear.stamina ?? 0)) * COMBAT.STAMINA_PER_STAT
+    COMBAT.BASE_STAMINA +
+    (effectiveStat(character, 'stamina') + (gear.stamina ?? 0)) * COMBAT.STAMINA_PER_STAT
   );
 }
 
@@ -275,8 +354,8 @@ export function calculateRound(
 
   const statBonus =
     attackMode === 'magic'
-      ? Math.floor(character.stats.wisdom * COMBAT.WISDOM_ATTACK_FACTOR)
-      : Math.floor(character.stats.strength * COMBAT.STRENGTH_ATTACK_FACTOR);
+      ? Math.floor(effectiveStat(character, 'wisdom') * COMBAT.WISDOM_ATTACK_FACTOR)
+      : Math.floor(effectiveStat(character, 'strength') * COMBAT.STRENGTH_ATTACK_FACTOR);
   const weaponBonus = gearAttackBonus(character, attackMode);
   const attackBonus = statBonus + weaponBonus;
   const attackBonusLabel = attackMode === 'magic' ? 'WIS' : 'STR';
@@ -293,7 +372,12 @@ export function calculateRound(
   // passive reduces what gets through.
   const playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
   const effectivePlayerDef = effectivePlayerDefenseVsMonster(character, monster, playerDefFailed);
-  const monsterDamage = Math.max(COMBAT.MIN_DAMAGE, monster.attack - effectivePlayerDef);
+  const monsterDamage = incomingMonsterDamage(
+    character,
+    monster,
+    monster.attack,
+    effectivePlayerDef,
+  );
 
   return {
     roll,
@@ -374,7 +458,8 @@ export function rollRunAway(
 } {
   const playerRoll = rollD10();
   const gear = totalGearBonuses(character.equippedGear);
-  const effectiveAgility = (character.stats.agility ?? 0) + (gear.agility ?? 0);
+  // Effective (class-scaled) Agility + flat gear Agility.
+  const effectiveAgility = effectiveStat(character, 'agility') + (gear.agility ?? 0);
   const agilityBonus = Math.floor(effectiveAgility * COMBAT.AGILITY_ESCAPE_FACTOR);
   // Ghost Step (Assassin/Ranger): additional agility-based escape bonus
   const ghostStepBonus = getEscapeBonus(character);
@@ -390,7 +475,7 @@ export function rollRunAway(
     // Failed escape: monster gets a free hit (armor-pierce applies).
     playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
     const effectivePlayerDef = effectivePlayerDefenseVsMonster(character, monster, playerDefFailed);
-    monsterDamage = Math.max(COMBAT.MIN_DAMAGE, monster.attack - effectivePlayerDef);
+    monsterDamage = incomingMonsterDamage(character, monster, monster.attack, effectivePlayerDef);
   }
 
   return { playerRoll, agilityBonus, monsterRoll, escaped, monsterDamage, playerDefFailed };
@@ -415,6 +500,8 @@ export interface RoundOutcomeInput {
   maxMagic: number;
   streakMultiplier: number;
   getPityFor: (monsterId: string) => number;
+  /** RNG for the Rogue dodge roll (injectable for tests). Defaults to Math.random. */
+  dodgeRng?: () => number;
 }
 
 export interface RoundOutcomeResult {
@@ -425,6 +512,8 @@ export interface RoundOutcomeResult {
   finalPlayerMagic: number;
   outcome: 'win' | 'loss' | null;
   droppedItems: string[];
+  /** True when a Rogue dodged this round's monster hit (damage fully negated). */
+  dodged: boolean;
 }
 
 /**
@@ -445,6 +534,7 @@ export function resolveRoundOutcome(input: RoundOutcomeInput): RoundOutcomeResul
     maxMagic,
     streakMultiplier,
     getPityFor,
+    dodgeRng,
   } = input;
 
   const killedMonster = newMonsterHp === 0;
@@ -457,6 +547,16 @@ export function resolveRoundOutcome(input: RoundOutcomeInput): RoundOutcomeResul
         ironWillActive: false,
       } satisfies IncomingPassiveResult)
     : applyIncomingPassives(character, rawMonsterDamage, passiveCtx);
+
+  // Rogue dodge — fully negate the incoming hit (and any Mana Barrier drain it
+  // would have caused). Only rolls when a hit would actually land.
+  let dodged = false;
+  if (!killedMonster && incoming.damage > 0 && rollClassDodge(character, dodgeRng)) {
+    dodged = true;
+    incoming.damage = 0;
+    incoming.magicDrained = 0;
+    incoming.divineAegisBlocked = false;
+  }
 
   const perRound = getPerRoundPassives(character);
 
@@ -485,5 +585,6 @@ export function resolveRoundOutcome(input: RoundOutcomeInput): RoundOutcomeResul
     finalPlayerMagic,
     outcome,
     droppedItems,
+    dodged,
   };
 }

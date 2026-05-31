@@ -43,6 +43,7 @@ export function BattleLogEntry({
             <p>
               <span className="text-red-500">
                 {emoji} hit for {entry.monsterDamage} dmg
+                {entry.monsterAttackType === 'magic' && ' 🔮'}
               </span>
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
@@ -91,6 +92,7 @@ export function BattleLogEntry({
             <p>
               <span className="text-red-500">
                 {emoji} hit for {entry.monsterDamage} dmg
+                {entry.monsterAttackType === 'magic' && ' 🔮'}
               </span>
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
@@ -140,6 +142,7 @@ export function BattleLogEntry({
             <p>
               <span className="text-red-500">
                 {emoji} hit for {entry.monsterDamage} dmg
+                {entry.monsterAttackType === 'magic' && ' 🔮'}
               </span>
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
@@ -165,15 +168,17 @@ export function BattleLogEntry({
               </span>
             )}
           </p>
-          <p>
-            <span className="text-red-500">
-              {emoji} free attack for {entry.monsterDamage} dmg
-            </span>
-            <span className="text-orange-500"> · 💥 no defense</span>
-            {entry.playerHpAfter === 0 && (
-              <span className="text-red-600 font-semibold"> · You fell!</span>
-            )}
-          </p>
+          {!entry.dodged && (
+            <p>
+              <span className="text-red-500">
+                {emoji} free attack for {entry.monsterDamage} dmg
+              </span>
+              <span className="text-orange-500"> · 💥 no defense</span>
+              {entry.playerHpAfter === 0 && (
+                <span className="text-red-600 font-semibold"> · You fell!</span>
+              )}
+            </p>
+          )}
         </>
       ) : (
         <>
@@ -210,6 +215,7 @@ export function BattleLogEntry({
             <p>
               <span className="text-red-500">
                 {emoji} hit for {entry.monsterDamage} dmg
+                {entry.monsterAttackType === 'magic' && ' 🔮'}
               </span>
               {entry.playerDefFailed ? (
                 <span className="text-orange-500"> · 💥 DEF failed</span>
@@ -222,6 +228,11 @@ export function BattleLogEntry({
             </p>
           )}
         </>
+      )}
+
+      {/* Rogue dodge — fully negated the monster's hit this round. */}
+      {entry.dodged && (
+        <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
       )}
 
       {/* Modifier notes — venom ticks, shield absorbs, etc. */}

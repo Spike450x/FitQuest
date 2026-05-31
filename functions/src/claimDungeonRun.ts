@@ -202,8 +202,8 @@ export const claimDungeonRun = onCall<ClaimDungeonRunInput, Promise<ClaimDungeon
             LEVEL_UP.STAT_POINTS_PER_LEVEL * levelsGained;
 
           // Full resource restore on level-up (mirrors awardXpAndStats)
-          charUpdates['currentHp'] = playerMaxHp(newStats, equippedGear);
-          charUpdates['currentStamina'] = playerMaxStamina(newStats, equippedGear);
+          charUpdates['currentHp'] = playerMaxHp(newStats, equippedGear, charClass);
+          charUpdates['currentStamina'] = playerMaxStamina(newStats, equippedGear, charClass);
           charUpdates['currentMagic'] = playerMaxMagic(stats.wisdom, charClass);
         }
 

@@ -202,10 +202,15 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
           (character.pendingStatPoints ?? 0) + LEVEL_UP.STAT_POINTS_PER_LEVEL * levelsGained;
 
         // Level-up fully restores all combat resources to the new (possibly higher) max.
-        updated.currentHp = playerMaxHp({ stats: newStats, equippedGear: character.equippedGear });
+        updated.currentHp = playerMaxHp({
+          stats: newStats,
+          equippedGear: character.equippedGear,
+          class: character.class,
+        });
         updated.currentStamina = playerMaxStamina({
           stats: newStats,
           equippedGear: character.equippedGear,
+          class: character.class,
         });
         updated.currentMagic = playerMaxMagic({ stats: newStats, class: character.class });
       }
@@ -314,6 +319,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
       const resetHp = playerMaxHp({
         stats: resetStats,
         equippedGear: { weapon: null, armor: null, accessory: null },
+        class: character.class,
       });
 
       const reset: Partial<Character> = {

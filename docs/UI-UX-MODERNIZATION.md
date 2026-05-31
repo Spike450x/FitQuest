@@ -3,6 +3,21 @@
 > Source audit: ui-critic agent, 2026-05-21.
 > Goal: make FitQuest look and feel like a modern game, not an admin dashboard.
 
+> **2026-05-31 — Character sheet "Class Traits" + dodge feedback.** The character page
+> (`src/app/(game)/character/page.tsx`) replaced the decorative per-stat "×mult" grid with an
+> honest **Class Traits** panel: each stat multiplier paired with what it drives in combat,
+> plus class-only perk callouts (Wizard Arcane Reserves, Rogue Evasion live %, subclass teaser).
+> `CharacterCard` now annotates each primary stat bar with its effective in-combat value
+> (`⚔ N in combat`) when the class multiplier changes it. New Rogue **dodge** feedback —
+> a teal "💨 Dodged!" line in `BattleLogEntry`, `LastActionSummary`, and the `ActionRollOverlay`
+> result panel (driven by the new `dodged` round-log / pending field).
+
+> **2026-05-31 — Damage-type surfacing (balance pass).** Monster attacks now carry a
+> physical/magic school. `MonsterCard` shows a 🔮 Magic / ⚔️ Physical chip (magic ignores armor),
+> the combat log + `LastActionSummary` tag magic counter-hits with "🔮 magic", the
+> `SpellRollOverlay` honors Rogue dodge, and the character sheet gains a Weak-to-Magic /
+> Magic-Ward perk callout for classes whose magic mitigation isn't neutral.
+
 ## TL;DR
 
 FitQuest is currently a competent admin dashboard with RPG content pasted on top. The combat dice/floating-damage system is genuinely impressive, but everything around it — victory modals, level-ups, quest claims, loot reveals — is flat. `framer-motion`, `canvas-confetti`, `sonner`, and `lucide-react` are already installed; the visual identity push just hasn't happened yet.

@@ -74,6 +74,16 @@ npx firebase deploy --only functions --force --project fitness-rpg-claude
 
 Build the functions first to catch TypeScript errors before they go to production.
 
+> **Parity note (2026-05-31):** the resource-max formulas in `functions/src/gameLogic/combat.ts`
+> now apply class stat multipliers. `playerMaxHp` / `playerMaxStamina` gained a `charClass`
+> argument, and a `CLASS_POOL_MULTIPLIERS` constant mirrors the client `statMultipliers`. If you
+> retune `CLASS_DEFINITIONS.statMultipliers` (stamina/health/wisdom) on the client, update this
+> functions copy in the same commit or the restore-cap logic will clamp resources to a stale max.
+> The `combat-parity.test.ts` cross-check guards it. **Update (2026-05-31 balance pass):** the
+> HP formula constants also changed (`HP_PER_STAMINA: 1`, `HP_PER_HEALTH: 2`) and are likewise
+> inlined in the functions copy — keep both in sync. Damage types + `CLASS_DAMAGE_TAKEN` are
+> combat-only (client) and need no functions parity.
+
 ---
 
 ## Post-deploy verification

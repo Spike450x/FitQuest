@@ -13,6 +13,7 @@ import {
   monsterXpScaling,
   combatXpDailyMultiplier,
   combatWinsUntilNextPenalty,
+  effectiveStat,
 } from '../combat';
 import { COMBAT } from '../constants';
 import type { Character, EquippedGear, MonsterDef } from '@/types';
@@ -66,26 +67,33 @@ afterEach(() => vi.restoreAllMocks());
 // ── playerMaxHp ───────────────────────────────────────────────────────────────
 
 describe('playerMaxHp', () => {
-  it('matches BASE_HP + stamina*HP_PER_STAMINA + health*HP_PER_HEALTH', () => {
+  it('uses effective (class-scaled) stamina + health over BASE_HP', () => {
     const char = makeChar();
-    const expected = COMBAT.BASE_HP + 10 * COMBAT.HP_PER_STAMINA + 10 * COMBAT.HP_PER_HEALTH;
+    const expected =
+      COMBAT.BASE_HP +
+      effectiveStat(char, 'stamina') * COMBAT.HP_PER_STAMINA +
+      effectiveStat(char, 'health') * COMBAT.HP_PER_HEALTH;
     expect(playerMaxHp(char)).toBe(expected);
   });
 
-  it('scales linearly with stamina', () => {
+  it('scales with effective stamina', () => {
     const low = makeChar({ stats: { ...BASE_STATS, stamina: 5 } });
     const high = makeChar({ stats: { ...BASE_STATS, stamina: 15 } });
-    expect(playerMaxHp(high) - playerMaxHp(low)).toBe(10 * COMBAT.HP_PER_STAMINA);
+    const expectedDelta =
+      (effectiveStat(high, 'stamina') - effectiveStat(low, 'stamina')) * COMBAT.HP_PER_STAMINA;
+    expect(playerMaxHp(high) - playerMaxHp(low)).toBe(expectedDelta);
   });
 
   it('returns same result for null and empty gear', () => {
     const withNull = playerMaxHp({
       stats: BASE_STATS,
       equippedGear: null as unknown as EquippedGear,
+      class: 'warrior',
     });
     const withEmpty = playerMaxHp({
       stats: BASE_STATS,
       equippedGear: { weapon: null, armor: null, accessory: null },
+      class: 'warrior',
     });
     expect(withNull).toBe(withEmpty);
   });
@@ -94,9 +102,9 @@ describe('playerMaxHp', () => {
 // ── playerMaxStamina ──────────────────────────────────────────────────────────
 
 describe('playerMaxStamina', () => {
-  it('matches BASE_STAMINA + stamina*STAMINA_PER_STAT', () => {
+  it('matches BASE_STAMINA + effective stamina * STAMINA_PER_STAT', () => {
     const char = makeChar();
-    const expected = COMBAT.BASE_STAMINA + 10 * COMBAT.STAMINA_PER_STAT;
+    const expected = COMBAT.BASE_STAMINA + effectiveStat(char, 'stamina') * COMBAT.STAMINA_PER_STAT;
     expect(playerMaxStamina(char)).toBe(expected);
   });
 });
@@ -104,16 +112,27 @@ describe('playerMaxStamina', () => {
 // ── playerMaxMagic ────────────────────────────────────────────────────────────
 
 describe('playerMaxMagic', () => {
-  it('wizards get WIZARD_MAGIC_BONUS on top of warrior baseline', () => {
-    const warrior = makeChar({ class: 'warrior' });
+  it('applies the wizard flat bonus on top of effective wisdom', () => {
     const wizard = makeChar({ class: 'wizard' });
-    expect(playerMaxMagic(wizard) - playerMaxMagic(warrior)).toBe(COMBAT.WIZARD_MAGIC_BONUS);
+    const expected =
+      COMBAT.BASE_MAGIC +
+      effectiveStat(wizard, 'wisdom') * COMBAT.MAGIC_PER_WISDOM +
+      COMBAT.WIZARD_MAGIC_BONUS;
+    expect(playerMaxMagic(wizard)).toBe(expected);
   });
 
-  it('scales with wisdom via MAGIC_PER_WISDOM', () => {
+  it('gives non-wizards no flat magic bonus', () => {
+    const warrior = makeChar({ class: 'warrior' });
+    const expected = COMBAT.BASE_MAGIC + effectiveStat(warrior, 'wisdom') * COMBAT.MAGIC_PER_WISDOM;
+    expect(playerMaxMagic(warrior)).toBe(expected);
+  });
+
+  it('scales with effective wisdom via MAGIC_PER_WISDOM', () => {
     const low = makeChar({ stats: { ...BASE_STATS, wisdom: 5 } });
     const high = makeChar({ stats: { ...BASE_STATS, wisdom: 15 } });
-    expect(playerMaxMagic(high) - playerMaxMagic(low)).toBe(10 * COMBAT.MAGIC_PER_WISDOM);
+    const expectedDelta =
+      (effectiveStat(high, 'wisdom') - effectiveStat(low, 'wisdom')) * COMBAT.MAGIC_PER_WISDOM;
+    expect(playerMaxMagic(high) - playerMaxMagic(low)).toBe(expectedDelta);
   });
 });
 
@@ -190,20 +209,21 @@ describe('calculateRound', () => {
     expect(result.monsterDamage).toBeGreaterThanOrEqual(COMBAT.MIN_DAMAGE);
   });
 
-  it('uses WIS and labels bonus as WIS in magic mode', () => {
+  it('uses effective WIS and labels bonus as WIS in magic mode', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const char = makeChar({ stats: { ...BASE_STATS, wisdom: 20 } });
     const result = calculateRound(char, makeMonster(), 'magic');
     expect(result.attackBonusLabel).toBe('WIS');
-    expect(result.attackBonus).toBe(20); // wisdom * 1.0 factor
+    // No gear → attackBonus is the effective (class-scaled) wisdom.
+    expect(result.attackBonus).toBe(effectiveStat(char, 'wisdom'));
   });
 
-  it('uses STR and labels bonus as STR in attack mode', () => {
+  it('uses effective STR and labels bonus as STR in attack mode', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const char = makeChar({ stats: { ...BASE_STATS, strength: 15 } });
     const result = calculateRound(char, makeMonster(), 'attack');
     expect(result.attackBonusLabel).toBe('STR');
-    expect(result.attackBonus).toBe(15);
+    expect(result.attackBonus).toBe(effectiveStat(char, 'strength'));
   });
 
   it('bypasses monster defense when monsterDefFailed is true', () => {

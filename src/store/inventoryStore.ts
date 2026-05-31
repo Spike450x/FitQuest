@@ -104,8 +104,16 @@ function computeGearDelta(
   const newEquippedGear: EquippedGear = { ...character.equippedGear, [slot]: newItemDefId };
   const oldMaxHp = playerMaxHp(character);
   const oldMaxStamina = playerMaxStamina(character);
-  const newMaxHp = playerMaxHp({ stats: character.stats, equippedGear: newEquippedGear });
-  const newMaxStamina = playerMaxStamina({ stats: character.stats, equippedGear: newEquippedGear });
+  const newMaxHp = playerMaxHp({
+    stats: character.stats,
+    equippedGear: newEquippedGear,
+    class: character.class,
+  });
+  const newMaxStamina = playerMaxStamina({
+    stats: character.stats,
+    equippedGear: newEquippedGear,
+    class: character.class,
+  });
   const hpDelta = newMaxHp - oldMaxHp;
   const staminaDelta = newMaxStamina - oldMaxStamina;
 

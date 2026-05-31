@@ -196,9 +196,9 @@ export async function logActivityCore(
 
     const maxVal =
       activityType === 'nutrition'
-        ? playerMaxHp(stats, equipped)
+        ? playerMaxHp(stats, equipped, charClass)
         : activityType === 'sleep'
-          ? playerMaxStamina(stats, equipped)
+          ? playerMaxStamina(stats, equipped, charClass)
           : playerMaxMagic(stats.wisdom, charClass);
 
     const current = (charData[field] as number | undefined) ?? maxVal;

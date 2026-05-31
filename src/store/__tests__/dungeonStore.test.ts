@@ -46,7 +46,11 @@ function baseCharacter(overrides: Partial<Character> = {}): Character {
     stats,
     equippedGear: { weapon: null, armor: null, accessory: null },
     createdAt: 1_700_000_000_000,
-    currentHp: playerMaxHp({ stats, equippedGear: { weapon: null, armor: null, accessory: null } }),
+    currentHp: playerMaxHp({
+      stats,
+      equippedGear: { weapon: null, armor: null, accessory: null },
+      class: 'warrior',
+    }),
     currentStamina: 50,
     currentMagic: 20,
     dungeonRunsToday: { date: '2026-05-23', count: 0, legendaryUsed: false },

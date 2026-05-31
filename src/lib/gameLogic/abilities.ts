@@ -1,5 +1,11 @@
 import type { Character, MonsterDef } from '@/types';
-import { gearAttackBonus, gearDefenseBonus, monsterArmorPierce, rollD10 } from './combat';
+import {
+  effectiveStat,
+  effectivePlayerDefenseVsMonster,
+  incomingMonsterDamage,
+  gearAttackBonus,
+  rollD10,
+} from './combat';
 import { COMBAT } from './constants';
 import { applySubclassAbilityMods, getAbilityDamageMultiplier } from './passives';
 
@@ -304,8 +310,8 @@ export function resolveAbility(
   const attackMode = isWizard ? 'magic' : 'attack';
   const gearBonus = gearAttackBonus(character, attackMode);
   const statBonus = isWizard
-    ? Math.floor(character.stats.wisdom * COMBAT.WISDOM_ATTACK_FACTOR)
-    : Math.floor(character.stats.strength * COMBAT.STRENGTH_ATTACK_FACTOR);
+    ? Math.floor(effectiveStat(character, 'wisdom') * COMBAT.WISDOM_ATTACK_FACTOR)
+    : Math.floor(effectiveStat(character, 'strength') * COMBAT.STRENGTH_ATTACK_FACTOR);
 
   // Average of all 6 dice serves as the base roll (replaces the d10 used in regular attacks).
   const avgRoll = Math.round(dice.reduce((a, b) => a + b, 0) / dice.length);
@@ -400,14 +406,15 @@ function rollMonsterAttack(
   bypassPlayerDef: boolean,
 ): { monsterDamage: number; playerDefFailed: boolean } {
   const monsterRoll = rollD10();
-  const totalDef = (character.stats.defense ?? 0) + gearDefenseBonus(character);
   const playerDefFailed = bypassPlayerDef || Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
-  // Armor-pierce reduces the player's effective defense when it lands; failed
-  // blocks are already zero so pierce can't further reduce them.
-  const effectiveDef = playerDefFailed ? 0 : Math.max(0, totalDef - monsterArmorPierce(monster));
-  const rawMonsterDamage = monsterRoll + monster.attack;
-  const monsterDamage = playerDefFailed
-    ? rawMonsterDamage
-    : Math.max(0, rawMonsterDamage - effectiveDef);
+  // Effective DEF routes through the shared helper so the class DEF multiplier
+  // and monster armor-pierce stay consistent with every other combat path.
+  const effectiveDef = effectivePlayerDefenseVsMonster(character, monster, playerDefFailed);
+  const monsterDamage = incomingMonsterDamage(
+    character,
+    monster,
+    monsterRoll + monster.attack,
+    effectiveDef,
+  );
   return { monsterDamage, playerDefFailed };
 }

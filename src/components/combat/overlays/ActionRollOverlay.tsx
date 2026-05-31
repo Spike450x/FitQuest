@@ -194,7 +194,11 @@ export function ActionRollOverlay({
         <div
           className={`space-y-3 transition-opacity duration-300 ${resultVisible ? 'opacity-100' : 'opacity-0'} ${resultVisible ? '' : 'pointer-events-none'}`}
         >
-          {isRun ? (
+          {pending.dodged ? (
+            <p className="text-base font-semibold text-teal-600 dark:text-teal-400">
+              💨 Dodged! You took no damage
+            </p>
+          ) : isRun ? (
             pending.escaped ? (
               <p className="text-sm text-gray-500 dark:text-slate-400">
                 You rolled higher — flee successful

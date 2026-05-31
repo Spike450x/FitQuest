@@ -6,13 +6,35 @@ import { GEAR_STAT_BONUSES } from './items';
 
 // ─── COMBAT constants (inlined from src/lib/gameLogic/constants.ts) ───────────
 const BASE_HP = 50;
-const HP_PER_STAMINA = 2;
-const HP_PER_HEALTH = 1;
+const HP_PER_STAMINA = 1;
+const HP_PER_HEALTH = 2;
 const BASE_STAMINA = 20;
 const STAMINA_PER_STAT = 5;
 const BASE_MAGIC = 20;
 const MAGIC_PER_WISDOM = 3;
 const WIZARD_MAGIC_BONUS = 10;
+
+// ─── Class stat multipliers (parity with CLASS_DEFINITIONS.statMultipliers) ───
+// Only the stats that feed the resource-max formulas are mirrored here
+// (stamina + health → HP, stamina → stamina pool, wisdom → magic pool). The
+// client applies the full 7-stat set in combat; the server only needs pools.
+// PARITY: must match src/lib/gameLogic/constants.ts → CLASS_DEFINITIONS.
+const CLASS_POOL_MULTIPLIERS: Record<string, { stamina: number; health: number; wisdom: number }> =
+  {
+    warrior: { stamina: 1.1, health: 1.2, wisdom: 0.8 },
+    wizard: { stamina: 0.95, health: 1.0, wisdom: 1.4 },
+    rogue: { stamina: 1.4, health: 0.9, wisdom: 1.0 },
+  };
+
+/** Effective (class-scaled) stat value, floored at 0. Mirrors client `effectiveStat`. */
+function effectiveStat(
+  base: number,
+  charClass: string,
+  statKey: 'stamina' | 'health' | 'wisdom',
+): number {
+  const mult = CLASS_POOL_MULTIPLIERS[charClass]?.[statKey] ?? 1.0;
+  return Math.floor(Math.max(0, base) * mult);
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,31 +69,46 @@ function totalGearBonuses(equippedGear: EquippedGear | null | undefined): {
 
 // ─── Resource max formulas ────────────────────────────────────────────────────
 
-/** Maximum HP available to the player (base + stamina + health + gear). */
+/**
+ * Maximum HP available to the player (base + effective stamina + effective
+ * health + flat gear). Uses class-scaled stats; gear bonuses stay flat.
+ */
 export function playerMaxHp(
   stats: { stamina: number; health: number },
   equippedGear: EquippedGear | null | undefined,
+  charClass: string,
 ): number {
   const gear = totalGearBonuses(equippedGear);
   return (
     BASE_HP +
-    (stats.stamina + gear.stamina) * HP_PER_STAMINA +
-    (stats.health + gear.health) * HP_PER_HEALTH
+    (effectiveStat(stats.stamina, charClass, 'stamina') + gear.stamina) * HP_PER_STAMINA +
+    (effectiveStat(stats.health, charClass, 'health') + gear.health) * HP_PER_HEALTH
   );
 }
 
-/** Maximum Stamina available to the player (base + stamina stat + gear). */
+/**
+ * Maximum Stamina available to the player (base + effective stamina + flat
+ * gear). Uses class-scaled stamina; gear bonuses stay flat.
+ */
 export function playerMaxStamina(
   stats: { stamina: number },
   equippedGear: EquippedGear | null | undefined,
+  charClass: string,
 ): number {
   const gear = totalGearBonuses(equippedGear);
-  return BASE_STAMINA + (stats.stamina + gear.stamina) * STAMINA_PER_STAT;
+  return (
+    BASE_STAMINA +
+    (effectiveStat(stats.stamina, charClass, 'stamina') + gear.stamina) * STAMINA_PER_STAT
+  );
 }
 
-/** Maximum Magic available to the player (base + wisdom + wizard class bonus). No gear contribution. */
+/** Maximum Magic available to the player (base + effective wisdom + wizard class bonus). No gear contribution. */
 export function playerMaxMagic(wisdom: number, charClass: string): number {
-  return BASE_MAGIC + wisdom * MAGIC_PER_WISDOM + (charClass === 'wizard' ? WIZARD_MAGIC_BONUS : 0);
+  return (
+    BASE_MAGIC +
+    effectiveStat(wisdom, charClass, 'wisdom') * MAGIC_PER_WISDOM +
+    (charClass === 'wizard' ? WIZARD_MAGIC_BONUS : 0)
+  );
 }
 
 // ─── Daily combat XP cap (parity copy of client function) ────────────────────

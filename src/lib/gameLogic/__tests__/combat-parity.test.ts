@@ -17,6 +17,7 @@ import {
 } from '../../../../functions/src/gameLogic/combat';
 
 const NO_GEAR = { weapon: null, armor: null, accessory: null };
+const CLASSES = ['warrior', 'wizard', 'rogue'] as const;
 
 describe('playerMaxHp parity — src vs functions copy', () => {
   const cases: [number, number][] = [
@@ -26,27 +27,33 @@ describe('playerMaxHp parity — src vs functions copy', () => {
     [20, 30], // high-level stats
   ];
 
-  it.each(cases)('stamina=%d health=%d matches', (stamina, health) => {
-    const clientResult = playerMaxHp({
-      stats: { stamina, health, strength: 0, agility: 0, wisdom: 0, defense: 0, spirit: 0 },
-      equippedGear: NO_GEAR,
+  for (const charClass of CLASSES) {
+    it.each(cases)(`${charClass} stamina=%d health=%d matches`, (stamina, health) => {
+      const clientResult = playerMaxHp({
+        stats: { stamina, health, strength: 0, agility: 0, wisdom: 0, defense: 0, spirit: 0 },
+        equippedGear: NO_GEAR,
+        class: charClass,
+      });
+      const fnResult = fnMaxHp({ stamina, health }, NO_GEAR, charClass);
+      expect(fnResult).toBe(clientResult);
     });
-    const fnResult = fnMaxHp({ stamina, health }, NO_GEAR);
-    expect(fnResult).toBe(clientResult);
-  });
+  }
 });
 
 describe('playerMaxStamina parity — src vs functions copy', () => {
   const cases: number[] = [6, 8, 5, 20];
 
-  it.each(cases)('stamina=%d matches', (stamina) => {
-    const clientResult = playerMaxStamina({
-      stats: { stamina, strength: 0, agility: 0, health: 0, wisdom: 0, defense: 0, spirit: 0 },
-      equippedGear: NO_GEAR,
+  for (const charClass of CLASSES) {
+    it.each(cases)(`${charClass} stamina=%d matches`, (stamina) => {
+      const clientResult = playerMaxStamina({
+        stats: { stamina, strength: 0, agility: 0, health: 0, wisdom: 0, defense: 0, spirit: 0 },
+        equippedGear: NO_GEAR,
+        class: charClass,
+      });
+      const fnResult = fnMaxStamina({ stamina }, NO_GEAR, charClass);
+      expect(fnResult).toBe(clientResult);
     });
-    const fnResult = fnMaxStamina({ stamina }, NO_GEAR);
-    expect(fnResult).toBe(clientResult);
-  });
+  }
 });
 
 describe('playerMaxMagic parity — src vs functions copy', () => {
