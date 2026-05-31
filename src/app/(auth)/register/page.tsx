@@ -117,6 +117,24 @@ export default function RegisterPage() {
           </p>
         )}
 
+        <p className="text-[11px] text-gray-400 dark:text-slate-500 text-center leading-relaxed">
+          By creating an account you agree to our{' '}
+          <Link
+            href="/terms"
+            className="underline hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
+          >
+            Terms of Use
+          </Link>{' '}
+          and{' '}
+          <Link
+            href="/privacy"
+            className="underline hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
+
         <button
           type="submit"
           disabled={loading}
