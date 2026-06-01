@@ -29,12 +29,11 @@ import { getItemById } from '@/lib/gameLogic/items';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
 import { CombatArena } from '@/components/combat/CombatArena';
-import { CombatActionBar } from '@/components/combat/CombatActionBar';
+import { CombatControls } from '@/components/combat/CombatControls';
 import { HpBar } from '@/components/combat/HpBar';
 import { LastActionSummary } from '@/components/combat/LastActionSummary';
 import { BattleLogEntry } from '@/components/combat/BattleLogEntry';
 import { MONSTER_EMOJI } from '@/components/combat/MonsterCard';
-import { CombatOverlays } from '@/components/combat/CombatOverlays';
 import { useCombatEncounter } from '@/hooks/useCombatEncounter';
 import { claimCombatVictoryCF } from '@/lib/functions';
 import { fireConfetti } from '@/lib/confetti';
@@ -383,52 +382,45 @@ function HuntFight({
         </div>
       )}
 
-      {/* Action bar / outcome footer */}
-      {outcome === null ? (
-        <CombatActionBar
-          character={character}
-          fightState={fightState}
-          maxStamina={maxStamina}
-          maxMagic={maxMagic}
-          equippedSpells={equippedSpells}
-          consumables={consumables}
-          rollingAction={rollingAction}
-          usingItem={usingItem}
-          showSpellPanel={showSpellPanel}
-          showItemPanel={showItemPanel}
-          setShowSpellPanel={setShowSpellPanel}
-          setShowItemPanel={setShowItemPanel}
-          onAttack={actions.attack}
-          onMagic={actions.magic}
-          onAbility={actions.rollAbility}
-          onCastSpell={actions.castSpell}
-          onRest={actions.rest}
-          onMeditate={actions.meditate}
-          onUseItem={actions.useItem}
-          onFlee={actions.flee}
-          onSkipStunned={actions.skipStunned}
-          onInterceptFlee={actions.interceptFlee}
-          spellChargesUsed={encounter.spellChargesUsed}
-        />
-      ) : outcome === 'win' && pendingWin ? (
-        <button
-          onClick={handleCollect}
-          disabled={collecting}
-          className="w-full bg-gradient-to-r from-violet-500 via-violet-400 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
-        >
-          {collecting ? 'Collecting…' : `Collect Bounty · +${bounty.rewards.reputation} Rep`}
-        </button>
-      ) : (
-        <Link
-          href="/wanted"
-          className="block w-full text-center bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-violet-300 text-gray-700 dark:text-slate-200 font-semibold py-3 rounded-xl transition-colors"
-        >
-          Heal up &amp; return to the Board
-        </Link>
-      )}
+      {/* Action controls (live fight) + roll overlays — shared across surfaces */}
+      <CombatControls
+        character={character}
+        monster={monster}
+        fightState={fightState}
+        rollingAction={rollingAction}
+        usingItem={usingItem}
+        spellChargesUsed={encounter.spellChargesUsed}
+        pending={pending}
+        actions={actions}
+        equippedSpells={equippedSpells}
+        consumables={consumables}
+        maxStamina={maxStamina}
+        maxMagic={maxMagic}
+        playerDefStat={playerDefStat}
+        showSpellPanel={showSpellPanel}
+        showItemPanel={showItemPanel}
+        setShowSpellPanel={setShowSpellPanel}
+        setShowItemPanel={setShowItemPanel}
+      />
 
-      {/* Overlays */}
-      <CombatOverlays pending={pending} monster={monster} playerDefStat={playerDefStat} />
+      {/* Outcome footer */}
+      {outcome !== null &&
+        (outcome === 'win' && pendingWin ? (
+          <button
+            onClick={handleCollect}
+            disabled={collecting}
+            className="w-full bg-gradient-to-r from-violet-500 via-violet-400 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
+          >
+            {collecting ? 'Collecting…' : `Collect Bounty · +${bounty.rewards.reputation} Rep`}
+          </button>
+        ) : (
+          <Link
+            href="/wanted"
+            className="block w-full text-center bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-violet-300 text-gray-700 dark:text-slate-200 font-semibold py-3 rounded-xl transition-colors"
+          >
+            Heal up &amp; return to the Board
+          </Link>
+        ))}
     </div>
   );
 }

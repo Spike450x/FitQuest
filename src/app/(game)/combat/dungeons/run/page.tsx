@@ -38,11 +38,10 @@ import {
 } from '@/lib/gameLogic/combat';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
 import { CombatArena } from '@/components/combat/CombatArena';
-import { CombatActionBar } from '@/components/combat/CombatActionBar';
+import { CombatControls } from '@/components/combat/CombatControls';
 import { HpBar } from '@/components/combat/HpBar';
 import { LastActionSummary } from '@/components/combat/LastActionSummary';
 import { BattleLogEntry } from '@/components/combat/BattleLogEntry';
-import { CombatOverlays } from '@/components/combat/CombatOverlays';
 import { useCombatEncounter } from '@/hooks/useCombatEncounter';
 import { useCombatStore } from '@/store/combatStore';
 import { refreshPlayerState } from '@/lib/refreshPlayerState';
@@ -470,38 +469,27 @@ function DungeonCombatShell({
         </div>
       )}
 
-      {/* Actions — only while the encounter is live */}
-      {fightState.outcome === null && (
-        <CombatActionBar
-          character={character}
-          fightState={fightState}
-          maxStamina={maxStamina}
-          maxMagic={maxMagic}
-          equippedSpells={equippedSpells}
-          consumables={consumables}
-          rollingAction={rollingAction}
-          usingItem={usingItem}
-          showSpellPanel={showSpellPanel}
-          showItemPanel={showItemPanel}
-          setShowSpellPanel={setShowSpellPanel}
-          setShowItemPanel={setShowItemPanel}
-          onAttack={actions.attack}
-          onMagic={actions.magic}
-          onAbility={actions.rollAbility}
-          onCastSpell={actions.castSpell}
-          onRest={actions.rest}
-          onMeditate={actions.meditate}
-          onUseItem={actions.useItem}
-          onFlee={actions.flee}
-          onSkipStunned={actions.skipStunned}
-          onInterceptFlee={actions.interceptFlee}
-          modifiers={modifiers}
-          spellChargesUsed={spellChargesUsed}
-        />
-      )}
-
-      {/* Overlays */}
-      <CombatOverlays pending={pending} monster={monster} playerDefStat={playerDefStat} />
+      {/* Action controls (live fight) + roll overlays — shared across surfaces */}
+      <CombatControls
+        character={character}
+        monster={monster}
+        fightState={fightState}
+        rollingAction={rollingAction}
+        usingItem={usingItem}
+        spellChargesUsed={spellChargesUsed}
+        pending={pending}
+        actions={actions}
+        equippedSpells={equippedSpells}
+        consumables={consumables}
+        maxStamina={maxStamina}
+        maxMagic={maxMagic}
+        playerDefStat={playerDefStat}
+        showSpellPanel={showSpellPanel}
+        showItemPanel={showItemPanel}
+        setShowSpellPanel={setShowSpellPanel}
+        setShowItemPanel={setShowItemPanel}
+        modifiers={modifiers}
+      />
     </div>
   );
 }
