@@ -1,12 +1,4 @@
-import {
-  StrengthIcon,
-  WisdomIcon,
-  AgilityIcon,
-  SpiritIcon,
-  StaminaIcon,
-  HealthIcon,
-  DefenseIcon,
-} from '@/components/art/stat-icons';
+import { StrengthIcon, WisdomIcon, AgilityIcon, SpiritIcon } from '@/components/art/stat-icons';
 import type { Stats } from '@/types';
 
 export interface StatBarConfig {
@@ -18,9 +10,17 @@ export interface StatBarConfig {
 }
 
 /**
- * Single source of truth for the seven stat bars (icon + color + label). Shared
- * by the character card and the dashboard so the two surfaces render the same
- * stats in the same order with the same colors.
+ * The four CORE stats shown as allocation bars (icon + color + label). Shared by
+ * the character card and the dashboard so the two surfaces render the same stats
+ * in the same order with the same colors.
+ *
+ * Deliberately excludes Stamina, Health, and Defense — those are the
+ * survivability group: Stamina + Health drive the HP / Stamina pools and Magic
+ * comes from Wisdom, all surfaced via `ResourceBars` (HP / Stamina / Magic), and
+ * Defense reduces incoming damage. Rendering them as identical `/50` bars
+ * alongside the core attack/utility stats double-counts the resources and
+ * misrepresents how they work, so they live with the resources and the
+ * character sheet's Class Traits instead.
  */
 export const STAT_BAR_CONFIG: StatBarConfig[] = [
   {
@@ -46,24 +46,6 @@ export const STAT_BAR_CONFIG: StatBarConfig[] = [
     label: 'Spirit',
     icon: <SpiritIcon className="w-4 h-4 text-violet-500" />,
     color: 'bg-violet-400',
-  },
-  {
-    key: 'stamina',
-    label: 'Stamina',
-    icon: <StaminaIcon className="w-4 h-4 text-amber-500" />,
-    color: 'bg-amber-400',
-  },
-  {
-    key: 'health',
-    label: 'Health',
-    icon: <HealthIcon className="w-4 h-4 text-pink-500" />,
-    color: 'bg-pink-400',
-  },
-  {
-    key: 'defense',
-    label: 'Defense',
-    icon: <DefenseIcon className="w-4 h-4 text-indigo-500" />,
-    color: 'bg-indigo-400',
   },
 ];
 
