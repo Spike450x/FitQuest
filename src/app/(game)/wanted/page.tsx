@@ -7,6 +7,7 @@ import { useBountyStore } from '@/store/bountyStore';
 import { useCharacterStore } from '@/store/characterStore';
 import { getBountyDef } from '@/lib/gameLogic/bounties';
 import { getMonsterById } from '@/lib/gameLogic/monsters';
+import { formatCountdown, rotationExpiresAt } from '@/lib/gameLogic/rotation';
 import { MONSTER_EMOJI } from '@/components/combat/MonsterCard';
 import { reputationProgress, resolveActiveTitle } from '@/lib/gameLogic/reputation';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
@@ -161,11 +162,11 @@ function BountyCard({
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <RewardSummary bounty={bounty} claimed={isClaimed} />
-          {!isClaimed && (
-            <p className="text-xs text-gray-400 dark:text-slate-500">
-              {timeUntilExpiry(bounty.expiresAt)}
-            </p>
-          )}
+          <p className="text-xs text-gray-400 dark:text-slate-500">
+            {isClaimed
+              ? `Resets in ${formatCountdown(rotationExpiresAt())}`
+              : timeUntilExpiry(bounty.expiresAt)}
+          </p>
         </div>
       </div>
 
@@ -348,9 +349,15 @@ export default function WantedBoardPage() {
                 Today&apos;s Bounties
               </h2>
             </div>
-            <p className="text-xs text-gray-400 dark:text-slate-500">
-              {collected}/{bounties.length} collected
-            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400 dark:text-slate-500">
+                {collected}/{bounties.length} collected
+              </span>
+              <span className="text-xs text-gray-400 dark:text-slate-500">·</span>
+              <span className="text-xs text-gray-400 dark:text-slate-500">
+                Resets in {formatCountdown(rotationExpiresAt())}
+              </span>
+            </div>
           </div>
           {bounties.length === 0 ? (
             <EmptyState

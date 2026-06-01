@@ -6,6 +6,7 @@ import { useQuestStore } from '@/store/questStore';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { ACHIEVEMENTS } from '@/lib/gameLogic/achievements';
 import { questRerollCost } from '@/lib/gameLogic/constants';
+import { formatCountdown, rotationExpiresAt, weeklyExpiresAt } from '@/lib/gameLogic/rotation';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -22,6 +23,11 @@ function timeUntilExpiry(expiresAt: number): string {
   if (hours >= 48) return `${Math.floor(hours / 24)}d remaining`;
   if (hours >= 1) return `${hours}h ${minutes}m remaining`;
   return `${minutes}m remaining`;
+}
+
+function resetCountdown(type: 'daily' | 'weekly'): string {
+  const ms = type === 'weekly' ? weeklyExpiresAt() : rotationExpiresAt();
+  return formatCountdown(ms);
 }
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
@@ -89,6 +95,7 @@ function QuestCard({
 }) {
   const def = getQuestDef(quest.questDefId);
   if (!def) return null;
+  const questType = def.type as 'daily' | 'weekly';
 
   const pct = Math.min(100, Math.round((quest.progress / def.requirement.target) * 100));
   const isComplete = quest.completedAt !== null;
@@ -146,11 +153,11 @@ function QuestCard({
             </span>
             <span className="text-xs text-amber-500 font-semibold">+{def.rewards.gold} 💰</span>
           </div>
-          {!isClaimed && (
-            <p className="text-xs text-gray-400 dark:text-slate-500">
-              {timeUntilExpiry(quest.expiresAt)}
-            </p>
-          )}
+          <p className="text-xs text-gray-400 dark:text-slate-500">
+            {isClaimed
+              ? `Resets in ${resetCountdown(questType)}`
+              : timeUntilExpiry(quest.expiresAt)}
+          </p>
         </div>
       </div>
 
@@ -230,6 +237,7 @@ function QuestSection({
   title,
   icon,
   quests,
+  type,
   claiming,
   rerolling,
   canAffordReroll,
@@ -240,6 +248,7 @@ function QuestSection({
   title: string;
   icon: string;
   quests: ActiveQuest[];
+  type: 'daily' | 'weekly';
   claiming: string | null;
   rerolling: string | null;
   canAffordReroll: boolean;
@@ -258,9 +267,15 @@ function QuestSection({
             {title}
           </h2>
         </div>
-        <p className="text-xs text-gray-400 dark:text-slate-500">
-          {completed}/{quests.length} claimed
-        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 dark:text-slate-500">
+            {completed}/{quests.length} claimed
+          </span>
+          <span className="text-xs text-gray-400 dark:text-slate-500">·</span>
+          <span className="text-xs text-gray-400 dark:text-slate-500">
+            Resets in {resetCountdown(type)}
+          </span>
+        </div>
       </div>
       {quests.length === 0 ? (
         <EmptyState
@@ -417,6 +432,7 @@ export default function QuestsPage() {
           title="Daily Quests"
           icon="📅"
           quests={dailyQuests}
+          type="daily"
           claiming={claiming}
           rerolling={rerolling}
           canAffordReroll={canAffordReroll}
@@ -429,6 +445,7 @@ export default function QuestsPage() {
           title="Weekly Quests"
           icon="📆"
           quests={weeklyQuests}
+          type="weekly"
           claiming={claiming}
           rerolling={rerolling}
           canAffordReroll={canAffordReroll}

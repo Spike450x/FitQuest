@@ -13,7 +13,7 @@ import {
 import {
   getDailyPick,
   getWeeklyPick,
-  dailyExpiresAt,
+  rotationExpiresAt,
   weeklyExpiresAt,
   deriveWeekKey,
 } from '@/lib/gameLogic/rotation';
@@ -182,7 +182,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       const dailyAssigned: ActiveQuest[] = [];
       if (!hasDailies) {
         const picked = getDailyPick(DAILY_QUEST_POOL, DAILY_QUEST_COUNT, dateKey);
-        const expiry = dailyExpiresAt();
+        const expiry = rotationExpiresAt();
         const newIds = await Promise.all(
           picked.map((def) =>
             addActiveQuestDoc({
@@ -422,7 +422,7 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
       if (candidates.length === 0) return false;
 
       const pick = candidates[Math.floor(Math.random() * candidates.length)];
-      const expiry = def.type === 'daily' ? dailyExpiresAt() : weeklyExpiresAt();
+      const expiry = def.type === 'daily' ? rotationExpiresAt() : weeklyExpiresAt();
 
       // Persist the replacement + the gold deduction. Two writes (quest doc,
       // character doc) — we accept the brief client-side window between them
