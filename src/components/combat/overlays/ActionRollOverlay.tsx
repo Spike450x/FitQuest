@@ -117,11 +117,17 @@ export function ActionRollOverlay({
   const special = pending.monsterSpecial;
 
   const headerText = isRun
-    ? phase === 'run_spin'
-      ? 'Rolling escape…'
-      : pending.escaped
-        ? 'You escaped!'
-        : 'Blocked!'
+    ? pending.intercept
+      ? phase === 'run_spin'
+        ? 'Chasing it down…'
+        : pending.interceptCaught
+          ? '🗡️ Intercepted — slain!'
+          : '💨 It got away!'
+      : phase === 'run_spin'
+        ? 'Rolling escape…'
+        : pending.escaped
+          ? 'You escaped!'
+          : 'Blocked!'
     : isMonsterPhase
       ? phase === 'monster_spin'
         ? 'Monster strikes while you recover…'

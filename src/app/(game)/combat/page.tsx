@@ -668,6 +668,7 @@ function CombatPageBody({ character }: { character: Character }) {
             onUseItem={actions.useItem}
             onFlee={actions.flee}
             onSkipStunned={actions.skipStunned}
+            onInterceptFlee={actions.interceptFlee}
             spellChargesUsed={spellChargesUsed}
           />
         ) : outcome === 'loss' ? (

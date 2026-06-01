@@ -37,6 +37,35 @@ function MonsterSpecialNote({ entry }: { entry: RoundEntry }) {
 }
 
 export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: MonsterDef }) {
+  if (entry.action === 'intercept') {
+    return (
+      <div className="text-sm space-y-1">
+        <p>
+          <span className="text-emerald-600 font-medium">🏹 Intercept — </span>
+          <span className="font-mono text-emerald-700">
+            You rolled {entry.playerRunRoll}
+            {(entry.agilityBonus ?? 0) > 0 && (
+              <>
+                {' '}
+                + <span className="text-green-600">{entry.agilityBonus} AGI</span>
+              </>
+            )}
+          </span>
+          <span className="text-gray-400 dark:text-slate-500"> vs flee {entry.monsterRunRoll}</span>
+        </p>
+        <p
+          className={
+            entry.interceptCaught
+              ? 'text-emerald-600 font-semibold'
+              : 'text-amber-600 dark:text-amber-400 font-semibold'
+          }
+        >
+          {entry.interceptCaught ? '🗡️ Caught it — slain!' : '💨 It got away with the reward!'}
+        </p>
+      </div>
+    );
+  }
+
   if (entry.action === 'stunned') {
     return (
       <div className="text-sm space-y-1">

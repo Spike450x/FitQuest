@@ -115,6 +115,7 @@ export const DUNGEON_BOSSES: Record<DungeonTierId, DungeonBossDef> = {
     description: 'The self-styled king of the caves. Crude but dangerous.',
     enrageTriggerPct: null,
     enrageDescription: null,
+    active: { id: 'heal', triggerPct: 0.4, label: 'Kingly Resolve', value: 55 },
     specialMoves: [
       {
         id: 'royal-smash',
@@ -195,10 +196,13 @@ export const DUNGEON_BOSSES: Record<DungeonTierId, DungeonBossDef> = {
     id: 'boss-dragon-king',
     name: 'The Ancient Dragon King',
     level: 15,
-    hp: 410,
-    // ATK 36 → 33: with the ignore-DEF enrage + heavy/stun specials it was tipping
-    // the physically-fragile Wizard past 100% HP-loss in the balance model.
-    attack: 33,
+    // HP 410 → 375: one fewer kill-round under the ability-cooldown DPS hit,
+    // keeping the physically-fragile Wizard's capstone fight winnable.
+    hp: 375,
+    // ATK 36 → 30: with the ignore-DEF enrage + heavy/stun specials AND the
+    // ability-cooldown DPS hit, it tipped the physically-fragile Wizard past 100%
+    // HP-loss in the balance model.
+    attack: 30,
     defense: 18,
     xpReward: 550,
     goldReward: 300,

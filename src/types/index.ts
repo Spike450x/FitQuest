@@ -519,7 +519,7 @@ export interface MonsterSpecialMove {
 }
 
 /** One-shot ability triggered once when monster HP falls below a threshold. */
-export type MonsterActiveId = 'enrage' | 'harden' | 'summon-add';
+export type MonsterActiveId = 'enrage' | 'harden' | 'summon-add' | 'heal';
 
 export interface MonsterActive {
   id: MonsterActiveId;
@@ -532,6 +532,8 @@ export interface MonsterActive {
    *   enrage     — permanent ATK boost on trigger
    *   harden     — permanent DEF boost on trigger
    *   summon-add — one-time HP bonus added to current and max monster HP
+   *   heal       — one-time "second wind": flat HP restored toward current max
+   *                (does NOT raise the cap, unlike summon-add)
    */
   value: number;
 }
@@ -557,6 +559,14 @@ export interface MonsterDef {
    * order). Surfaced on the monster card so players can plan around them.
    */
   specialMoves?: MonsterSpecialMove[];
+  /**
+   * Skittish monsters may try to FLEE when low on HP. Each surviving round at or
+   * below `thresholdPct` of max HP, an RNG roll of `chance` decides whether the
+   * monster bolts; the player then gets one intercept roll (d10 + Agility vs the
+   * monster's flee roll) — out-roll it for an instant kill + full rewards, else
+   * it escapes with nothing. Disabled in dungeon rooms (they require a kill).
+   */
+  flee?: { chance: number; thresholdPct: number };
 }
 
 /**

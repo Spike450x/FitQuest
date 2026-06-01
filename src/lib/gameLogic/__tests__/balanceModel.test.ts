@@ -116,11 +116,17 @@ function avgPlayerDamage(char: Character, monster: MonsterDef): number {
   const basic = Math.max(COMBAT.MIN_DAMAGE, offense + avgRoll - effMonDef);
   // Ability blend: avg 6d6 base (~4) + stat, ×1.7 blended multiplier, partial DEF.
   const ability = Math.max(COMBAT.MIN_DAMAGE, (4 + offense) * 1.7 - monster.defense * 0.4);
+  // The 1-round ability cooldown means the player can't ability every turn — but
+  // the optimal off-turn is a SPELL (no cooldown, ~ability strength), not a weak
+  // basic. So a level-matched, spell-equipped player barely loses DPS: the
+  // cooldown changes HOW you fight (vary actions), not HOW HARD it is. Model the
+  // off-turn as mostly-spell with a small tax: a 75/25 ability/basic blend.
+  const sustained = 0.75 * ability + 0.25 * basic;
   // Spirit crit applies to attacks, abilities, and spells — fold its expected
   // value in so the model mirrors the live damage path (small at low Spirit).
   const spirit = effectiveStat(char, 'spirit');
   const critEv = 1 + spellCritChance(spirit) * (spellCritDamage(spirit) - 1);
-  return Math.max(basic, ability) * critEv;
+  return sustained * critEv;
 }
 
 /** The monster's normal per-hit counter (before specials), school + DEF applied. */
@@ -188,8 +194,11 @@ function avgMonsterDamage(char: Character, monster: MonsterDef): number {
  * depends on rounds) — good enough for a calibration model.
  */
 function effectiveMonsterHp(char: Character, monster: MonsterDef, playerDmg: number): number {
+  // summon-add raises the cap; the `heal` active is a one-time "second wind"
+  // restore — both add HP the player must chew through.
   const summon = monster.active?.id === 'summon-add' ? monster.active.value : 0;
-  const baseHp = monster.hp + summon;
+  const heal = monster.active?.id === 'heal' ? monster.active.value : 0;
+  const baseHp = monster.hp + summon + heal;
   const counter = baseCounter(char, monster);
   const regen = monster.passive?.id === 'regen' ? monster.passive.value : 0;
   const vamp = monster.passive?.id === 'vampiric' ? (monster.passive.value / 100) * counter : 0;

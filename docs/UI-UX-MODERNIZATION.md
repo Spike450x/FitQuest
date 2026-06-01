@@ -18,6 +18,16 @@
 > `SpellRollOverlay` honors Rogue dodge, and the character sheet gains a Weak-to-Magic /
 > Magic-Ward perk callout for classes whose magic mitigation isn't neutral.
 
+> **2026-06-01 — Enemy-roll fix + monster flee/intercept + cooldown.** The ability + spell
+> overlays now render the monster's counter die at `lg` (56px) with an "⚔️ Enemy counter roll"
+> header (new `dieSize` prop on `MonsterCounterPanel`) — previously a tiny 28px die buried below
+> the ability card that read as "no monster roll." A skittish monster at low HP may **flee**: the
+> `CombatActionBar` grid is replaced by a green "🏃 It's fleeing — strike!" panel with a single
+> _Strike it down!_ button (`onInterceptFlee`); the intercept animates via the two-die run overlay
+> and the result ("🗡️ Intercepted — slain!" / "💨 It got away!") shows in the log + recap. The
+> Roll Ability button gains an amber "⏳ On cooldown — act once more" sublabel for one turn after
+> use.
+
 > **2026-06-01 — Telegraphed specials + player-stun.** Disruptive monster specials (heavy /
 > burst / stun) now **wind up a round early**: a pulsing amber "⚡ Winding up: {name}" badge
 > appears on the `CombatArena` monster portrait (new `charging` prop) and an in-overlay tell, so
