@@ -269,6 +269,7 @@ export function DiceRollOverlay({
               chargingPrimed={monsterChargingPrimed}
               playerStunnedApplied={playerStunnedApplied}
               outcome={outcome}
+              dieSize="lg"
             />
           </div>
 

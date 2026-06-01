@@ -17,6 +17,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'minor-health-potion', chance: 0.15 },
     ],
     description: 'A small, quick goblin — your first real test.',
+    flee: { chance: 0.3, thresholdPct: 0.25 },
     passive: { id: 'thorns', label: 'Spiked Hide', value: 10 },
   },
   {
@@ -34,6 +35,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'minor-health-potion', chance: 0.15 },
     ],
     description: 'Fast and feral. Low defense but bites hard.',
+    flee: { chance: 0.35, thresholdPct: 0.25 },
     passive: { id: 'thorns', label: 'Jagged Claws', value: 12 },
   },
   {
@@ -53,6 +55,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'health-potion', chance: 0.08 },
     ],
     description: 'Armed with a crude axe and a chip on its shoulder.',
+    flee: { chance: 0.3, thresholdPct: 0.25 },
     passive: { id: 'regen', label: 'Hardy', value: 2 },
   },
   {
@@ -89,6 +92,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'health-potion', chance: 0.1 },
     ],
     description: 'Venomous and fast. It will overwhelm the unprepared.',
+    flee: { chance: 0.25, thresholdPct: 0.2 },
     passive: { id: 'thorns', label: 'Venomous Spines', value: 18 },
   },
   {
@@ -135,6 +139,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'greater-health-potion', chance: 0.08 },
     ],
     description: 'Hunts in shadows. Ferocious and hungry.',
+    flee: { chance: 0.25, thresholdPct: 0.2 },
     active: { id: 'enrage', triggerPct: 0.4, label: 'Blood Frenzy', value: 5 },
     specialMoves: [
       {
@@ -237,8 +242,11 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     id: 'ancient-dragon',
     name: 'Ancient Dragon',
     level: 10,
-    hp: 240,
-    attack: 32,
+    // HP 240 → 205 / ATK 32 → 30: the 1-round ability cooldown lengthens fights
+    // (less DPS), which tipped the off-affinity Wizard + the slow-killing Rogue
+    // past 100% HP-loss at this gateway boss. Trimmed to stay winnable.
+    hp: 205,
+    attack: 30,
     defense: 16,
     xpReward: 320,
     goldReward: 160,
@@ -287,6 +295,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'minor-stamina-potion', chance: 0.18 },
     ],
     description: 'Sticky little brawler. Its grip saps your strength.',
+    flee: { chance: 0.35, thresholdPct: 0.25 },
     passive: { id: 'siphon', label: 'Sticky Grip', value: 1 },
   },
   {
@@ -304,6 +313,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'minor-health-potion', chance: 0.2 },
     ],
     description: 'Charges first, regrets later — until it sees red.',
+    flee: { chance: 0.25, thresholdPct: 0.2 },
     active: { id: 'enrage', triggerPct: 0.5, label: 'Tusk Charge', value: 3 },
   },
   {
@@ -341,6 +351,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'A walking suit of cursed plate. Punches through whatever you wear.',
     passive: { id: 'armor-pierce', label: 'Sundering Strike', value: 2 },
+    active: { id: 'heal', triggerPct: 0.4, label: 'Self-Repair', value: 28 },
     specialMoves: [
       {
         id: 'iron-haymaker',
@@ -472,11 +483,11 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     id: 'void-revenant',
     name: 'Void Revenant',
     level: 13,
-    // HP 285 → 240 / ATK 34 → 27: armor-ignoring magic + summon-add + drain stack
-    // a long grind of unmitigated damage that tipped the magic-fearing Warrior and
-    // the slow-killing Rogue past 100% HP-loss in the balance model. Summon-add
-    // trimmed too (below). Still threatening via its mechanics, not raw stats.
-    hp: 240,
+    // HP 285 → 205 / ATK 34 → 27: armor-ignoring magic + summon-add + drain stack
+    // a long grind of unmitigated damage that, with the ability-cooldown DPS hit,
+    // tipped the magic-fearing Warrior and the slow-killing Rogue past 100%
+    // HP-loss. Trimmed across two passes; still threatening via its mechanics.
+    hp: 205,
     attack: 27,
     defense: 12,
     attackType: 'magic',

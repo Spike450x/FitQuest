@@ -28,9 +28,32 @@ export function BattleLogEntry({
         {entry.action === 'rest' && '🛌 Rest'}
         {entry.action === 'meditate' && '🧘 Meditate'}
         {entry.action === 'stunned' && '😵 Stunned'}
+        {entry.action === 'intercept' && '🏹 Intercept'}
       </p>
 
-      {entry.action === 'stunned' ? (
+      {entry.action === 'intercept' ? (
+        <>
+          <p>
+            <span className="text-emerald-600">You rolled {entry.playerRunRoll}</span>
+            {(entry.agilityBonus ?? 0) > 0 && (
+              <span className="text-green-600"> + {entry.agilityBonus} AGI</span>
+            )}
+            <span className="text-gray-400 dark:text-slate-500">
+              {' '}
+              vs flee {entry.monsterRunRoll}
+            </span>
+          </p>
+          <p
+            className={
+              entry.interceptCaught
+                ? 'text-emerald-600 font-semibold'
+                : 'text-amber-600 dark:text-amber-400 font-medium'
+            }
+          >
+            {entry.interceptCaught ? '🗡️ Intercepted — slain!' : '💨 It got away!'}
+          </p>
+        </>
+      ) : entry.action === 'stunned' ? (
         <>
           <p className="text-amber-600 dark:text-amber-400 font-medium">
             😵 Turn lost — you were stunned.

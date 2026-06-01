@@ -598,6 +598,27 @@ export function rollRunAway(
   return { playerRoll, agilityBonus, monsterRoll, escaped, monsterDamage, playerDefFailed };
 }
 
+/**
+ * Intercept a fleeing monster. The player rolls d10 + Agility (the same chase
+ * power as escaping) against the monster's flee d10. Out-roll it → caught (an
+ * instant kill); otherwise the monster escapes. No damage either way — it is a
+ * chase, not a trade. Mirrors `rollRunAway` so the two read identically.
+ */
+export function rollFleeIntercept(
+  character: Character,
+  monster: MonsterDef,
+): { playerRoll: number; agilityBonus: number; monsterRoll: number; caught: boolean } {
+  const playerRoll = rollD10();
+  const gear = totalGearBonuses(character.equippedGear);
+  const effectiveAgility = effectiveStat(character, 'agility') + (gear.agility ?? 0);
+  const agilityBonus = Math.floor(effectiveAgility * COMBAT.AGILITY_ESCAPE_FACTOR);
+  const ghostStepBonus = getEscapeBonus(character);
+  const monsterRoll = rollD10();
+  void monster; // signature parity with rollRunAway; no monster-specific term today
+  const caught = playerRoll + agilityBonus + ghostStepBonus > monsterRoll;
+  return { playerRoll, agilityBonus, monsterRoll, caught };
+}
+
 // ─── resolveRoundOutcome ──────────────────────────────────────────────────────
 
 export interface RoundOutcomeInput {

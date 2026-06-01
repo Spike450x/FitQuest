@@ -53,6 +53,7 @@ export function CombatActionBar({
   onUseItem,
   onFlee,
   onSkipStunned,
+  onInterceptFlee,
   modifiers,
   showMagicButton = false,
   spellChargesUsed,
@@ -79,6 +80,8 @@ export function CombatActionBar({
   onFlee: () => void;
   /** Consume a monster stun: forfeit the turn and take the undefended free hit. */
   onSkipStunned: () => void;
+  /** Intercept a fleeing monster: roll to one-hit-kill it, else it escapes. */
+  onInterceptFlee: () => void;
   modifiers?: CombatModifiers;
   /** Show a dedicated Magic-attack button alongside Attack (optional — arena currently bundles magic into ability/spell flow only). */
   showMagicButton?: boolean;
@@ -98,7 +101,9 @@ export function CombatActionBar({
     COMBAT.ABILITY_STAMINA_COST,
     fightState.isFirstAbility,
   );
-  const canAbility = playerStamina >= staCost;
+  // 1-round ability cooldown: gated until at least one other action has passed.
+  const abilityCooldownReady = (fightState.abilityReadyOnRound ?? 0) <= fightState.log.length;
+  const canAbility = playerStamina >= staCost && abilityCooldownReady;
 
   // Compute which spells still have charges this encounter (per-rarity max)
   const spellsWithCharges = equippedSpells.filter(({ invItem, def }) => {
@@ -107,6 +112,27 @@ export function CombatActionBar({
     return used < getSpellMaxCharges(def.rarity);
   });
   const allSpellsExhausted = equippedSpells.length > 0 && spellsWithCharges.length === 0;
+
+  // Monster fleeing: one tap-to-intercept roll. Out-roll it → instant kill + full
+  // rewards; lose → it escapes with nothing. Takes precedence over the stun panel.
+  if (fightState.monsterFleeing) {
+    return (
+      <div className="rounded-xl border-2 border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 p-4 text-center space-y-2">
+        <p className="text-2xl">🏃💨</p>
+        <p className="font-bold text-emerald-700 dark:text-emerald-300">It&apos;s fleeing!</p>
+        <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">
+          Out-roll it (d10 + AGI) for an instant kill — miss and it escapes with your reward.
+        </p>
+        <button
+          onClick={onInterceptFlee}
+          data-testid="combat-intercept-btn"
+          className="w-full bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold py-2.5 rounded-lg transition-all active:scale-[0.98]"
+        >
+          🗡️ Strike it down!
+        </button>
+      </div>
+    );
+  }
 
   // Stunned: the player forfeits this turn. Replace the whole action grid with a
   // single acknowledgment that triggers the skip (monster gets one free hit).
@@ -189,11 +215,13 @@ export function CombatActionBar({
         <ActionButton
           label="🎲 Roll Ability"
           sublabel={
-            !canAbility
-              ? `Not enough stamina (need ${staCost})`
-              : staCost === 0
-                ? 'FREE this roll · 6d6 class ability'
-                : `Costs ${staCost} sta · 6d6 class ability`
+            !abilityCooldownReady
+              ? '⏳ On cooldown — act once more'
+              : playerStamina < staCost
+                ? `Not enough stamina (need ${staCost})`
+                : staCost === 0
+                  ? 'FREE this roll · 6d6 class ability'
+                  : `Costs ${staCost} sta · 6d6 class ability`
           }
           onClick={onAbility}
           loading={rollingAction === 'ability'}

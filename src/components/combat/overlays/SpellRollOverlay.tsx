@@ -246,6 +246,7 @@ export function SpellRollOverlay({
             chargingPrimed={monsterChargingPrimed}
             playerStunnedApplied={playerStunnedApplied}
             outcome={outcome}
+            dieSize="lg"
           />
 
           <button
