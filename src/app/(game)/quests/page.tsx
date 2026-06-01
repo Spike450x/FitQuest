@@ -15,16 +15,6 @@ import { fireConfetti } from '@/lib/confetti';
 import { playSound } from '@/hooks/useSound';
 import type { ActiveQuest } from '@/types';
 
-function timeUntilExpiry(expiresAt: number): string {
-  const diff = expiresAt - Date.now();
-  if (diff <= 0) return 'Expired';
-  const hours = Math.floor(diff / 3_600_000);
-  const minutes = Math.floor((diff % 3_600_000) / 60_000);
-  if (hours >= 48) return `${Math.floor(hours / 24)}d remaining`;
-  if (hours >= 1) return `${hours}h ${minutes}m remaining`;
-  return `${minutes}m remaining`;
-}
-
 function resetCountdown(type: 'daily' | 'weekly'): string {
   const ms = type === 'weekly' ? weeklyExpiresAt() : rotationExpiresAt();
   return formatCountdown(ms);
@@ -156,7 +146,7 @@ function QuestCard({
           <p className="text-xs text-gray-400 dark:text-slate-500">
             {isClaimed
               ? `Resets in ${resetCountdown(questType)}`
-              : timeUntilExpiry(quest.expiresAt)}
+              : `${resetCountdown(questType)} remaining`}
           </p>
         </div>
       </div>
