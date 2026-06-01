@@ -15,6 +15,11 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-06-01 — CombatControls extraction (3-page combat dedup)
+
+- **`CombatControls`** — new shared component (`src/components/combat/CombatControls.tsx`) that renders the outcome-gated `CombatActionBar` + `CombatOverlays` and maps `encounter.actions.*` → the action-bar `on*` handlers in one place. The arena, dungeon-run, and hunt pages all mount it instead of each spelling out the ~18-prop action bar + the overlays block.
+- **Why:** the last two combat PRs each had to wire a new action (`skipStunned`, `interceptFlee`) into all three pages by hand — drift waiting to happen. A new combat action is now a one-file change. Behavior-preserving (pages keep their own per-surface outcome footers); 1072 tests + typecheck + lint green.
+
 ## 2026-06-01 — Monster roll fix · monster flee/intercept · heal active · ability cooldown
 
 - **Fix: enemy roll on abilities/spells** — the monster _was_ rolling, but `MonsterCounterPanel` showed a tiny 28px die buried below the ability card. The ability + spell overlays now render the enemy counter die at `lg` (56px) with an "⚔️ Enemy counter roll" header and a longer spin, matching the basic-attack overlay's prominence.
