@@ -30,10 +30,12 @@ import {
   monsterArmorPierce,
   monsterSiphonAmount,
   monsterSpecialDrainHeal,
+  resolveCounterSpecial,
   resolveRoundOutcome,
   rollClassDodge,
   rollRunAway,
   rollSpellCrit,
+  type CounterSpecialResolution,
 } from './combat';
 import type { MonsterSpecialMove } from '@/types';
 import { resolveAbility } from './abilities';
@@ -143,6 +145,63 @@ function calcSpecialDrain(
 }
 
 /**
+ * Combined per-counter self-heal (vampiric + drain) capped at a fraction of the
+ * monster's max HP — a guardrail so a future monster that stacks both can't
+ * runaway-heal off a single big hit. No current monster stacks both, so this
+ * essentially never binds today (a `monsterSpecials` test asserts the latter).
+ */
+function cappedMonsterSelfHeal(vampiric: number, drain: number, maxHp: number): number {
+  const cap = Math.ceil(maxHp * COMBAT.MONSTER_SELF_HEAL_CAP_FRACTION);
+  return Math.min(vampiric + drain, cap);
+}
+
+/**
+ * The telegraph/charge + stun outcome for one offensive round.
+ *
+ * `monsterSwung` is true when the monster actually made its counter this round
+ * (i.e. it was not killed and not stunned by the player). A Rogue dodge still
+ * counts as a swing (the monster attacked; the player evaded), so a charge it
+ * was holding is still consumed and a fresh telegraph can still wind up.
+ */
+interface ChargeOutcome {
+  /** Telegraphed special to carry into next round (FightState.monsterCharging). */
+  nextCharging: MonsterSpecialMove | null;
+  /** A pending charge was cancelled because the monster was stunned/killed first. */
+  fizzledCharge: MonsterSpecialMove | null;
+  /** A telegraphed special newly wound up this round (drives the "winding up" tell). */
+  primed: MonsterSpecialMove | null;
+  /** A `stun` special landed on a real hit → the player skips next turn. */
+  stunApplied: boolean;
+}
+
+function resolveChargeOutcome(
+  state: FightState,
+  specialRes: CounterSpecialResolution,
+  monsterSwung: boolean,
+  actualMonsterDamage: number,
+  outcome: 'win' | 'loss' | 'fled' | null,
+): ChargeOutcome {
+  if (!monsterSwung) {
+    // Monster didn't counter (player stunned or killed it) → any held charge is
+    // cancelled and nothing new winds up.
+    return {
+      nextCharging: null,
+      fizzledCharge: state.monsterCharging ?? null,
+      primed: null,
+      stunApplied: false,
+    };
+  }
+  const stunApplied =
+    specialRes.effective?.effect.kind === 'stun' && actualMonsterDamage > 0 && outcome === null;
+  return {
+    nextCharging: specialRes.nextCharging,
+    fizzledCharge: null,
+    primed: specialRes.primed,
+    stunApplied,
+  };
+}
+
+/**
  * Log-entry fields describing the monster special that fired this round.
  * Suppressed entirely when no special landed a hit (stun / dodge / kill).
  */
@@ -161,6 +220,26 @@ function monsterSpecialLogFields(
     monsterSpecialEmoji: special.emoji,
     monsterSpecialDrain: drainHeal > 0 ? drainHeal : undefined,
   };
+}
+
+/** Log fields for the telegraph "winding up" tell + a landed stun, this round. */
+function chargeLogFields(charge: ChargeOutcome): {
+  monsterSpecialPrimedName?: string;
+  monsterSpecialPrimedEmoji?: string;
+  playerStunnedApplied?: boolean;
+} {
+  return {
+    monsterSpecialPrimedName: charge.primed?.name,
+    monsterSpecialPrimedEmoji: charge.primed?.emoji,
+    playerStunnedApplied: charge.stunApplied || undefined,
+  };
+}
+
+/** Modifier-log note for a telegraphed charge that fizzled (monster stunned mid-windup). */
+function fizzleChargeNote(monsterName: string, charge: ChargeOutcome): string | null {
+  return charge.fizzledCharge
+    ? `${monsterName}'s ${charge.fizzledCharge.name} fizzles — windup interrupted!`
+    : null;
 }
 
 /**
@@ -326,6 +405,10 @@ export function resolveAttackAction(
   const pre = runPreAction(input);
   const stateForRound = pre.state;
 
+  // Telegraph: a charged special fires this round; a freshly-rolled telegraphed
+  // one only winds up (does not apply now). Instant pierce/drain apply on the spot.
+  const specialRes = resolveCounterSpecial(stateForRound.monster, stateForRound.monsterCharging);
+
   const {
     roll,
     attackBonus,
@@ -336,7 +419,7 @@ export function resolveAttackAction(
     playerDefFailed,
     monsterDefFailed,
     monsterSpecial,
-  } = calculateRound(character, pre.effectiveMonster, mode);
+  } = calculateRound(character, pre.effectiveMonster, mode, specialRes.effective);
 
   const passiveCtx = {
     currentHpPct: stateForRound.playerHp / maxHp,
@@ -431,14 +514,26 @@ export function resolveAttackAction(
           newMaxMonsterHp,
         );
   // Special `drain`: monster heals from this counter's damage, stacking on top
-  // of vampiric within the same HP cap.
+  // of vampiric within the same HP cap (combined cap guards against runaway heal).
   const specialDrainHeal = calcSpecialDrain(
     monsterSpecial,
     actualMonsterDamage,
     hpAfterSummon + vampiricHeal,
     newMaxMonsterHp,
   );
-  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + vampiricHeal + specialDrainHeal);
+  const selfHeal = cappedMonsterSelfHeal(vampiricHeal, specialDrainHeal, newMaxMonsterHp);
+  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + selfHeal);
+
+  // Telegraph/charge + stun outcome. Basic attacks never stun the monster, so it
+  // swung this round iff it survived (outcome !== 'win').
+  const charge = resolveChargeOutcome(
+    stateForRound,
+    specialRes,
+    outcome !== 'win',
+    actualMonsterDamage,
+    outcome,
+  );
+  const fizzleNote = fizzleChargeNote(stateForRound.monster.name, charge);
 
   const interimState: FightState = {
     ...stateForRound,
@@ -454,6 +549,7 @@ export function resolveAttackAction(
   const post = runPostRound(input, interimState, mode);
 
   const modifierNotes = [...pre.notes, ...absorb.notes, ...post.notes];
+  if (fizzleNote) modifierNotes.push(fizzleNote);
 
   const logEntry: RoundEntry = {
     round: stateForRound.log.length + 1,
@@ -493,6 +589,7 @@ export function resolveAttackAction(
         ? effectiveAttackType(stateForRound.monster, monsterSpecial)
         : undefined,
     ...monsterSpecialLogFields(monsterSpecial, actualMonsterDamage, specialDrainHeal),
+    ...chargeLogFields(charge),
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -510,6 +607,8 @@ export function resolveAttackAction(
     monsterHp: monsterHpFinal,
     playerHp: finalPlayerHp,
     playerStamina: staminaAfterSiphon,
+    monsterCharging: charge.nextCharging,
+    playerStunned: charge.stunApplied,
   };
 
   return {
@@ -530,6 +629,8 @@ export function resolveAttackAction(
         monsterDefFailed,
         dodged: roundResult.dodged || undefined,
         monsterSpecial: actualMonsterDamage > 0 ? monsterSpecial : null,
+        monsterChargingPrimed: charge.primed,
+        playerStunnedApplied: charge.stunApplied || undefined,
         monsterAttackType:
           actualMonsterDamage > 0
             ? effectiveAttackType(stateForRound.monster, monsterSpecial)
@@ -555,7 +656,15 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     stateForRound.isFirstAbility,
   );
 
-  const resolution = resolveAbility(character, pre.effectiveMonster, stateForRound.isFirstAbility);
+  // Telegraph: charged special fires now; a freshly-rolled telegraphed one only
+  // winds up. resolveAbility ignores the special when the ability stuns the monster.
+  const specialRes = resolveCounterSpecial(stateForRound.monster, stateForRound.monsterCharging);
+  const resolution = resolveAbility(
+    character,
+    pre.effectiveMonster,
+    stateForRound.isFirstAbility,
+    specialRes.effective,
+  );
   const fizzled = resolution.ability === null;
 
   const abilityCtx = {
@@ -659,7 +768,19 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     hpAfterSummon + vampiricHeal,
     newMaxMonsterHp,
   );
-  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + vampiricHeal + specialDrainHeal);
+  const selfHeal = cappedMonsterSelfHeal(vampiricHeal, specialDrainHeal, newMaxMonsterHp);
+  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + selfHeal);
+
+  // Telegraph/charge + stun: the monster swung iff it survived and the ability
+  // didn't stun it (a player-stun on the monster cancels any held charge).
+  const charge = resolveChargeOutcome(
+    stateForRound,
+    specialRes,
+    outcome !== 'win' && !resolution.monsterStunned,
+    actualMonsterDamage,
+    outcome,
+  );
+  const fizzleNote = fizzleChargeNote(stateForRound.monster.name, charge);
 
   const momentumRestore = getMomentumRestore(character, killedMonster);
   const fizzleRefund = fizzled ? COMBAT.FIZZLE_STAMINA_REFUND : 0;
@@ -690,6 +811,7 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
   };
   const post = runPostRound(input, interimState, 'ability');
   const modifierNotes = [...pre.notes, ...absorb.notes, ...post.notes];
+  if (fizzleNote) modifierNotes.push(fizzleNote);
 
   const logEntry: RoundEntry = {
     round: stateForRound.log.length + 1,
@@ -736,6 +858,7 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
         ? effectiveAttackType(stateForRound.monster, resolution.monsterSpecial)
         : undefined,
     ...monsterSpecialLogFields(resolution.monsterSpecial, actualMonsterDamage, specialDrainHeal),
+    ...chargeLogFields(charge),
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -754,6 +877,8 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     executeUsed: stateForRound.executeUsed || executeTriggered,
     monsterHp: monsterHpFinal,
     playerHp: finalPlayerHp,
+    monsterCharging: charge.nextCharging,
+    playerStunned: charge.stunApplied,
   };
 
   return {
@@ -776,6 +901,8 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
             ? effectiveAttackType(stateForRound.monster, resolution.monsterSpecial)
             : undefined,
         monsterSpecial: actualMonsterDamage > 0 ? resolution.monsterSpecial : null,
+        monsterChargingPrimed: charge.primed,
+        playerStunnedApplied: charge.stunApplied || undefined,
         playerDefFailed: resolution.playerDefFailed,
         spiritCrit: abilityCrit.crit || undefined,
         spiritCritMultiplier: abilityCrit.crit ? abilityCrit.multiplier : undefined,
@@ -801,7 +928,16 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     stateForRound.playerHp,
   );
 
-  const resolution = resolveSpell(sm.effect, sm.requirement, character, pre.effectiveMonster);
+  // Telegraph: charged special fires now; a freshly-rolled telegraphed one only
+  // winds up. resolveSpell ignores the special when the spell stuns the monster.
+  const specialRes = resolveCounterSpecial(stateForRound.monster, stateForRound.monsterCharging);
+  const resolution = resolveSpell(
+    sm.effect,
+    sm.requirement,
+    character,
+    pre.effectiveMonster,
+    specialRes.effective,
+  );
 
   const newMagic = useBloodPact
     ? stateForRound.playerMagic
@@ -892,10 +1028,23 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     hpAfterSummon + vampiricHealSpell,
     newMaxMonsterHp,
   );
-  const monsterHpFinalSpell = Math.min(
+  const selfHealSpell = cappedMonsterSelfHeal(
+    vampiricHealSpell,
+    specialDrainHealSpell,
     newMaxMonsterHp,
-    hpAfterSummon + vampiricHealSpell + specialDrainHealSpell,
   );
+  const monsterHpFinalSpell = Math.min(newMaxMonsterHp, hpAfterSummon + selfHealSpell);
+
+  // Telegraph/charge + stun: the monster swung iff it survived and the spell
+  // didn't stun it (a player-stun on the monster cancels any held charge).
+  const charge = resolveChargeOutcome(
+    stateForRound,
+    specialRes,
+    outcome !== 'win' && !resolution.monsterStunned,
+    actualMonsterDamage,
+    outcome,
+  );
+  const fizzleNote = fizzleChargeNote(stateForRound.monster.name, charge);
 
   // Siphon: drain stamina each round the monster lands a hit. Applied AFTER
   // the spell's own restoreStamina effect so a "restore stamina" spell is not
@@ -940,6 +1089,7 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
   };
   const post = runPostRound(input, interimState, 'spell');
   const modifierNotes = [...pre.notes, ...absorb.notes, ...post.notes];
+  if (fizzleNote) modifierNotes.push(fizzleNote);
 
   const logEntry: RoundEntry = {
     round: stateForRound.log.length + 1,
@@ -988,6 +1138,7 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
       actualMonsterDamage,
       specialDrainHealSpell,
     ),
+    ...chargeLogFields(charge),
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -1004,6 +1155,8 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     droppedItems,
     monsterHp: monsterHpFinalSpell,
     playerHp: finalPlayerHp,
+    monsterCharging: charge.nextCharging,
+    playerStunned: charge.stunApplied,
   };
 
   return {
@@ -1025,6 +1178,8 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
             ? effectiveAttackType(stateForRound.monster, resolution.monsterSpecial)
             : undefined,
         monsterSpecial: actualMonsterDamage > 0 ? resolution.monsterSpecial : null,
+        monsterChargingPrimed: charge.primed,
+        playerStunnedApplied: charge.stunApplied || undefined,
         playerDefFailed: resolution.playerDefFailed,
         outcome,
       },
@@ -1120,6 +1275,53 @@ export function resolveMeditateAction(input: ActionInput): ActionResolution {
 
 export function resolveRestAction(input: ActionInput): ActionResolution {
   return resolveRecoveryAction(input, 'rest');
+}
+
+// ─── resolveStunnedSkipAction ─────────────────────────────────────────────────
+
+/**
+ * The player is stunned: they forfeit this turn and the monster lands one
+ * **undefended** free hit (effDef 0, like the recovery free-hit; Rogue dodge
+ * still applies). The hit **never rolls a special** — no chain-stun. Clears
+ * `playerStunned`. No regen/DoT/charge interaction — it is a dead turn.
+ */
+export function resolveStunnedSkipAction(input: ActionInput): ActionResolution {
+  const { character } = input;
+  const state = input.state;
+
+  const baseMonster = getMonsterEffectiveStats(state.monster, state);
+  const effectiveMonster = input.modifiers?.effectiveMonster?.(baseMonster, state) ?? baseMonster;
+  const monsterRoll = Math.ceil(Math.random() * 10);
+  const dodged = rollClassDodge(character);
+  // No special argument → no special on the skip hit (prevents stun-locking).
+  const monsterDamage = dodged
+    ? 0
+    : incomingMonsterDamage(character, effectiveMonster, effectiveMonster.attack + monsterRoll, 0);
+  const newPlayerHp = Math.max(0, state.playerHp - monsterDamage);
+  const lossOutcome: 'loss' | null = newPlayerHp === 0 ? 'loss' : null;
+
+  const logEntry: RoundEntry = {
+    round: state.log.length + 1,
+    action: 'stunned',
+    playerSkipped: true,
+    monsterDamage,
+    dodged: dodged || undefined,
+    monsterAttackType: monsterDamage > 0 ? (effectiveMonster.attackType ?? 'physical') : undefined,
+    playerHpAfter: newPlayerHp,
+    monsterHpAfter: state.monsterHp,
+  };
+
+  const nextState: FightState = {
+    ...state,
+    playerHp: newPlayerHp,
+    log: [...state.log, logEntry],
+    outcome: lossOutcome,
+    playerStunned: false,
+  };
+
+  // No roll overlay — the action bar's "Stunned" panel + its Continue button is
+  // the acknowledgment; the log + last-action recap show the free hit instantly.
+  return { nextState, logEntry, pending: { kind: 'none' } };
 }
 
 // ─── resolveFleeAction ─────────────────────────────────────────────────────────

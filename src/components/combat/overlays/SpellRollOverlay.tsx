@@ -51,6 +51,8 @@ export function SpellRollOverlay({
   playerDefFailed,
   playerDefStat,
   monsterSpecial,
+  monsterChargingPrimed,
+  playerStunnedApplied,
   outcome,
   onDismiss,
 }: {
@@ -73,6 +75,10 @@ export function SpellRollOverlay({
   playerDefStat?: number;
   /** Special move the monster fired on its counter (heavy / pierce / burst / drain). */
   monsterSpecial?: MonsterSpecialMove | null;
+  /** A telegraphed special the monster began winding up this round (the tell). */
+  monsterChargingPrimed?: MonsterSpecialMove | null;
+  /** A `stun` special landed — the player will skip their next turn. */
+  playerStunnedApplied?: boolean;
   /** Fight outcome after this round resolves — drives the "Monster slain!" panel. */
   outcome?: 'win' | 'loss' | null;
   onDismiss: () => Promise<void>;
@@ -237,6 +243,8 @@ export function SpellRollOverlay({
             playerDefFailed={playerDefFailed}
             playerDefStat={playerDefStat}
             monsterSpecial={monsterSpecial}
+            chargingPrimed={monsterChargingPrimed}
+            playerStunnedApplied={playerStunnedApplied}
             outcome={outcome}
           />
 

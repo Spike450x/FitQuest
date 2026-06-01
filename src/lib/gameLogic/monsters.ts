@@ -472,8 +472,12 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     id: 'void-revenant',
     name: 'Void Revenant',
     level: 13,
-    hp: 285,
-    attack: 34,
+    // HP 285 → 240 / ATK 34 → 27: armor-ignoring magic + summon-add + drain stack
+    // a long grind of unmitigated damage that tipped the magic-fearing Warrior and
+    // the slow-killing Rogue past 100% HP-loss in the balance model. Summon-add
+    // trimmed too (below). Still threatening via its mechanics, not raw stats.
+    hp: 240,
+    attack: 27,
     defense: 12,
     attackType: 'magic',
     xpReward: 340,
@@ -489,7 +493,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'spell-thousand-cuts', chance: 0.03 },
     ],
     description: 'Echo of a fallen hero. Reinforcements emerge from the void mid-fight.',
-    active: { id: 'summon-add', triggerPct: 0.5, label: 'Echo Reinforcements', value: 60 },
+    active: { id: 'summon-add', triggerPct: 0.5, label: 'Echo Reinforcements', value: 40 },
     specialMoves: [
       {
         id: 'void-siphon',
@@ -505,10 +509,10 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     name: 'Storm Djinn',
     level: 14,
     hp: 335,
-    // ATK retuned 40 → 34 alongside the magic typing: armor-ignoring magic is far
-    // more potent than physical against high-DEF targets, so the raw number drops
-    // to keep the fight punishing-but-winnable (see balanceModel.test.ts L20 band).
-    attack: 34,
+    // ATK 40 → 34 (#173, magic typing) → 32: armor-ignoring magic + vampiric + a
+    // stun special stack hard against the low-HP Rogue at L20; trimmed to keep the
+    // capstone fight punishing-but-winnable in the balance model.
+    attack: 32,
     defense: 14,
     attackType: 'magic',
     xpReward: 400,
@@ -542,6 +546,13 @@ export const MONSTER_CATALOG: MonsterDef[] = [
         emoji: '🌪️',
         chance: 0.12,
         effect: { kind: 'heavy', multiplier: 1.7 },
+      },
+      {
+        id: 'thunderclap',
+        name: 'Thunderclap',
+        emoji: '💫',
+        chance: 0.1,
+        effect: { kind: 'stun' },
       },
     ],
   },

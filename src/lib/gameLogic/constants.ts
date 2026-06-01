@@ -291,6 +291,13 @@ export const COMBAT = {
    * but not so harshly that abilities feel disposable.
    */
   FIZZLE_STAMINA_REFUND: 5,
+  /**
+   * Cap on a monster's combined self-heal (vampiric passive + drain special) per
+   * counter, as a fraction of its max HP. A guardrail so a future monster that
+   * stacks both can't runaway-heal off one big hit. No current monster stacks
+   * them, so it essentially never binds today.
+   */
+  MONSTER_SELF_HEAL_CAP_FRACTION: 0.35,
   // ── Magic (spell system) ───────────────────────────────────────────────────
   /** Base magic pool before wisdom bonuses. */
   BASE_MAGIC: 20,

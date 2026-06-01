@@ -255,6 +255,17 @@ export function ActionRollOverlay({
                 <span className="text-rose-700 font-black text-2xl">{pending.monsterDamage}</span>
                 <span className="text-gray-400 dark:text-slate-500 text-sm">dmg</span>
               </div>
+              {pending.playerStunnedApplied && (
+                <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                  😵 You are stunned — you&apos;ll lose your next turn!
+                </p>
+              )}
+              {pending.monsterChargingPrimed && (
+                <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 animate-pulse">
+                  ⚡ {pending.monsterChargingPrimed.emoji} {pending.monsterChargingPrimed.name} is
+                  winding up — brace next turn!
+                </p>
+              )}
               {isLoss && (
                 <p className="text-sm font-semibold text-red-600">💀 You have fallen...</p>
               )}

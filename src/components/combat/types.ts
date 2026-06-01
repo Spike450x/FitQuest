@@ -10,7 +10,8 @@ export type RoundAction =
   | 'ability'
   | 'spell'
   | 'rest'
-  | 'meditate';
+  | 'meditate'
+  | 'stunned';
 
 export interface RoundEntry {
   round: number;
@@ -48,6 +49,14 @@ export interface RoundEntry {
   monsterSpecialEmoji?: string;
   /** HP the monster healed from a `drain` special this round. */
   monsterSpecialDrain?: number;
+  /** A telegraphed special the monster began *winding up* this round (name). */
+  monsterSpecialPrimedName?: string;
+  /** Emoji of the telegraphed special the monster began winding up this round. */
+  monsterSpecialPrimedEmoji?: string;
+  /** True when a `stun` special landed this round — the player will skip next turn. */
+  playerStunnedApplied?: boolean;
+  /** True on the synthetic `stunned` round where the player forfeits their turn. */
+  playerSkipped?: boolean;
   // spell cast
   spellName?: string;
   spellDice?: number[];
@@ -122,6 +131,19 @@ export interface FightState {
    * re-casting the same spell refreshes its entry; different spells stack.
    */
   monsterDots?: Array<{ key: string; label: string; perRound: number; roundsRemaining: number }>;
+  /**
+   * A telegraphed special (heavy / burst / stun) the monster is winding up. Set
+   * on the round it is rolled (the counter that round is a normal hit); the
+   * charged special FIRES on the next offensive round's counter, then clears.
+   * Cancelled if the monster is stunned or killed before it fires.
+   */
+  monsterCharging?: MonsterSpecialMove | null;
+  /**
+   * True when a monster `stun` special landed — the player's next action is
+   * forfeited (a synthetic `stunned` round) and the monster gets one undefended
+   * free hit. Cleared by `resolveStunnedSkipAction`.
+   */
+  playerStunned?: boolean;
 }
 
 // ─── Pending overlay payloads ───────────────────────────────────────────────────
@@ -142,6 +164,10 @@ export interface PendingAction {
   dodged?: boolean;
   /** Special move the monster fired on its counter (null/absent when none). */
   monsterSpecial?: MonsterSpecialMove | null;
+  /** A telegraphed special the monster began *winding up* this round (overlay tell). */
+  monsterChargingPrimed?: MonsterSpecialMove | null;
+  /** A `stun` special landed — the player will skip their next turn. */
+  playerStunnedApplied?: boolean;
   /** Damage school of the counter — magic when a `burst` special fired. */
   monsterAttackType?: 'physical' | 'magic';
   /** Spirit crit fired on a basic attack/magic strike (boosted player damage). */
@@ -180,6 +206,10 @@ export interface PendingAbility {
   monsterAttackType?: 'physical' | 'magic';
   /** Special move the monster fired on its counter (null/absent when none). */
   monsterSpecial?: MonsterSpecialMove | null;
+  /** A telegraphed special the monster began *winding up* this round (overlay tell). */
+  monsterChargingPrimed?: MonsterSpecialMove | null;
+  /** A `stun` special landed — the player will skip their next turn. */
+  playerStunnedApplied?: boolean;
   /** Player's DEF failed on the counter (physical only — surfaces the 💥 tag). */
   playerDefFailed?: boolean;
   /** Spirit crit fired on the ability's damage. */
@@ -207,6 +237,10 @@ export interface PendingSpell {
   monsterAttackType?: 'physical' | 'magic';
   /** Special move the monster fired on its counter (null/absent when none). */
   monsterSpecial?: MonsterSpecialMove | null;
+  /** A telegraphed special the monster began *winding up* this round (overlay tell). */
+  monsterChargingPrimed?: MonsterSpecialMove | null;
+  /** A `stun` special landed — the player will skip their next turn. */
+  playerStunnedApplied?: boolean;
   /** Player's DEF failed on the counter (physical only — surfaces the 💥 tag). */
   playerDefFailed?: boolean;
   /** Fight outcome after this round resolves — drives the "Monster slain!" panel. */

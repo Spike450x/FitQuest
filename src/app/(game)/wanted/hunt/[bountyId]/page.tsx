@@ -337,6 +337,9 @@ function HuntFight({
           defense: monster.defense,
           passive: monster.passive,
           activeLabel: fightState.activeUsed && monster.active ? monster.active.label : undefined,
+          charging: fightState.monsterCharging
+            ? { name: fightState.monsterCharging.name, emoji: fightState.monsterCharging.emoji }
+            : null,
         }}
       />
 
@@ -403,6 +406,7 @@ function HuntFight({
           onMeditate={actions.meditate}
           onUseItem={actions.useItem}
           onFlee={actions.flee}
+          onSkipStunned={actions.skipStunned}
           spellChargesUsed={encounter.spellChargesUsed}
         />
       ) : outcome === 'win' && pendingWin ? (

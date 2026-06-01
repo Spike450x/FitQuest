@@ -52,6 +52,7 @@ export function CombatActionBar({
   onMeditate,
   onUseItem,
   onFlee,
+  onSkipStunned,
   modifiers,
   showMagicButton = false,
   spellChargesUsed,
@@ -76,6 +77,8 @@ export function CombatActionBar({
   onMeditate: () => void;
   onUseItem: (invItemId: string) => void;
   onFlee: () => void;
+  /** Consume a monster stun: forfeit the turn and take the undefended free hit. */
+  onSkipStunned: () => void;
   modifiers?: CombatModifiers;
   /** Show a dedicated Magic-attack button alongside Attack (optional — arena currently bundles magic into ability/spell flow only). */
   showMagicButton?: boolean;
@@ -104,6 +107,27 @@ export function CombatActionBar({
     return used < getSpellMaxCharges(def.rarity);
   });
   const allSpellsExhausted = equippedSpells.length > 0 && spellsWithCharges.length === 0;
+
+  // Stunned: the player forfeits this turn. Replace the whole action grid with a
+  // single acknowledgment that triggers the skip (monster gets one free hit).
+  if (fightState.playerStunned) {
+    return (
+      <div className="rounded-xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 p-4 text-center space-y-2 animate-pulse">
+        <p className="text-2xl">😵</p>
+        <p className="font-bold text-amber-700 dark:text-amber-300">You are stunned!</p>
+        <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
+          You lose this turn — the enemy gets a free hit.
+        </p>
+        <button
+          onClick={onSkipStunned}
+          data-testid="combat-skip-stunned-btn"
+          className="w-full bg-amber-500 hover:bg-amber-400 text-white text-sm font-bold py-2.5 rounded-lg transition-all active:scale-[0.98]"
+        >
+          Brace yourself →
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">

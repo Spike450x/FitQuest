@@ -174,7 +174,7 @@ describe('PR2 monster catalog', () => {
       id: 'summon-add',
       triggerPct: 0.5,
       label: 'Echo Reinforcements',
-      value: 60,
+      value: 40,
     });
   });
 });
