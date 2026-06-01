@@ -54,20 +54,37 @@ export default function CharacterPage() {
   // otherwise invisible because its physical damage-taken multiplier is 1.0.
   const defMult = classDef.statMultipliers.defense;
 
-  // What each stat actually drives in combat — paired with the (now real)
-  // class multiplier so the sheet matches the mechanics.
-  const STAT_TRAITS: { key: keyof Stats; label: string; effect: string }[] = [
-    { key: 'strength', label: 'Strength', effect: 'Physical attack & ability damage' },
-    { key: 'wisdom', label: 'Wisdom', effect: 'Magic damage & magic pool' },
+  // Stats split into the two families the game actually models, so the sheet
+  // never implies Stamina/Health/Defense are interchangeable with the core
+  // attack/utility stats. Each is paired with its (real) class multiplier.
+  const TRAIT_GROUPS: {
+    heading: string;
+    note: string;
+    traits: { key: keyof Stats; label: string; effect: string }[];
+  }[] = [
     {
-      key: 'agility',
-      label: 'Agility',
-      effect: isRogue ? 'Escape rolls & dodge chance' : 'Escape rolls',
+      heading: 'Core stats',
+      note: 'Your attack, utility, and crit stats — shown as the stat bars above.',
+      traits: [
+        { key: 'strength', label: 'Strength', effect: 'Physical attack & ability damage' },
+        { key: 'wisdom', label: 'Wisdom', effect: 'Magic damage & Magic pool' },
+        {
+          key: 'agility',
+          label: 'Agility',
+          effect: isRogue ? 'Escape rolls & dodge chance' : 'Escape rolls',
+        },
+        { key: 'spirit', label: 'Spirit', effect: 'Spell & ability crit' },
+      ],
     },
-    { key: 'spirit', label: 'Spirit', effect: 'Spell & ability crit' },
-    { key: 'stamina', label: 'Stamina', effect: 'Ability pool (+ some HP)' },
-    { key: 'health', label: 'Health', effect: 'Max HP' },
-    { key: 'defense', label: 'Defense', effect: 'Physical damage taken' },
+    {
+      heading: 'Survivability & resources',
+      note: 'These drive your HP / Stamina / Magic pools and damage reduction — shown as the resource bars, not the core stat bars.',
+      traits: [
+        { key: 'stamina', label: 'Stamina', effect: 'Stamina pool (+ some Max HP)' },
+        { key: 'health', label: 'Health', effect: 'Max HP pool' },
+        { key: 'defense', label: 'Defense', effect: 'Physical damage taken' },
+      ],
+    },
   ];
 
   return (
@@ -92,32 +109,44 @@ export default function CharacterPage() {
             Your class scales each stat&rsquo;s effect in combat. Higher is stronger; a value below
             ×1.0 is a weakness. These apply to every fight.
           </p>
-          <div className="space-y-1.5">
-            {STAT_TRAITS.map(({ key, label, effect }) => {
-              const mult = classDef.statMultipliers[key];
-              return (
-                <div
-                  key={key}
-                  className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-lg px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-700 dark:text-slate-200">{label}</p>
-                    <p className="text-xs text-gray-400 dark:text-slate-500 truncate">{effect}</p>
-                  </div>
-                  <span
-                    className={`font-bold shrink-0 ${
-                      mult > 1
-                        ? 'text-indigo-600 dark:text-indigo-400'
-                        : mult < 1
-                          ? 'text-red-500 dark:text-red-400'
-                          : 'text-gray-500 dark:text-slate-400'
-                    }`}
-                  >
-                    ×{mult.toFixed(1)}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="space-y-4">
+            {TRAIT_GROUPS.map(({ heading, note, traits }) => (
+              <div key={heading} className="space-y-1.5">
+                <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+                  {heading}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-slate-500">{note}</p>
+                {traits.map(({ key, label, effect }) => {
+                  const mult = classDef.statMultipliers[key];
+                  return (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-lg px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-700 dark:text-slate-200">
+                          {label}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-slate-500 truncate">
+                          {effect}
+                        </p>
+                      </div>
+                      <span
+                        className={`font-bold shrink-0 ${
+                          mult > 1
+                            ? 'text-indigo-600 dark:text-indigo-400'
+                            : mult < 1
+                              ? 'text-red-500 dark:text-red-400'
+                              : 'text-gray-500 dark:text-slate-400'
+                        }`}
+                      >
+                        ×{mult.toFixed(1)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
 
           {/* Class-only perks that aren't stat multipliers */}

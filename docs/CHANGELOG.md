@@ -15,6 +15,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-06-01 — Restrict stat bars to the four core stats
+
+- **Fix:** the dashboard + character card stat bars rendered all 7 `Stats` fields as identical `/50` bars, which mis-grouped the survivability stats. `STAT_BAR_CONFIG` now contains only the four core stats (Strength, Wisdom, Agility, Spirit). Stamina & Health are already surfaced as the HP / Stamina pools (and Magic from Wisdom) via `ResourceBars`; Defense is a damage-reduction stat — rendering them as core bars double-counted the resources and misrepresented how they work.
+- **Class Traits** (`/character`) now splits the multiplier list into **Core stats** vs **Survivability & resources** with a note that the latter drive the resource bars, not the core bars.
+- Pure UI — no logic/schema change. 1088 tests + typecheck + lint + format all green.
+
 ## 2026-06-01 — Dashboard + character sheet upgrade
 
 - **Consistent combat readiness** — new shared `ResourceBars` (HP / Stamina / Magic) on the dashboard hero **and** the character card (Stamina alone before); all 7 stats now render on both surfaces via a shared `statConfig` (only 4 of 7 showed before). Every value comes from the same `combat.ts` helpers the battle engine uses, so the dashboard, character card and arena can't disagree.

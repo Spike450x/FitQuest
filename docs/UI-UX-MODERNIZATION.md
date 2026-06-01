@@ -12,7 +12,9 @@
 > (`QuickActions` + editor `Modal`) backed by `quickActions.ts` (10 destinations, lucide icons
 > matching the nav) and `uiPrefsStore` (pin 2–6, reset to default). (3) **`ResourceBars`** — a
 > shared HP / Stamina / Magic trio shown on the dashboard hero **and** `CharacterCard` (Stamina
-> alone before), with all 7 stat bars now consistent across both via shared `statConfig`. The
+> alone before), with the four core stat bars (STR/WIS/AGI/SPR) consistent across both via shared
+> `statConfig` — Stamina/Health/Defense live with the resource bars + Class Traits, not the core
+> bars. The
 > character sheet gained progression widgets (`MasteryProgress`, `PersonalRecords`, a
 > `LifetimeTotals` career snapshot, `AchievementsShowcase`), and the recent-activity feed gained a
 > type filter + newest/oldest sort. `MasteryProgress`/`PersonalRecords` are now shared with
