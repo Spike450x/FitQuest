@@ -77,14 +77,13 @@ import { getSubclassDef } from '@/lib/gameLogic/passives';
 import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { Card } from '@/components/ui/Card';
 import { CombatArena } from '@/components/combat/CombatArena';
-import { CombatOverlays } from '@/components/combat/CombatOverlays';
 import { BattleResultsModal } from '@/components/combat/BattleResultsModal';
 import { MonsterCard, MONSTER_EMOJI } from '@/components/combat/MonsterCard';
 import { AbilityReference } from '@/components/combat/AbilityReference';
 import { HpBar } from '@/components/combat/HpBar';
 import { LastActionSummary } from '@/components/combat/LastActionSummary';
 import { BattleLogEntry } from '@/components/combat/BattleLogEntry';
-import { CombatActionBar } from '@/components/combat/CombatActionBar';
+import { CombatControls } from '@/components/combat/CombatControls';
 import { useCombatEncounter } from '@/hooks/useCombatEncounter';
 import { fireConfetti } from '@/lib/confetti';
 import { playSound } from '@/hooks/useSound';
@@ -644,57 +643,53 @@ function CombatPageBody({ character }: { character: Character }) {
           </div>
         )}
 
-        {/* Action buttons */}
-        {!fightOver ? (
-          <CombatActionBar
-            character={character}
-            fightState={fightState}
-            maxStamina={maxStamina}
-            maxMagic={maxMagic}
-            equippedSpells={equippedSpells}
-            consumables={consumables}
-            rollingAction={rollingAction}
-            usingItem={usingItem}
-            showSpellPanel={showSpellPanel}
-            showItemPanel={showItemPanel}
-            setShowSpellPanel={setShowSpellPanel}
-            setShowItemPanel={setShowItemPanel}
-            onAttack={actions.attack}
-            onMagic={actions.magic}
-            onAbility={actions.rollAbility}
-            onCastSpell={actions.castSpell}
-            onRest={actions.rest}
-            onMeditate={actions.meditate}
-            onUseItem={actions.useItem}
-            onFlee={actions.flee}
-            onSkipStunned={actions.skipStunned}
-            onInterceptFlee={actions.interceptFlee}
-            spellChargesUsed={spellChargesUsed}
-          />
-        ) : outcome === 'loss' ? (
-          <button
-            onClick={handleBeginAgain}
-            disabled={resetting}
-            className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
-          >
-            {resetting ? 'Resetting…' : 'Begin Again'}
-          </button>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        {/* Action controls (live fight) + roll overlays — shared across surfaces */}
+        <CombatControls
+          character={character}
+          monster={monster}
+          fightState={fightState}
+          rollingAction={rollingAction}
+          usingItem={usingItem}
+          spellChargesUsed={spellChargesUsed}
+          pending={pending}
+          actions={actions}
+          equippedSpells={equippedSpells}
+          consumables={consumables}
+          maxStamina={maxStamina}
+          maxMagic={maxMagic}
+          playerDefStat={playerDefStat}
+          showSpellPanel={showSpellPanel}
+          showItemPanel={showItemPanel}
+          setShowSpellPanel={setShowSpellPanel}
+          setShowItemPanel={setShowItemPanel}
+        />
+
+        {/* Outcome footer */}
+        {fightOver &&
+          (outcome === 'loss' ? (
             <button
-              onClick={backToArena}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 sm:py-2.5 rounded-lg transition-colors"
+              onClick={handleBeginAgain}
+              disabled={resetting}
+              className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
             >
-              {outcome === 'fled' ? 'Back to Arena' : 'Fight Again'}
+              {resetting ? 'Resetting…' : 'Begin Again'}
             </button>
-            <Link
-              href="/dashboard"
-              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-indigo-300 text-gray-700 dark:text-slate-200 font-semibold py-3 sm:py-2.5 rounded-lg transition-colors text-center"
-            >
-              Dashboard
-            </Link>
-          </div>
-        )}
+          ) : (
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <button
+                onClick={backToArena}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 sm:py-2.5 rounded-lg transition-colors"
+              >
+                {outcome === 'fled' ? 'Back to Arena' : 'Fight Again'}
+              </button>
+              <Link
+                href="/dashboard"
+                className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-indigo-300 text-gray-700 dark:text-slate-200 font-semibold py-3 sm:py-2.5 rounded-lg transition-colors text-center"
+              >
+                Dashboard
+              </Link>
+            </div>
+          ))}
 
         {/* Battle results modal */}
         {pendingRewards && (
@@ -704,9 +699,6 @@ function CombatPageBody({ character }: { character: Character }) {
             claiming={claiming}
           />
         )}
-
-        {/* Overlays */}
-        <CombatOverlays pending={pending} monster={monster} playerDefStat={playerDefStat} />
 
         {/* Collapsible ability guide */}
         <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
