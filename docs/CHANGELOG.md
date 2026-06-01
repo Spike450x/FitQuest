@@ -15,6 +15,15 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-06-01 — Monster roll fix · monster flee/intercept · heal active · ability cooldown
+
+- **Fix: enemy roll on abilities/spells** — the monster _was_ rolling, but `MonsterCounterPanel` showed a tiny 28px die buried below the ability card. The ability + spell overlays now render the enemy counter die at `lg` (56px) with an "⚔️ Enemy counter roll" header and a longer spin, matching the basic-attack overlay's prominence.
+- **Monster flee + intercept** — skittish low-level mobs (Goblin Scout, Giant Rat, Forest Goblin, Mud Imp, Boar Runt, Cave Spider, Dark Wolf) may flee when at/below ~25% HP (RNG). The player gets one **tap-to-intercept** roll (`rollFleeIntercept`: d10 + AGI vs the monster's flee roll) — out-roll it for an instant kill + full rewards, miss and it escapes with **nothing**. New `MonsterDef.flee`, `FightState.monsterFleeing`, `checkMonsterFlee` + `resolveInterceptAction`, an "It's fleeing — strike!" action-bar panel, and the two-die run animation. **Disabled in dungeon rooms** (they require a kill) via a new `monsterFleeDisabled` modifier.
+- **Heal active ("second wind")** — a fourth `MonsterActive` (`heal`): a one-time, threshold-triggered HP restore (distinct from the `regen` trickle). Assigned to a mid bruiser (Iron Husk) + a boss (Goblin King "Kingly Resolve"). Surfaced as a "recovers N HP!" log note + folded into the balance model.
+- **Ability 1-round cooldown** — abilities can't be rolled two turns running (a basic attack / spell / recovery must come between), light tactical pacing on top of the stamina cost. New `COMBAT.ABILITY_COOLDOWN_ROUNDS` + `FightState.abilityReadyOnRound` + an action-bar "⏳ cooldown" state.
+- **Balance** — the cooldown means sustained offense is no longer "ability every turn"; the model's `avgPlayerDamage` is now a 75/25 ability/basic blend (the off-turn is a spell, not a weak basic). That longer-fight reality nudged the gateway/endgame bodies down: Ancient Dragon (HP 240→205, ATK 32→30), Void Revenant (HP 240→205), Dragon King (HP 410→375, ATK 33→30) — all L1–L20 + L13/L15 bands back in band.
+- Static catalog + client resolvers only — no Firestore/rules/Cloud Function change. +15 vitest specs (1057 → 1072); functions 44 green.
+
 ## 2026-06-01 — Telegraphed specials + player-stun + endgame balance pass
 
 - **Telegraphed specials** — the disruptive specials (`heavy` / `burst` / `stun`) now **wind up a round early** (prime → fire) instead of landing reactively, giving the player a turn to respond (kill or stun the monster to **cancel** the windup). `pierce` / `drain` still fire instantly. New pure `isTelegraphedSpecial` + `resolveCounterSpecial`; a `monsterCharging` slot on `FightState` drives a pulsing "⚡ Winding up" badge on the monster portrait across all three combat surfaces.

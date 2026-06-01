@@ -407,6 +407,7 @@ function HuntFight({
           onUseItem={actions.useItem}
           onFlee={actions.flee}
           onSkipStunned={actions.skipStunned}
+          onInterceptFlee={actions.interceptFlee}
           spellChargesUsed={encounter.spellChargesUsed}
         />
       ) : outcome === 'win' && pendingWin ? (

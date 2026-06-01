@@ -33,6 +33,8 @@ import {
   resolveCounterSpecial,
   resolveRoundOutcome,
   rollClassDodge,
+  rollFleeIntercept,
+  rollLoot,
   rollRunAway,
   rollSpellCrit,
   type CounterSpecialResolution,
@@ -107,11 +109,11 @@ function checkMonsterActive(
   bonusAtk: number;
   bonusDef: number;
   bonusHp: number;
+  bonusHeal: number;
   label: string;
 } {
-  if (!monster.active || activeUsed || hpAfter === 0) {
-    return { triggered: false, bonusAtk: 0, bonusDef: 0, bonusHp: 0, label: '' };
-  }
+  const none = { triggered: false, bonusAtk: 0, bonusDef: 0, bonusHp: 0, bonusHeal: 0, label: '' };
+  if (!monster.active || activeUsed || hpAfter === 0) return none;
   const threshold = monster.active.triggerPct * monster.hp;
   if (hpBefore > threshold && hpAfter <= threshold) {
     const { id, value, label } = monster.active;
@@ -120,10 +122,11 @@ function checkMonsterActive(
       bonusAtk: id === 'enrage' ? value : 0,
       bonusDef: id === 'harden' ? value : 0,
       bonusHp: id === 'summon-add' ? value : 0,
+      bonusHeal: id === 'heal' ? value : 0,
       label,
     };
   }
-  return { triggered: false, bonusAtk: 0, bonusDef: 0, bonusHp: 0, label: '' };
+  return none;
 }
 
 /**
@@ -240,6 +243,27 @@ function fizzleChargeNote(monsterName: string, charge: ChargeOutcome): string | 
   return charge.fizzledCharge
     ? `${monsterName}'s ${charge.fizzledCharge.name} fizzles — windup interrupted!`
     : null;
+}
+
+/**
+ * Decide whether a low-HP monster bolts this round. Fires only when the fight
+ * continues, the monster has a `flee` profile, it survived at/below its flee
+ * threshold, RNG lands under its chance, fleeing isn't disabled (dungeon rooms
+ * need a kill), and a stun did NOT land this round (one disruption at a time).
+ */
+export function checkMonsterFlee(
+  monster: MonsterDef,
+  monsterHpFinal: number,
+  maxMonsterHp: number,
+  outcome: 'win' | 'loss' | 'fled' | null,
+  modifiers: CombatModifiers | undefined,
+  stunApplied: boolean,
+  rng: () => number = Math.random,
+): boolean {
+  const flee = monster.flee;
+  if (!flee || outcome !== null || stunApplied || modifiers?.monsterFleeDisabled) return false;
+  if (monsterHpFinal <= 0 || monsterHpFinal > flee.thresholdPct * maxMonsterHp) return false;
+  return rng() < flee.chance;
 }
 
 /**
@@ -522,7 +546,10 @@ export function resolveAttackAction(
     newMaxMonsterHp,
   );
   const selfHeal = cappedMonsterSelfHeal(vampiricHeal, specialDrainHeal, newMaxMonsterHp);
-  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + selfHeal);
+  const monsterHpFinal = Math.min(
+    newMaxMonsterHp,
+    hpAfterSummon + selfHeal + activeResult.bonusHeal,
+  );
 
   // Telegraph/charge + stun outcome. Basic attacks never stun the monster, so it
   // swung this round iff it survived (outcome !== 'win').
@@ -534,6 +561,14 @@ export function resolveAttackAction(
     outcome,
   );
   const fizzleNote = fizzleChargeNote(stateForRound.monster.name, charge);
+  const monsterFleeing = checkMonsterFlee(
+    stateForRound.monster,
+    monsterHpFinal,
+    newMaxMonsterHp,
+    outcome,
+    input.modifiers,
+    charge.stunApplied,
+  );
 
   const interimState: FightState = {
     ...stateForRound,
@@ -550,6 +585,9 @@ export function resolveAttackAction(
 
   const modifierNotes = [...pre.notes, ...absorb.notes, ...post.notes];
   if (fizzleNote) modifierNotes.push(fizzleNote);
+  if (activeResult.bonusHeal > 0)
+    modifierNotes.push(`${stateForRound.monster.name} recovers ${activeResult.bonusHeal} HP!`);
+  if (monsterFleeing) modifierNotes.push(`${stateForRound.monster.name} looks ready to bolt!`);
 
   const logEntry: RoundEntry = {
     round: stateForRound.log.length + 1,
@@ -609,6 +647,7 @@ export function resolveAttackAction(
     playerStamina: staminaAfterSiphon,
     monsterCharging: charge.nextCharging,
     playerStunned: charge.stunApplied,
+    monsterFleeing,
   };
 
   return {
@@ -769,7 +808,10 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     newMaxMonsterHp,
   );
   const selfHeal = cappedMonsterSelfHeal(vampiricHeal, specialDrainHeal, newMaxMonsterHp);
-  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + selfHeal);
+  const monsterHpFinal = Math.min(
+    newMaxMonsterHp,
+    hpAfterSummon + selfHeal + activeResult.bonusHeal,
+  );
 
   // Telegraph/charge + stun: the monster swung iff it survived and the ability
   // didn't stun it (a player-stun on the monster cancels any held charge).
@@ -781,6 +823,14 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     outcome,
   );
   const fizzleNote = fizzleChargeNote(stateForRound.monster.name, charge);
+  const monsterFleeing = checkMonsterFlee(
+    stateForRound.monster,
+    monsterHpFinal,
+    newMaxMonsterHp,
+    outcome,
+    input.modifiers,
+    charge.stunApplied,
+  );
 
   const momentumRestore = getMomentumRestore(character, killedMonster);
   const fizzleRefund = fizzled ? COMBAT.FIZZLE_STAMINA_REFUND : 0;
@@ -812,6 +862,9 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
   const post = runPostRound(input, interimState, 'ability');
   const modifierNotes = [...pre.notes, ...absorb.notes, ...post.notes];
   if (fizzleNote) modifierNotes.push(fizzleNote);
+  if (activeResult.bonusHeal > 0)
+    modifierNotes.push(`${stateForRound.monster.name} recovers ${activeResult.bonusHeal} HP!`);
+  if (monsterFleeing) modifierNotes.push(`${stateForRound.monster.name} looks ready to bolt!`);
 
   const logEntry: RoundEntry = {
     round: stateForRound.log.length + 1,
@@ -874,11 +927,15 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     outcome,
     droppedItems,
     isFirstAbility: false,
+    // 1-round cooldown: the new log length + cooldown; Roll Ability is gated until
+    // the player has taken at least one other action.
+    abilityReadyOnRound: stateForRound.log.length + 1 + COMBAT.ABILITY_COOLDOWN_ROUNDS,
     executeUsed: stateForRound.executeUsed || executeTriggered,
     monsterHp: monsterHpFinal,
     playerHp: finalPlayerHp,
     monsterCharging: charge.nextCharging,
     playerStunned: charge.stunApplied,
+    monsterFleeing,
   };
 
   return {
@@ -1033,7 +1090,10 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     specialDrainHealSpell,
     newMaxMonsterHp,
   );
-  const monsterHpFinalSpell = Math.min(newMaxMonsterHp, hpAfterSummon + selfHealSpell);
+  const monsterHpFinalSpell = Math.min(
+    newMaxMonsterHp,
+    hpAfterSummon + selfHealSpell + activeResultSpell.bonusHeal,
+  );
 
   // Telegraph/charge + stun: the monster swung iff it survived and the spell
   // didn't stun it (a player-stun on the monster cancels any held charge).
@@ -1045,6 +1105,14 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     outcome,
   );
   const fizzleNote = fizzleChargeNote(stateForRound.monster.name, charge);
+  const monsterFleeing = checkMonsterFlee(
+    stateForRound.monster,
+    monsterHpFinalSpell,
+    newMaxMonsterHp,
+    outcome,
+    input.modifiers,
+    charge.stunApplied,
+  );
 
   // Siphon: drain stamina each round the monster lands a hit. Applied AFTER
   // the spell's own restoreStamina effect so a "restore stamina" spell is not
@@ -1090,6 +1158,9 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
   const post = runPostRound(input, interimState, 'spell');
   const modifierNotes = [...pre.notes, ...absorb.notes, ...post.notes];
   if (fizzleNote) modifierNotes.push(fizzleNote);
+  if (activeResultSpell.bonusHeal > 0)
+    modifierNotes.push(`${stateForRound.monster.name} recovers ${activeResultSpell.bonusHeal} HP!`);
+  if (monsterFleeing) modifierNotes.push(`${stateForRound.monster.name} looks ready to bolt!`);
 
   const logEntry: RoundEntry = {
     round: stateForRound.log.length + 1,
@@ -1157,6 +1228,7 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     playerHp: finalPlayerHp,
     monsterCharging: charge.nextCharging,
     playerStunned: charge.stunApplied,
+    monsterFleeing,
   };
 
   return {
@@ -1322,6 +1394,63 @@ export function resolveStunnedSkipAction(input: ActionInput): ActionResolution {
   // No roll overlay — the action bar's "Stunned" panel + its Continue button is
   // the acknowledgment; the log + last-action recap show the free hit instantly.
   return { nextState, logEntry, pending: { kind: 'none' } };
+}
+
+// ─── resolveInterceptAction ───────────────────────────────────────────────────
+
+/**
+ * Intercept a fleeing monster. The player rolls d10 + Agility vs the monster's
+ * flee roll (`rollFleeIntercept`): **caught** → the monster is slain instantly,
+ * `outcome: 'win'` with a full loot roll (→ `onVictory`); **missed** → it escapes,
+ * `outcome: 'fled'` with no rewards (→ `onFlee`). Animated via the two-die run
+ * display in `ActionRollOverlay` (`intercept` flag). Clears `monsterFleeing`.
+ */
+export function resolveInterceptAction(input: ActionInput): ActionResolution {
+  const { character, streakMultiplier, getPityFor } = input;
+  const state = input.state;
+  const { playerRoll, agilityBonus, monsterRoll, caught } = rollFleeIntercept(
+    character,
+    state.monster,
+  );
+
+  const droppedItems = caught
+    ? rollLoot(state.monster.lootTable, streakMultiplier, getPityFor(state.monster.id))
+    : state.droppedItems;
+
+  const logEntry: RoundEntry = {
+    round: state.log.length + 1,
+    action: 'intercept',
+    playerRunRoll: playerRoll,
+    agilityBonus,
+    monsterRunRoll: monsterRoll,
+    interceptCaught: caught,
+    playerHpAfter: state.playerHp,
+    monsterHpAfter: caught ? 0 : state.monsterHp,
+  };
+
+  const nextState: FightState = {
+    ...state,
+    log: [...state.log, logEntry],
+    monsterFleeing: false,
+    monsterHp: caught ? 0 : state.monsterHp,
+    droppedItems,
+    outcome: caught ? 'win' : 'fled',
+  };
+
+  return {
+    nextState,
+    logEntry,
+    pending: {
+      kind: 'action',
+      payload: {
+        actionType: 'run',
+        dice: [playerRoll, monsterRoll],
+        intercept: true,
+        interceptCaught: caught,
+        outcome: caught ? 'win' : null,
+      },
+    },
+  };
 }
 
 // ─── resolveFleeAction ─────────────────────────────────────────────────────────

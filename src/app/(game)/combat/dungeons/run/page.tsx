@@ -316,6 +316,8 @@ function DungeonCombatShell({
       },
 
       fleeDisabled: isBossRoom,
+      // Rooms require a kill to advance — never let a monster escape mid-room.
+      monsterFleeDisabled: true,
     };
   }, [isBossRoom, monster.id, monster.hp, poisoned, enrageState, character.equippedGear.accessory]);
 
@@ -492,6 +494,7 @@ function DungeonCombatShell({
           onUseItem={actions.useItem}
           onFlee={actions.flee}
           onSkipStunned={actions.skipStunned}
+          onInterceptFlee={actions.interceptFlee}
           modifiers={modifiers}
           spellChargesUsed={spellChargesUsed}
         />

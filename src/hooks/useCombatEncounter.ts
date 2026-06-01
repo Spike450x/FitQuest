@@ -27,6 +27,7 @@ import {
   resolveAbilityAction,
   resolveAttackAction,
   resolveFleeAction,
+  resolveInterceptAction,
   resolveMeditateAction,
   resolveRestAction,
   resolveSpellAction,
@@ -134,6 +135,8 @@ export interface UseCombatEncounterReturn {
     flee: () => void;
     /** Consume a monster stun: forfeit the turn and take the undefended free hit. */
     skipStunned: () => void;
+    /** Intercept a fleeing monster: roll to one-hit-kill it, else it escapes. */
+    interceptFlee: () => void;
   };
 }
 
@@ -302,20 +305,46 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
   }
 
   function attack() {
-    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
+    if (
+      rollingAction !== null ||
+      fightState.outcome !== null ||
+      fightState.playerStunned ||
+      fightState.monsterFleeing
+    )
+      return;
     dispatch(resolveAttackAction(buildInput(), 'attack'), 'attack');
   }
   function magic() {
-    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
+    if (
+      rollingAction !== null ||
+      fightState.outcome !== null ||
+      fightState.playerStunned ||
+      fightState.monsterFleeing
+    )
+      return;
     dispatch(resolveAttackAction(buildInput(), 'magic'), 'magic');
   }
   function rollAbility() {
-    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
+    if (
+      rollingAction !== null ||
+      fightState.outcome !== null ||
+      fightState.playerStunned ||
+      fightState.monsterFleeing
+    )
+      return;
+    // Cooldown gate — defensive; the action bar already disables the button.
+    if ((fightState.abilityReadyOnRound ?? 0) > fightState.log.length) return;
     // Stamina gate handled at the page level (button is disabled)
     dispatch(resolveAbilityAction(buildInput()), 'ability');
   }
   function castSpell(spellDef: ItemDef, invItemId: string) {
-    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
+    if (
+      rollingAction !== null ||
+      fightState.outcome !== null ||
+      fightState.playerStunned ||
+      fightState.monsterFleeing
+    )
+      return;
     const sm = spellDef.spellMechanics;
     if (!sm) return;
     // Charge gate — defensive check; UI already hides depleted spells.
@@ -326,24 +355,52 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
     dispatch(resolveSpellAction(buildInput(), spellDef), 'ability');
   }
   function rest() {
-    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
+    if (
+      rollingAction !== null ||
+      fightState.outcome !== null ||
+      fightState.playerStunned ||
+      fightState.monsterFleeing
+    )
+      return;
     dispatch(resolveRestAction(buildInput()), 'rest');
   }
   function meditate() {
-    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
+    if (
+      rollingAction !== null ||
+      fightState.outcome !== null ||
+      fightState.playerStunned ||
+      fightState.monsterFleeing
+    )
+      return;
     dispatch(resolveMeditateAction(buildInput()), 'meditate');
   }
   function flee() {
-    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
+    if (
+      rollingAction !== null ||
+      fightState.outcome !== null ||
+      fightState.playerStunned ||
+      fightState.monsterFleeing
+    )
+      return;
     dispatch(resolveFleeAction(buildInput()), 'run');
   }
   function skipStunned() {
     if (rollingAction !== null || fightState.outcome !== null || !fightState.playerStunned) return;
     dispatch(resolveStunnedSkipAction(buildInput()), null);
   }
+  function interceptFlee() {
+    if (rollingAction !== null || fightState.outcome !== null || !fightState.monsterFleeing) return;
+    dispatch(resolveInterceptAction(buildInput()), 'run');
+  }
 
   async function useItem(invItemId: string) {
-    if (usingItem || fightState.outcome !== null) return;
+    if (
+      usingItem ||
+      fightState.outcome !== null ||
+      fightState.playerStunned ||
+      fightState.monsterFleeing
+    )
+      return;
     setUsingItem(invItemId);
     try {
       const { hpGained, staminaGained, magicGained } = await consumeItem(invItemId, {
@@ -368,7 +425,18 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
   }
 
   const actions = useMemo(
-    () => ({ attack, magic, rollAbility, castSpell, rest, meditate, useItem, flee, skipStunned }),
+    () => ({
+      attack,
+      magic,
+      rollAbility,
+      castSpell,
+      rest,
+      meditate,
+      useItem,
+      flee,
+      skipStunned,
+      interceptFlee,
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       fightState,

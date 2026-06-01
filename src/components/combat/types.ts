@@ -11,7 +11,8 @@ export type RoundAction =
   | 'spell'
   | 'rest'
   | 'meditate'
-  | 'stunned';
+  | 'stunned'
+  | 'intercept';
 
 export interface RoundEntry {
   round: number;
@@ -57,6 +58,8 @@ export interface RoundEntry {
   playerStunnedApplied?: boolean;
   /** True on the synthetic `stunned` round where the player forfeits their turn. */
   playerSkipped?: boolean;
+  /** Intercept outcome on a monster-flee round: true = caught (slain), false = it escaped. */
+  interceptCaught?: boolean;
   // spell cast
   spellName?: string;
   spellDice?: number[];
@@ -114,6 +117,12 @@ export interface FightState {
   droppedItems: string[];
   /** True until the first class ability roll is confirmed this fight. */
   isFirstAbility: boolean;
+  /**
+   * Log length (round index) at which Roll Ability becomes available again. The
+   * action is gated until `log.length >= abilityReadyOnRound`. Set on every
+   * ability roll to `log.length + COMBAT.ABILITY_COOLDOWN_ROUNDS`.
+   */
+  abilityReadyOnRound?: number;
   /** True once Execute (Assassin) has fired once this fight. */
   executeUsed: boolean;
   /** True once the monster's one-shot active ability has fired. */
@@ -144,6 +153,12 @@ export interface FightState {
    * free hit. Cleared by `resolveStunnedSkipAction`.
    */
   playerStunned?: boolean;
+  /**
+   * A low-HP monster is trying to flee. The player's next action is replaced by a
+   * single intercept roll (`resolveInterceptAction`): out-roll the flee → instant
+   * kill + full rewards; lose → it escapes with no rewards.
+   */
+  monsterFleeing?: boolean;
 }
 
 // ─── Pending overlay payloads ───────────────────────────────────────────────────
@@ -160,6 +175,10 @@ export interface PendingAction {
   playerDefFailed?: boolean;
   monsterDefFailed?: boolean;
   escaped?: boolean;
+  /** This is a flee-intercept roll (player d10 + AGI vs the monster's flee roll). */
+  intercept?: boolean;
+  /** Intercept landed — the fleeing monster was caught (slain). */
+  interceptCaught?: boolean;
   /** Rogue dodged the incoming monster hit — damage fully negated. */
   dodged?: boolean;
   /** Special move the monster fired on its counter (null/absent when none). */
@@ -306,6 +325,9 @@ export interface CombatModifiers {
 
   /** Hide the Flee button (boss rooms). */
   fleeDisabled?: boolean;
+
+  /** Disable MONSTER fleeing (dungeon rooms require a kill to advance). */
+  monsterFleeDisabled?: boolean;
 
   /** Hide Rest/Meditate buttons (reserved — currently arena+dungeon both allow). */
   recoveryDisabled?: boolean;

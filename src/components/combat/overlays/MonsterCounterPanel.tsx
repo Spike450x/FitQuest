@@ -26,6 +26,7 @@ export function MonsterCounterPanel({
   chargingPrimed,
   playerStunnedApplied,
   outcome,
+  dieSize = 'sm',
 }: {
   monsterRoll: number;
   monsterDamage: number;
@@ -42,29 +43,35 @@ export function MonsterCounterPanel({
   /** A `stun` special landed — the player will skip their next turn. */
   playerStunnedApplied?: boolean;
   outcome?: 'win' | 'loss' | null;
+  /** Die prominence — ability/spell overlays pass `'lg'` so the enemy roll reads clearly. */
+  dieSize?: 'sm' | 'lg' | 'xl';
 }) {
   const isMagic = monsterAttackType === 'magic';
   const showDie = !monsterStunned && !dodged && outcome !== 'win';
+  const prominent = dieSize !== 'sm';
 
-  // Spin the enemy die briefly, then settle on the rolled value — so the player
-  // always SEES the monster roll on a landed counter (parity with the attack
-  // overlay's two-phase die).
+  // Spin the enemy die, then settle on the rolled value — so the player always
+  // SEES the monster roll on a landed counter (parity with the attack overlay's
+  // two-phase die). A prominent die spins a touch longer for visual weight.
   const [dieVal, setDieVal] = useState<number>(() => Math.ceil(Math.random() * 10));
   const [settled, setSettled] = useState(false);
   useEffect(() => {
     if (!showDie) return;
     setSettled(false);
     const interval = setInterval(() => setDieVal(Math.ceil(Math.random() * 10)), 70);
-    const stop = setTimeout(() => {
-      clearInterval(interval);
-      setDieVal(monsterRoll || 1);
-      setSettled(true);
-    }, 520);
+    const stop = setTimeout(
+      () => {
+        clearInterval(interval);
+        setDieVal(monsterRoll || 1);
+        setSettled(true);
+      },
+      prominent ? 700 : 520,
+    );
     return () => {
       clearInterval(interval);
       clearTimeout(stop);
     };
-  }, [showDie, monsterRoll]);
+  }, [showDie, monsterRoll, prominent]);
 
   // A win means the monster died this round — no counter-attack happens.
   if (outcome === 'win') {
@@ -88,7 +95,7 @@ export function MonsterCounterPanel({
       ) : (
         <>
           <p className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-            Monster strikes back
+            {prominent ? '⚔️ Enemy counter roll' : 'Monster strikes back'}
             {isMagic ? (
               <span className="text-violet-500"> · 🔮 magic</span>
             ) : (
@@ -103,7 +110,8 @@ export function MonsterCounterPanel({
           <div className="flex items-center justify-center gap-2 flex-wrap">
             <Die3D
               value={dieVal}
-              size="sm"
+              size={dieSize}
+              format="number"
               variant={settled ? 'settled' : 'spinning'}
               color="rose"
             />

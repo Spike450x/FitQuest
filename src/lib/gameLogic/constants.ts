@@ -292,6 +292,12 @@ export const COMBAT = {
    */
   FIZZLE_STAMINA_REFUND: 5,
   /**
+   * Rounds an ability is on cooldown after being rolled. 1 = you can't roll an
+   * ability two turns running (a basic attack / spell / recovery must come
+   * between) — light tactical pacing on top of the stamina cost.
+   */
+  ABILITY_COOLDOWN_ROUNDS: 1,
+  /**
    * Cap on a monster's combined self-heal (vampiric passive + drain special) per
    * counter, as a fraction of its max HP. A guardrail so a future monster that
    * stacks both can't runaway-heal off one big hit. No current monster stacks
