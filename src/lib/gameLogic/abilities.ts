@@ -37,6 +37,8 @@ export interface AbilityResolution {
   pattern: DicePattern | null;
   playerDamage: number;
   monsterDamage: number;
+  /** Monster's raw d10 counter-attack roll (0 when the monster is stunned). */
+  monsterRoll: number;
   monsterStunned: boolean;
   playerDefFailed: boolean;
   /** Flat HP healed at end of this round — Paladin subclass bonuses (shield-slam, unstoppable). */
@@ -320,13 +322,18 @@ export function resolveAbility(
   // ── Fizzle path ────────────────────────────────────────────────────────────
   if (!pattern) {
     const playerDamage = Math.max(0, baseHit - monster.defense);
-    const { monsterDamage, playerDefFailed } = rollMonsterAttack(character, monster, false);
+    const { monsterDamage, playerDefFailed, monsterRoll } = rollMonsterAttack(
+      character,
+      monster,
+      false,
+    );
     return {
       ability: null,
       dice,
       pattern: null,
       playerDamage,
       monsterDamage,
+      monsterRoll,
       monsterStunned: false,
       playerDefFailed,
       flatPassiveHeal: 0,
@@ -338,13 +345,18 @@ export function resolveAbility(
   if (!baseAbility) {
     // Fallback — treat as fizzle if somehow class is unknown
     const playerDamage = Math.max(0, baseHit - monster.defense);
-    const { monsterDamage, playerDefFailed } = rollMonsterAttack(character, monster, false);
+    const { monsterDamage, playerDefFailed, monsterRoll } = rollMonsterAttack(
+      character,
+      monster,
+      false,
+    );
     return {
       ability: null,
       dice,
       pattern,
       playerDamage,
       monsterDamage,
+      monsterRoll,
       monsterStunned: false,
       playerDefFailed,
       flatPassiveHeal: 0,
@@ -371,10 +383,12 @@ export function resolveAbility(
 
   let monsterDamage = 0;
   let playerDefFailed = false;
+  let monsterRoll = 0;
   if (!ability.stunMonster) {
     const result = rollMonsterAttack(character, monster, ability.bypassPlayerDef);
     monsterDamage = result.monsterDamage;
     playerDefFailed = result.playerDefFailed;
+    monsterRoll = result.monsterRoll;
   }
 
   return {
@@ -383,6 +397,7 @@ export function resolveAbility(
     pattern,
     playerDamage,
     monsterDamage,
+    monsterRoll,
     monsterStunned: ability.stunMonster,
     playerDefFailed,
     flatPassiveHeal: ability.flatHeal,
@@ -404,7 +419,7 @@ function rollMonsterAttack(
   character: Character,
   monster: MonsterDef,
   bypassPlayerDef: boolean,
-): { monsterDamage: number; playerDefFailed: boolean } {
+): { monsterDamage: number; playerDefFailed: boolean; monsterRoll: number } {
   const monsterRoll = rollD10();
   const playerDefFailed = bypassPlayerDef || Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
   // Effective DEF routes through the shared helper so the class DEF multiplier
@@ -416,5 +431,5 @@ function rollMonsterAttack(
     monsterRoll + monster.attack,
     effectiveDef,
   );
-  return { monsterDamage, playerDefFailed };
+  return { monsterDamage, playerDefFailed, monsterRoll };
 }

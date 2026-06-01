@@ -305,6 +305,14 @@ export function resolveAttackAction(
   const outgoing = applyOutgoingPassives(character, basePlayerDamage, passiveCtx);
   let playerDamage = outgoing.damage;
 
+  // Spirit crit — basic attacks/magic can now crit just like abilities and spells,
+  // fires only when the strike actually deals damage. Stacks on outgoing passives.
+  const attackCrit =
+    playerDamage > 0
+      ? rollSpellCrit(effectiveStat(character, 'spirit'), playerDamage)
+      : { damage: playerDamage, crit: false, multiplier: 1 };
+  playerDamage = attackCrit.damage;
+
   // Modifier: shield-style absorption (Necro Shield)
   const absorb = runAbsorb(input, stateForRound, playerDamage);
   playerDamage = absorb.damage;
@@ -408,6 +416,8 @@ export function resolveAttackAction(
     monsterDefFailed,
     playerHpAfter: finalPlayerHp,
     monsterHpAfter: monsterHpFinal,
+    spiritCrit: attackCrit.crit || undefined,
+    spiritCritMultiplier: attackCrit.crit ? attackCrit.multiplier : undefined,
     eagleEyeCrit: outgoing.eagleEyeCrit,
     divineAegisBlocked: incoming.divineAegisBlocked,
     manaBarrierAbsorbed: incoming.magicDrained > 0 ? incoming.magicDrained : undefined,
@@ -465,6 +475,8 @@ export function resolveAttackAction(
         playerDefFailed,
         monsterDefFailed,
         dodged: roundResult.dodged || undefined,
+        spiritCrit: attackCrit.crit || undefined,
+        spiritCritMultiplier: attackCrit.crit ? attackCrit.multiplier : undefined,
         outcome,
       },
     },
@@ -687,6 +699,16 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
         pattern: resolution.pattern,
         ability: resolution.ability,
         formulaBreakdown: resolution.formulaBreakdown,
+        monsterRoll: resolution.monsterRoll,
+        monsterStunned: resolution.monsterStunned,
+        monsterDamage: actualMonsterDamage,
+        dodged: roundResult.dodged || undefined,
+        monsterAttackType:
+          actualMonsterDamage > 0 ? (stateForRound.monster.attackType ?? 'physical') : undefined,
+        playerDefFailed: resolution.playerDefFailed,
+        spiritCrit: abilityCrit.crit || undefined,
+        spiritCritMultiplier: abilityCrit.crit ? abilityCrit.multiplier : undefined,
+        outcome,
       },
     },
   };
@@ -909,8 +931,10 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
         requirementMet: resolution.requirementMet,
         monsterRoll: resolution.monsterRoll,
         monsterStunned: resolution.monsterStunned,
-        monsterDamage: resolution.monsterDamage,
+        monsterDamage: actualMonsterDamage,
         dodged: roundResult.dodged || undefined,
+        monsterAttackType:
+          actualMonsterDamage > 0 ? (stateForRound.monster.attackType ?? 'physical') : undefined,
       },
     },
   };
@@ -932,7 +956,9 @@ function resolveRecoveryAction(input: ActionInput, type: 'rest' | 'meditate'): A
     const raw = recoveryRoll * 3;
     recoveredStamina = Math.min(raw, maxStamina - state.playerStamina);
   } else {
-    const raw = recoveryRoll + (character.stats.wisdom ?? 0);
+    // Effective WIS (class multiplier applied) so a Wizard's WIS bonus boosts
+    // meditate, matching every other combat formula that scales off wisdom.
+    const raw = recoveryRoll + effectiveStat(character, 'wisdom');
     recoveredMagic = Math.min(raw, maxMagic - state.playerMagic);
   }
 

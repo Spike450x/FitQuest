@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
+  resolveAbilityAction,
   resolveAttackAction,
   resolveFleeAction,
   resolveMeditateAction,
@@ -7,6 +8,7 @@ import {
   resolveUseItemAction,
   type ActionInput,
 } from '../combatActions';
+import { effectiveStat } from '../combat';
 import type { CombatModifiers, FightState } from '@/components/combat/types';
 import type { Character, MonsterDef } from '@/types';
 
@@ -229,6 +231,75 @@ describe('resolveMeditateAction', () => {
     const res = resolveMeditateAction(makeInput({ state }));
     expect(res.nextState.playerMagic).toBeGreaterThan(5);
     expect(res.nextState.playerMagic).toBeLessThanOrEqual(30);
+  });
+
+  it('uses effective wisdom — the Wizard multiplier boosts the restore', () => {
+    // d10 = 6 (0.55 → ceil(5.5)=6); pin the roll, leave headroom under maxMagic.
+    vi.spyOn(Math, 'random').mockReturnValue(0.55);
+    const stats = { ...BASE_STATS, wisdom: 10 };
+    const wizard = makeChar({ class: 'wizard', stats });
+    const warrior = makeChar({ class: 'warrior', stats });
+    const state = makeFightState({ playerMagic: 0 });
+    const input = { state, maxHp: 100, maxStamina: 50, maxMagic: 100 } as const;
+
+    const wizMagic = resolveMeditateAction(makeInput({ ...input, character: wizard })).logEntry
+      .recoveredMagic!;
+    const warMagic = resolveMeditateAction(makeInput({ ...input, character: warrior })).logEntry
+      .recoveredMagic!;
+
+    // Wizard WIS multiplier > Warrior's, so the same roll restores strictly more.
+    expect(effectiveStat(wizard, 'wisdom')).toBeGreaterThan(effectiveStat(warrior, 'wisdom'));
+    expect(wizMagic).toBeGreaterThan(warMagic);
+    // d10(6) + effective WIS — concretely above the raw-WIS (10) baseline + roll.
+    expect(wizMagic).toBe(6 + effectiveStat(wizard, 'wisdom'));
+  });
+});
+
+// ── Monster counter-attack reaches the overlays (ability + attack parity) ──────
+
+describe('counter-attack payload threading', () => {
+  it('attack pending carries the monster counter damage for the overlay', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    // The attack overlay reads the magic/physical tag from its `monster` prop,
+    // so the payload only needs to carry the resolved counter damage.
+    const monster = makeMonster({ attack: 12, attackType: 'magic' });
+    const res = resolveAttackAction(makeInput({ state: makeFightState({ monster }) }), 'attack');
+    expect(res.pending.kind).toBe('action');
+    if (res.pending.kind !== 'action') throw new Error('expected action');
+    if (res.nextState.outcome === null) {
+      expect(res.pending.payload.monsterDamage).toBeGreaterThan(0);
+    }
+    // The magic-type tag flows through the entry's monsterAttackType field.
+    if (res.logEntry.monsterDamage && res.logEntry.monsterDamage > 0) {
+      expect(res.logEntry.monsterAttackType).toBe('magic');
+    }
+  });
+
+  it('ability pending exposes monsterRoll / monsterStunned / monsterDamage', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const res = resolveAbilityAction(makeInput());
+    expect(res.pending.kind).toBe('ability');
+    if (res.pending.kind !== 'ability') throw new Error('expected ability');
+    const p = res.pending.payload;
+    expect(typeof p.monsterRoll).toBe('number');
+    expect(typeof p.monsterStunned).toBe('boolean');
+    expect(typeof p.monsterDamage).toBe('number');
+    // A non-stunned ability against a live monster takes a counter; if the
+    // monster survived, the player took (or dodged) a hit this round.
+    if (!p.monsterStunned && res.nextState.outcome === null) {
+      expect(p.monsterRoll).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('high-Spirit basic attack can crit (stamps spiritCrit on the payload)', () => {
+    // Force the crit RNG branch: 0 < critChance for a 50-Spirit build.
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const stats = { ...BASE_STATS, spirit: 50, strength: 20 };
+    const res = resolveAttackAction(makeInput({ character: makeChar({ stats }) }), 'attack');
+    if (res.pending.kind !== 'action') throw new Error('expected action');
+    expect(res.pending.payload.spiritCrit).toBe(true);
+    expect(res.pending.payload.spiritCritMultiplier).toBeGreaterThan(1);
+    expect(res.logEntry.spiritCrit).toBe(true);
   });
 });
 

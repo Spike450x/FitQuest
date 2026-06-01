@@ -42,9 +42,7 @@ import { CombatActionBar } from '@/components/combat/CombatActionBar';
 import { HpBar } from '@/components/combat/HpBar';
 import { LastActionSummary } from '@/components/combat/LastActionSummary';
 import { BattleLogEntry } from '@/components/combat/BattleLogEntry';
-import { ActionRollOverlay } from '@/components/combat/overlays/ActionRollOverlay';
-import { DiceRollOverlay } from '@/components/combat/overlays/DiceRollOverlay';
-import { SpellRollOverlay } from '@/components/combat/overlays/SpellRollOverlay';
+import { CombatOverlays } from '@/components/combat/CombatOverlays';
 import { useCombatEncounter } from '@/hooks/useCombatEncounter';
 import { useCombatStore } from '@/store/combatStore';
 import { refreshPlayerState } from '@/lib/refreshPlayerState';
@@ -496,33 +494,7 @@ function DungeonCombatShell({
       )}
 
       {/* Overlays */}
-      {pending.action && (
-        <ActionRollOverlay
-          pending={pending.action}
-          monster={monster}
-          playerDefStat={playerDefStat}
-        />
-      )}
-      {pending.ability && (
-        <DiceRollOverlay
-          dice={pending.ability.dice}
-          pattern={pending.ability.pattern}
-          ability={pending.ability.ability}
-          formulaBreakdown={pending.ability.formulaBreakdown}
-          onDismiss={pending.ability.applyResult}
-        />
-      )}
-      {pending.spell && (
-        <SpellRollOverlay
-          spellDef={pending.spell.spellDef}
-          dice={pending.spell.dice}
-          requirementMet={pending.spell.requirementMet}
-          monsterRoll={pending.spell.monsterRoll}
-          monsterStunned={pending.spell.monsterStunned}
-          monsterDamage={pending.spell.monsterDamage}
-          onDismiss={pending.spell.applyResult}
-        />
-      )}
+      <CombatOverlays pending={pending} monster={monster} playerDefStat={playerDefStat} />
     </div>
   );
 }

@@ -134,6 +134,10 @@ export interface PendingAction {
   escaped?: boolean;
   /** Rogue dodged the incoming monster hit — damage fully negated. */
   dodged?: boolean;
+  /** Spirit crit fired on a basic attack/magic strike (boosted player damage). */
+  spiritCrit?: boolean;
+  /** Multiplier applied when spiritCrit fired (1 + bonus, e.g. 1.15 for +15%). */
+  spiritCritMultiplier?: number;
   recoveredStamina?: number;
   recoveredMagic?: number;
   outcome?: 'win' | 'loss' | null;
@@ -154,6 +158,24 @@ export interface PendingAbility {
     rawDamage: number;
     monsterDef: number;
   };
+  /** Monster's raw d10 counter-attack roll (0 when stunned). */
+  monsterRoll: number;
+  /** True when the ability stunned the monster, skipping the counter-attack. */
+  monsterStunned: boolean;
+  /** Actual damage the monster dealt to the player this round (0 if stunned/dodged). */
+  monsterDamage: number;
+  /** Rogue dodged the counter-attack — damage fully negated. */
+  dodged?: boolean;
+  /** Damage school of the monster's counter-attack (drives the 🔮/⚔️ tag). */
+  monsterAttackType?: 'physical' | 'magic';
+  /** Player's DEF failed on the counter (physical only — surfaces the 💥 tag). */
+  playerDefFailed?: boolean;
+  /** Spirit crit fired on the ability's damage. */
+  spiritCrit?: boolean;
+  /** Multiplier applied when spiritCrit fired. */
+  spiritCritMultiplier?: number;
+  /** Fight outcome after this round resolves. */
+  outcome?: 'win' | 'loss' | null;
   applyResult: () => Promise<void>;
 }
 
@@ -169,6 +191,8 @@ export interface PendingSpell {
   monsterDamage: number;
   /** Rogue dodged the counter-attack — damage fully negated (overrides monsterDamage display). */
   dodged?: boolean;
+  /** Damage school of the monster's counter (drives the 🔮/⚔️ tag). */
+  monsterAttackType?: 'physical' | 'magic';
   applyResult: () => Promise<void>;
 }
 

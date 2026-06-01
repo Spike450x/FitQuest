@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Die3D } from '@/components/ui/Die3D';
 import { playSound } from '@/hooks/useSound';
 import { describeRequirement, getHighlightedSpellDiceIndices } from '@/lib/gameLogic/spells';
+import { MonsterCounterPanel } from './MonsterCounterPanel';
 import { spellEffectKey } from '@/lib/entityArt';
 import type { ItemDef } from '@/types';
 import type { SpellEffectKey } from '@/components/art/silhouettes';
@@ -45,6 +46,8 @@ export function SpellRollOverlay({
   monsterRoll,
   monsterStunned,
   monsterDamage,
+  dodged,
+  monsterAttackType,
   onDismiss,
 }: {
   spellDef: ItemDef;
@@ -56,6 +59,10 @@ export function SpellRollOverlay({
   monsterStunned: boolean;
   /** Damage the monster dealt to the player (0 if stunned). */
   monsterDamage: number;
+  /** Rogue dodged the counter-attack — damage fully negated. */
+  dodged?: boolean;
+  /** Damage school of the monster's counter (drives the 🔮/⚔️ tag). */
+  monsterAttackType?: 'physical' | 'magic';
   onDismiss: () => Promise<void>;
 }) {
   const sm = spellDef.spellMechanics!;
@@ -208,22 +215,14 @@ export function SpellRollOverlay({
             </div>
           )}
 
-          {/* Monster counter-attack — mirrors ActionRollOverlay's enemy section */}
-          <div className="rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/60 px-4 py-3 space-y-1.5">
-            {monsterStunned ? (
-              <p className="text-xs font-semibold text-amber-500">Monster stunned — no counter</p>
-            ) : (
-              <>
-                <p className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
-                  Monster strikes back
-                </p>
-                <div className="flex items-center justify-center gap-2">
-                  <Die3D value={monsterRoll || 1} size="sm" variant="settled" color="rose" />
-                  <span className="text-sm font-semibold text-red-500">−{monsterDamage} HP</span>
-                </div>
-              </>
-            )}
-          </div>
+          {/* Monster counter-attack — shared with the ability overlay */}
+          <MonsterCounterPanel
+            monsterRoll={monsterRoll}
+            monsterDamage={monsterDamage}
+            monsterStunned={monsterStunned}
+            dodged={dodged}
+            monsterAttackType={monsterAttackType}
+          />
 
           <button
             onClick={handleDismiss}
