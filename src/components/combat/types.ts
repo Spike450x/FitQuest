@@ -1,4 +1,4 @@
-import type { MonsterDef, ItemDef, SpellDiceRequirement } from '@/types';
+import type { MonsterDef, ItemDef, SpellDiceRequirement, MonsterSpecialMove } from '@/types';
 import type { DicePattern, AbilityDef } from '@/lib/gameLogic/abilities';
 
 // ─── Combat round action types ──────────────────────────────────────────────────
@@ -42,6 +42,12 @@ export interface RoundEntry {
   dodged?: boolean;
   /** Damage school of the monster's counter-attack this round (for the log tag). */
   monsterAttackType?: 'physical' | 'magic';
+  /** Special move the monster fired on its counter this round (name for the log). */
+  monsterSpecialName?: string;
+  /** Emoji of the monster special that fired this round. */
+  monsterSpecialEmoji?: string;
+  /** HP the monster healed from a `drain` special this round. */
+  monsterSpecialDrain?: number;
   // spell cast
   spellName?: string;
   spellDice?: number[];
@@ -134,6 +140,10 @@ export interface PendingAction {
   escaped?: boolean;
   /** Rogue dodged the incoming monster hit — damage fully negated. */
   dodged?: boolean;
+  /** Special move the monster fired on its counter (null/absent when none). */
+  monsterSpecial?: MonsterSpecialMove | null;
+  /** Damage school of the counter — magic when a `burst` special fired. */
+  monsterAttackType?: 'physical' | 'magic';
   /** Spirit crit fired on a basic attack/magic strike (boosted player damage). */
   spiritCrit?: boolean;
   /** Multiplier applied when spiritCrit fired (1 + bonus, e.g. 1.15 for +15%). */
@@ -168,6 +178,8 @@ export interface PendingAbility {
   dodged?: boolean;
   /** Damage school of the monster's counter-attack (drives the 🔮/⚔️ tag). */
   monsterAttackType?: 'physical' | 'magic';
+  /** Special move the monster fired on its counter (null/absent when none). */
+  monsterSpecial?: MonsterSpecialMove | null;
   /** Player's DEF failed on the counter (physical only — surfaces the 💥 tag). */
   playerDefFailed?: boolean;
   /** Spirit crit fired on the ability's damage. */
@@ -193,6 +205,12 @@ export interface PendingSpell {
   dodged?: boolean;
   /** Damage school of the monster's counter (drives the 🔮/⚔️ tag). */
   monsterAttackType?: 'physical' | 'magic';
+  /** Special move the monster fired on its counter (null/absent when none). */
+  monsterSpecial?: MonsterSpecialMove | null;
+  /** Player's DEF failed on the counter (physical only — surfaces the 💥 tag). */
+  playerDefFailed?: boolean;
+  /** Fight outcome after this round resolves — drives the "Monster slain!" panel. */
+  outcome?: 'win' | 'loss' | null;
   applyResult: () => Promise<void>;
 }
 

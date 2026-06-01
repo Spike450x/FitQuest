@@ -6,6 +6,19 @@ import { getHighlightedDiceIndices } from './AbilityReference';
 import type { MonsterDef } from '@/types';
 import type { RoundEntry } from './types';
 
+/** Monster special-move recap line — shared across every action branch. */
+function MonsterSpecialNote({ entry }: { entry: RoundEntry }) {
+  if (!entry.monsterSpecialName) return null;
+  return (
+    <p className="text-amber-600 dark:text-amber-400 font-medium">
+      {entry.monsterSpecialEmoji} {entry.monsterSpecialName}!
+      {(entry.monsterSpecialDrain ?? 0) > 0 && (
+        <span className="text-fuchsia-500"> · 🩸 +{entry.monsterSpecialDrain} HP</span>
+      )}
+    </p>
+  );
+}
+
 export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: MonsterDef }) {
   if (entry.action === 'run_failed') {
     return (
@@ -41,6 +54,7 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
             )}
           </p>
         )}
+        <MonsterSpecialNote entry={entry} />
         {entry.dodged && (
           <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
         )}
@@ -121,6 +135,7 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
             )}
           </p>
         )}
+        <MonsterSpecialNote entry={entry} />
         {entry.dodged && (
           <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
         )}
@@ -198,6 +213,7 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
             )}
           </p>
         )}
+        <MonsterSpecialNote entry={entry} />
         {entry.dodged && (
           <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
         )}
@@ -279,6 +295,7 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
           )}
         </p>
       )}
+      <MonsterSpecialNote entry={entry} />
       {entry.dodged && (
         <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
       )}

@@ -15,6 +15,13 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-06-01 — Monster special moves + always-visible enemy roll + combat-audit fixes
+
+- **Monster special moves** — new data-driven `MonsterDef.specialMoves`: chance-based moves rolled on the monster's counter-turn _independent of the player's action_ (`rollMonsterSpecial`, ≤1 per counter). Four effects — **heavy** (×N damage), **pierce** (ignores your armor this hit), **burst** (the counter becomes armor-ignoring magic), **drain** (monster heals from the hit). Routed through an extended `incomingMonsterDamage` + new `monsterSpecialDrainHeal` / `effectiveAttackType`; surfaced in all three overlays, the battle log, `LastActionSummary`, and as planning chips on `MonsterCard`. Assigned to 13 arena monsters (L5+) and all 4 dungeon bosses.
+- **Always see the enemy roll** — the ability + spell overlays now animate the monster's d10 counter (spin → settle) via a shared `MonsterCounterPanel`, instead of a tiny static die. Suppressed only on stun/dodge/kill.
+- **Combat-audit fixes** — (1) `SpellRollOverlay` now receives `outcome` + `playerDefFailed`, so a spell kill shows "Monster slain!" (not a dead-monster counter) and a DEF-fail reads correctly; (2) Storm Djinn tagged `attackType: 'magic'` (and ATK retuned 40 → 34, since armor-ignoring magic is far deadlier) — its affinity was previously inverted; (3) ability **fizzle** damage now floors at `MIN_DAMAGE` + rolls monster DEF-fail like every other path (no more hard-0 fizzles); (4) balance model's L20 band now exercises the magic path (Warrior 88% / Wizard 40% HP-loss vs the magic Djinn); (5) counter panel shows the numeric DEF value; (6) character sheet surfaces a "Fragile Armor" callout for sub-1 DEF-multiplier classes (Wizard); (7) Dragon King kept physical so its ignore-DEF enrage stays meaningful, given a `burst` special instead.
+- Static catalog only — no Firestore schema, rules, or Cloud Function parity change (combat damage is client-side). +21 vitest specs (1015 → 1036); doc-count validator hardened to ignore nested `specialMoves` ids.
+
 ## 2026-05-31 — Combat overlay consistency + meditate/attack crit fixes
 
 - **Unified roll overlays across all three combat surfaces** — new `CombatOverlays` dispatch component replaces the copy-pasted action/ability/spell overlay block in the arena, dungeon-run, and wanted-hunt pages, so every surface renders identically and future overlay changes are single-touch.

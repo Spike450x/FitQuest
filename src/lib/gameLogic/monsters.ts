@@ -108,6 +108,15 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'Animated by dark magic. High defense — chip it down.',
     passive: { id: 'regen', label: 'Undying', value: 4 },
+    specialMoves: [
+      {
+        id: 'bone-crusher',
+        name: 'Bone Crusher',
+        emoji: '🦴',
+        chance: 0.12,
+        effect: { kind: 'heavy', multiplier: 1.5 },
+      },
+    ],
   },
   {
     id: 'dark-wolf',
@@ -127,6 +136,15 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'Hunts in shadows. Ferocious and hungry.',
     active: { id: 'enrage', triggerPct: 0.4, label: 'Blood Frenzy', value: 5 },
+    specialMoves: [
+      {
+        id: 'rending-bite',
+        name: 'Rending Bite',
+        emoji: '🐺',
+        chance: 0.15,
+        effect: { kind: 'pierce' },
+      },
+    ],
   },
   {
     id: 'stone-troll',
@@ -146,6 +164,15 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'Nearly indestructible. Bring your best stats.',
     passive: { id: 'regen', label: 'Trollish Resilience', value: 6 },
+    specialMoves: [
+      {
+        id: 'boulder-smash',
+        name: 'Boulder Smash',
+        emoji: '🪨',
+        chance: 0.18,
+        effect: { kind: 'heavy', multiplier: 1.7 },
+      },
+    ],
   },
   {
     id: 'dark-mage',
@@ -166,6 +193,15 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'Glass cannon. Kill it fast or get obliterated.',
     passive: { id: 'vampiric', label: 'Life Tap', value: 30 },
+    specialMoves: [
+      {
+        id: 'dark-nova',
+        name: 'Dark Nova',
+        emoji: '🌑',
+        chance: 0.15,
+        effect: { kind: 'heavy', multiplier: 1.5 },
+      },
+    ],
   },
   {
     id: 'lich-king',
@@ -187,6 +223,15 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'A necromancer-king risen from death. Bring magic resistance or kneel.',
     active: { id: 'harden', triggerPct: 0.5, label: 'Bone Shield', value: 6 },
+    specialMoves: [
+      {
+        id: 'soul-harvest',
+        name: 'Soul Harvest',
+        emoji: '👻',
+        chance: 0.15,
+        effect: { kind: 'drain', pct: 35 },
+      },
+    ],
   },
   {
     id: 'ancient-dragon',
@@ -209,6 +254,15 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'The ultimate challenge. Few have survived.',
     passive: { id: 'thorns', label: 'Dragon Scales', value: 25 },
+    specialMoves: [
+      {
+        id: 'dragonfire',
+        name: 'Dragonfire',
+        emoji: '🔥',
+        chance: 0.15,
+        effect: { kind: 'burst' },
+      },
+    ],
   },
 
   // ── Content-scaling PR2: new monsters ────────────────────────────────────────
@@ -287,6 +341,15 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'A walking suit of cursed plate. Punches through whatever you wear.',
     passive: { id: 'armor-pierce', label: 'Sundering Strike', value: 2 },
+    specialMoves: [
+      {
+        id: 'iron-haymaker',
+        name: 'Iron Haymaker',
+        emoji: '🤜',
+        chance: 0.15,
+        effect: { kind: 'heavy', multiplier: 1.6 },
+      },
+    ],
   },
   {
     id: 'frost-wraith',
@@ -306,6 +369,15 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'Cold ghost. Your arms go numb where it touches you.',
     passive: { id: 'siphon', label: 'Numbing Chill', value: 3 },
+    specialMoves: [
+      {
+        id: 'soul-frost',
+        name: 'Soul Frost',
+        emoji: '❄️',
+        chance: 0.15,
+        effect: { kind: 'drain', pct: 30 },
+      },
+    ],
   },
   {
     id: 'gloom-knight',
@@ -325,6 +397,15 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'A fallen paladin. The oath broke; the steel did not.',
     active: { id: 'harden', triggerPct: 0.4, label: 'Oathbreaker Bulwark', value: 5 },
+    specialMoves: [
+      {
+        id: 'oathbreaker-cleave',
+        name: 'Oathbreaker Cleave',
+        emoji: '🗡️',
+        chance: 0.15,
+        effect: { kind: 'pierce' },
+      },
+    ],
   },
   {
     id: 'obsidian-golem',
@@ -345,6 +426,15 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'A living statue from the Keep depths. Volcanic glass cleaves through plate.',
     passive: { id: 'armor-pierce', label: 'Volcanic Edge', value: 4 },
+    specialMoves: [
+      {
+        id: 'magma-crush',
+        name: 'Magma Crush',
+        emoji: '🌋',
+        chance: 0.18,
+        effect: { kind: 'heavy', multiplier: 1.7 },
+      },
+    ],
   },
   {
     id: 'ashwyrm',
@@ -368,6 +458,15 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'Lesser dragon, smouldering breath. Its hide burns to the touch.',
     passive: { id: 'thorns', label: 'Cinder Hide', value: 22 },
+    specialMoves: [
+      {
+        id: 'ember-cyclone',
+        name: 'Ember Cyclone',
+        emoji: '🔥',
+        chance: 0.15,
+        effect: { kind: 'heavy', multiplier: 1.6 },
+      },
+    ],
   },
   {
     id: 'void-revenant',
@@ -391,14 +490,27 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     ],
     description: 'Echo of a fallen hero. Reinforcements emerge from the void mid-fight.',
     active: { id: 'summon-add', triggerPct: 0.5, label: 'Echo Reinforcements', value: 60 },
+    specialMoves: [
+      {
+        id: 'void-siphon',
+        name: 'Void Siphon',
+        emoji: '🕳️',
+        chance: 0.18,
+        effect: { kind: 'drain', pct: 40 },
+      },
+    ],
   },
   {
     id: 'storm-djinn',
     name: 'Storm Djinn',
     level: 14,
     hp: 335,
-    attack: 40,
+    // ATK retuned 40 → 34 alongside the magic typing: armor-ignoring magic is far
+    // more potent than physical against high-DEF targets, so the raw number drops
+    // to keep the fight punishing-but-winnable (see balanceModel.test.ts L20 band).
+    attack: 34,
     defense: 14,
+    attackType: 'magic',
     xpReward: 400,
     goldReward: 200,
     lootTable: [
@@ -416,6 +528,22 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     description: 'Air elemental, lightning lash. Drinks your blood like rain.',
     passive: { id: 'vampiric', label: 'Skyfeast', value: 25 },
     active: { id: 'enrage', triggerPct: 0.3, label: 'Tempest Wrath', value: 6 },
+    specialMoves: [
+      {
+        id: 'thunderlance',
+        name: 'Thunderlance',
+        emoji: '⚡',
+        chance: 0.15,
+        effect: { kind: 'pierce' },
+      },
+      {
+        id: 'tempest-crash',
+        name: 'Tempest Crash',
+        emoji: '🌪️',
+        chance: 0.12,
+        effect: { kind: 'heavy', multiplier: 1.7 },
+      },
+    ],
   },
 ];
 

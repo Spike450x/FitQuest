@@ -46,6 +46,8 @@ export function CombatOverlays({
           dodged={pending.ability.dodged}
           monsterAttackType={pending.ability.monsterAttackType}
           playerDefFailed={pending.ability.playerDefFailed}
+          playerDefStat={playerDefStat}
+          monsterSpecial={pending.ability.monsterSpecial}
           spiritCrit={pending.ability.spiritCrit}
           spiritCritMultiplier={pending.ability.spiritCritMultiplier}
           outcome={pending.ability.outcome}
@@ -62,6 +64,10 @@ export function CombatOverlays({
           monsterDamage={pending.spell.monsterDamage}
           dodged={pending.spell.dodged}
           monsterAttackType={pending.spell.monsterAttackType}
+          playerDefFailed={pending.spell.playerDefFailed}
+          playerDefStat={playerDefStat}
+          monsterSpecial={pending.spell.monsterSpecial}
+          outcome={pending.spell.outcome}
           onDismiss={pending.spell.applyResult}
         />
       )}

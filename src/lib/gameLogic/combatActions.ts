@@ -24,15 +24,18 @@ import type {
 } from '@/components/combat/types';
 import {
   calculateRound,
+  effectiveAttackType,
   effectiveStat,
   incomingMonsterDamage,
   monsterArmorPierce,
   monsterSiphonAmount,
+  monsterSpecialDrainHeal,
   resolveRoundOutcome,
   rollClassDodge,
   rollRunAway,
   rollSpellCrit,
 } from './combat';
+import type { MonsterSpecialMove } from '@/types';
 import { resolveAbility } from './abilities';
 import { resolveSpell } from './spells';
 import {
@@ -119,6 +122,45 @@ function checkMonsterActive(
     };
   }
   return { triggered: false, bonusAtk: 0, bonusDef: 0, bonusHp: 0, label: '' };
+}
+
+/**
+ * HP the monster actually heals from a `drain` special this round, capped by
+ * the headroom left after summon-add and vampiric have already healed it.
+ * Returns 0 when the monster is dead, the special isn't a drain, or no hit
+ * landed. Mirrors the way `calcVampiricHeal` is capped.
+ */
+function calcSpecialDrain(
+  special: MonsterSpecialMove | null,
+  monsterDamage: number,
+  hpAfterPriorHeals: number,
+  maxHp: number,
+): number {
+  if (hpAfterPriorHeals === 0) return 0;
+  const raw = monsterSpecialDrainHeal(special, monsterDamage);
+  if (raw <= 0) return 0;
+  return Math.min(raw, maxHp - hpAfterPriorHeals);
+}
+
+/**
+ * Log-entry fields describing the monster special that fired this round.
+ * Suppressed entirely when no special landed a hit (stun / dodge / kill).
+ */
+function monsterSpecialLogFields(
+  special: MonsterSpecialMove | null,
+  monsterDamage: number,
+  drainHeal: number,
+): {
+  monsterSpecialName?: string;
+  monsterSpecialEmoji?: string;
+  monsterSpecialDrain?: number;
+} {
+  if (!special || monsterDamage <= 0) return {};
+  return {
+    monsterSpecialName: special.name,
+    monsterSpecialEmoji: special.emoji,
+    monsterSpecialDrain: drainHeal > 0 ? drainHeal : undefined,
+  };
 }
 
 /**
@@ -293,6 +335,7 @@ export function resolveAttackAction(
     monsterRoll,
     playerDefFailed,
     monsterDefFailed,
+    monsterSpecial,
   } = calculateRound(character, pre.effectiveMonster, mode);
 
   const passiveCtx = {
@@ -387,7 +430,15 @@ export function resolveAttackAction(
           hpAfterSummon,
           newMaxMonsterHp,
         );
-  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + vampiricHeal);
+  // Special `drain`: monster heals from this counter's damage, stacking on top
+  // of vampiric within the same HP cap.
+  const specialDrainHeal = calcSpecialDrain(
+    monsterSpecial,
+    actualMonsterDamage,
+    hpAfterSummon + vampiricHeal,
+    newMaxMonsterHp,
+  );
+  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + vampiricHeal + specialDrainHeal);
 
   const interimState: FightState = {
     ...stateForRound,
@@ -438,7 +489,10 @@ export function resolveAttackAction(
     monsterDotDamage: pre.dotDamage > 0 ? pre.dotDamage : undefined,
     dodged: roundResult.dodged || undefined,
     monsterAttackType:
-      actualMonsterDamage > 0 ? (stateForRound.monster.attackType ?? 'physical') : undefined,
+      actualMonsterDamage > 0
+        ? effectiveAttackType(stateForRound.monster, monsterSpecial)
+        : undefined,
+    ...monsterSpecialLogFields(monsterSpecial, actualMonsterDamage, specialDrainHeal),
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -475,6 +529,11 @@ export function resolveAttackAction(
         playerDefFailed,
         monsterDefFailed,
         dodged: roundResult.dodged || undefined,
+        monsterSpecial: actualMonsterDamage > 0 ? monsterSpecial : null,
+        monsterAttackType:
+          actualMonsterDamage > 0
+            ? effectiveAttackType(stateForRound.monster, monsterSpecial)
+            : undefined,
         spiritCrit: attackCrit.crit || undefined,
         spiritCritMultiplier: attackCrit.crit ? attackCrit.multiplier : undefined,
         outcome,
@@ -594,7 +653,13 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
           hpAfterSummon,
           newMaxMonsterHp,
         );
-  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + vampiricHeal);
+  const specialDrainHeal = calcSpecialDrain(
+    resolution.monsterSpecial,
+    actualMonsterDamage,
+    hpAfterSummon + vampiricHeal,
+    newMaxMonsterHp,
+  );
+  const monsterHpFinal = Math.min(newMaxMonsterHp, hpAfterSummon + vampiricHeal + specialDrainHeal);
 
   const momentumRestore = getMomentumRestore(character, killedMonster);
   const fizzleRefund = fizzled ? COMBAT.FIZZLE_STAMINA_REFUND : 0;
@@ -667,7 +732,10 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
     spiritCritMultiplier: abilityCrit.crit ? abilityCrit.multiplier : undefined,
     dodged: roundResult.dodged || undefined,
     monsterAttackType:
-      actualMonsterDamage > 0 ? (stateForRound.monster.attackType ?? 'physical') : undefined,
+      actualMonsterDamage > 0
+        ? effectiveAttackType(stateForRound.monster, resolution.monsterSpecial)
+        : undefined,
+    ...monsterSpecialLogFields(resolution.monsterSpecial, actualMonsterDamage, specialDrainHeal),
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -704,7 +772,10 @@ export function resolveAbilityAction(input: ActionInput): ActionResolution {
         monsterDamage: actualMonsterDamage,
         dodged: roundResult.dodged || undefined,
         monsterAttackType:
-          actualMonsterDamage > 0 ? (stateForRound.monster.attackType ?? 'physical') : undefined,
+          actualMonsterDamage > 0
+            ? effectiveAttackType(stateForRound.monster, resolution.monsterSpecial)
+            : undefined,
+        monsterSpecial: actualMonsterDamage > 0 ? resolution.monsterSpecial : null,
         playerDefFailed: resolution.playerDefFailed,
         spiritCrit: abilityCrit.crit || undefined,
         spiritCritMultiplier: abilityCrit.crit ? abilityCrit.multiplier : undefined,
@@ -815,7 +886,16 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
           hpAfterSummon,
           newMaxMonsterHp,
         );
-  const monsterHpFinalSpell = Math.min(newMaxMonsterHp, hpAfterSummon + vampiricHealSpell);
+  const specialDrainHealSpell = calcSpecialDrain(
+    resolution.monsterSpecial,
+    actualMonsterDamage,
+    hpAfterSummon + vampiricHealSpell,
+    newMaxMonsterHp,
+  );
+  const monsterHpFinalSpell = Math.min(
+    newMaxMonsterHp,
+    hpAfterSummon + vampiricHealSpell + specialDrainHealSpell,
+  );
 
   // Siphon: drain stamina each round the monster lands a hit. Applied AFTER
   // the spell's own restoreStamina effect so a "restore stamina" spell is not
@@ -900,7 +980,14 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
     monsterDotDamage: pre.dotDamage > 0 ? pre.dotDamage : undefined,
     dodged: roundResult.dodged || undefined,
     monsterAttackType:
-      actualMonsterDamage > 0 ? (stateForRound.monster.attackType ?? 'physical') : undefined,
+      actualMonsterDamage > 0
+        ? effectiveAttackType(stateForRound.monster, resolution.monsterSpecial)
+        : undefined,
+    ...monsterSpecialLogFields(
+      resolution.monsterSpecial,
+      actualMonsterDamage,
+      specialDrainHealSpell,
+    ),
     modifierNotes: modifierNotes.length > 0 ? modifierNotes : undefined,
   };
 
@@ -934,7 +1021,12 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
         monsterDamage: actualMonsterDamage,
         dodged: roundResult.dodged || undefined,
         monsterAttackType:
-          actualMonsterDamage > 0 ? (stateForRound.monster.attackType ?? 'physical') : undefined,
+          actualMonsterDamage > 0
+            ? effectiveAttackType(stateForRound.monster, resolution.monsterSpecial)
+            : undefined,
+        monsterSpecial: actualMonsterDamage > 0 ? resolution.monsterSpecial : null,
+        playerDefFailed: resolution.playerDefFailed,
+        outcome,
       },
     },
   };

@@ -60,8 +60,11 @@ for (const m of itemsSrc.matchAll(/^\s+classRestriction: '(all|warrior|wizard|ro
   spellClassCounts[m[1]]++;
 }
 
-// Monsters — top-level `id: '...',` lines (passive/active ids are inline, not line-start).
-const monsterCount = (read('src/lib/gameLogic/monsters.ts').match(/^\s+id: '[a-z0-9-]+',/gm) || [])
+// Monsters — top-level catalog entries only. Each MONSTER_CATALOG object's `id:`
+// sits at exactly 4-space indent; nested ids (specialMoves at 8 spaces, inline
+// passive/active ids) are deeper, so anchor to the 4-space indent to count just
+// the monsters.
+const monsterCount = (read('src/lib/gameLogic/monsters.ts').match(/^ {4}id: '[a-z0-9-]+',/gm) || [])
   .length;
 
 // Achievements — one `name:` per definition.

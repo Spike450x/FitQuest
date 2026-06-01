@@ -1,11 +1,16 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Die3D } from '@/components/ui/Die3D';
+import type { MonsterSpecialMove } from '@/types';
 
 /**
  * Shared monster counter-attack panel for the ability + spell overlays. Renders
  * the enemy's d10 counter with a consistent vocabulary across every action:
- * stun, dodge, physical/magic damage-type tag, DEF-fail, and the fallen state.
+ * stun, dodge, physical/magic damage-type tag, DEF-fail, special moves, and the
+ * fallen state. The die spins then settles so the enemy's roll is ALWAYS shown
+ * on a real counter (suppressed only on stun/dodge/kill, where no hit lands).
+ *
  * The attack overlay (`ActionRollOverlay`) keeps its own two-phase animated die
  * but uses the same labels so all surfaces read identically.
  */
@@ -16,6 +21,8 @@ export function MonsterCounterPanel({
   dodged,
   monsterAttackType = 'physical',
   playerDefFailed,
+  playerDefStat,
+  monsterSpecial,
   outcome,
 }: {
   monsterRoll: number;
@@ -24,9 +31,34 @@ export function MonsterCounterPanel({
   dodged?: boolean;
   monsterAttackType?: 'physical' | 'magic';
   playerDefFailed?: boolean;
+  /** Player's effective DEF — shown in the "DEF held" line for full parity with ActionRollOverlay. */
+  playerDefStat?: number;
+  /** Special move the monster fired on this counter (heavy / pierce / burst / drain). */
+  monsterSpecial?: MonsterSpecialMove | null;
   outcome?: 'win' | 'loss' | null;
 }) {
   const isMagic = monsterAttackType === 'magic';
+  const showDie = !monsterStunned && !dodged && outcome !== 'win';
+
+  // Spin the enemy die briefly, then settle on the rolled value — so the player
+  // always SEES the monster roll on a landed counter (parity with the attack
+  // overlay's two-phase die).
+  const [dieVal, setDieVal] = useState<number>(() => Math.ceil(Math.random() * 10));
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    if (!showDie) return;
+    setSettled(false);
+    const interval = setInterval(() => setDieVal(Math.ceil(Math.random() * 10)), 70);
+    const stop = setTimeout(() => {
+      clearInterval(interval);
+      setDieVal(monsterRoll || 1);
+      setSettled(true);
+    }, 520);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(stop);
+    };
+  }, [showDie, monsterRoll]);
 
   // A win means the monster died this round — no counter-attack happens.
   if (outcome === 'win') {
@@ -57,17 +89,34 @@ export function MonsterCounterPanel({
               <span className="text-rose-400"> · ⚔️ physical</span>
             )}
           </p>
+          {monsterSpecial && (
+            <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+              {monsterSpecial.emoji} {monsterSpecial.name}!
+            </p>
+          )}
           <div className="flex items-center justify-center gap-2 flex-wrap">
-            <Die3D value={monsterRoll || 1} size="sm" variant="settled" color="rose" />
+            <Die3D
+              value={dieVal}
+              size="sm"
+              variant={settled ? 'settled' : 'spinning'}
+              color="rose"
+            />
             <span className="text-sm font-semibold text-red-500">−{monsterDamage} HP</span>
             {isMagic ? (
               <span className="text-[11px] text-violet-400">ignores armor</span>
+            ) : monsterSpecial?.effect.kind === 'pierce' ? (
+              <span className="text-[11px] text-orange-500 font-semibold">🗡️ armor sundered</span>
             ) : playerDefFailed ? (
               <span className="text-[11px] text-orange-500 font-semibold">💥 DEF failed</span>
             ) : (
-              <span className="text-[11px] text-gray-400 dark:text-slate-500">🛡️ DEF held</span>
+              <span className="text-[11px] text-gray-400 dark:text-slate-500">
+                🛡️ {playerDefStat != null ? `${playerDefStat} ` : ''}DEF held
+              </span>
             )}
           </div>
+          {monsterSpecial?.effect.kind === 'drain' && (
+            <p className="text-[11px] text-fuchsia-500 font-semibold">🩸 drained your life</p>
+          )}
         </>
       )}
       {outcome === 'loss' && (

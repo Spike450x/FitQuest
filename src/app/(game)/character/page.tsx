@@ -44,6 +44,10 @@ export default function CharacterPage() {
   const isWizard = character.class === 'wizard';
   const dodgePct = Math.round(classDodgeChance(character) * 100);
   const magicTaken = CLASS_DAMAGE_TAKEN[character.class].magic;
+  // A sub-1 DEF multiplier means physical hits chip through harder than for a
+  // baseline class — the Wizard's real "fragile to physical" identity, which is
+  // otherwise invisible because its physical damage-taken multiplier is 1.0.
+  const defMult = classDef.statMultipliers.defense;
 
   // What each stat actually drives in combat — paired with the (now real)
   // class multiplier so the sheet matches the mechanics.
@@ -159,6 +163,17 @@ export default function CharacterPage() {
                   {magicTaken > 1
                     ? `Take ${Math.round((magicTaken - 1) * 100)}% more damage from magic attacks (they ignore your armor).`
                     : `Take ${Math.round((1 - magicTaken) * 100)}% less damage from magic attacks.`}
+                </p>
+              </div>
+            )}
+            {defMult < 1 && (
+              <div className="rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-100 dark:border-orange-900 px-3 py-2">
+                <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                  🛡️ Fragile Armor
+                </p>
+                <p className="text-xs text-orange-600/80 dark:text-orange-400/80">
+                  Your DEF counts as ×{defMult} in combat, so physical attacks chip through harder
+                  than for other classes. Lean on offense, dodge, or wards.
                 </p>
               </div>
             )}

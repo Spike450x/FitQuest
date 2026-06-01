@@ -4,9 +4,10 @@ import {
   effectivePlayerDefenseVsMonster,
   incomingMonsterDamage,
   rollD10,
+  rollMonsterSpecial,
 } from './combat';
 import { COMBAT } from './constants';
-import type { Character, MonsterDef } from '@/types';
+import type { Character, MonsterDef, MonsterSpecialMove } from '@/types';
 import { applySpellDamagePassives } from './passives';
 
 // ─── Spell charges (per-rarity scaling) ───────────────────────────────────────
@@ -119,6 +120,8 @@ export interface SpellResolution {
   playerDefFailed: boolean;
   /** The monster's raw d10 roll for the counter-attack (0 if stunned). */
   monsterRoll: number;
+  /** Special move the monster rolled on its counter (null when stunned/none fired). */
+  monsterSpecial: MonsterSpecialMove | null;
 }
 
 /**
@@ -171,8 +174,10 @@ export function resolveSpell(
   let monsterDamage = 0;
   let playerDefFailed = false;
   let monsterRoll = 0;
+  let monsterSpecial: MonsterSpecialMove | null = null;
   if (!monsterStunned) {
     monsterRoll = rollD10();
+    monsterSpecial = rollMonsterSpecial(monster);
     playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
     // Effective (class-scaled) DEF + gear − armor-pierce via the shared helper,
     // then the spell's own defenseBoost ward stacks on top (not pierced).
@@ -184,6 +189,7 @@ export function resolveSpell(
       monster,
       monster.attack + monsterRoll,
       effectiveDef,
+      monsterSpecial,
     );
   }
 
@@ -198,6 +204,7 @@ export function resolveSpell(
     monsterDamage,
     playerDefFailed,
     monsterRoll,
+    monsterSpecial,
   };
 }
 
