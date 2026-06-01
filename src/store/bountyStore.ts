@@ -4,7 +4,7 @@ import { fetchWithRetry, STORE_RETRY_DELAYS } from '@/lib/retry';
 import { fetchActiveBounties } from '@/lib/fetchPlayerData';
 import { addActiveBountyDoc, updateActiveBountyDoc } from '@/lib/bountyData';
 import { BOUNTY_POOL, getBountyDef, pickHuntMonster } from '@/lib/gameLogic/bounties';
-import { getDailyPick, dailyExpiresAt } from '@/lib/gameLogic/rotation';
+import { getDailyPick, rotationExpiresAt } from '@/lib/gameLogic/rotation';
 import { useCharacterStore } from './characterStore';
 import type { ActiveBounty, ActivityType, BountyDef } from '@/types';
 
@@ -115,7 +115,7 @@ export const useBountyStore = create<BountyStore>((set, get) => ({
           ...getDailyPick(HUNT_POOL, HUNT_COUNT, dateKey),
           ...getDailyPick(STANDING_POOL, STANDING_COUNT, dateKey),
         ];
-        const expiry = dailyExpiresAt();
+        const expiry = rotationExpiresAt();
         const playerLevel = useCharacterStore.getState().character?.level ?? 1;
 
         // Resolve + pin a level-scaled target for each hunt (stable per def+day).
