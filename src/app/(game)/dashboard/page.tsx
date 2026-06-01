@@ -170,7 +170,7 @@ export default function DashboardPage() {
       <QuickActions />
 
       {/* Lower three-column grid of collapsible sections */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
         {/* Stats overview — all seven */}
         <CollapsibleSection id="dash-stats" title="Stats">
           <div className="space-y-3">
@@ -310,6 +310,18 @@ function RecentActivityFeed({ logs, loading }: { logs: ActivityLog[]; loading: b
           ))}
         </ul>
       )}
+
+      {/* The feed is a recent window, not full history — make that explicit so
+          the type filter can't be mistaken for an all-time search. */}
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100 dark:border-slate-800">
+        <span className="text-xs text-gray-400 dark:text-slate-500">Most recent activity</span>
+        <Link
+          href="/calendar"
+          className="text-xs font-semibold text-indigo-600 hover:underline shrink-0"
+        >
+          Full history →
+        </Link>
+      </div>
     </div>
   );
 }

@@ -130,6 +130,26 @@ Only relevant once a provider is switched on. Cannot be exercised without live p
 
 ---
 
+## Dashboard & character sheet upgrade (2026-06-01)
+
+These authenticated screens aren't covered by the Playwright suite (no Firebase emulator in CI), so verify in the browser after touching `dashboard/page.tsx`, `character/page.tsx`, the shared character widgets, `QuickActions`, `CollapsibleSection`, or `uiPrefsStore`. Check in **both light and dark mode**.
+
+**Dashboard**
+
+1. Hero shows three resource bars — **Health**, **Stamina**, **Magic** — with values matching the character sheet and the in-combat pools.
+2. **Quick Actions → Edit** opens the customizer. Pin/unpin tiles: you can't drop below 2 or above 6 (disabled tiles dim). New pins appear at the end of the grid. **Reset to default** restores Log / Fight / Quests / Shop. Close and reopen the page — pins persist (localStorage).
+3. **Stats / Daily Quests / Recent Activity** collapse and expand; a collapsed section shrinks to its header (no stretched empty card) and the open/closed state survives a reload.
+4. Recent Activity: the **type filter** lists only activity types present; the **Newest/Oldest** toggle reorders; the **Full history →** link goes to `/calendar`.
+
+**Character sheet**
+
+5. `CharacterCard` shows all **7** stats plus the HP/Stamina/Magic bars; gear bonuses show the `+N gear` / `⚔ N in combat` suffixes.
+6. **Class Traits** and **How Stats Work** collapse independently (How Stats Work is collapsed by default). Collapsing one doesn't stretch its neighbor.
+7. **Personal Records**, **Career**, and **Achievements** sections render; Achievements shows the unlocked count, recent badges, and a working **View all →** link to `/collections`.
+8. Confirm `/profile` (Polymath) and `/stats` (Personal Records) still render correctly after the shared-component extraction.
+
+---
+
 ## Why this exists
 
 Build + tests + typecheck don't exercise the runtime auth flow or the middleware. A dependency bump can pass all CI checks and still break Firebase init or the route guard. This 4-step smoke catches those classes of regressions without needing test credentials, and runs in ≈2 minutes.

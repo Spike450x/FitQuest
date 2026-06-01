@@ -81,7 +81,7 @@ export default function CharacterPage() {
       <ReputationSection character={character} />
 
       {/* Combat reference — class traits + how stats work */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {/* Class traits — the real combat multipliers + class-only perks */}
         <CollapsibleSection
           id="char-traits"
