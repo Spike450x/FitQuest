@@ -9,10 +9,10 @@ import { useInventoryStore } from '@/store/inventoryStore';
 import { useStatsStore } from '@/store/statsStore';
 import { getItemById } from '@/lib/gameLogic/items';
 import { ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
-import { ACTIVITY_ICONS, ACTIVITY_COLORS } from '@/lib/activityIcons';
+import { ACTIVITY_COLORS } from '@/lib/activityIcons';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Card } from '@/components/ui/Card';
-import { EntityArt } from '@/components/art/EntityArt';
+import { PersonalRecords } from '@/components/character/PersonalRecords';
 import { useTheme } from '@/hooks/useTheme';
 import { getStreakTier, STREAK_TIERS } from '@/lib/gameLogic/streaks';
 import type { ActivityLog, ActiveQuest, InventoryItem, ActivityType, Character } from '@/types';
@@ -390,65 +390,10 @@ function StreakPanel({ character }: { character: Character }) {
 
 // ── Personal Records Panel ────────────────────────────────────────────────────
 
-const ACTIVITY_ORDER: ActivityType[] = ['run', 'workout', 'steps', 'sleep', 'water', 'nutrition'];
-
 function PersonalRecordsPanel({ character }: { character: Character }) {
-  const records = character.personalRecords ?? {};
-  const hasAny = ACTIVITY_ORDER.some((t) => records[t]);
-
   return (
     <ChartCard title="Personal Records">
-      {!hasAny ? (
-        <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-4">
-          No personal records yet — log activities to set your bests!
-        </p>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {ACTIVITY_ORDER.map((type) => {
-            const pr = records[type];
-            const def = ACTIVITY_DEFINITIONS[type];
-            return (
-              <div
-                key={type}
-                className={`rounded-xl p-3 border text-center ${
-                  pr
-                    ? 'bg-white border-gray-200 dark:border-slate-700'
-                    : 'bg-gray-50 dark:bg-slate-900 border-gray-100 dark:border-slate-800 opacity-50'
-                }`}
-              >
-                <div className="flex justify-center mb-1">
-                  <EntityArt
-                    category="activity"
-                    id={type}
-                    size="sm"
-                    fallbackEmoji={ACTIVITY_ICONS[type]}
-                    ariaLabel={def.label}
-                  />
-                </div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                  {def.label}
-                </p>
-                {pr ? (
-                  <>
-                    <p className="text-xl font-bold text-indigo-600">
-                      {pr.value % 1 === 0 ? pr.value : pr.value.toFixed(1)}
-                    </p>
-                    <p className="text-xs text-gray-400 dark:text-slate-500">{pr.unit}</p>
-                    <p className="text-xs text-gray-300 dark:text-slate-600 mt-1">
-                      {new Date(pr.loggedAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-300 dark:text-slate-600 font-medium">—</p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <PersonalRecords character={character} />
     </ChartCard>
   );
 }

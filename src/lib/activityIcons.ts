@@ -30,6 +30,21 @@ export const ACTIVITY_ICONS: Record<ActivityType, string> = {
 export const ACTIVITY_ICON_FALLBACK = '📋';
 
 /**
+ * Canonical display order for activity types. Shared by the personal-records
+ * grid and any other surface that iterates all activities, so the ordering is
+ * consistent everywhere (and never silently drops `meditation`).
+ */
+export const ACTIVITY_ORDER: ActivityType[] = [
+  'workout',
+  'run',
+  'steps',
+  'sleep',
+  'water',
+  'nutrition',
+  'meditation',
+];
+
+/**
  * Brand color per activity type. Single source of truth shared by the stats
  * charts and the activity calendar so the two surfaces never drift.
  */

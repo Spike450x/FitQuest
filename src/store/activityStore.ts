@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import { subscribeToRecentActivity } from '@/lib/activityData';
 import type { ActivityLog } from '@/types';
 
-const RECENT_COUNT = 5;
+// Feeds the dashboard activity list. Kept a touch larger than the visible
+// default so the in-feed type filter / sort has something to work with.
+const RECENT_COUNT = 12;
 
 interface ActivityStore {
   recentLogs: ActivityLog[];

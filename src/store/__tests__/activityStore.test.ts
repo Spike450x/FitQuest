@@ -26,7 +26,7 @@ describe('activityStore.subscribe', () => {
     expect(subscribeToRecentActivityMock).toHaveBeenCalledTimes(1);
     expect(subscribeToRecentActivityMock).toHaveBeenCalledWith(
       'uid1',
-      5,
+      12,
       expect.any(Function),
       expect.any(Function),
     );

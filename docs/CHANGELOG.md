@@ -15,6 +15,16 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-06-01 — Dashboard + character sheet upgrade
+
+- **Consistent combat readiness** — new shared `ResourceBars` (HP / Stamina / Magic) on the dashboard hero **and** the character card (Stamina alone before); all 7 stats now render on both surfaces via a shared `statConfig` (only 4 of 7 showed before). Every value comes from the same `combat.ts` helpers the battle engine uses, so the dashboard, character card and arena can't disagree.
+- **Customizable Quick Actions** — the dashboard's static 4-tile grid is now a player-pinned grid (`QuickActions` + new `uiPrefsStore`, backed by a `quickActions.ts` catalog of 10 destinations; pin 2–6, reset to default). Mirrors the nav-customizer pattern; prefs persist per-device in localStorage.
+- **Collapsible sections + activity filter/sort** — new `CollapsibleSection` (accessible, animated, open state persisted per-id) groups the dashboard's Stats / Daily Quests / Recent Activity and the character sheet's Class Traits / How Stats Work / progression blocks. The recent-activity feed gains a type filter + newest/oldest sort (feed bumped 5 → 12 logs to make filtering useful).
+- **Character-sheet progression depth** — added Mastery/Polymath, Personal Records, a Career totals snapshot (battles won, monsters slain, quests claimed, bounties, longest streak, days adventuring) and an Achievements showcase (count + recent badges + deep link to `/collections`).
+- **De-duplication** — `MasteryProgress` (was inline on `/profile`), `PersonalRecords` (was inline on `/stats`) and `ACTIVITY_ORDER` (was a stats-local 6-item list missing meditation) are now shared modules; profile and stats consume them, keeping the `polymath-progress` e2e testid intact.
+- **Polish** — collapsible-section grids use `items-start` so a collapsed card shrinks to its header instead of leaving a stretched empty box; the recent-activity feed gained a "Most recent activity · Full history →" footer (links to `/calendar`) so the type filter reads as a recent window, not an all-time search. Manual-verification steps added to `docs/SMOKE-TEST.md`.
+- Pure UI / store work — no Firestore, rules, or Cloud Function change. +21 vitest specs (1072 → 1088); typecheck, lint, and a clean production build all green.
+
 ## 2026-06-01 — CombatControls extraction (3-page combat dedup)
 
 - **`CombatControls`** — new shared component (`src/components/combat/CombatControls.tsx`) that renders the outcome-gated `CombatActionBar` + `CombatOverlays` and maps `encounter.actions.*` → the action-bar `on*` handlers in one place. The arena, dungeon-run, and hunt pages all mount it instead of each spelling out the ~18-prop action bar + the overlays block.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useGameData } from '@/hooks/useGameData';
@@ -11,78 +11,22 @@ import { resolveActiveTitle } from '@/lib/gameLogic/reputation';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { StatBar } from '@/components/character/StatBar';
+import { ResourceBars } from '@/components/character/ResourceBars';
+import { STAT_BAR_CONFIG, STAT_BAR_MAX } from '@/components/character/statConfig';
+import { QuickActions } from '@/components/dashboard/QuickActions';
 import { CLASS_DEFINITIONS, ACTIVITY_DEFINITIONS } from '@/lib/gameLogic/constants';
-import { playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
+import { totalGearBonuses } from '@/lib/gameLogic/combat';
 import { getStreakTier } from '@/lib/gameLogic/streaks';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
 import { getActivityIconSvg } from '@/lib/activityIcons';
-import { LogActivityIcon, CombatIcon, QuestIcon, ShopIcon } from '@/components/art/action-icons';
-import { StrengthIcon, WisdomIcon, AgilityIcon, SpiritIcon } from '@/components/art/stat-icons';
 import { getQuestDef } from '@/lib/gameLogic/quests';
 import { StatAllocModal } from '@/components/character/StatAllocModal';
 import { SubclassModal } from '@/components/character/SubclassModal';
 import { getSubclassDef } from '@/lib/gameLogic/passives';
-import type { ActivityLog, ActiveQuest } from '@/types';
-
-const QUICK_ACTIONS = [
-  {
-    href: '/activities',
-    label: 'Log Activity',
-    icon: <LogActivityIcon className="w-8 h-8" />,
-    desc: 'Earn XP & stats',
-  },
-  {
-    href: '/combat',
-    label: 'Fight a Monster',
-    icon: <CombatIcon className="w-8 h-8" />,
-    desc: 'Win gold & loot',
-  },
-  {
-    href: '/quests',
-    label: 'View Quests',
-    icon: <QuestIcon className="w-8 h-8" />,
-    desc: 'Track your goals',
-  },
-  {
-    href: '/shop',
-    label: 'Visit Shop',
-    icon: <ShopIcon className="w-8 h-8" />,
-    desc: 'Spend your gold',
-  },
-];
-
-const STAT_CONFIG = [
-  {
-    key: 'strength' as const,
-    label: 'Strength',
-    icon: <StrengthIcon className="w-4 h-4 text-red-500" />,
-    color: 'bg-red-400',
-    max: 50,
-  },
-  {
-    key: 'wisdom' as const,
-    label: 'Wisdom',
-    icon: <WisdomIcon className="w-4 h-4 text-blue-500" />,
-    color: 'bg-blue-400',
-    max: 50,
-  },
-  {
-    key: 'agility' as const,
-    label: 'Agility',
-    icon: <AgilityIcon className="w-4 h-4 text-teal-500" />,
-    color: 'bg-teal-400',
-    max: 50,
-  },
-  {
-    key: 'spirit' as const,
-    label: 'Spirit',
-    icon: <SpiritIcon className="w-4 h-4 text-violet-500" />,
-    color: 'bg-violet-400',
-    max: 50,
-  },
-];
+import type { ActivityLog, ActiveQuest, ActivityType } from '@/types';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -115,7 +59,6 @@ export default function DashboardPage() {
     () => (character ? totalGearBonuses(character.equippedGear) : {}),
     [character],
   );
-  const maxStamina = useMemo(() => (character ? playerMaxStamina(character) : 0), [character]);
 
   if (loading) return <LoadingSkeleton />;
 
@@ -133,7 +76,6 @@ export default function DashboardPage() {
   }
 
   const classDef = CLASS_DEFINITIONS[character.class];
-  const currentStamina = character.currentStamina ?? maxStamina;
   const dailyQuests = quests.filter((q) => getQuestDef(q.questDefId)?.type === 'daily');
   const currentStreak = character.streakData?.currentStreak ?? 0;
   const streakTier = getStreakTier(currentStreak);
@@ -218,61 +160,21 @@ export default function DashboardPage() {
         </div>
         <XPBar xp={character.xp} level={character.level} xpToNextLevel={character.xpToNextLevel} />
 
-        {/* Stamina bar */}
-        <div className="space-y-1 mt-3">
-          <div className="flex justify-between items-center text-sm">
-            <span className="flex items-center gap-1.5 text-gray-700 dark:text-slate-200">
-              <span>⚡</span>
-              <span className="font-medium text-sm">Stamina</span>
-            </span>
-            <span className="text-gray-700 dark:text-slate-200 font-semibold text-sm tabular-nums">
-              {currentStamina}
-              <span className="text-gray-400 dark:text-slate-500 font-normal text-xs">
-                {' '}
-                / {maxStamina}
-              </span>
-            </span>
-          </div>
-          <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-amber-400 to-amber-500"
-              style={{ width: `${Math.min((currentStamina / maxStamina) * 100, 100)}%` }}
-            />
-          </div>
+        {/* Combat resources — HP / Stamina / Magic */}
+        <div className="mt-3">
+          <ResourceBars character={character} />
         </div>
       </Card>
 
-      {/* Quick actions */}
-      <div>
-        <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-3 uppercase tracking-wider">
-          Quick Actions
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {QUICK_ACTIONS.map(({ href, label, icon, desc }) => (
-            <Link
-              key={href}
-              href={href}
-              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 hover:border-indigo-300 hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.02] rounded-xl p-4 text-center transition-all duration-200 group"
-            >
-              <div className="text-2xl mb-2 transition-transform group-hover:scale-110">{icon}</div>
-              <p className="text-sm font-medium text-gray-800 dark:text-slate-100 group-hover:text-indigo-600 transition-colors">
-                {label}
-              </p>
-              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{desc}</p>
-            </Link>
-          ))}
-        </div>
-      </div>
+      {/* Customizable quick actions */}
+      <QuickActions />
 
-      {/* Lower three-column grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Stats overview */}
-        <Card variant="default" padding="lg">
-          <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-4 uppercase tracking-wider">
-            Stats
-          </h3>
+      {/* Lower three-column grid of collapsible sections */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+        {/* Stats overview — all seven */}
+        <CollapsibleSection id="dash-stats" title="Stats">
           <div className="space-y-3">
-            {STAT_CONFIG.map(({ key, label, icon, color, max }) => {
+            {STAT_BAR_CONFIG.map(({ key, label, icon, color }) => {
               const base = character.stats[key] ?? 0;
               const bonus = gearBonuses[key] ?? 0;
               return (
@@ -280,7 +182,7 @@ export default function DashboardPage() {
                   key={key}
                   label={label}
                   value={base + bonus}
-                  max={max}
+                  max={STAT_BAR_MAX}
                   color={color}
                   icon={icon}
                   suffix={bonus > 0 ? `+${bonus} gear` : undefined}
@@ -288,51 +190,31 @@ export default function DashboardPage() {
               );
             })}
           </div>
-        </Card>
+        </CollapsibleSection>
 
         {/* Active quests widget */}
-        <ActiveQuestsWidget quests={dailyQuests} loading={questsLoading} />
+        <CollapsibleSection
+          id="dash-quests"
+          title="Daily Quests"
+          right={
+            <Link href="/quests" className="text-xs font-semibold text-indigo-600 hover:underline">
+              View all →
+            </Link>
+          }
+        >
+          <QuestList quests={dailyQuests} loading={questsLoading} />
+        </CollapsibleSection>
 
-        {/* Recent activity feed */}
-        <Card variant="default" padding="lg">
-          <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-3 uppercase tracking-wider">
-            Recent Activity
-          </h3>
-          {logsLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} height="h-10" />
-              ))}
-            </div>
-          ) : logs.length === 0 ? (
-            <div className="text-center py-4">
-              <div className="text-2xl mb-1" aria-hidden="true">
-                📭
-              </div>
-              <p className="text-sm font-medium text-gray-600 dark:text-slate-300">
-                No activities yet
-              </p>
-              <Link
-                href="/activities"
-                className="inline-block mt-1 text-xs font-semibold text-indigo-600 hover:underline"
-              >
-                Log your first one →
-              </Link>
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {logs.map((log) => (
-                <ActivityFeedItem key={log.id} log={log} />
-              ))}
-            </ul>
-          )}
-        </Card>
+        {/* Recent activity feed with filter + sort */}
+        <CollapsibleSection id="dash-activity" title="Recent Activity">
+          <RecentActivityFeed logs={logs} loading={logsLoading} />
+        </CollapsibleSection>
       </div>
     </div>
   );
 }
 
-// ─── Activity Feed Item ───────────────────────────────────────────────────────
+// ─── Recent Activity Feed ─────────────────────────────────────────────────────
 
 function timeAgo(ms: number): string {
   const seconds = Math.floor((Date.now() - ms) / 1000);
@@ -342,6 +224,106 @@ function timeAgo(ms: number): string {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
+}
+
+function RecentActivityFeed({ logs, loading }: { logs: ActivityLog[]; loading: boolean }) {
+  const [filter, setFilter] = useState<ActivityType | 'all'>('all');
+  const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
+
+  // Activity types actually present, for a tidy filter dropdown.
+  const presentTypes = useMemo(() => {
+    const set = new Set<ActivityType>();
+    logs.forEach((l) => set.add(l.type));
+    return Array.from(set);
+  }, [logs]);
+
+  const visible = useMemo(() => {
+    const filtered = filter === 'all' ? logs : logs.filter((l) => l.type === filter);
+    return [...filtered].sort((a, b) =>
+      sort === 'newest' ? b.loggedAt - a.loggedAt : a.loggedAt - b.loggedAt,
+    );
+  }, [logs, filter, sort]);
+
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} height="h-10" />
+        ))}
+      </div>
+    );
+  }
+
+  if (logs.length === 0) {
+    return (
+      <div className="text-center py-4">
+        <div className="text-2xl mb-1" aria-hidden="true">
+          📭
+        </div>
+        <p className="text-sm font-medium text-gray-600 dark:text-slate-300">No activities yet</p>
+        <Link
+          href="/activities"
+          className="inline-block mt-1 text-xs font-semibold text-indigo-600 hover:underline"
+        >
+          Log your first one →
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Filter + sort controls */}
+      <div className="flex items-center gap-2">
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as ActivityType | 'all')}
+          aria-label="Filter activities by type"
+          className="flex-1 min-w-0 text-xs rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-700 dark:text-slate-200 px-2 py-1.5"
+        >
+          <option value="all">All activities</option>
+          {presentTypes.map((t) => (
+            <option key={t} value={t}>
+              {ACTIVITY_DEFINITIONS[t].label}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => setSort((s) => (s === 'newest' ? 'oldest' : 'newest'))}
+          className="shrink-0 text-xs font-medium rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-600 dark:text-slate-300 px-2.5 py-1.5 hover:border-indigo-300 transition-colors"
+          title="Toggle sort order"
+        >
+          {sort === 'newest' ? '↓ Newest' : '↑ Oldest'}
+        </button>
+      </div>
+
+      {visible.length === 0 ? (
+        <p className="text-xs text-gray-400 dark:text-slate-500 text-center py-2">
+          No {filter === 'all' ? '' : ACTIVITY_DEFINITIONS[filter as ActivityType].label} activities
+          in this range.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {visible.map((log) => (
+            <ActivityFeedItem key={log.id} log={log} />
+          ))}
+        </ul>
+      )}
+
+      {/* The feed is a recent window, not full history — make that explicit so
+          the type filter can't be mistaken for an all-time search. */}
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100 dark:border-slate-800">
+        <span className="text-xs text-gray-400 dark:text-slate-500">Most recent activity</span>
+        <Link
+          href="/calendar"
+          className="text-xs font-semibold text-indigo-600 hover:underline shrink-0"
+        >
+          Full history →
+        </Link>
+      </div>
+    </div>
+  );
 }
 
 function ActivityFeedItem({ log }: { log: ActivityLog }) {
@@ -383,49 +365,45 @@ function ActivityFeedItem({ log }: { log: ActivityLog }) {
   );
 }
 
-// ─── Active Quests Widget ─────────────────────────────────────────────────────
+// ─── Daily Quests list ────────────────────────────────────────────────────────
 
-function ActiveQuestsWidget({ quests, loading }: { quests: ActiveQuest[]; loading: boolean }) {
-  return (
-    <Card variant="default" padding="lg">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
-          Daily Quests
-        </h3>
-        <Link href="/quests" className="text-xs font-semibold text-indigo-600 hover:underline">
-          View all →
+function QuestList({ quests, loading }: { quests: ActiveQuest[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="space-y-1.5">
+            <Skeleton shape="line" width="w-3/4" />
+            <Skeleton shape="line" height="h-1.5" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (quests.length === 0) {
+    return (
+      <div className="text-center py-4">
+        <div className="text-2xl mb-1" aria-hidden="true">
+          🗺️
+        </div>
+        <p className="text-sm font-medium text-gray-600 dark:text-slate-300">No active quests</p>
+        <Link
+          href="/quests"
+          className="inline-block mt-1 text-xs font-semibold text-indigo-600 hover:underline"
+        >
+          Visit the quest board →
         </Link>
       </div>
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="space-y-1.5">
-              <Skeleton shape="line" width="w-3/4" />
-              <Skeleton shape="line" height="h-1.5" />
-            </div>
-          ))}
-        </div>
-      ) : quests.length === 0 ? (
-        <div className="text-center py-4">
-          <div className="text-2xl mb-1" aria-hidden="true">
-            🗺️
-          </div>
-          <p className="text-sm font-medium text-gray-600 dark:text-slate-300">No active quests</p>
-          <Link
-            href="/quests"
-            className="inline-block mt-1 text-xs font-semibold text-indigo-600 hover:underline"
-          >
-            Visit the quest board →
-          </Link>
-        </div>
-      ) : (
-        <ul className="space-y-3">
-          {quests.map((q) => (
-            <QuestProgressRow key={q.id} quest={q} />
-          ))}
-        </ul>
-      )}
-    </Card>
+    );
+  }
+
+  return (
+    <ul className="space-y-3">
+      {quests.map((q) => (
+        <QuestProgressRow key={q.id} quest={q} />
+      ))}
+    </ul>
   );
 }
 

@@ -3,6 +3,21 @@
 > Source audit: ui-critic agent, 2026-05-21.
 > Goal: make FitQuest look and feel like a modern game, not an admin dashboard.
 
+> **2026-06-01 — Dashboard + character sheet upgrade.** Three reusable UI patterns landed.
+> (1) **`CollapsibleSection`** — a Card-wrapped, accessible (`aria-expanded`/`aria-controls`,
+> keyboard), framer-motion expand/collapse whose open state persists per-id in `uiPrefsStore`;
+> groups the dashboard's Stats / Daily Quests / Recent Activity and the character sheet's Class
+> Traits / How Stats Work / progression blocks so the long pages stay scannable (esp. mobile).
+> (2) **Customizable Quick Actions** — the dashboard's static 4-tile grid became a pinnable grid
+> (`QuickActions` + editor `Modal`) backed by `quickActions.ts` (10 destinations, lucide icons
+> matching the nav) and `uiPrefsStore` (pin 2–6, reset to default). (3) **`ResourceBars`** — a
+> shared HP / Stamina / Magic trio shown on the dashboard hero **and** `CharacterCard` (Stamina
+> alone before), with all 7 stat bars now consistent across both via shared `statConfig`. The
+> character sheet gained progression widgets (`MasteryProgress`, `PersonalRecords`, a
+> `LifetimeTotals` career snapshot, `AchievementsShowcase`), and the recent-activity feed gained a
+> type filter + newest/oldest sort. `MasteryProgress`/`PersonalRecords` are now shared with
+> `/profile` and `/stats` (de-duplicated).
+
 > **2026-05-31 — Character sheet "Class Traits" + dodge feedback.** The character page
 > (`src/app/(game)/character/page.tsx`) replaced the decorative per-stat "×mult" grid with an
 > honest **Class Traits** panel: each stat multiplier paired with what it drives in combat,

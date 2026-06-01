@@ -4,39 +4,12 @@ import { XPBar } from '@/components/ui/XPBar';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
 import { EntityArt } from '@/components/art/EntityArt';
 import { StatBar } from './StatBar';
+import { ResourceBars } from './ResourceBars';
+import { STAT_BAR_CONFIG, STAT_BAR_MAX } from './statConfig';
 import { CLASS_DEFINITIONS } from '@/lib/gameLogic/constants';
-import { effectiveStat, playerMaxStamina, totalGearBonuses } from '@/lib/gameLogic/combat';
+import { effectiveStat, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { getItemById, RARITY_TEXT } from '@/lib/gameLogic/items';
-import { StrengthIcon, WisdomIcon, AgilityIcon, SpiritIcon } from '@/components/art/stat-icons';
 import type { Character, CharacterClass } from '@/types';
-
-// The four primary combat stats shown as bars
-const STAT_CONFIG = [
-  {
-    key: 'strength' as const,
-    label: 'Strength',
-    icon: <StrengthIcon className="w-4 h-4 text-red-500" />,
-    color: 'bg-red-400',
-  },
-  {
-    key: 'wisdom' as const,
-    label: 'Wisdom',
-    icon: <WisdomIcon className="w-4 h-4 text-blue-500" />,
-    color: 'bg-blue-400',
-  },
-  {
-    key: 'agility' as const,
-    label: 'Agility',
-    icon: <AgilityIcon className="w-4 h-4 text-teal-500" />,
-    color: 'bg-teal-400',
-  },
-  {
-    key: 'spirit' as const,
-    label: 'Spirit',
-    icon: <SpiritIcon className="w-4 h-4 text-violet-500" />,
-    color: 'bg-violet-400',
-  },
-];
 
 // Class-themed portrait frame palette. Keeps identity moments distinct per
 // class without commissioning per-class character art.
@@ -72,8 +45,6 @@ export function CharacterCard({ character }: CharacterCardProps) {
   const classDef = CLASS_DEFINITIONS[character.class];
   const theme = CLASS_THEME[character.class];
   const gearBonuses = totalGearBonuses(character.equippedGear);
-  const maxStamina = playerMaxStamina(character);
-  const currentStamina = character.currentStamina ?? maxStamina;
 
   return (
     <div className="relative bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
@@ -122,35 +93,15 @@ export function CharacterCard({ character }: CharacterCardProps) {
         {/* XP Bar */}
         <XPBar xp={character.xp} level={character.level} xpToNextLevel={character.xpToNextLevel} />
 
-        {/* Stamina bar */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-sm">
-            <span className="flex items-center gap-1.5 text-gray-700 dark:text-slate-200">
-              <span>⚡</span>
-              <span className="font-medium">Stamina</span>
-            </span>
-            <span className="text-gray-700 dark:text-slate-200 font-semibold text-sm tabular-nums">
-              {currentStamina}
-              <span className="text-gray-400 dark:text-slate-500 font-normal text-xs">
-                {' '}
-                / {maxStamina}
-              </span>
-            </span>
-          </div>
-          <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-amber-400 to-amber-500"
-              style={{ width: `${Math.min((currentStamina / maxStamina) * 100, 100)}%` }}
-            />
-          </div>
-        </div>
+        {/* Combat resources — HP / Stamina / Magic */}
+        <ResourceBars character={character} />
 
         {/* Primary stat bars */}
         <div className="space-y-3 pt-1 border-t border-gray-100 dark:border-slate-800">
           <p className="text-xs text-gray-400 dark:text-slate-500 font-semibold uppercase tracking-wider pt-1">
             Stats
           </p>
-          {STAT_CONFIG.map(({ key, label, icon, color }) => {
+          {STAT_BAR_CONFIG.map(({ key, label, icon, color }) => {
             const base = character.stats[key] ?? 0;
             const bonus = gearBonuses[key] ?? 0;
             // Effective combat value = class-scaled base + flat gear. Surfaced
@@ -166,7 +117,7 @@ export function CharacterCard({ character }: CharacterCardProps) {
                 key={key}
                 label={label}
                 value={base + bonus}
-                max={50}
+                max={STAT_BAR_MAX}
                 color={color}
                 icon={icon}
                 suffix={suffix}
