@@ -230,6 +230,16 @@ export function BattleLogEntry({
         </>
       )}
 
+      {/* Monster special move — heavy / pierce / burst / drain. */}
+      {entry.monsterSpecialName && (
+        <p className="text-amber-600 dark:text-amber-400 font-medium">
+          {entry.monsterSpecialEmoji} {entry.monsterSpecialName}!
+          {(entry.monsterSpecialDrain ?? 0) > 0 && (
+            <span className="text-fuchsia-500"> · 🩸 +{entry.monsterSpecialDrain} HP</span>
+          )}
+        </p>
+      )}
+
       {/* Rogue dodge — fully negated the monster's hit this round. */}
       {entry.dodged && (
         <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>

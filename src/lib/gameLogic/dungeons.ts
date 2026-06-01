@@ -115,6 +115,15 @@ export const DUNGEON_BOSSES: Record<DungeonTierId, DungeonBossDef> = {
     description: 'The self-styled king of the caves. Crude but dangerous.',
     enrageTriggerPct: null,
     enrageDescription: null,
+    specialMoves: [
+      {
+        id: 'royal-smash',
+        name: 'Royal Smash',
+        emoji: '👑',
+        chance: 0.15,
+        effect: { kind: 'heavy', multiplier: 1.6 },
+      },
+    ],
   },
   'spider-lair': {
     id: 'boss-broodmother',
@@ -135,6 +144,15 @@ export const DUNGEON_BOSSES: Record<DungeonTierId, DungeonBossDef> = {
     description: 'The nest-mother. She grows stronger when threatened.',
     enrageTriggerPct: 0.25,
     enrageDescription: 'Enraged — +5 ATK permanently',
+    specialMoves: [
+      {
+        id: 'bloodfeast',
+        name: 'Bloodfeast',
+        emoji: '🕷️',
+        chance: 0.15,
+        effect: { kind: 'drain', pct: 30 },
+      },
+    ],
   },
   'dark-sanctum': {
     id: 'boss-necromancer',
@@ -156,6 +174,15 @@ export const DUNGEON_BOSSES: Record<DungeonTierId, DungeonBossDef> = {
     description: "The Sanctum's master. At half HP a dark shield envelops him.",
     enrageTriggerPct: 0.5,
     enrageDescription: 'Necro Shield active — absorbing up to 30 damage',
+    specialMoves: [
+      {
+        id: 'death-coil',
+        name: 'Death Coil',
+        emoji: '💀',
+        chance: 0.18,
+        effect: { kind: 'drain', pct: 35 },
+      },
+    ],
   },
   'dragons-keep': {
     id: 'boss-dragon-king',
@@ -179,6 +206,24 @@ export const DUNGEON_BOSSES: Record<DungeonTierId, DungeonBossDef> = {
     description: 'An ancient dragon-king. At 30% HP he ignores your armor for 3 rounds.',
     enrageTriggerPct: 0.3,
     enrageDescription: 'Dragon Enraged — ignoring DEF for 3 rounds',
+    // Stays physical baseline so the 30%-HP ignore-DEF enrage remains meaningful;
+    // a `burst` special lets dragonfire occasionally land as armor-ignoring magic.
+    specialMoves: [
+      {
+        id: 'cataclysm',
+        name: 'Cataclysm',
+        emoji: '☄️',
+        chance: 0.15,
+        effect: { kind: 'heavy', multiplier: 1.8 },
+      },
+      {
+        id: 'dragonfire-breath',
+        name: 'Dragonfire',
+        emoji: '🔥',
+        chance: 0.12,
+        effect: { kind: 'burst' },
+      },
+    ],
   },
 };
 

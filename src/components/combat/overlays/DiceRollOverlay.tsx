@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Die3D } from '@/components/ui/Die3D';
 import { playSound } from '@/hooks/useSound';
 import type { AbilityDef, DicePattern } from '@/lib/gameLogic/abilities';
+import type { MonsterSpecialMove } from '@/types';
 import { getHighlightedDiceIndices, PATTERN_LABEL, abilityTags } from '../AbilityReference';
 import { MonsterCounterPanel, CritFlourish } from './MonsterCounterPanel';
 
@@ -32,6 +33,8 @@ export function DiceRollOverlay({
   dodged,
   monsterAttackType,
   playerDefFailed,
+  playerDefStat,
+  monsterSpecial,
   spiritCrit,
   spiritCritMultiplier,
   outcome,
@@ -54,6 +57,10 @@ export function DiceRollOverlay({
   monsterAttackType?: 'physical' | 'magic';
   /** Player's DEF failed on the counter (physical only). */
   playerDefFailed?: boolean;
+  /** Player's effective DEF — shown in the "DEF held" counter line. */
+  playerDefStat?: number;
+  /** Special move the monster fired on its counter (heavy / pierce / burst / drain). */
+  monsterSpecial?: MonsterSpecialMove | null;
   /** Spirit crit fired on the ability's damage. */
   spiritCrit?: boolean;
   /** Multiplier applied when spiritCrit fired. */
@@ -251,6 +258,8 @@ export function DiceRollOverlay({
               dodged={dodged}
               monsterAttackType={monsterAttackType}
               playerDefFailed={playerDefFailed}
+              playerDefStat={playerDefStat}
+              monsterSpecial={monsterSpecial}
               outcome={outcome}
             />
           </div>

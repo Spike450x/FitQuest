@@ -110,7 +110,11 @@ export function ActionRollOverlay({
   const isMonsterPhase = phase === 'monster_spin' || phase === 'monster_result';
   const isWin = pending.outcome === 'win';
   const isLoss = pending.outcome === 'loss';
-  const isMagicMonster = (monster.attackType ?? 'physical') === 'magic';
+  // The counter's effective school — a `burst` special turns a physical monster's
+  // hit into magic, so prefer the resolved `monsterAttackType` from the payload.
+  const isMagicMonster =
+    (pending.monsterAttackType ?? monster.attackType ?? 'physical') === 'magic';
+  const special = pending.monsterSpecial;
 
   const headerText = isRun
     ? phase === 'run_spin'
@@ -220,6 +224,11 @@ export function ActionRollOverlay({
             )
           ) : isMonsterPhase ? (
             <div className="space-y-2">
+              {special && (
+                <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                  {special.emoji} {special.name}!
+                </p>
+              )}
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 <span
                   className={`font-semibold ${isMagicMonster ? 'text-violet-500' : 'text-rose-500'}`}
@@ -228,6 +237,8 @@ export function ActionRollOverlay({
                 </span>
                 {isMagicMonster ? (
                   <span className="text-violet-400 font-semibold text-sm">· ignores armor</span>
+                ) : special?.effect.kind === 'pierce' ? (
+                  <span className="text-orange-500 font-semibold text-sm">· 🗡️ armor sundered</span>
                 ) : isRecovery ? (
                   <span className="text-orange-500 font-semibold text-sm">· 💥 Free attack!</span>
                 ) : pending.playerDefFailed ? (

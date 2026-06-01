@@ -6,7 +6,7 @@ import { playSound } from '@/hooks/useSound';
 import { describeRequirement, getHighlightedSpellDiceIndices } from '@/lib/gameLogic/spells';
 import { MonsterCounterPanel } from './MonsterCounterPanel';
 import { spellEffectKey } from '@/lib/entityArt';
-import type { ItemDef } from '@/types';
+import type { ItemDef, MonsterSpecialMove } from '@/types';
 import type { SpellEffectKey } from '@/components/art/silhouettes';
 import type { SoundKey } from '@/hooks/useSound';
 
@@ -48,6 +48,10 @@ export function SpellRollOverlay({
   monsterDamage,
   dodged,
   monsterAttackType,
+  playerDefFailed,
+  playerDefStat,
+  monsterSpecial,
+  outcome,
   onDismiss,
 }: {
   spellDef: ItemDef;
@@ -63,6 +67,14 @@ export function SpellRollOverlay({
   dodged?: boolean;
   /** Damage school of the monster's counter (drives the 🔮/⚔️ tag). */
   monsterAttackType?: 'physical' | 'magic';
+  /** Player's DEF failed on the counter (physical only — surfaces 💥). */
+  playerDefFailed?: boolean;
+  /** Player's effective DEF — shown in the "DEF held" counter line. */
+  playerDefStat?: number;
+  /** Special move the monster fired on its counter (heavy / pierce / burst / drain). */
+  monsterSpecial?: MonsterSpecialMove | null;
+  /** Fight outcome after this round resolves — drives the "Monster slain!" panel. */
+  outcome?: 'win' | 'loss' | null;
   onDismiss: () => Promise<void>;
 }) {
   const sm = spellDef.spellMechanics!;
@@ -222,6 +234,10 @@ export function SpellRollOverlay({
             monsterStunned={monsterStunned}
             dodged={dodged}
             monsterAttackType={monsterAttackType}
+            playerDefFailed={playerDefFailed}
+            playerDefStat={playerDefStat}
+            monsterSpecial={monsterSpecial}
+            outcome={outcome}
           />
 
           <button

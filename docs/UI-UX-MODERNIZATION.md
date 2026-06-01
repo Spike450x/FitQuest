@@ -18,6 +18,18 @@
 > `SpellRollOverlay` honors Rogue dodge, and the character sheet gains a Weak-to-Magic /
 > Magic-Ward perk callout for classes whose magic mitigation isn't neutral.
 
+> **2026-06-01 — Monster special moves + always-visible enemy roll.** The shared
+> `MonsterCounterPanel` (ability + spell overlays) now **animates the monster's d10 counter**
+> (spin → settle) instead of showing a tiny static die — the enemy roll is always visible on a
+> landed counter (suppressed only on stun/dodge/kill). It also shows the numeric DEF value
+> (parity with `ActionRollOverlay`) and a new amber special-move banner. **Monster special
+> moves** — heavy / pierce (🗡️ armor sundered) / burst (🔮 magic) / drain (🩸 life leech) —
+> surface in all three overlays, `BattleLogEntry`, `LastActionSummary`, and as planning chips on
+> `MonsterCard`. `SpellRollOverlay` now also receives `outcome` + `playerDefFailed` so a spell
+> kill shows "🏆 Monster slain!" (not a dead-monster counter) and DEF-fail reads correctly. The
+> character sheet gains a **🛡️ Fragile Armor** callout for sub-1 DEF-multiplier classes (the
+> Wizard's physical fragility).
+
 > **2026-05-31 — Combat overlay consistency pass.** The three roll overlays are now dispatched
 > through one `CombatOverlays` component mounted by every combat surface (arena, dungeon run,
 > wanted hunt), replacing a copy-pasted block per page. The **ability overlay (`DiceRollOverlay`)

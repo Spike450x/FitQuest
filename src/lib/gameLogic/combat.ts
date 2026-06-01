@@ -1,6 +1,6 @@
 import { COMBAT, CLASS_DEFINITIONS, CLASS_DAMAGE_TAKEN } from './constants';
 import { getItemById } from './items';
-import type { Character, EquippedGear, MonsterDef, Stats } from '@/types';
+import type { Character, EquippedGear, MonsterDef, MonsterSpecialMove, Stats } from '@/types';
 import {
   getEscapeBonus,
   hasSureEscape,
@@ -191,6 +191,19 @@ export function effectivePlayerDefenseVsMonster(
 }
 
 /**
+ * The effective damage school of a counter-attack, accounting for a `burst`
+ * special move (which turns ANY monster's hit into magic for that swing).
+ * Drives both the mitigation math and the 🔮/⚔️ tag shown in the UI.
+ */
+export function effectiveAttackType(
+  monster: MonsterDef,
+  special?: MonsterSpecialMove | null,
+): 'physical' | 'magic' {
+  if (special?.effect.kind === 'burst') return 'magic';
+  return monster.attackType ?? 'physical';
+}
+
+/**
  * Final monster→player damage for a single hit, before combat passives and the
  * Rogue dodge (those run later in `resolveRoundOutcome`).
  *
@@ -202,17 +215,57 @@ export function effectivePlayerDefenseVsMonster(
  * multiplier (`CLASS_DAMAGE_TAKEN`) and floored at `MIN_DAMAGE`. Callers supply
  * `effectiveDef` because each path already computes it (including the spell
  * ward and the defense-bypassing free attack, which pass 0).
+ *
+ * An optional `special` (rolled via `rollMonsterSpecial`) reshapes the hit:
+ *   pierce → armor ignored (effDef forced to 0)
+ *   burst  → treated as magic (ignores armor + uses the magic affinity mult)
+ *   heavy  → final damage multiplied by `multiplier`
+ * `drain` does not change damage (the caller heals the monster afterward).
  */
 export function incomingMonsterDamage(
   character: Pick<Character, 'class'>,
   monster: MonsterDef,
   rawAttack: number,
   effectiveDef: number,
+  special?: MonsterSpecialMove | null,
 ): number {
-  const type = monster.attackType ?? 'physical';
+  const type = effectiveAttackType(monster, special);
   const mult = CLASS_DAMAGE_TAKEN[character.class][type];
-  const mitigated = type === 'magic' ? rawAttack : Math.max(0, rawAttack - effectiveDef);
+  const def = special?.effect.kind === 'pierce' ? 0 : effectiveDef;
+  let mitigated = type === 'magic' ? rawAttack : Math.max(0, rawAttack - def);
+  if (special?.effect.kind === 'heavy') mitigated *= special.effect.multiplier;
   return Math.max(COMBAT.MIN_DAMAGE, Math.round(mitigated * mult));
+}
+
+/**
+ * Roll a monster's special-move table for one counter-turn. Each move is an
+ * independent Bernoulli trial in catalog order; the FIRST that fires wins, so
+ * at most one special lands per counter — keeping the damage math and the log
+ * legible. Returns null when the monster has no specials or none fire. RNG is
+ * injected so tests can pin the outcome.
+ */
+export function rollMonsterSpecial(
+  monster: MonsterDef,
+  rng: () => number = Math.random,
+): MonsterSpecialMove | null {
+  const moves = monster.specialMoves;
+  if (!moves || moves.length === 0) return null;
+  for (const move of moves) {
+    if (rng() < move.chance) return move;
+  }
+  return null;
+}
+
+/**
+ * HP a monster heals from a `drain` special, given the damage that counter
+ * actually dealt to the player. Zero for any other special (or none).
+ */
+export function monsterSpecialDrainHeal(
+  special: MonsterSpecialMove | null | undefined,
+  damageDealt: number,
+): number {
+  if (special?.effect.kind !== 'drain' || damageDealt <= 0) return 0;
+  return Math.ceil((damageDealt * special.effect.pct) / 100);
 }
 
 /**
@@ -349,6 +402,7 @@ export function calculateRound(
   monsterDamage: number;
   playerDefFailed: boolean;
   monsterDefFailed: boolean;
+  monsterSpecial: MonsterSpecialMove | null;
 } {
   const roll = rollD10();
 
@@ -368,6 +422,10 @@ export function calculateRound(
   // Monster rolls its own d10 for its counter-attack
   const monsterRoll = rollD10();
 
+  // Monster special move — rolled independently of the player's action. Reshapes
+  // the counter (heavy/pierce/burst); a drain heal is applied by the caller.
+  const monsterSpecial = rollMonsterSpecial(monster);
+
   // Player's defense might fail (stat + gear), and monster's armor-pierce
   // passive reduces what gets through.
   const playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
@@ -377,6 +435,7 @@ export function calculateRound(
     monster,
     monster.attack,
     effectivePlayerDef,
+    monsterSpecial,
   );
 
   return {
@@ -388,6 +447,7 @@ export function calculateRound(
     monsterDamage,
     playerDefFailed,
     monsterDefFailed,
+    monsterSpecial,
   };
 }
 

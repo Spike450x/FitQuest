@@ -2,7 +2,21 @@
 
 import { LEGENDARY_PITY_THRESHOLD } from '@/lib/gameLogic/combat';
 import { EntityArt } from '@/components/art/EntityArt';
-import type { MonsterDef } from '@/types';
+import type { MonsterDef, MonsterSpecialEffect } from '@/types';
+
+/** One-line hint describing what a monster special move does, for the chip tooltip. */
+function specialMoveHint(effect: MonsterSpecialEffect): string {
+  switch (effect.kind) {
+    case 'heavy':
+      return `Can hit for ${effect.multiplier}× damage`;
+    case 'pierce':
+      return 'Can ignore your armor on a hit';
+    case 'burst':
+      return 'Can unleash a magic blast that ignores armor';
+    case 'drain':
+      return `Can heal itself for ${effect.pct}% of the damage dealt`;
+  }
+}
 
 // Arena-only emoji map. Dungeon monster portraits are handled separately.
 export const MONSTER_EMOJI: Record<string, string> = {
@@ -82,7 +96,25 @@ export function MonsterCard({
         <span>❤️ {monster.hp} HP</span>
         <span>⚔️ {monster.attack} ATK</span>
         <span>🛡️ {monster.defense} DEF</span>
+        {monster.attackType === 'magic' && (
+          <span className="text-violet-500 font-semibold" title="Magic attacks ignore your armor">
+            🔮 Magic
+          </span>
+        )}
       </div>
+      {monster.specialMoves && monster.specialMoves.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {monster.specialMoves.map((sp) => (
+            <span
+              key={sp.id}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-900/60"
+              title={specialMoveHint(sp.effect)}
+            >
+              {sp.emoji} {sp.name}
+            </span>
+          ))}
+        </div>
+      )}
       {dryStreak > 0 && (
         <div
           className={`flex items-center gap-1.5 text-xs font-medium rounded-lg px-2.5 py-1.5 border ${

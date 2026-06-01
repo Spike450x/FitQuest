@@ -485,6 +485,33 @@ export interface MonsterPassive {
   value: number;
 }
 
+/**
+ * A monster's special-move effect, rolled on its counter-turn independently of
+ * what the player did. One special (at most) fires per counter — see
+ * `rollMonsterSpecial`. These shape the *incoming* hit:
+ *   heavy  — the counter hits for `multiplier`× damage (a telegraphed big swing)
+ *   pierce — this counter ignores the player's armor entirely (effDef → 0)
+ *   burst  — this counter becomes MAGIC damage (ignores armor, magic affinity)
+ *            regardless of the monster's normal `attackType`
+ *   drain  — the monster heals for `pct`% of the damage this counter dealt
+ */
+export type MonsterSpecialEffect =
+  | { kind: 'heavy'; multiplier: number }
+  | { kind: 'pierce' }
+  | { kind: 'burst' }
+  | { kind: 'drain'; pct: number };
+
+export interface MonsterSpecialMove {
+  id: string;
+  /** Short flavour name surfaced in the overlay + combat log. */
+  name: string;
+  /** Emoji shown beside the name. */
+  emoji: string;
+  /** Per-counter probability (0–1) this move fires. */
+  chance: number;
+  effect: MonsterSpecialEffect;
+}
+
 /** One-shot ability triggered once when monster HP falls below a threshold. */
 export type MonsterActiveId = 'enrage' | 'harden' | 'summon-add';
 
@@ -518,6 +545,12 @@ export interface MonsterDef {
   description: string;
   passive?: MonsterPassive;
   active?: MonsterActive;
+  /**
+   * Chance-based special moves rolled on the monster's counter-turn, independent
+   * of the player's chosen action. At most one fires per counter (catalog
+   * order). Surfaced on the monster card so players can plan around them.
+   */
+  specialMoves?: MonsterSpecialMove[];
 }
 
 /**
