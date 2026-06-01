@@ -6,20 +6,57 @@ import { getHighlightedDiceIndices } from './AbilityReference';
 import type { MonsterDef } from '@/types';
 import type { RoundEntry } from './types';
 
-/** Monster special-move recap line — shared across every action branch. */
+/**
+ * Monster special-move + telegraph + stun recap lines — shared across every
+ * action branch so the counter's full story reads the same everywhere.
+ */
 function MonsterSpecialNote({ entry }: { entry: RoundEntry }) {
-  if (!entry.monsterSpecialName) return null;
   return (
-    <p className="text-amber-600 dark:text-amber-400 font-medium">
-      {entry.monsterSpecialEmoji} {entry.monsterSpecialName}!
-      {(entry.monsterSpecialDrain ?? 0) > 0 && (
-        <span className="text-fuchsia-500"> · 🩸 +{entry.monsterSpecialDrain} HP</span>
+    <>
+      {entry.monsterSpecialName && (
+        <p className="text-amber-600 dark:text-amber-400 font-medium">
+          {entry.monsterSpecialEmoji} {entry.monsterSpecialName}!
+          {(entry.monsterSpecialDrain ?? 0) > 0 && (
+            <span className="text-fuchsia-500"> · 🩸 +{entry.monsterSpecialDrain} HP</span>
+          )}
+        </p>
       )}
-    </p>
+      {entry.playerStunnedApplied && (
+        <p className="text-amber-600 dark:text-amber-400 font-medium">
+          😵 Stunned! You lose your next turn.
+        </p>
+      )}
+      {entry.monsterSpecialPrimedName && (
+        <p className="text-amber-600 dark:text-amber-400 font-medium animate-pulse">
+          ⚡ Winds up {entry.monsterSpecialPrimedEmoji} {entry.monsterSpecialPrimedName}… brace next
+          turn!
+        </p>
+      )}
+    </>
   );
 }
 
 export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monster: MonsterDef }) {
+  if (entry.action === 'stunned') {
+    return (
+      <div className="text-sm space-y-1">
+        <p className="text-amber-600 dark:text-amber-400 font-semibold">
+          😵 Stunned — you lost your turn.
+        </p>
+        {(entry.monsterDamage ?? 0) > 0 ? (
+          <p className="text-red-500">
+            Monster free hit for {entry.monsterDamage} dmg
+            {entry.monsterAttackType === 'magic' && (
+              <span className="text-violet-500"> · 🔮 magic</span>
+            )}
+          </p>
+        ) : entry.dodged ? (
+          <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged the free hit!</p>
+        ) : null}
+      </div>
+    );
+  }
+
   if (entry.action === 'run_failed') {
     return (
       <div className="text-sm space-y-1">

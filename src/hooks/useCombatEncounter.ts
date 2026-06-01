@@ -30,6 +30,7 @@ import {
   resolveMeditateAction,
   resolveRestAction,
   resolveSpellAction,
+  resolveStunnedSkipAction,
   resolveUseItemAction,
   type ActionInput,
   type ActionResolution,
@@ -131,6 +132,8 @@ export interface UseCombatEncounterReturn {
     meditate: () => void;
     useItem: (invItemId: string) => Promise<void>;
     flee: () => void;
+    /** Consume a monster stun: forfeit the turn and take the undefended free hit. */
+    skipStunned: () => void;
   };
 }
 
@@ -299,20 +302,20 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
   }
 
   function attack() {
-    if (rollingAction !== null || fightState.outcome !== null) return;
+    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
     dispatch(resolveAttackAction(buildInput(), 'attack'), 'attack');
   }
   function magic() {
-    if (rollingAction !== null || fightState.outcome !== null) return;
+    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
     dispatch(resolveAttackAction(buildInput(), 'magic'), 'magic');
   }
   function rollAbility() {
-    if (rollingAction !== null || fightState.outcome !== null) return;
+    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
     // Stamina gate handled at the page level (button is disabled)
     dispatch(resolveAbilityAction(buildInput()), 'ability');
   }
   function castSpell(spellDef: ItemDef, invItemId: string) {
-    if (rollingAction !== null || fightState.outcome !== null) return;
+    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
     const sm = spellDef.spellMechanics;
     if (!sm) return;
     // Charge gate — defensive check; UI already hides depleted spells.
@@ -323,16 +326,20 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
     dispatch(resolveSpellAction(buildInput(), spellDef), 'ability');
   }
   function rest() {
-    if (rollingAction !== null || fightState.outcome !== null) return;
+    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
     dispatch(resolveRestAction(buildInput()), 'rest');
   }
   function meditate() {
-    if (rollingAction !== null || fightState.outcome !== null) return;
+    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
     dispatch(resolveMeditateAction(buildInput()), 'meditate');
   }
   function flee() {
-    if (rollingAction !== null || fightState.outcome !== null) return;
+    if (rollingAction !== null || fightState.outcome !== null || fightState.playerStunned) return;
     dispatch(resolveFleeAction(buildInput()), 'run');
+  }
+  function skipStunned() {
+    if (rollingAction !== null || fightState.outcome !== null || !fightState.playerStunned) return;
+    dispatch(resolveStunnedSkipAction(buildInput()), null);
   }
 
   async function useItem(invItemId: string) {
@@ -361,7 +368,7 @@ export function useCombatEncounter(opts: UseCombatEncounterOptions): UseCombatEn
   }
 
   const actions = useMemo(
-    () => ({ attack, magic, rollAbility, castSpell, rest, meditate, useItem, flee }),
+    () => ({ attack, magic, rollAbility, castSpell, rest, meditate, useItem, flee, skipStunned }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       fightState,

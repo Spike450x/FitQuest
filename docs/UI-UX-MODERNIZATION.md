@@ -18,6 +18,15 @@
 > `SpellRollOverlay` honors Rogue dodge, and the character sheet gains a Weak-to-Magic /
 > Magic-Ward perk callout for classes whose magic mitigation isn't neutral.
 
+> **2026-06-01 — Telegraphed specials + player-stun.** Disruptive monster specials (heavy /
+> burst / stun) now **wind up a round early**: a pulsing amber "⚡ Winding up: {name}" badge
+> appears on the `CombatArena` monster portrait (new `charging` prop) and an in-overlay tell, so
+> the player gets a turn to respond (killing or stunning the monster cancels it). The new **stun**
+> special forfeits the player's next turn — the `CombatActionBar` grid is replaced by a "😵
+> Stunned — you'll lose this turn" panel with a single _Brace yourself_ button (`onSkipStunned`),
+> and the monster lands one undefended free hit. Both states surface consistently in
+> `MonsterCounterPanel`, `ActionRollOverlay`, `BattleLogEntry`, and `LastActionSummary`.
+
 > **2026-06-01 — Monster special moves + always-visible enemy roll.** The shared
 > `MonsterCounterPanel` (ability + spell overlays) now **animates the monster's d10 counter**
 > (spin → settle) instead of showing a tiny static die — the enemy roll is always visible on a

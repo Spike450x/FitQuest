@@ -15,6 +15,14 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-06-01 — Telegraphed specials + player-stun + endgame balance pass
+
+- **Telegraphed specials** — the disruptive specials (`heavy` / `burst` / `stun`) now **wind up a round early** (prime → fire) instead of landing reactively, giving the player a turn to respond (kill or stun the monster to **cancel** the windup). `pierce` / `drain` still fire instantly. New pure `isTelegraphedSpecial` + `resolveCounterSpecial`; a `monsterCharging` slot on `FightState` drives a pulsing "⚡ Winding up" badge on the monster portrait across all three combat surfaces.
+- **Player-stun** — a new `stun` special: when a charged stun lands, the player **forfeits their next turn** and the monster gets one undefended free hit (`resolveStunnedSkipAction`; the action bar shows a "😵 Stunned" panel). Assigned at low chance to three endgame carriers (Storm Djinn "Thunderclap", High Necromancer "Paralyzing Hex", Dragon King "Dread Roar"). Surfaced in every overlay, the battle log, and `LastActionSummary`.
+- **Balance model expansion + guardrail** — `balanceModel.test.ts` now folds **special-move EV** (heavy/pierce/burst/stun, telegraph-discounted) and **monster self-sustain** (regen/vampiric/drain/summon-add → effective HP) into the model, and adds **L13 / L15 fight bands** (Void Revenant, Dragon King). A new test guards against a `vampiric` + `drain` double-heal stack; a `MONSTER_SELF_HEAL_CAP_FRACTION` caps combined per-counter self-heal as defense-in-depth.
+- **Endgame tuning** — the model flagged three over-tuned bodies: Void Revenant (HP 285→240, ATK 34→27, summon 60→40), Storm Djinn (ATK 34→32), Dragon King (ATK 36→33) — now "brutal but winnable" with the affinity identity intact (Warrior fears the magic monsters; Wizard fears the physical Dragon King).
+- Static catalog + client resolvers only — no Firestore/rules/Cloud Function change. +21 vitest specs (1036 → 1057); functions 44 green.
+
 ## 2026-06-01 — Monster special moves + always-visible enemy roll + combat-audit fixes
 
 - **Monster special moves** — new data-driven `MonsterDef.specialMoves`: chance-based moves rolled on the monster's counter-turn _independent of the player's action_ (`rollMonsterSpecial`, ≤1 per counter). Four effects — **heavy** (×N damage), **pierce** (ignores your armor this hit), **burst** (the counter becomes armor-ignoring magic), **drain** (monster heals from the hit). Routed through an extended `incomingMonsterDamage` + new `monsterSpecialDrainHeal` / `effectiveAttackType`; surfaced in all three overlays, the battle log, `LastActionSummary`, and as planning chips on `MonsterCard`. Assigned to 13 arena monsters (L5+) and all 4 dungeon bosses.

@@ -134,6 +134,12 @@ export function resolveSpell(
   req: SpellDiceRequirement,
   character: Character,
   monster: MonsterDef,
+  /**
+   * Special that applies to the monster's counter this round. `undefined` → roll
+   * one internally; pass an explicit value (incl. `null`) so the resolver's
+   * telegraph/charge logic owns it.
+   */
+  special?: MonsterSpecialMove | null,
 ): SpellResolution {
   const dice = rollSpellDice(req.diceCount);
   const requirementMet = checkRequirement(req, dice);
@@ -177,7 +183,7 @@ export function resolveSpell(
   let monsterSpecial: MonsterSpecialMove | null = null;
   if (!monsterStunned) {
     monsterRoll = rollD10();
-    monsterSpecial = rollMonsterSpecial(monster);
+    monsterSpecial = special === undefined ? rollMonsterSpecial(monster) : special;
     playerDefFailed = Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
     // Effective (class-scaled) DEF + gear − armor-pierce via the shared helper,
     // then the spell's own defenseBoost ward stacks on top (not pierced).

@@ -35,6 +35,8 @@ export function DiceRollOverlay({
   playerDefFailed,
   playerDefStat,
   monsterSpecial,
+  monsterChargingPrimed,
+  playerStunnedApplied,
   spiritCrit,
   spiritCritMultiplier,
   outcome,
@@ -61,6 +63,10 @@ export function DiceRollOverlay({
   playerDefStat?: number;
   /** Special move the monster fired on its counter (heavy / pierce / burst / drain). */
   monsterSpecial?: MonsterSpecialMove | null;
+  /** A telegraphed special the monster began winding up this round (the tell). */
+  monsterChargingPrimed?: MonsterSpecialMove | null;
+  /** A `stun` special landed — the player will skip their next turn. */
+  playerStunnedApplied?: boolean;
   /** Spirit crit fired on the ability's damage. */
   spiritCrit?: boolean;
   /** Multiplier applied when spiritCrit fired. */
@@ -260,6 +266,8 @@ export function DiceRollOverlay({
               playerDefFailed={playerDefFailed}
               playerDefStat={playerDefStat}
               monsterSpecial={monsterSpecial}
+              chargingPrimed={monsterChargingPrimed}
+              playerStunnedApplied={playerStunnedApplied}
               outcome={outcome}
             />
           </div>

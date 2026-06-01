@@ -10,8 +10,10 @@ import {
   incomingMonsterDamage,
   monsterSpecialDrainHeal,
   effectiveAttackType,
+  isTelegraphedSpecial,
+  resolveCounterSpecial,
 } from '../combat';
-import { resolveAttackAction, type ActionInput } from '../combatActions';
+import { resolveAttackAction, resolveStunnedSkipAction, type ActionInput } from '../combatActions';
 import { resolveAbility } from '../abilities';
 import { COMBAT } from '../constants';
 import { MONSTER_CATALOG, getMonsterById } from '../monsters';
@@ -46,6 +48,13 @@ const DRAIN: MonsterSpecialMove = {
   emoji: '🩸',
   chance: 1,
   effect: { kind: 'drain', pct: 50 },
+};
+const STUN: MonsterSpecialMove = {
+  id: 'stun',
+  name: 'Stun',
+  emoji: '💫',
+  chance: 1,
+  effect: { kind: 'stun' },
 };
 
 function makeMonster(overrides: Partial<MonsterDef> = {}): MonsterDef {
@@ -149,10 +158,10 @@ describe('effectiveAttackType', () => {
 // ── Catalog registration ─────────────────────────────────────────────────────
 
 describe('catalog — damage typing + special registration', () => {
-  it('Storm Djinn is a magic attacker retuned to 34 ATK', () => {
+  it('Storm Djinn is a magic attacker (ATK trimmed to 32 in the balance pass)', () => {
     const djinn = getMonsterById('storm-djinn')!;
     expect(djinn.attackType).toBe('magic');
-    expect(djinn.attack).toBe(34);
+    expect(djinn.attack).toBe(32);
   });
 
   it('Ancient Dragon can breathe a burst (magic) special', () => {
@@ -250,41 +259,132 @@ function makeInput(monster: MonsterDef, overrides: Partial<ActionInput> = {}): A
   };
 }
 
+// ── Telegraph classification + resolveCounterSpecial ─────────────────────────
+
+describe('isTelegraphedSpecial', () => {
+  it('heavy / burst / stun are telegraphed; pierce / drain are instant', () => {
+    expect(isTelegraphedSpecial(HEAVY.effect)).toBe(true);
+    expect(isTelegraphedSpecial(BURST.effect)).toBe(true);
+    expect(isTelegraphedSpecial(STUN.effect)).toBe(true);
+    expect(isTelegraphedSpecial(PIERCE.effect)).toBe(false);
+    expect(isTelegraphedSpecial(DRAIN.effect)).toBe(false);
+  });
+});
+
+describe('resolveCounterSpecial', () => {
+  it('a charged special fires this round and clears the charge', () => {
+    const res = resolveCounterSpecial(makeMonster(), HEAVY, () => 0);
+    expect(res.effective?.id).toBe('heavy');
+    expect(res.nextCharging).toBeNull();
+    expect(res.primed).toBeNull();
+  });
+
+  it('a freshly-rolled telegraphed special winds up (does not apply now)', () => {
+    const m = makeMonster({ specialMoves: [HEAVY] });
+    const res = resolveCounterSpecial(m, null, () => 0);
+    expect(res.effective).toBeNull();
+    expect(res.nextCharging?.id).toBe('heavy');
+    expect(res.primed?.id).toBe('heavy');
+  });
+
+  it('a freshly-rolled instant special applies this round', () => {
+    const m = makeMonster({ specialMoves: [PIERCE] });
+    const res = resolveCounterSpecial(m, null, () => 0);
+    expect(res.effective?.id).toBe('pierce');
+    expect(res.nextCharging).toBeNull();
+  });
+
+  it('no special rolled → all null', () => {
+    const res = resolveCounterSpecial(makeMonster(), null, () => 0.99);
+    expect(res.effective).toBeNull();
+    expect(res.nextCharging).toBeNull();
+    expect(res.primed).toBeNull();
+  });
+});
+
+// ── resolveAttackAction threading (telegraph + instant) ──────────────────────
+
 describe('resolveAttackAction — special threading', () => {
-  it('threads a fired heavy special into the log + pending payload', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5); // never below the 1.0 special chance? 0.5<1 → fires
+  it('a telegraphed heavy WINDS UP on the round it is rolled (no fire yet)', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5); // 0.5 < 1.0 chance → rolls heavy
     const monster = makeMonster({ hp: 400, specialMoves: [HEAVY] });
     const res = resolveAttackAction(makeInput(monster), 'attack');
 
-    expect(res.logEntry.monsterSpecialName).toBe('Heavy');
-    expect(res.logEntry.monsterSpecialEmoji).toBe('💥');
-    if (res.pending.kind !== 'action') throw new Error('expected action');
-    expect(res.pending.payload.monsterSpecial?.id).toBe('heavy');
-    // Heavy hit lands for more than the same monster without the special.
+    // Primed, not applied: no special-fired fields, but a charge is set.
+    expect(res.logEntry.monsterSpecialName).toBeUndefined();
+    expect(res.logEntry.monsterSpecialPrimedName).toBe('Heavy');
+    expect(res.nextState.monsterCharging?.id).toBe('heavy');
+    // Damage is a plain hit this round (not boosted).
     const plain = resolveAttackAction(makeInput(makeMonster({ hp: 400 })), 'attack');
-    expect(res.logEntry.monsterDamage!).toBeGreaterThan(plain.logEntry.monsterDamage!);
+    expect(res.logEntry.monsterDamage!).toBe(plain.logEntry.monsterDamage!);
   });
 
-  it('a drain special heals the monster and records the drain', () => {
+  it('a charged heavy FIRES the next round for boosted damage and clears', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const monster = makeMonster({ hp: 400, specialMoves: [HEAVY] });
+    const charged = resolveAttackAction(
+      makeInput(monster, { state: makeFightState(monster, { monsterCharging: HEAVY }) }),
+      'attack',
+    );
+    expect(charged.logEntry.monsterSpecialName).toBe('Heavy');
+    expect(charged.nextState.monsterCharging).toBeNull();
+    const plain = resolveAttackAction(makeInput(makeMonster({ hp: 400 })), 'attack');
+    expect(charged.logEntry.monsterDamage!).toBeGreaterThan(plain.logEntry.monsterDamage!);
+  });
+
+  it('a charged stun lands on the hit and stuns the player next turn', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const monster = makeMonster({ hp: 400, specialMoves: [STUN] });
+    const res = resolveAttackAction(
+      makeInput(monster, { state: makeFightState(monster, { monsterCharging: STUN }) }),
+      'attack',
+    );
+    expect(res.nextState.playerStunned).toBe(true);
+    expect(res.logEntry.playerStunnedApplied).toBe(true);
+  });
+
+  it('an instant drain still fires the same round and heals the monster', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const monster = makeMonster({ hp: 400, attack: 40, specialMoves: [DRAIN] });
-    // Start the monster below full so a heal is observable.
     const res = resolveAttackAction(
       makeInput(monster, { state: makeFightState(monster, { monsterHp: 100 }) }),
       'attack',
     );
+    expect(res.logEntry.monsterSpecialName).toBe('Drain');
     expect(res.logEntry.monsterSpecialDrain).toBeGreaterThan(0);
   });
 
-  it('suppresses the special display when the counter dealt no damage (kill)', () => {
+  it('a kill suppresses the special + does not prime a charge', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    // 1-HP monster dies to the player's strike → no counter, no special shown.
     const monster = makeMonster({ hp: 1, defense: 0, specialMoves: [HEAVY] });
     const res = resolveAttackAction(makeInput(monster), 'attack');
     expect(res.nextState.outcome).toBe('win');
     expect(res.logEntry.monsterSpecialName).toBeUndefined();
-    if (res.pending.kind !== 'action') throw new Error('expected action');
-    expect(res.pending.payload.monsterSpecial).toBeNull();
+    expect(res.nextState.monsterCharging).toBeNull();
+  });
+});
+
+// ── resolveStunnedSkipAction ─────────────────────────────────────────────────
+
+describe('resolveStunnedSkipAction', () => {
+  it('forfeits the turn, lands an undefended free hit, and clears the stun', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const monster = makeMonster({ hp: 400, attack: 30, specialMoves: [HEAVY] });
+    const res = resolveStunnedSkipAction(
+      makeInput(monster, {
+        state: makeFightState(monster, { playerStunned: true, playerHp: 200 }),
+      }),
+    );
+    expect(res.logEntry.action).toBe('stunned');
+    expect(res.logEntry.playerSkipped).toBe(true);
+    expect(res.logEntry.monsterDamage!).toBeGreaterThan(0);
+    expect(res.nextState.playerHp).toBeLessThan(200);
+    expect(res.nextState.playerStunned).toBe(false);
+    // No overlay — the action bar's Continue is the acknowledgment.
+    expect(res.pending.kind).toBe('none');
+    // The free hit never rolls a special (no chain-stun).
+    expect(res.logEntry.monsterSpecialName).toBeUndefined();
+    expect(res.nextState.playerStunned).toBe(false);
   });
 });
 

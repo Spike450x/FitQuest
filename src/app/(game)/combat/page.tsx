@@ -592,6 +592,12 @@ function CombatPageBody({ character }: { character: Character }) {
                 passive: monster.passive,
                 activeLabel:
                   fightState.activeUsed && monster.active ? monster.active.label : undefined,
+                charging: fightState.monsterCharging
+                  ? {
+                      name: fightState.monsterCharging.name,
+                      emoji: fightState.monsterCharging.emoji,
+                    }
+                  : null,
               }}
               monsterSub={monsterSub}
             />
@@ -661,6 +667,7 @@ function CombatPageBody({ character }: { character: Character }) {
             onMeditate={actions.meditate}
             onUseItem={actions.useItem}
             onFlee={actions.flee}
+            onSkipStunned={actions.skipStunned}
             spellChargesUsed={spellChargesUsed}
           />
         ) : outcome === 'loss' ? (

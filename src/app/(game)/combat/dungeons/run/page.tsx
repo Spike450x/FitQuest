@@ -412,6 +412,9 @@ function DungeonCombatShell({
             !isBossRoom && fightState.activeUsed && monster.active
               ? monster.active.label
               : undefined,
+          charging: fightState.monsterCharging
+            ? { name: fightState.monsterCharging.name, emoji: fightState.monsterCharging.emoji }
+            : null,
         }}
         monsterSub={
           poisoned && poisoned.roundsRemaining > 0 ? (
@@ -488,6 +491,7 @@ function DungeonCombatShell({
           onMeditate={actions.meditate}
           onUseItem={actions.useItem}
           onFlee={actions.flee}
+          onSkipStunned={actions.skipStunned}
           modifiers={modifiers}
           spellChargesUsed={spellChargesUsed}
         />

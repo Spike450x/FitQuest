@@ -15,6 +15,8 @@ function specialMoveHint(effect: MonsterSpecialEffect): string {
       return 'Can unleash a magic blast that ignores armor';
     case 'drain':
       return `Can heal itself for ${effect.pct}% of the damage dealt`;
+    case 'stun':
+      return 'Winds up a stun — land it and you lose a turn';
   }
 }
 

@@ -23,6 +23,8 @@ export function MonsterCounterPanel({
   playerDefFailed,
   playerDefStat,
   monsterSpecial,
+  chargingPrimed,
+  playerStunnedApplied,
   outcome,
 }: {
   monsterRoll: number;
@@ -35,6 +37,10 @@ export function MonsterCounterPanel({
   playerDefStat?: number;
   /** Special move the monster fired on this counter (heavy / pierce / burst / drain). */
   monsterSpecial?: MonsterSpecialMove | null;
+  /** A telegraphed special the monster began winding up this round (the tell). */
+  chargingPrimed?: MonsterSpecialMove | null;
+  /** A `stun` special landed — the player will skip their next turn. */
+  playerStunnedApplied?: boolean;
   outcome?: 'win' | 'loss' | null;
 }) {
   const isMagic = monsterAttackType === 'magic';
@@ -118,6 +124,16 @@ export function MonsterCounterPanel({
             <p className="text-[11px] text-fuchsia-500 font-semibold">🩸 drained your life</p>
           )}
         </>
+      )}
+      {playerStunnedApplied && (
+        <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+          😵 You are stunned — you&apos;ll lose your next turn!
+        </p>
+      )}
+      {chargingPrimed && (
+        <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 animate-pulse">
+          ⚡ {chargingPrimed.emoji} {chargingPrimed.name} is winding up — brace next turn!
+        </p>
       )}
       {outcome === 'loss' && (
         <p className="text-sm font-semibold text-red-600">💀 You have fallen...</p>

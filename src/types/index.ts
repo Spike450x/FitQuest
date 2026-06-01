@@ -494,12 +494,18 @@ export interface MonsterPassive {
  *   burst  — this counter becomes MAGIC damage (ignores armor, magic affinity)
  *            regardless of the monster's normal `attackType`
  *   drain  — the monster heals for `pct`% of the damage this counter dealt
+ *   stun   — the counter is a normal hit, but the player loses their NEXT turn
+ *
+ * `heavy` / `burst` / `stun` are TELEGRAPHED (the monster winds them up a round
+ * early — see `isTelegraphedSpecial` / `resolveCounterSpecial`); `pierce` /
+ * `drain` fire instantly on the counter they are rolled.
  */
 export type MonsterSpecialEffect =
   | { kind: 'heavy'; multiplier: number }
   | { kind: 'pierce' }
   | { kind: 'burst' }
-  | { kind: 'drain'; pct: number };
+  | { kind: 'drain'; pct: number }
+  | { kind: 'stun' };
 
 export interface MonsterSpecialMove {
   id: string;

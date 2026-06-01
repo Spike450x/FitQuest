@@ -1,6 +1,13 @@
 import { COMBAT, CLASS_DEFINITIONS, CLASS_DAMAGE_TAKEN } from './constants';
 import { getItemById } from './items';
-import type { Character, EquippedGear, MonsterDef, MonsterSpecialMove, Stats } from '@/types';
+import type {
+  Character,
+  EquippedGear,
+  MonsterDef,
+  MonsterSpecialEffect,
+  MonsterSpecialMove,
+  Stats,
+} from '@/types';
 import {
   getEscapeBonus,
   hasSureEscape,
@@ -269,6 +276,49 @@ export function monsterSpecialDrainHeal(
 }
 
 /**
+ * Whether a special is TELEGRAPHED — the monster winds it up a round before it
+ * lands (heavy / burst / stun), giving the player a turn to respond. The lighter
+ * `pierce` / `drain` specials fire instantly on the counter they are rolled.
+ */
+export function isTelegraphedSpecial(effect: MonsterSpecialEffect): boolean {
+  return effect.kind === 'heavy' || effect.kind === 'burst' || effect.kind === 'stun';
+}
+
+export interface CounterSpecialResolution {
+  /** Special that applies to THIS counter (damage shaping + stun). */
+  effective: MonsterSpecialMove | null;
+  /** Telegraphed special to wind up for next round (null = nothing to charge). */
+  nextCharging: MonsterSpecialMove | null;
+  /** A telegraphed special newly wound up this round — drives the "winding up" tell. */
+  primed: MonsterSpecialMove | null;
+}
+
+/**
+ * Decide what a monster's counter-special does this round, given any special it
+ * is already charging. Pure — the resolver passes `state.monster` +
+ * `state.monsterCharging` so this stays in the gameLogic layer (no FightState
+ * import).
+ *
+ * - A **charged** special fires this round (and clears).
+ * - Otherwise roll: an **instant** special (pierce/drain) applies now; a
+ *   **telegraphed** special (heavy/burst/stun) does NOT apply — it is wound up
+ *   for next round instead (`nextCharging` + `primed`).
+ */
+export function resolveCounterSpecial(
+  monster: MonsterDef,
+  charging: MonsterSpecialMove | null | undefined,
+  rng: () => number = Math.random,
+): CounterSpecialResolution {
+  if (charging) return { effective: charging, nextCharging: null, primed: null };
+  const rolled = rollMonsterSpecial(monster, rng);
+  if (!rolled) return { effective: null, nextCharging: null, primed: null };
+  if (isTelegraphedSpecial(rolled.effect)) {
+    return { effective: null, nextCharging: rolled, primed: rolled };
+  }
+  return { effective: rolled, nextCharging: null, primed: null };
+}
+
+/**
  * Returns the flat stamina drain from a monster's `siphon` passive, applied
  * when the monster lands a hit on the player. Zero for any other passive.
  */
@@ -393,6 +443,12 @@ export function calculateRound(
   character: Character,
   monster: MonsterDef,
   attackMode: 'attack' | 'magic',
+  /**
+   * Special that applies to this counter. `undefined` → roll one internally
+   * (back-compat for standalone callers/tests); pass an explicit value (incl.
+   * `null`) to let the resolver's telegraph/charge logic decide it.
+   */
+  special?: MonsterSpecialMove | null,
 ): {
   roll: number;
   attackBonus: number;
@@ -423,8 +479,9 @@ export function calculateRound(
   const monsterRoll = rollD10();
 
   // Monster special move — rolled independently of the player's action. Reshapes
-  // the counter (heavy/pierce/burst); a drain heal is applied by the caller.
-  const monsterSpecial = rollMonsterSpecial(monster);
+  // the counter (heavy/pierce/burst); a drain heal is applied by the caller. When
+  // the resolver supplies one (telegraph/charge), use it instead of rolling.
+  const monsterSpecial = special === undefined ? rollMonsterSpecial(monster) : special;
 
   // Player's defense might fail (stat + gear), and monster's armor-pierce
   // passive reduces what gets through.

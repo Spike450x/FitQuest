@@ -29,6 +29,8 @@ interface AvatarProps {
   passive?: Pick<MonsterPassive, 'id' | 'label'>;
   /** Set to the active's label once it has triggered — shown as a pulsing chip. */
   activeLabel?: string;
+  /** A telegraphed special the monster is winding up — shown as a pulsing warning chip. */
+  charging?: { name: string; emoji: string } | null;
 }
 
 /**
@@ -59,6 +61,7 @@ function Avatar({
   sub,
   passive,
   activeLabel,
+  charging,
 }: AvatarProps) {
   const pct = Math.max(0, Math.min(100, (hp / maxHp) * 100));
   const fainted = hp <= 0;
@@ -115,6 +118,13 @@ function Avatar({
         {sub && (
           <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-1 leading-tight">{sub}</p>
         )}
+        {charging && (
+          <div className="flex justify-center mt-1">
+            <span className="text-[9px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 rounded px-1.5 py-0.5 uppercase tracking-wide animate-pulse">
+              ⚡ Winding up: {charging.emoji} {charging.name}
+            </span>
+          </div>
+        )}
         {(passive || activeLabel) && (
           <div className="flex flex-wrap justify-center gap-1 mt-1">
             {passive && (
@@ -162,6 +172,8 @@ interface CombatArenaProps {
     passive?: Pick<MonsterPassive, 'id' | 'label'>;
     /** Set to the active's label once it triggers (from FightState.activeUsed + monster.active). */
     activeLabel?: string;
+    /** A telegraphed special the monster is winding up (from FightState.monsterCharging). */
+    charging?: { name: string; emoji: string } | null;
   };
   /** Floating-damage bursts to overlay (player-targeted on left, monster on right). */
   bursts: DamageBurst[];
@@ -231,6 +243,7 @@ export function CombatArena({
           sub={monsterSub}
           passive={monster.passive}
           activeLabel={monster.activeLabel}
+          charging={monster.charging}
         />
       </div>
     </div>

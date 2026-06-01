@@ -305,6 +305,12 @@ export function resolveAbility(
   character: Character,
   monster: MonsterDef,
   isFirstAbility = false,
+  /**
+   * Special that applies to the monster's counter this round. `undefined` → roll
+   * one internally; pass an explicit value (incl. `null`) so the resolver's
+   * telegraph/charge logic owns it.
+   */
+  special?: MonsterSpecialMove | null,
 ): AbilityResolution {
   // Roll 6 d6
   const dice = Array.from({ length: 6 }, () => Math.ceil(Math.random() * 6));
@@ -336,6 +342,7 @@ export function resolveAbility(
       character,
       monster,
       false,
+      special,
     );
     return {
       ability: null,
@@ -364,6 +371,7 @@ export function resolveAbility(
       character,
       monster,
       false,
+      special,
     );
     return {
       ability: null,
@@ -402,7 +410,7 @@ export function resolveAbility(
   let monsterRoll = 0;
   let monsterSpecial: MonsterSpecialMove | null = null;
   if (!ability.stunMonster) {
-    const result = rollMonsterAttack(character, monster, ability.bypassPlayerDef);
+    const result = rollMonsterAttack(character, monster, ability.bypassPlayerDef, special);
     monsterDamage = result.monsterDamage;
     playerDefFailed = result.playerDefFailed;
     monsterRoll = result.monsterRoll;
@@ -438,6 +446,7 @@ function rollMonsterAttack(
   character: Character,
   monster: MonsterDef,
   bypassPlayerDef: boolean,
+  special?: MonsterSpecialMove | null,
 ): {
   monsterDamage: number;
   playerDefFailed: boolean;
@@ -445,7 +454,7 @@ function rollMonsterAttack(
   monsterSpecial: MonsterSpecialMove | null;
 } {
   const monsterRoll = rollD10();
-  const monsterSpecial = rollMonsterSpecial(monster);
+  const monsterSpecial = special === undefined ? rollMonsterSpecial(monster) : special;
   const playerDefFailed = bypassPlayerDef || Math.random() < COMBAT.DEFENSE_FAIL_CHANCE;
   // Effective DEF routes through the shared helper so the class DEF multiplier
   // and monster armor-pierce stay consistent with every other combat path.

@@ -182,6 +182,13 @@ export const DUNGEON_BOSSES: Record<DungeonTierId, DungeonBossDef> = {
         chance: 0.18,
         effect: { kind: 'drain', pct: 35 },
       },
+      {
+        id: 'paralyzing-hex',
+        name: 'Paralyzing Hex',
+        emoji: '🕯️',
+        chance: 0.12,
+        effect: { kind: 'stun' },
+      },
     ],
   },
   'dragons-keep': {
@@ -189,7 +196,9 @@ export const DUNGEON_BOSSES: Record<DungeonTierId, DungeonBossDef> = {
     name: 'The Ancient Dragon King',
     level: 15,
     hp: 410,
-    attack: 36,
+    // ATK 36 → 33: with the ignore-DEF enrage + heavy/stun specials it was tipping
+    // the physically-fragile Wizard past 100% HP-loss in the balance model.
+    attack: 33,
     defense: 18,
     xpReward: 550,
     goldReward: 300,
@@ -222,6 +231,13 @@ export const DUNGEON_BOSSES: Record<DungeonTierId, DungeonBossDef> = {
         emoji: '🔥',
         chance: 0.12,
         effect: { kind: 'burst' },
+      },
+      {
+        id: 'dread-roar',
+        name: 'Dread Roar',
+        emoji: '🐲',
+        chance: 0.1,
+        effect: { kind: 'stun' },
       },
     ],
   },

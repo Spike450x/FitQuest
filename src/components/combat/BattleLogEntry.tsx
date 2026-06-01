@@ -27,9 +27,24 @@ export function BattleLogEntry({
           (entry.spellRequirementMet ? `✨ ${entry.spellName}` : `✨ ${entry.spellName} (fizzle)`)}
         {entry.action === 'rest' && '🛌 Rest'}
         {entry.action === 'meditate' && '🧘 Meditate'}
+        {entry.action === 'stunned' && '😵 Stunned'}
       </p>
 
-      {entry.action === 'run_failed' ? (
+      {entry.action === 'stunned' ? (
+        <>
+          <p className="text-amber-600 dark:text-amber-400 font-medium">
+            😵 Turn lost — you were stunned.
+          </p>
+          {(entry.monsterDamage ?? 0) > 0 && (
+            <p>
+              <span className="text-red-500">
+                {emoji} free hit for {entry.monsterDamage} dmg
+                {entry.monsterAttackType === 'magic' && ' 🔮'}
+              </span>
+            </p>
+          )}
+        </>
+      ) : entry.action === 'run_failed' ? (
         <>
           <p>
             <span className="text-amber-600">You rolled {entry.playerRunRoll}</span>
@@ -237,6 +252,20 @@ export function BattleLogEntry({
           {(entry.monsterSpecialDrain ?? 0) > 0 && (
             <span className="text-fuchsia-500"> · 🩸 +{entry.monsterSpecialDrain} HP</span>
           )}
+        </p>
+      )}
+
+      {/* Stun landed — the player will skip next turn. */}
+      {entry.playerStunnedApplied && (
+        <p className="text-amber-600 dark:text-amber-400 font-medium">
+          😵 Stunned! You lose a turn.
+        </p>
+      )}
+
+      {/* Telegraph — a special winding up for next round. */}
+      {entry.monsterSpecialPrimedName && (
+        <p className="text-amber-600 dark:text-amber-400 font-medium">
+          ⚡ Winds up {entry.monsterSpecialPrimedEmoji} {entry.monsterSpecialPrimedName}…
         </p>
       )}
 
