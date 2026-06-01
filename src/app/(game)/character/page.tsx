@@ -4,7 +4,12 @@ import { useState } from 'react';
 import type { Character, Stats } from '@/types';
 import { useCharacter } from '@/hooks/useCharacter';
 import { CharacterCard } from '@/components/character/CharacterCard';
+import { MasteryProgress } from '@/components/character/MasteryProgress';
+import { PersonalRecords } from '@/components/character/PersonalRecords';
+import { LifetimeTotals } from '@/components/character/LifetimeTotals';
+import { AchievementsShowcase } from '@/components/character/AchievementsShowcase';
 import { Card } from '@/components/ui/Card';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { Skeleton } from '@/components/ui/Skeleton';
 import {
   ReputationRankBar,
@@ -75,13 +80,13 @@ export default function CharacterPage() {
 
       <ReputationSection character={character} />
 
-      {/* Lower two-column row */}
+      {/* Combat reference — class traits + how stats work */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Class traits — the real combat multipliers + class-only perks */}
-        <Card variant="default" padding="lg">
-          <h3 className="font-bold text-gray-900 dark:text-slate-100 mb-1">
-            {classDef.emoji} {classDef.label} — Class Traits
-          </h3>
+        <CollapsibleSection
+          id="char-traits"
+          title={`${classDef.emoji} ${classDef.label} — Class Traits`}
+        >
           <p className="text-sm text-gray-500 dark:text-slate-400 mb-3">{classDef.description}</p>
           <p className="text-xs text-gray-400 dark:text-slate-500 mb-4">
             Your class scales each stat&rsquo;s effect in combat. Higher is stronger; a value below
@@ -188,11 +193,10 @@ export default function CharacterPage() {
               </p>
             </div>
           </div>
-        </Card>
+        </CollapsibleSection>
 
-        {/* Stats explanation */}
-        <Card variant="default" padding="lg">
-          <h3 className="font-bold text-gray-900 dark:text-slate-100 mb-4">How Stats Work</h3>
+        {/* Stats explanation — reference material, collapsed by default */}
+        <CollapsibleSection id="char-stats-help" title="How Stats Work" defaultOpen={false}>
           <div className="space-y-3 text-sm text-gray-500 dark:text-slate-400">
             {[
               {
@@ -251,8 +255,23 @@ export default function CharacterPage() {
               </div>
             ))}
           </div>
-        </Card>
+        </CollapsibleSection>
       </div>
+
+      {/* Progression — mastery, records, career tallies, achievements */}
+      <MasteryProgress character={character} />
+
+      <CollapsibleSection id="char-records" title="🏅 Personal Records">
+        <PersonalRecords character={character} />
+      </CollapsibleSection>
+
+      <CollapsibleSection id="char-career" title="📊 Career">
+        <LifetimeTotals character={character} />
+      </CollapsibleSection>
+
+      <CollapsibleSection id="char-achievements" title="🏆 Achievements">
+        <AchievementsShowcase character={character} />
+      </CollapsibleSection>
     </div>
   );
 }
