@@ -59,6 +59,7 @@ import {
   playerMaxStamina,
   playerMaxMagic,
   gearDefenseBonus,
+  effectiveStat,
   monsterXpScaling,
   combatXpDailyMultiplier,
   combatWinsUntilNextPenalty,
@@ -451,7 +452,7 @@ function CombatPageBody({ character }: { character: Character }) {
       fightState;
     const emoji = MONSTER_EMOJI[monster.id] ?? '👾';
     const fightOver = outcome !== null;
-    const playerDefStat = (character.stats.defense ?? 0) + gearDefenseBonus(character);
+    const playerDefStat = effectiveStat(character, 'defense') + gearDefenseBonus(character);
     const lastEntry = log[log.length - 1] ?? null;
 
     return (

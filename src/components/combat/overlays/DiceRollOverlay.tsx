@@ -255,22 +255,25 @@ export function DiceRollOverlay({
             </div>
           )}
 
-          {/* Monster counter-attack — same panel the spell overlay uses */}
+          {/* Monster counter-attack — mounted only in result phase so the d10
+              spin animation starts fresh as the result section fades in. */}
           <div className="mt-3">
-            <MonsterCounterPanel
-              monsterRoll={monsterRoll}
-              monsterDamage={monsterDamage}
-              monsterStunned={monsterStunned}
-              dodged={dodged}
-              monsterAttackType={monsterAttackType}
-              playerDefFailed={playerDefFailed}
-              playerDefStat={playerDefStat}
-              monsterSpecial={monsterSpecial}
-              chargingPrimed={monsterChargingPrimed}
-              playerStunnedApplied={playerStunnedApplied}
-              outcome={outcome}
-              dieSize="lg"
-            />
+            {phase === 'result' && (
+              <MonsterCounterPanel
+                monsterRoll={monsterRoll}
+                monsterDamage={monsterDamage}
+                monsterStunned={monsterStunned}
+                dodged={dodged}
+                monsterAttackType={monsterAttackType}
+                playerDefFailed={playerDefFailed}
+                playerDefStat={playerDefStat}
+                monsterSpecial={monsterSpecial}
+                chargingPrimed={monsterChargingPrimed}
+                playerStunnedApplied={playerStunnedApplied}
+                outcome={outcome}
+                dieSize="lg"
+              />
+            )}
           </div>
 
           <button

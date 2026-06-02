@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Die3D } from '@/components/ui/Die3D';
 import { playSound } from '@/hooks/useSound';
 import { describeRequirement, getHighlightedSpellDiceIndices } from '@/lib/gameLogic/spells';
-import { MonsterCounterPanel } from './MonsterCounterPanel';
+import { MonsterCounterPanel, CritFlourish } from './MonsterCounterPanel';
 import { spellEffectKey } from '@/lib/entityArt';
 import type { ItemDef, MonsterSpecialMove } from '@/types';
 import type { SpellEffectKey } from '@/components/art/silhouettes';
@@ -53,6 +53,8 @@ export function SpellRollOverlay({
   monsterSpecial,
   monsterChargingPrimed,
   playerStunnedApplied,
+  spiritCrit,
+  spiritCritMultiplier,
   outcome,
   onDismiss,
 }: {
@@ -79,6 +81,10 @@ export function SpellRollOverlay({
   monsterChargingPrimed?: MonsterSpecialMove | null;
   /** A `stun` special landed — the player will skip their next turn. */
   playerStunnedApplied?: boolean;
+  /** Spirit crit fired on the spell's damage. */
+  spiritCrit?: boolean;
+  /** Multiplier applied when spiritCrit fired. */
+  spiritCritMultiplier?: number;
   /** Fight outcome after this round resolves — drives the "Monster slain!" panel. */
   outcome?: 'win' | 'loss' | null;
   onDismiss: () => Promise<void>;
@@ -233,21 +239,30 @@ export function SpellRollOverlay({
             </div>
           )}
 
-          {/* Monster counter-attack — shared with the ability overlay */}
-          <MonsterCounterPanel
-            monsterRoll={monsterRoll}
-            monsterDamage={monsterDamage}
-            monsterStunned={monsterStunned}
-            dodged={dodged}
-            monsterAttackType={monsterAttackType}
-            playerDefFailed={playerDefFailed}
-            playerDefStat={playerDefStat}
-            monsterSpecial={monsterSpecial}
-            chargingPrimed={monsterChargingPrimed}
-            playerStunnedApplied={playerStunnedApplied}
-            outcome={outcome}
-            dieSize="lg"
-          />
+          {spiritCrit && (
+            <div className="mt-1">
+              <CritFlourish multiplier={spiritCritMultiplier} />
+            </div>
+          )}
+
+          {/* Monster counter-attack — mounted only in result phase so the d10
+              spin animation starts fresh as the result section fades in. */}
+          {phase === 'result' && (
+            <MonsterCounterPanel
+              monsterRoll={monsterRoll}
+              monsterDamage={monsterDamage}
+              monsterStunned={monsterStunned}
+              dodged={dodged}
+              monsterAttackType={monsterAttackType}
+              playerDefFailed={playerDefFailed}
+              playerDefStat={playerDefStat}
+              monsterSpecial={monsterSpecial}
+              chargingPrimed={monsterChargingPrimed}
+              playerStunnedApplied={playerStunnedApplied}
+              outcome={outcome}
+              dieSize="lg"
+            />
+          )}
 
           <button
             onClick={handleDismiss}

@@ -242,7 +242,14 @@ export function ActionRollOverlay({
                   {isMagicMonster ? '🔮' : '⚔️'} {monster.attack} ATK
                 </span>
                 {isMagicMonster ? (
-                  <span className="text-violet-400 font-semibold text-sm">· ignores armor</span>
+                  <>
+                    <span className="text-violet-400 font-semibold text-sm">· ignores armor</span>
+                    {pending.classDamageTakenMult != null && (
+                      <span className="text-violet-400 text-sm">
+                        · ×{pending.classDamageTakenMult.toFixed(2)} class
+                      </span>
+                    )}
+                  </>
                 ) : special?.effect.kind === 'pierce' ? (
                   <span className="text-orange-500 font-semibold text-sm">· 🗡️ armor sundered</span>
                 ) : isRecovery ? (
@@ -297,7 +304,9 @@ export function ActionRollOverlay({
                 ) : (
                   <>
                     <span className="text-gray-300 dark:text-slate-600 font-bold">+</span>
-                    <span className="text-slate-500 font-semibold">🧠 WIS</span>
+                    <span className="text-slate-500 font-semibold">
+                      🧠 {pending.meditateWisBonus ?? '?'} WIS
+                    </span>
                     <span className="text-gray-300 dark:text-slate-600 font-bold">=</span>
                     <span className="text-slate-700 font-black text-2xl">
                       {pending.recoveredMagic}

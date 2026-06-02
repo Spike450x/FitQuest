@@ -16,6 +16,7 @@ import {
   playerMaxStamina,
   playerMaxMagic,
   gearDefenseBonus,
+  effectiveStat,
   monsterXpScaling,
 } from '@/lib/gameLogic/combat';
 import {
@@ -208,7 +209,7 @@ function HuntFight({
   const { fightState, pending, bursts, expireBurst, usingItem, rollingAction, actions } = encounter;
   const { playerHp, playerStamina, playerMagic, monsterHp, log, outcome } = fightState;
   const emoji = MONSTER_EMOJI[monster.id] ?? '👾';
-  const playerDefStat = (character.stats.defense ?? 0) + gearDefenseBonus(character);
+  const playerDefStat = effectiveStat(character, 'defense') + gearDefenseBonus(character);
   const lastEntry = log[log.length - 1] ?? null;
 
   // Nav-lock + unload guard while the fight is live.

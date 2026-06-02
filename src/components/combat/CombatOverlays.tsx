@@ -71,6 +71,8 @@ export function CombatOverlays({
           monsterSpecial={pending.spell.monsterSpecial}
           monsterChargingPrimed={pending.spell.monsterChargingPrimed}
           playerStunnedApplied={pending.spell.playerStunnedApplied}
+          spiritCrit={pending.spell.spiritCrit}
+          spiritCritMultiplier={pending.spell.spiritCritMultiplier}
           outcome={pending.spell.outcome}
           onDismiss={pending.spell.applyResult}
         />

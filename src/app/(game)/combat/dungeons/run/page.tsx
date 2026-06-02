@@ -35,6 +35,7 @@ import {
   playerMaxStamina,
   playerMaxMagic,
   gearDefenseBonus,
+  effectiveStat,
 } from '@/lib/gameLogic/combat';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
 import { CombatArena } from '@/components/combat/CombatArena';
@@ -377,7 +378,7 @@ function DungeonCombatShell({
     spellChargesUsed,
   } = encounter;
   const playerEmoji = CLASS_DEFINITIONS[character.class].emoji;
-  const playerDefStat = (character.stats.defense ?? 0) + gearDefenseBonus(character);
+  const playerDefStat = effectiveStat(character, 'defense') + gearDefenseBonus(character);
   const lastEntry = fightState.log[fightState.log.length - 1] ?? null;
 
   return (
