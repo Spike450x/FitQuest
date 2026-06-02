@@ -51,7 +51,7 @@ import {
   getMomentumRestore,
   resolveLifesteal,
 } from './passives';
-import { COMBAT } from './constants';
+import { COMBAT, CLASS_DAMAGE_TAKEN } from './constants';
 
 // ─── Monster passive / active helpers ─────────────────────────────────────────
 
@@ -674,6 +674,11 @@ export function resolveAttackAction(
           actualMonsterDamage > 0
             ? effectiveAttackType(stateForRound.monster, monsterSpecial)
             : undefined,
+        classDamageTakenMult: (() => {
+          const school = effectiveAttackType(stateForRound.monster, monsterSpecial);
+          const mult = CLASS_DAMAGE_TAKEN[character.class][school];
+          return mult !== 1 ? mult : undefined;
+        })(),
         spiritCrit: attackCrit.crit || undefined,
         spiritCritMultiplier: attackCrit.crit ? attackCrit.multiplier : undefined,
         outcome,

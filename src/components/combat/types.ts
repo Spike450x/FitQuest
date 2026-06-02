@@ -189,6 +189,12 @@ export interface PendingAction {
   playerStunnedApplied?: boolean;
   /** Damage school of the counter — magic when a `burst` special fired. */
   monsterAttackType?: 'physical' | 'magic';
+  /**
+   * Class-specific damage-taken multiplier for the counter's school. Used by
+   * the overlay to show the hidden scaling factor in the formula display.
+   * Only meaningful when ≠ 1 (identity), e.g. Warrior magic ×1.3.
+   */
+  classDamageTakenMult?: number;
   /** Spirit crit fired on a basic attack/magic strike (boosted player damage). */
   spiritCrit?: boolean;
   /** Multiplier applied when spiritCrit fired (1 + bonus, e.g. 1.15 for +15%). */

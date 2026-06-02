@@ -242,7 +242,14 @@ export function ActionRollOverlay({
                   {isMagicMonster ? '🔮' : '⚔️'} {monster.attack} ATK
                 </span>
                 {isMagicMonster ? (
-                  <span className="text-violet-400 font-semibold text-sm">· ignores armor</span>
+                  <>
+                    <span className="text-violet-400 font-semibold text-sm">· ignores armor</span>
+                    {pending.classDamageTakenMult != null && (
+                      <span className="text-violet-400 text-sm">
+                        · ×{pending.classDamageTakenMult.toFixed(2)} class
+                      </span>
+                    )}
+                  </>
                 ) : special?.effect.kind === 'pierce' ? (
                   <span className="text-orange-500 font-semibold text-sm">· 🗡️ armor sundered</span>
                 ) : isRecovery ? (
