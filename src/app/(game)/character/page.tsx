@@ -272,7 +272,9 @@ export default function CharacterPage() {
       </div>
 
       {/* Progression — mastery, records, career tallies, achievements */}
-      <MasteryProgress character={character} />
+      <CollapsibleSection id="char-mastery" title="🎓 Polymath Progress">
+        <MasteryProgress character={character} variant="bare" />
+      </CollapsibleSection>
 
       <CollapsibleSection id="char-records" title="🏅 Personal Records">
         <PersonalRecords character={character} />
