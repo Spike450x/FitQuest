@@ -600,6 +600,18 @@ function CombatPageBody({ character }: { character: Character }) {
                   : null,
               }}
               monsterSub={monsterSub}
+              playerStats={{
+                character,
+                currentHp: playerHp,
+                currentStamina: playerStamina,
+                currentMagic: playerMagic,
+              }}
+              monsterStats={{
+                def: monster,
+                bonusAtk: fightState.monsterBonusAtk,
+                bonusDef: fightState.monsterBonusDef,
+                currentHp: monsterHp,
+              }}
             />
           );
         })()}

@@ -167,7 +167,7 @@ export function DiceRollOverlay({
         </div>
 
         <div
-          className={`transition-opacity duration-300 ${resultVisible ? 'opacity-100' : 'opacity-0'} ${phase === 'result' ? '' : 'pointer-events-none'}`}
+          className={`transition-opacity duration-300 ${resultVisible ? 'opacity-100' : 'opacity-0'}`}
         >
           {fizzled ? (
             <div className="space-y-1.5">
@@ -254,36 +254,35 @@ export function DiceRollOverlay({
               <CritFlourish multiplier={spiritCritMultiplier} />
             </div>
           )}
-
-          {/* Monster counter-attack — mounted only in result phase so the d10
-              spin animation starts fresh as the result section fades in. */}
-          <div className="mt-3">
-            {phase === 'result' && (
-              <MonsterCounterPanel
-                monsterRoll={monsterRoll}
-                monsterDamage={monsterDamage}
-                monsterStunned={monsterStunned}
-                dodged={dodged}
-                monsterAttackType={monsterAttackType}
-                playerDefFailed={playerDefFailed}
-                playerDefStat={playerDefStat}
-                monsterSpecial={monsterSpecial}
-                chargingPrimed={monsterChargingPrimed}
-                playerStunnedApplied={playerStunnedApplied}
-                outcome={outcome}
-                dieSize="lg"
-              />
-            )}
-          </div>
-
-          <button
-            onClick={handleDismiss}
-            disabled={dismissing}
-            className="mt-4 w-full bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-sm font-bold py-2.5 rounded-xl transition-colors"
-          >
-            {dismissing ? 'Applying…' : 'Continue →'}
-          </button>
         </div>
+
+        {/* Monster counter-attack — mounted when result is visible so the 700 ms
+            spin animation starts exactly as the result section appears. */}
+        {resultVisible && (
+          <div className="space-y-3">
+            <MonsterCounterPanel
+              monsterRoll={monsterRoll}
+              monsterDamage={monsterDamage}
+              monsterStunned={monsterStunned}
+              dodged={dodged}
+              monsterAttackType={monsterAttackType}
+              playerDefFailed={playerDefFailed}
+              playerDefStat={playerDefStat}
+              monsterSpecial={monsterSpecial}
+              chargingPrimed={monsterChargingPrimed}
+              playerStunnedApplied={playerStunnedApplied}
+              outcome={outcome}
+              dieSize="lg"
+            />
+            <button
+              onClick={handleDismiss}
+              disabled={dismissing}
+              className="w-full bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-sm font-bold py-2.5 rounded-xl transition-colors"
+            >
+              {dismissing ? 'Applying…' : 'Continue →'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

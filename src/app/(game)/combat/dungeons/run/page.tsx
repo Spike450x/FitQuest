@@ -423,6 +423,18 @@ function DungeonCombatShell({
             <span className="text-emerald-300">☠ Poisoned ({poisoned.roundsRemaining})</span>
           ) : null
         }
+        playerStats={{
+          character,
+          currentHp: fightState.playerHp,
+          currentStamina: fightState.playerStamina,
+          currentMagic: fightState.playerMagic,
+        }}
+        monsterStats={{
+          def: monster,
+          bonusAtk: fightState.monsterBonusAtk,
+          bonusDef: fightState.monsterBonusDef,
+          currentHp: fightState.monsterHp,
+        }}
       />
 
       {/* Player-only resources */}

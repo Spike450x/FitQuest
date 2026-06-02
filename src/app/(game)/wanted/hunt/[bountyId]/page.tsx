@@ -341,6 +341,18 @@ function HuntFight({
             ? { name: fightState.monsterCharging.name, emoji: fightState.monsterCharging.emoji }
             : null,
         }}
+        playerStats={{
+          character,
+          currentHp: playerHp,
+          currentStamina: playerStamina,
+          currentMagic: playerMagic,
+        }}
+        monsterStats={{
+          def: monster,
+          bonusAtk: fightState.monsterBonusAtk,
+          bonusDef: fightState.monsterBonusDef,
+          currentHp: monsterHp,
+        }}
       />
 
       {/* Player resources */}

@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CombatEffects } from './CombatEffects';
 import { EntityArt, type EntityCategory } from '@/components/art/EntityArt';
+import { CombatStatsModal } from './CombatStatsModal';
 import type { DamageBurst } from '@/hooks/useCombatBursts';
-import type { MonsterPassive } from '@/types';
+import type { Character, MonsterDef, MonsterPassive } from '@/types';
 
 interface AvatarProps {
   /** Entity art category — 'class' for the player, 'monster' for foes. */
@@ -31,6 +33,8 @@ interface AvatarProps {
   activeLabel?: string;
   /** A telegraphed special the monster is winding up — shown as a pulsing warning chip. */
   charging?: { name: string; emoji: string } | null;
+  /** Tap the portrait to open the stats inspector panel. */
+  onInfoClick?: () => void;
 }
 
 /**
@@ -62,6 +66,7 @@ function Avatar({
   passive,
   activeLabel,
   charging,
+  onInfoClick,
 }: AvatarProps) {
   const pct = Math.max(0, Math.min(100, (hp / maxHp) * 100));
   const fainted = hp <= 0;
@@ -82,9 +87,12 @@ function Avatar({
             : {}
         }
         transition={{ duration: 0.4 }}
+        onClick={onInfoClick}
+        role={onInfoClick ? 'button' : undefined}
+        aria-label={onInfoClick ? `View ${name} stats` : undefined}
         className={`relative w-24 h-24 sm:w-28 sm:h-28 shadow-lg rounded-2xl ${
           fainted ? 'grayscale opacity-50' : ''
-        } ${low ? 'animate-pulse' : ''}`}
+        } ${low ? 'animate-pulse' : ''} ${onInfoClick ? 'cursor-pointer hover:ring-2 hover:ring-indigo-400 hover:ring-offset-1 dark:hover:ring-offset-slate-900' : ''}`}
       >
         <div className={`${facingTransform} w-full h-full`}>
           <EntityArt
@@ -96,6 +104,11 @@ function Avatar({
             className="w-full h-full"
           />
         </div>
+        {onInfoClick && (
+          <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-white/90 dark:bg-slate-700/90 border border-gray-200 dark:border-slate-600 flex items-center justify-center text-[10px] font-bold text-gray-500 dark:text-slate-300 shadow-sm">
+            ℹ
+          </div>
+        )}
       </motion.div>
       <p className="text-xs font-semibold text-gray-700 dark:text-slate-200 truncate max-w-full">
         {name}
@@ -182,6 +195,20 @@ interface CombatArenaProps {
   shakeKey?: string;
   /** Optional pity-tracker hint shown under the monster portrait. */
   monsterSub?: React.ReactNode;
+  /** Full character data for the player stats inspector — omit to hide the info button. */
+  playerStats?: {
+    character: Character;
+    currentHp: number;
+    currentStamina: number;
+    currentMagic: number;
+  };
+  /** Full monster data for the monster stats inspector — omit to hide the info button. */
+  monsterStats?: {
+    def: MonsterDef;
+    bonusAtk?: number;
+    bonusDef?: number;
+    currentHp: number;
+  };
 }
 
 /**
@@ -196,56 +223,73 @@ export function CombatArena({
   onBurstExpired,
   shakeKey,
   monsterSub,
+  playerStats,
+  monsterStats,
 }: CombatArenaProps) {
+  const [showStats, setShowStats] = useState<'player' | 'monster' | null>(null);
+
   return (
-    <div className="relative bg-white dark:bg-slate-900/80 backdrop-blur-sm border border-gray-200 dark:border-slate-700 rounded-2xl p-4 sm:p-6 shadow-lg dark:shadow-black/30 overflow-visible">
-      {/* Floating damage numbers — positioned over left/right sides */}
-      <CombatEffects bursts={bursts} onBurstExpired={onBurstExpired} />
+    <>
+      <div className="relative bg-white dark:bg-slate-900/80 backdrop-blur-sm border border-gray-200 dark:border-slate-700 rounded-2xl p-4 sm:p-6 shadow-lg dark:shadow-black/30 overflow-visible">
+        {/* Floating damage numbers — positioned over left/right sides */}
+        <CombatEffects bursts={bursts} onBurstExpired={onBurstExpired} />
 
-      <div className="flex items-center justify-between gap-3">
-        <Avatar
-          side="left"
-          artCategory="class"
-          artId={player.classId}
-          emoji={player.emoji}
-          name={`You · ${player.name}`}
-          hp={player.hp}
-          maxHp={player.maxHp}
-          defense={player.defense}
-          hpColor="bg-gradient-to-r from-rose-400 to-rose-500"
-          damageKey={shakeKey ? `${shakeKey}-player` : undefined}
-        />
+        <div className="flex items-center justify-between gap-3">
+          <Avatar
+            side="left"
+            artCategory="class"
+            artId={player.classId}
+            emoji={player.emoji}
+            name={`You · ${player.name}`}
+            hp={player.hp}
+            maxHp={player.maxHp}
+            defense={player.defense}
+            hpColor="bg-gradient-to-r from-rose-400 to-rose-500"
+            damageKey={shakeKey ? `${shakeKey}-player` : undefined}
+            onInfoClick={playerStats ? () => setShowStats('player') : undefined}
+          />
 
-        {/* VS divider */}
-        <div className="flex flex-col items-center gap-1 shrink-0 px-1">
-          <span
-            className="font-display text-base sm:text-lg font-bold tracking-widest text-gray-400 dark:text-slate-500"
-            aria-hidden="true"
-          >
-            VS
-          </span>
-          <span className="text-2xl" aria-hidden="true">
-            ⚔️
-          </span>
+          {/* VS divider */}
+          <div className="flex flex-col items-center gap-1 shrink-0 px-1">
+            <span
+              className="font-display text-base sm:text-lg font-bold tracking-widest text-gray-400 dark:text-slate-500"
+              aria-hidden="true"
+            >
+              VS
+            </span>
+            <span className="text-2xl" aria-hidden="true">
+              ⚔️
+            </span>
+          </div>
+
+          <Avatar
+            side="right"
+            artCategory="monster"
+            artId={monster.id}
+            emoji={monster.emoji}
+            name={monster.name}
+            hp={monster.hp}
+            maxHp={monster.maxHp}
+            defense={monster.defense}
+            hpColor="bg-gradient-to-r from-slate-500 to-slate-600"
+            damageKey={shakeKey ? `${shakeKey}-monster` : undefined}
+            sub={monsterSub}
+            passive={monster.passive}
+            activeLabel={monster.activeLabel}
+            charging={monster.charging}
+            onInfoClick={monsterStats ? () => setShowStats('monster') : undefined}
+          />
         </div>
-
-        <Avatar
-          side="right"
-          artCategory="monster"
-          artId={monster.id}
-          emoji={monster.emoji}
-          name={monster.name}
-          hp={monster.hp}
-          maxHp={monster.maxHp}
-          defense={monster.defense}
-          hpColor="bg-gradient-to-r from-slate-500 to-slate-600"
-          damageKey={shakeKey ? `${shakeKey}-monster` : undefined}
-          sub={monsterSub}
-          passive={monster.passive}
-          activeLabel={monster.activeLabel}
-          charging={monster.charging}
-        />
       </div>
-    </div>
+
+      {showStats && (playerStats || monsterStats) && (
+        <CombatStatsModal
+          which={showStats}
+          playerStats={playerStats}
+          monsterStats={monsterStats}
+          onClose={() => setShowStats(null)}
+        />
+      )}
+    </>
   );
 }
