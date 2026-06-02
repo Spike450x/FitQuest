@@ -290,7 +290,11 @@ export function CombatStatsModal({
 }) {
   return (
     <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} aria-hidden />
+      <div
+        className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
       <div className="relative bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl px-5 py-6 shadow-2xl mx-0 sm:mx-4 w-full sm:max-w-sm max-h-[85vh] overflow-y-auto">
         <button
           onClick={onClose}

@@ -35,15 +35,16 @@ const SPELL_SOUND: Record<SpellEffectKey, SoundKey> = {
 };
 
 /**
- * Spell roll overlay — animates the spell's dice (count from the requirement)
- * then reveals whether the requirement was met. Effect summary shown on hit.
- * Calls `onDismiss` when the player taps Continue.
+ * Spell roll overlay — animates the spell's dice then reveals hit/fizzle.
+ * Two-step: spell result → "Next →" → monster counter screen → "Continue →".
+ * Calls `onDismiss` when the player taps the final Continue button.
  */
 export function SpellRollOverlay({
   spellDef,
   dice,
   requirementMet,
   monsterRoll,
+  monsterAtk,
   monsterStunned,
   monsterDamage,
   dodged,
@@ -63,6 +64,8 @@ export function SpellRollOverlay({
   requirementMet: boolean;
   /** Monster's raw d10 roll for the counter-attack (0 if stunned). */
   monsterRoll: number;
+  /** Effective monster ATK for the formula display. */
+  monsterAtk?: number;
   /** True when the spell stunned the monster, skipping the counter-attack. */
   monsterStunned: boolean;
   /** Damage the monster dealt to the player (0 if stunned). */
@@ -97,6 +100,7 @@ export function SpellRollOverlay({
   );
   const [settled, setSettled] = useState<boolean[]>(() => dice.map(() => false));
   const [resultVisible, setResultVisible] = useState(false);
+  const [playerDone, setPlayerDone] = useState(false);
   const [dismissing, setDismissing] = useState(false);
   const [flashActive, setFlashActive] = useState(false);
 
@@ -182,76 +186,95 @@ export function SpellRollOverlay({
         aria-hidden
       />
       <div className="relative bg-white dark:bg-slate-900 rounded-2xl px-6 py-7 shadow-2xl mx-4 max-w-xs w-full space-y-5 text-center">
-        <p className="text-xs font-bold text-violet-400 uppercase tracking-widest">
-          {phase === 'spinning'
-            ? 'Casting…'
-            : phase === 'settling'
-              ? 'Resolving…'
-              : requirementMet
-                ? 'Spell Cast!'
-                : 'Fizzled!'}
-        </p>
+        {!playerDone ? (
+          <>
+            {/* STEP 1: Spell roll result */}
+            <p className="text-xs font-bold text-violet-400 uppercase tracking-widest">
+              {phase === 'spinning'
+                ? 'Casting…'
+                : phase === 'settling'
+                  ? 'Resolving…'
+                  : requirementMet
+                    ? 'Spell Cast!'
+                    : 'Fizzled!'}
+            </p>
 
-        <p className="text-base font-bold text-violet-800">✨ {spellDef.name}</p>
+            <p className="text-base font-bold text-violet-800 dark:text-violet-300">
+              ✨ {spellDef.name}
+            </p>
 
-        <div className="flex justify-center gap-2 flex-wrap">
-          {displayDice.map((d, i) => {
-            const isSettled = settled[i];
-            const isHighlighted = isSettled && highlighted.includes(i);
-            return (
-              <Die3D
-                key={i}
-                value={d}
-                size="lg"
-                variant={!isSettled ? 'spinning' : isHighlighted ? 'highlighted' : 'settled'}
-              />
-            );
-          })}
-        </div>
-
-        <p className="text-xs text-gray-400 dark:text-slate-500">
-          {describeRequirement(sm.requirement)}
-        </p>
-
-        <div
-          className={`space-y-3 transition-opacity duration-300 ${resultVisible ? 'opacity-100' : 'opacity-0'}`}
-        >
-          {requirementMet ? (
-            <div className="space-y-2">
-              <p className="text-lg font-bold text-violet-700">Requirement Met!</p>
-              <div className="flex flex-wrap justify-center gap-1.5">
-                {effectTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs bg-violet-100 text-violet-700 font-semibold px-2.5 py-0.5 rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+            <div className="flex justify-center gap-2 flex-wrap">
+              {displayDice.map((d, i) => {
+                const isSettled = settled[i];
+                const isHighlighted = isSettled && highlighted.includes(i);
+                return (
+                  <Die3D
+                    key={i}
+                    value={d}
+                    size="lg"
+                    variant={!isSettled ? 'spinning' : isHighlighted ? 'highlighted' : 'settled'}
+                  />
+                );
+              })}
             </div>
-          ) : (
-            <div className="space-y-1">
-              <p className="text-lg font-bold text-gray-400 dark:text-slate-500">Fizzled</p>
-              <p className="text-xs text-gray-400 dark:text-slate-500">
-                Dice didn&apos;t meet the requirement — magic spent, no effect
-              </p>
-            </div>
-          )}
 
-          {spiritCrit && (
-            <div className="mt-1">
-              <CritFlourish multiplier={spiritCritMultiplier} />
-            </div>
-          )}
-        </div>
+            <p className="text-xs text-gray-400 dark:text-slate-500">
+              {describeRequirement(sm.requirement)}
+            </p>
 
-        {/* Monster counter-attack — mounted when result is visible so the 700 ms
-            spin animation starts exactly as the result section appears. */}
-        {resultVisible && (
-          <div className="space-y-3">
+            <div
+              className={`space-y-3 transition-opacity duration-300 ${resultVisible ? 'opacity-100' : 'opacity-0'}`}
+            >
+              {requirementMet ? (
+                <div className="space-y-2">
+                  <p className="text-lg font-bold text-violet-700 dark:text-violet-300">
+                    Requirement Met!
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-1.5">
+                    {effectTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-xs bg-violet-100 text-violet-700 font-semibold px-2.5 py-0.5 rounded-full"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-lg font-bold text-gray-400 dark:text-slate-500">Fizzled</p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500">
+                    Dice didn&apos;t meet the requirement — magic spent, no effect
+                  </p>
+                </div>
+              )}
+
+              {spiritCrit && (
+                <div className="mt-1">
+                  <CritFlourish multiplier={spiritCritMultiplier} />
+                </div>
+              )}
+            </div>
+
+            {resultVisible && (
+              <button
+                onClick={() => setPlayerDone(true)}
+                className="w-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold py-2.5 rounded-xl transition-colors"
+              >
+                Next →
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            {/* STEP 2: Monster counter-attack */}
+            <p className="text-xs font-bold text-rose-400 uppercase tracking-widest">
+              ⚔️ Enemy Counter-Attack
+            </p>
             <MonsterCounterPanel
               monsterRoll={monsterRoll}
+              monsterAtk={monsterAtk}
               monsterDamage={monsterDamage}
               monsterStunned={monsterStunned}
               dodged={dodged}
@@ -271,7 +294,7 @@ export function SpellRollOverlay({
             >
               {dismissing ? 'Applying…' : 'Continue →'}
             </button>
-          </div>
+          </>
         )}
       </div>
     </div>
