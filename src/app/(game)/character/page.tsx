@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/ReputationChip';
 import { resolveActiveTitle } from '@/lib/gameLogic/reputation';
 import { CLASS_DAMAGE_TAKEN, CLASS_DEFINITIONS, COMBAT } from '@/lib/gameLogic/constants';
-import { classDodgeChance } from '@/lib/gameLogic/combat';
+import { classDodgeChance, effectiveStat, totalGearBonuses } from '@/lib/gameLogic/combat';
+import { statMultiplierDelta, formatMultiplierPct } from '@/lib/classTraits';
 import {
   StrengthIcon,
   WisdomIcon,
@@ -106,8 +107,11 @@ export default function CharacterPage() {
         >
           <p className="text-sm text-gray-500 dark:text-slate-400 mb-3">{classDef.description}</p>
           <p className="text-xs text-gray-400 dark:text-slate-500 mb-4">
-            Your class scales each stat&rsquo;s effect in combat. Higher is stronger; a value below
-            ×1.0 is a weakness. These apply to every fight.
+            The <span className="font-medium text-emerald-600 dark:text-emerald-400">+%</span> /{' '}
+            <span className="font-medium text-rose-500 dark:text-rose-400">−%</span> is how much
+            your class boosts or weakens each stat in combat; the bar shows the size of the swing.
+            The <span className="font-medium">base → in-combat</span> value applies it to your
+            current stat (gear adds flat on top).
           </p>
           <div className="space-y-4">
             {TRAIT_GROUPS.map(({ heading, note, traits }) => (
@@ -116,35 +120,15 @@ export default function CharacterPage() {
                   {heading}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-slate-500">{note}</p>
-                {traits.map(({ key, label, effect }) => {
-                  const mult = classDef.statMultipliers[key];
-                  return (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-lg px-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-700 dark:text-slate-200">
-                          {label}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-slate-500 truncate">
-                          {effect}
-                        </p>
-                      </div>
-                      <span
-                        className={`font-bold shrink-0 ${
-                          mult > 1
-                            ? 'text-indigo-600 dark:text-indigo-400'
-                            : mult < 1
-                              ? 'text-red-500 dark:text-red-400'
-                              : 'text-gray-500 dark:text-slate-400'
-                        }`}
-                      >
-                        ×{mult.toFixed(1)}
-                      </span>
-                    </div>
-                  );
-                })}
+                {traits.map(({ key, label, effect }) => (
+                  <ClassTraitRow
+                    key={key}
+                    character={character}
+                    statKey={key}
+                    label={label}
+                    effect={effect}
+                  />
+                ))}
               </div>
             ))}
           </div>
@@ -301,6 +285,83 @@ export default function CharacterPage() {
       <CollapsibleSection id="char-achievements" title="🏆 Achievements">
         <AchievementsShowcase character={character} />
       </CollapsibleSection>
+    </div>
+  );
+}
+
+// ─── Class trait row ────────────────────────────────────────────────────────────
+// One stat's class multiplier shown as a signed %, a centered diverging bar
+// (buff fills right / debuff fills left), and the base → in-combat value so the
+// multiplier's real effect on the player's current stat is concrete.
+
+function ClassTraitRow({
+  character,
+  statKey,
+  label,
+  effect,
+}: {
+  character: Character;
+  statKey: keyof Stats;
+  label: string;
+  effect: string;
+}) {
+  const mult = CLASS_DEFINITIONS[character.class].statMultipliers[statKey];
+  const { pct, kind, fillFraction } = statMultiplierDelta(mult);
+  const base = character.stats[statKey] ?? 0;
+  const effective = effectiveStat(character, statKey);
+  const gear = totalGearBonuses(character.equippedGear)[statKey] ?? 0;
+
+  const pctColor =
+    kind === 'buff'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : kind === 'debuff'
+        ? 'text-rose-500 dark:text-rose-400'
+        : 'text-gray-400 dark:text-slate-500';
+
+  return (
+    <div className="bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-lg px-3 py-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-gray-700 dark:text-slate-200">{label}</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 truncate">{effect}</p>
+        </div>
+        <span className={`text-sm font-bold tabular-nums shrink-0 ${pctColor}`}>
+          {formatMultiplierPct(pct)}
+        </span>
+      </div>
+      <div className="mt-2 flex items-center gap-2.5">
+        <DivergingBar kind={kind} fillFraction={fillFraction} />
+        <span className="text-[11px] text-gray-400 dark:text-slate-500 tabular-nums shrink-0">
+          {base} →{' '}
+          <span className="font-semibold text-gray-600 dark:text-slate-300">{effective}</span>
+          {gear > 0 && <span className="text-emerald-600 dark:text-emerald-400"> +{gear}</span>}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function DivergingBar({
+  kind,
+  fillFraction,
+}: {
+  kind: 'buff' | 'debuff' | 'neutral';
+  fillFraction: number;
+}) {
+  // Each side spans half the track; a full-deviation stat fills its half.
+  const widthPct = Math.min(50, fillFraction * 50);
+  return (
+    <div className="relative flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-slate-800">
+      {/* center baseline tick */}
+      <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-px bg-gray-300 dark:bg-slate-600" />
+      {kind !== 'neutral' && (
+        <div
+          className={`absolute top-0 bottom-0 rounded-full ${
+            kind === 'buff' ? 'left-1/2 bg-emerald-500' : 'right-1/2 bg-rose-500'
+          }`}
+          style={{ width: `${widthPct}%` }}
+        />
+      )}
     </div>
   );
 }

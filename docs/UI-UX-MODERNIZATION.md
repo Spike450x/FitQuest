@@ -3,6 +3,15 @@
 > Source audit: ui-critic agent, 2026-05-21.
 > Goal: make FitQuest look and feel like a modern game, not an admin dashboard.
 
+> **2026-06-02 — Trait viz, persistent header stats, dashboard bounties.** (1) Class Traits on
+> `/character` swapped opaque `×0.8 / ×1.4` multipliers for a signed **+%/−%** label + a **diverging
+> bar** (buff fills right/emerald from center, debuff fills left/rose) + the **base → in-combat**
+> effective value — the buff/debuff magnitude and its real effect are now both legible. Math in the
+> pure, testable `src/lib/classTraits.ts`. (2) New `HeaderStats` keeps ❤️ Health + 🎖️ Reputation
+> visible beside 💰 Gold in the sticky top bar on **every page, mobile included** (Defense stays
+> desktop-only). (3) Dashboard gained a collapsible **Today's Bounties** widget mirroring Daily
+> Quests for the Reputation track (Hunt / Claim / View-all actions).
+
 > **2026-06-01 — Dashboard + character sheet upgrade.** Three reusable UI patterns landed.
 > (1) **`CollapsibleSection`** — a Card-wrapped, accessible (`aria-expanded`/`aria-controls`,
 > keyboard), framer-motion expand/collapse whose open state persists per-id in `uiPrefsStore`;

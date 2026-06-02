@@ -21,12 +21,14 @@ import { totalGearBonuses } from '@/lib/gameLogic/combat';
 import { getStreakTier } from '@/lib/gameLogic/streaks';
 import { useCharacterStore } from '@/store/characterStore';
 import { useQuestStore } from '@/store/questStore';
+import { useBountyStore } from '@/store/bountyStore';
 import { getActivityIconSvg } from '@/lib/activityIcons';
 import { getQuestDef } from '@/lib/gameLogic/quests';
+import { getBountyDef } from '@/lib/gameLogic/bounties';
 import { StatAllocModal } from '@/components/character/StatAllocModal';
 import { SubclassModal } from '@/components/character/SubclassModal';
 import { getSubclassDef } from '@/lib/gameLogic/passives';
-import type { ActivityLog, ActiveQuest, ActivityType } from '@/types';
+import type { ActivityLog, ActiveQuest, ActiveBounty, ActivityType } from '@/types';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -41,9 +43,12 @@ export default function DashboardPage() {
     quests,
     questsLoading,
     questsError,
+    bounties,
+    bountiesLoading,
   } = useGameData();
   const fetchCharacter = useCharacterStore((s) => s.fetchCharacter);
   const fetchAndAssignQuests = useQuestStore((s) => s.fetchAndAssignQuests);
+  const fetchAndAssignBounties = useBountyStore((s) => s.fetchAndAssignBounties);
 
   useEffect(() => {
     if (!loading && !character && !characterError) {
@@ -54,6 +59,10 @@ export default function DashboardPage() {
   useEffect(() => {
     if (character?.uid) fetchAndAssignQuests(character.uid, todayKey);
   }, [character?.uid, fetchAndAssignQuests, todayKey]);
+
+  useEffect(() => {
+    if (character?.uid) fetchAndAssignBounties(character.uid, todayKey);
+  }, [character?.uid, fetchAndAssignBounties, todayKey]);
 
   const gearBonuses = useMemo(
     () => (character ? totalGearBonuses(character.equippedGear) : {}),
@@ -203,6 +212,19 @@ export default function DashboardPage() {
           }
         >
           <QuestList quests={dailyQuests} loading={questsLoading} />
+        </CollapsibleSection>
+
+        {/* Today's bounties — Reputation track, mirrors Daily Quests */}
+        <CollapsibleSection
+          id="dash-bounties"
+          title="Today's Bounties"
+          right={
+            <Link href="/wanted" className="text-xs font-semibold text-indigo-600 hover:underline">
+              View all →
+            </Link>
+          }
+        >
+          <BountyList bounties={bounties} loading={bountiesLoading} />
         </CollapsibleSection>
 
         {/* Recent activity feed with filter + sort */}
@@ -483,6 +505,130 @@ function QuestProgressRow({ quest }: { quest: ActiveQuest }) {
           </span>
         ))}
       </span>
+    </li>
+  );
+}
+
+// ─── Today's Bounties list ────────────────────────────────────────────────────
+// Mirrors the Daily Quests widget for the Reputation track. Standing bounties
+// claim loot on the Wanted Board; hunt bounties route to a fight once tracked.
+
+function BountyList({ bounties, loading }: { bounties: ActiveBounty[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="space-y-1.5">
+            <Skeleton shape="line" width="w-3/4" />
+            <Skeleton shape="line" height="h-1.5" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (bounties.length === 0) {
+    return (
+      <div className="text-center py-4">
+        <div className="text-2xl mb-1" aria-hidden="true">
+          🎯
+        </div>
+        <p className="text-sm font-medium text-gray-600 dark:text-slate-300">No active bounties</p>
+        <Link
+          href="/wanted"
+          className="inline-block mt-1 text-xs font-semibold text-indigo-600 hover:underline"
+        >
+          Visit the Wanted Board →
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <ul className="space-y-3">
+      {bounties.map((b) => (
+        <BountyProgressRow key={b.id} bounty={b} />
+      ))}
+    </ul>
+  );
+}
+
+function BountyProgressRow({ bounty }: { bounty: ActiveBounty }) {
+  const def = getBountyDef(bounty.bountyDefId);
+  if (!def) return null;
+
+  const pct = Math.min(100, Math.round((bounty.progress / def.requirement.target) * 100));
+  const isComplete = bounty.completedAt !== null;
+  const isClaimed = bounty.claimedAt !== null;
+  const isHunt = def.kind === 'hunt';
+  const isMultiTarget = (def.extraTargets?.length ?? 0) > 0;
+
+  const totalTargets = 1 + (def.extraTargets?.length ?? 0);
+  const doneTargets =
+    (bounty.progress >= def.requirement.target ? 1 : 0) +
+    (def.extraTargets?.filter((et) => (bounty.extraProgress?.[et.activityType] ?? 0) >= et.target)
+      .length ?? 0);
+
+  const bottleneckPct = isMultiTarget
+    ? Math.min(
+        pct,
+        ...(def.extraTargets?.map((et) =>
+          Math.min(
+            100,
+            Math.round(((bounty.extraProgress?.[et.activityType] ?? 0) / et.target) * 100),
+          ),
+        ) ?? []),
+      )
+    : pct;
+
+  return (
+    <li className="space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-gray-700 dark:text-slate-200 truncate">
+          {isHunt && <span aria-hidden="true">⚔️ </span>}
+          {def.name}
+        </span>
+        {isClaimed ? (
+          <span className="text-xs text-emerald-600 font-medium shrink-0">Collected</span>
+        ) : isComplete && isHunt ? (
+          <Link
+            href={`/wanted/hunt/${bounty.id}`}
+            className="text-xs text-amber-600 font-semibold shrink-0 hover:underline"
+          >
+            Hunt! →
+          </Link>
+        ) : isComplete ? (
+          <Link
+            href="/wanted"
+            className="text-xs text-amber-600 font-semibold shrink-0 hover:underline"
+          >
+            Claim! →
+          </Link>
+        ) : isMultiTarget ? (
+          <span className="text-xs text-gray-400 dark:text-slate-500 shrink-0">
+            {doneTargets}/{totalTargets} done
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400 dark:text-slate-500 shrink-0">{pct}%</span>
+        )}
+      </div>
+      <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+        <div
+          className={`h-1.5 rounded-full transition-all duration-500 ${
+            isClaimed ? 'bg-emerald-400' : isComplete ? 'bg-amber-400' : 'bg-violet-500'
+          }`}
+          style={{ width: `${bottleneckPct}%` }}
+        />
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-gray-400 dark:text-slate-500">
+          {bounty.progress.toLocaleString()} / {def.requirement.target.toLocaleString()}{' '}
+          {def.requirement.unit}
+        </span>
+        <span className="text-xs font-semibold text-violet-600 dark:text-violet-300 shrink-0">
+          +{def.rewards.reputation} Rep
+        </span>
+      </div>
     </li>
   );
 }
