@@ -223,8 +223,8 @@ For each item below, when it ships, add a row to the Remediations Log above.
 
 ## Known devDependency Vulnerabilities
 
-No outstanding known vulnerabilities as of 2026-05-25. `npm audit` reports 0 vulnerabilities.
+No outstanding known vulnerabilities as of 2026-06-01. `npm audit` reports 0 vulnerabilities in both the root and `functions/` manifests.
 
 **CI behaviour:** `scripts/audit-check.mjs` (invoked in `.github/workflows/ci.yml`) blocks the build on any high/critical vulnerability and logs moderate/low ones as warnings. The script does not currently distinguish dev-only from prod-only chains (the npm audit JSON does not expose a top-level dev flag), so a high/critical vuln anywhere — including dev-only — will fail CI. This is intentionally conservative.
 
-**Last reviewed:** 2026-05-25
+**Last reviewed:** 2026-06-01
