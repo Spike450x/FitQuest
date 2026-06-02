@@ -1258,6 +1258,8 @@ export function resolveSpellAction(input: ActionInput, spellDef: ItemDef): Actio
         monsterChargingPrimed: charge.primed,
         playerStunnedApplied: charge.stunApplied || undefined,
         playerDefFailed: resolution.playerDefFailed,
+        spiritCrit: spellCrit.crit || undefined,
+        spiritCritMultiplier: spellCrit.crit ? spellCrit.multiplier : undefined,
         outcome,
       },
     },
@@ -1276,13 +1278,15 @@ function resolveRecoveryAction(input: ActionInput, type: 'rest' | 'meditate'): A
 
   let recoveredStamina = 0;
   let recoveredMagic = 0;
+  let meditateWisBonus: number | undefined;
   if (type === 'rest') {
     const raw = recoveryRoll * 3;
     recoveredStamina = Math.min(raw, maxStamina - state.playerStamina);
   } else {
     // Effective WIS (class multiplier applied) so a Wizard's WIS bonus boosts
     // meditate, matching every other combat formula that scales off wisdom.
-    const raw = recoveryRoll + effectiveStat(character, 'wisdom');
+    meditateWisBonus = effectiveStat(character, 'wisdom');
+    const raw = recoveryRoll + meditateWisBonus;
     recoveredMagic = Math.min(raw, maxMagic - state.playerMagic);
   }
 
@@ -1340,6 +1344,7 @@ function resolveRecoveryAction(input: ActionInput, type: 'rest' | 'meditate'): A
         dodged: dodged || undefined,
         recoveredStamina,
         recoveredMagic,
+        meditateWisBonus,
         outcome: lossOutcome,
       },
     },

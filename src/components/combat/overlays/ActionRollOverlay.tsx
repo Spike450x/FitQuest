@@ -304,7 +304,9 @@ export function ActionRollOverlay({
                 ) : (
                   <>
                     <span className="text-gray-300 dark:text-slate-600 font-bold">+</span>
-                    <span className="text-slate-500 font-semibold">🧠 WIS</span>
+                    <span className="text-slate-500 font-semibold">
+                      🧠 {pending.meditateWisBonus ?? '?'} WIS
+                    </span>
                     <span className="text-gray-300 dark:text-slate-600 font-bold">=</span>
                     <span className="text-slate-700 font-black text-2xl">
                       {pending.recoveredMagic}

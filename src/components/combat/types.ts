@@ -201,6 +201,8 @@ export interface PendingAction {
   spiritCritMultiplier?: number;
   recoveredStamina?: number;
   recoveredMagic?: number;
+  /** Effective WIS value added to the roll during meditate (effectiveStat result). */
+  meditateWisBonus?: number;
   outcome?: 'win' | 'loss' | null;
   applyResult: () => Promise<void>;
 }
@@ -268,6 +270,10 @@ export interface PendingSpell {
   playerStunnedApplied?: boolean;
   /** Player's DEF failed on the counter (physical only — surfaces the 💥 tag). */
   playerDefFailed?: boolean;
+  /** Spirit crit fired on the spell's damage. */
+  spiritCrit?: boolean;
+  /** Multiplier applied when spiritCrit fired. */
+  spiritCritMultiplier?: number;
   /** Fight outcome after this round resolves — drives the "Monster slain!" panel. */
   outcome?: 'win' | 'loss' | null;
   applyResult: () => Promise<void>;
