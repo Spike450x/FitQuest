@@ -15,6 +15,13 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-06-02 — Trait viz · persistent mobile HP+Rep · dashboard bounties
+
+- **Class Traits visualization** — the raw `×0.8 / ×1.4` multipliers became a signed **+%/−%** label + a **diverging bar** (buff fills right/emerald, debuff fills left/rose) plus the **base → in-combat** effective value, so the multiplier's real effect is concrete. New pure `src/lib/classTraits.ts` (`statMultiplierDelta`, `formatMultiplierPct`, self-scaling `STAT_MULT_MAX_DEVIATION`) with tests; values/formulas unchanged, only surfaced better.
+- **Persistent HP + Reputation on mobile** — new `HeaderStats` cluster puts ❤️ Health and 🎖️ Reputation beside 💰 Gold in the sticky top bar on every page, mobile included (Defense stays desktop-only). Replaces the prior `sm:`-only HP/DEF block.
+- **Dashboard "Today's Bounties"** — new collapsible widget mirroring Daily Quests for the Reputation track; fetches via the existing `fetchAndAssignBounties`, shows each bounty's progress + Rep reward, with "Hunt! →" (to `/wanted/hunt/[id]`) / "Claim! →" / "View all →" actions. No bounty-store change.
+- Pure UI/store work — no Firestore, rules, Cloud Function, or balance changes. +7 vitest specs (1088 → 1095); typecheck, lint, format, and a clean build all green.
+
 ## 2026-06-01 — Restrict stat bars to the four core stats
 
 - **Fix:** the dashboard + character card stat bars rendered all 7 `Stats` fields as identical `/50` bars, which mis-grouped the survivability stats. `STAT_BAR_CONFIG` now contains only the four core stats (Strength, Wisdom, Agility, Spirit). Stamina & Health are already surfaced as the HP / Stamina pools (and Magic from Wisdom) via `ResourceBars`; Defense is a damage-reduction stat — rendering them as core bars double-counted the resources and misrepresented how they work.

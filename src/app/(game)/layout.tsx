@@ -21,6 +21,7 @@ import { useCombatStore } from '@/store/combatStore';
 import { toast } from '@/components/ui/Toaster';
 import { Modal } from '@/components/ui/Modal';
 import { GoldDisplay } from '@/components/ui/GoldDisplay';
+import { HeaderStats } from '@/components/ui/HeaderStats';
 import { XPBar } from '@/components/ui/XPBar';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { InstallBanner } from '@/components/ui/InstallBanner';
@@ -31,7 +32,6 @@ import { BrandMark } from '@/components/ui/BrandMark';
 import { CharacterAvatar } from '@/components/ui/CharacterAvatar';
 import { LevelUpCelebration } from '@/components/character/LevelUpCelebration';
 import { RankUpCelebration } from '@/components/character/RankUpCelebration';
-import { playerMaxHp, totalGearBonuses } from '@/lib/gameLogic/combat';
 import { LegalFooter } from '@/components/ui/LegalFooter';
 
 /** Nav link that blocks navigation (with a toast) while combat is active. */
@@ -148,32 +148,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
           {/* Right-side stats + actions */}
           <div className="flex items-center gap-3">
-            {character && (
-              <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500 dark:text-slate-400">
-                {(() => {
-                  const gearBonuses = totalGearBonuses(character.equippedGear);
-                  const maxHp = playerMaxHp(character);
-                  const defense = (character.stats.defense ?? 0) + (gearBonuses.defense ?? 0);
-                  return (
-                    <>
-                      <span>
-                        ❤️{' '}
-                        <span className="font-semibold text-gray-700 dark:text-slate-200">
-                          {character.currentHp ?? maxHp}/{maxHp}
-                        </span>
-                      </span>
-                      <span className="text-gray-300 dark:text-slate-600">·</span>
-                      <span>
-                        🛡️{' '}
-                        <span className="font-semibold text-gray-700 dark:text-slate-200">
-                          {defense}
-                        </span>
-                      </span>
-                    </>
-                  );
-                })()}
-              </div>
-            )}
+            {character && <HeaderStats character={character} />}
             {character && <GoldDisplay amount={character.gold} size="sm" />}
             <ThemeToggle className="hidden sm:inline-flex" />
             {character && (
