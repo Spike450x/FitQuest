@@ -15,6 +15,10 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-06-02 — Collapsible Polymath progress on the character sheet
+
+- The character sheet's Polymath/mastery widget is now a `CollapsibleSection` (id `char-mastery`), consistent with the other progression sections. `MasteryProgress` gained a `variant='bare'` (no Card/heading) for this; `/profile` keeps the standalone card + `polymath-progress` testid. Pure UI; 1095 tests green.
+
 ## 2026-06-02 — Trait viz · persistent mobile HP+Rep · dashboard bounties
 
 - **Class Traits visualization** — the raw `×0.8 / ×1.4` multipliers became a signed **+%/−%** label + a **diverging bar** (buff fills right/emerald, debuff fills left/rose) plus the **base → in-combat** effective value, so the multiplier's real effect is concrete. New pure `src/lib/classTraits.ts` (`statMultiplierDelta`, `formatMultiplierPct`, self-scaling `STAT_MULT_MAX_DEVIATION`) with tests; values/formulas unchanged, only surfaced better.
