@@ -214,7 +214,7 @@ export function SpellRollOverlay({
         </p>
 
         <div
-          className={`space-y-3 transition-opacity duration-300 ${resultVisible ? 'opacity-100' : 'opacity-0'} ${phase === 'result' ? '' : 'pointer-events-none'}`}
+          className={`space-y-3 transition-opacity duration-300 ${resultVisible ? 'opacity-100' : 'opacity-0'}`}
         >
           {requirementMet ? (
             <div className="space-y-2">
@@ -244,10 +244,12 @@ export function SpellRollOverlay({
               <CritFlourish multiplier={spiritCritMultiplier} />
             </div>
           )}
+        </div>
 
-          {/* Monster counter-attack — mounted only in result phase so the d10
-              spin animation starts fresh as the result section fades in. */}
-          {phase === 'result' && (
+        {/* Monster counter-attack — mounted when result is visible so the 700 ms
+            spin animation starts exactly as the result section appears. */}
+        {resultVisible && (
+          <div className="space-y-3">
             <MonsterCounterPanel
               monsterRoll={monsterRoll}
               monsterDamage={monsterDamage}
@@ -262,16 +264,15 @@ export function SpellRollOverlay({
               outcome={outcome}
               dieSize="lg"
             />
-          )}
-
-          <button
-            onClick={handleDismiss}
-            disabled={dismissing}
-            className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-sm font-bold py-2.5 rounded-xl transition-colors"
-          >
-            {dismissing ? 'Applying…' : 'Continue →'}
-          </button>
-        </div>
+            <button
+              onClick={handleDismiss}
+              disabled={dismissing}
+              className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-sm font-bold py-2.5 rounded-xl transition-colors"
+            >
+              {dismissing ? 'Applying…' : 'Continue →'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

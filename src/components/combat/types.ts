@@ -175,6 +175,8 @@ export interface PendingAction {
   playerDefFailed?: boolean;
   monsterDefFailed?: boolean;
   escaped?: boolean;
+  /** Agility bonus added to the player's flee/intercept roll — shown in the formula display. */
+  agilityBonus?: number;
   /** This is a flee-intercept roll (player d10 + AGI vs the monster's flee roll). */
   intercept?: boolean;
   /** Intercept landed — the fleeing monster was caught (slain). */

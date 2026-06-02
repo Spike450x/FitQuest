@@ -1458,6 +1458,7 @@ export function resolveInterceptAction(input: ActionInput): ActionResolution {
         intercept: true,
         interceptCaught: caught,
         outcome: caught ? 'win' : null,
+        agilityBonus,
       },
     },
   };
@@ -1493,6 +1494,7 @@ export function resolveFleeAction(input: ActionInput): ActionResolution {
           dice: [playerRoll, monsterRoll],
           escaped: true,
           outcome: null,
+          agilityBonus,
         },
       },
     };
@@ -1536,6 +1538,7 @@ export function resolveFleeAction(input: ActionInput): ActionResolution {
         dodged: dodged || undefined,
         playerDefFailed,
         outcome: runOutcome,
+        agilityBonus,
       },
     },
   };

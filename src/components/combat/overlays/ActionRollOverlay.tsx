@@ -211,22 +211,52 @@ export function ActionRollOverlay({
               💨 Dodged! You took no damage
             </p>
           ) : isRun ? (
-            pending.escaped ? (
-              <p className="text-sm text-gray-500 dark:text-slate-400">
-                You rolled higher — flee successful
-              </p>
-            ) : (
-              <p className="text-sm text-gray-500 dark:text-slate-400">
-                Monster rolled higher — hit for{' '}
-                <span className="font-semibold text-red-500">{pending.monsterDamage} dmg</span>
-                {isMagicMonster ? (
-                  <span className="text-violet-500"> · 🔮 magic (ignores armor)</span>
-                ) : pending.playerDefFailed ? (
-                  <span className="text-orange-500"> · 💥 DEF failed</span>
-                ) : (
-                  <span className="text-gray-400 dark:text-slate-500"> · 🛡️ DEF held</span>
+            pending.intercept ? (
+              <>
+                <p className="text-sm text-gray-500 dark:text-slate-400">
+                  {pending.interceptCaught
+                    ? '⚔️ Monster caught — full rewards!'
+                    : '🏃 Monster escaped — no rewards'}
+                </p>
+                {pending.agilityBonus != null && pending.agilityBonus > 0 && (
+                  <p className="text-xs text-gray-400 dark:text-slate-500">
+                    {pending.dice[0]} roll + {pending.agilityBonus} AGI ={' '}
+                    {pending.dice[0] + pending.agilityBonus} vs monster&apos;s {pending.dice[1]}
+                  </p>
                 )}
-              </p>
+              </>
+            ) : pending.escaped ? (
+              <>
+                <p className="text-sm text-gray-500 dark:text-slate-400">
+                  You rolled higher — flee successful
+                </p>
+                {pending.agilityBonus != null && pending.agilityBonus > 0 && (
+                  <p className="text-xs text-gray-400 dark:text-slate-500">
+                    {pending.dice[0]} roll + {pending.agilityBonus} AGI ={' '}
+                    {pending.dice[0] + pending.agilityBonus} vs monster&apos;s {pending.dice[1]}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 dark:text-slate-400">
+                  Monster rolled higher — hit for{' '}
+                  <span className="font-semibold text-red-500">{pending.monsterDamage} dmg</span>
+                  {isMagicMonster ? (
+                    <span className="text-violet-500"> · 🔮 magic (ignores armor)</span>
+                  ) : pending.playerDefFailed ? (
+                    <span className="text-orange-500"> · 💥 DEF failed</span>
+                  ) : (
+                    <span className="text-gray-400 dark:text-slate-500"> · 🛡️ DEF held</span>
+                  )}
+                </p>
+                {pending.agilityBonus != null && pending.agilityBonus > 0 && (
+                  <p className="text-xs text-gray-400 dark:text-slate-500">
+                    {pending.dice[0]} roll + {pending.agilityBonus} AGI ={' '}
+                    {pending.dice[0] + pending.agilityBonus} vs monster&apos;s {pending.dice[1]}
+                  </p>
+                )}
+              </>
             )
           ) : isMonsterPhase ? (
             <div className="space-y-2">
