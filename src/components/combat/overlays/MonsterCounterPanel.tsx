@@ -136,7 +136,7 @@ export function MonsterCounterPanel({
           )}
           {monsterAtk != null && (
             <p className="text-[11px] font-mono text-gray-400 dark:text-slate-500 text-center">
-              {monsterRoll} roll + {monsterAtk} ATK
+              {monsterAtk} ATK
               {isMagic || monsterSpecial?.effect.kind === 'pierce'
                 ? isMagic
                   ? ' (magic)'
