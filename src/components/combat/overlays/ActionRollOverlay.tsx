@@ -266,10 +266,14 @@ export function ActionRollOverlay({
                 </p>
               )}
               <div className="flex items-center justify-center gap-2 flex-wrap">
+                <span className="font-mono font-semibold text-gray-700 dark:text-slate-200">
+                  {pending.monsterRoll ?? 0}
+                </span>
+                <span className="text-gray-300 dark:text-slate-600 font-bold">+</span>
                 <span
                   className={`font-semibold ${isMagicMonster ? 'text-violet-500' : 'text-rose-500'}`}
                 >
-                  {isMagicMonster ? '🔮' : '⚔️'} {monster.attack} ATK
+                  {isMagicMonster ? '🔮' : '⚔️'} {pending.monsterAtk ?? monster.attack} ATK
                 </span>
                 {isMagicMonster ? (
                   <>

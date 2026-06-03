@@ -22,6 +22,7 @@ export function MonsterCounterPanel({
   monsterAttackType = 'physical',
   playerDefFailed,
   playerDefStat,
+  monsterAtk,
   monsterSpecial,
   chargingPrimed,
   playerStunnedApplied,
@@ -36,6 +37,8 @@ export function MonsterCounterPanel({
   playerDefFailed?: boolean;
   /** Player's effective DEF — shown in the "DEF held" line for full parity with ActionRollOverlay. */
   playerDefStat?: number;
+  /** Effective monster ATK for the damage formula line. */
+  monsterAtk?: number;
   /** Special move the monster fired on this counter (heavy / pierce / burst / drain). */
   monsterSpecial?: MonsterSpecialMove | null;
   /** A telegraphed special the monster began winding up this round (the tell). */
@@ -130,6 +133,20 @@ export function MonsterCounterPanel({
           </div>
           {monsterSpecial?.effect.kind === 'drain' && (
             <p className="text-[11px] text-fuchsia-500 font-semibold">🩸 drained your life</p>
+          )}
+          {monsterAtk != null && (
+            <p className="text-[11px] font-mono text-gray-400 dark:text-slate-500 text-center">
+              {monsterRoll} roll + {monsterAtk} ATK
+              {isMagic || monsterSpecial?.effect.kind === 'pierce'
+                ? isMagic
+                  ? ' (magic)'
+                  : ' (pierced)'
+                : playerDefFailed
+                  ? ` − 0 DEF`
+                  : ` − ${playerDefStat ?? 0} DEF`}
+              {' = '}
+              {monsterDamage} dmg
+            </p>
           )}
         </>
       )}

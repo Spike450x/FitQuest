@@ -41,6 +41,7 @@ export function CombatOverlays({
           ability={pending.ability.ability}
           formulaBreakdown={pending.ability.formulaBreakdown}
           monsterRoll={pending.ability.monsterRoll}
+          monsterAtk={pending.ability.monsterAtk}
           monsterDamage={pending.ability.monsterDamage}
           monsterStunned={pending.ability.monsterStunned}
           dodged={pending.ability.dodged}
@@ -62,6 +63,7 @@ export function CombatOverlays({
           dice={pending.spell.dice}
           requirementMet={pending.spell.requirementMet}
           monsterRoll={pending.spell.monsterRoll}
+          monsterAtk={pending.spell.monsterAtk}
           monsterStunned={pending.spell.monsterStunned}
           monsterDamage={pending.spell.monsterDamage}
           dodged={pending.spell.dodged}

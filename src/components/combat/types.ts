@@ -168,6 +168,8 @@ export interface PendingAction {
   /** [roll] for attack/magic/rest/meditate · [playerRoll, monsterRoll] for run. */
   dice: number[];
   monsterRoll?: number;
+  /** Effective monster ATK used this hit (base + enrage + dungeon mods) — drives formula display. */
+  monsterAtk?: number;
   attackBonus?: number;
   attackBonusLabel?: 'STR' | 'WIS';
   playerDamage?: number;
@@ -225,6 +227,8 @@ export interface PendingAbility {
   };
   /** Monster's raw d10 counter-attack roll (0 when stunned). */
   monsterRoll: number;
+  /** Effective monster ATK used this hit — drives formula display. */
+  monsterAtk?: number;
   /** True when the ability stunned the monster, skipping the counter-attack. */
   monsterStunned: boolean;
   /** Actual damage the monster dealt to the player this round (0 if stunned/dodged). */
@@ -256,6 +260,8 @@ export interface PendingSpell {
   requirementMet: boolean;
   /** Monster's d10 counter-attack roll (0 if stunned). */
   monsterRoll: number;
+  /** Effective monster ATK used this hit — drives formula display. */
+  monsterAtk?: number;
   /** Whether the monster was stunned and skipped its counter-attack. */
   monsterStunned: boolean;
   /** Actual damage dealt to the player by the counter-attack (0 if stunned). */
