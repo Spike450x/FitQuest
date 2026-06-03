@@ -56,6 +56,7 @@ export function SpellRollOverlay({
   playerStunnedApplied,
   spiritCrit,
   spiritCritMultiplier,
+  manaBarrierAbsorbed,
   outcome,
   onDismiss,
 }: {
@@ -88,6 +89,8 @@ export function SpellRollOverlay({
   spiritCrit?: boolean;
   /** Multiplier applied when spiritCrit fired. */
   spiritCritMultiplier?: number;
+  /** HP the Wizard's Mana Barrier absorbed from the counter-hit — shown in the formula. */
+  manaBarrierAbsorbed?: number;
   /** Fight outcome after this round resolves — drives the "Monster slain!" panel. */
   outcome?: 'win' | 'loss' | null;
   onDismiss: () => Promise<void>;
@@ -281,6 +284,7 @@ export function SpellRollOverlay({
               monsterAttackType={monsterAttackType}
               playerDefFailed={playerDefFailed}
               playerDefStat={playerDefStat}
+              manaBarrierAbsorbed={manaBarrierAbsorbed}
               monsterSpecial={monsterSpecial}
               chargingPrimed={monsterChargingPrimed}
               playerStunnedApplied={playerStunnedApplied}

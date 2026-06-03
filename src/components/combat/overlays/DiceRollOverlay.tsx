@@ -41,6 +41,7 @@ export function DiceRollOverlay({
   playerStunnedApplied,
   spiritCrit,
   spiritCritMultiplier,
+  manaBarrierAbsorbed,
   outcome,
   onDismiss,
 }: {
@@ -75,6 +76,8 @@ export function DiceRollOverlay({
   spiritCrit?: boolean;
   /** Multiplier applied when spiritCrit fired. */
   spiritCritMultiplier?: number;
+  /** HP the Wizard's Mana Barrier absorbed from the counter-hit — shown in the formula. */
+  manaBarrierAbsorbed?: number;
   /** Fight outcome after this round resolves. */
   outcome?: 'win' | 'loss' | null;
   onDismiss: () => Promise<void>;
@@ -288,6 +291,7 @@ export function DiceRollOverlay({
               monsterAttackType={monsterAttackType}
               playerDefFailed={playerDefFailed}
               playerDefStat={playerDefStat}
+              manaBarrierAbsorbed={manaBarrierAbsorbed}
               monsterSpecial={monsterSpecial}
               chargingPrimed={monsterChargingPrimed}
               playerStunnedApplied={playerStunnedApplied}
