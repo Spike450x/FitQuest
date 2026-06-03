@@ -203,6 +203,8 @@ export interface PendingAction {
   spiritCrit?: boolean;
   /** Multiplier applied when spiritCrit fired (1 + bonus, e.g. 1.15 for +15%). */
   spiritCritMultiplier?: number;
+  /** HP the Wizard's Mana Barrier absorbed from this hit — shown in the formula to explain the gap. */
+  manaBarrierAbsorbed?: number;
   recoveredStamina?: number;
   recoveredMagic?: number;
   /** Effective WIS value added to the roll during meditate (effectiveStat result). */
@@ -249,6 +251,8 @@ export interface PendingAbility {
   spiritCrit?: boolean;
   /** Multiplier applied when spiritCrit fired. */
   spiritCritMultiplier?: number;
+  /** HP the Wizard's Mana Barrier absorbed from the counter-hit — shown in the formula. */
+  manaBarrierAbsorbed?: number;
   /** Fight outcome after this round resolves. */
   outcome?: 'win' | 'loss' | null;
   applyResult: () => Promise<void>;
@@ -282,6 +286,8 @@ export interface PendingSpell {
   spiritCrit?: boolean;
   /** Multiplier applied when spiritCrit fired. */
   spiritCritMultiplier?: number;
+  /** HP the Wizard's Mana Barrier absorbed from the counter-hit — shown in the formula. */
+  manaBarrierAbsorbed?: number;
   /** Fight outcome after this round resolves — drives the "Monster slain!" panel. */
   outcome?: 'win' | 'loss' | null;
   applyResult: () => Promise<void>;

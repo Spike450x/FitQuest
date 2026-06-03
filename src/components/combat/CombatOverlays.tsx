@@ -53,6 +53,7 @@ export function CombatOverlays({
           playerStunnedApplied={pending.ability.playerStunnedApplied}
           spiritCrit={pending.ability.spiritCrit}
           spiritCritMultiplier={pending.ability.spiritCritMultiplier}
+          manaBarrierAbsorbed={pending.ability.manaBarrierAbsorbed}
           outcome={pending.ability.outcome}
           onDismiss={pending.ability.applyResult}
         />
@@ -75,6 +76,7 @@ export function CombatOverlays({
           playerStunnedApplied={pending.spell.playerStunnedApplied}
           spiritCrit={pending.spell.spiritCrit}
           spiritCritMultiplier={pending.spell.spiritCritMultiplier}
+          manaBarrierAbsorbed={pending.spell.manaBarrierAbsorbed}
           outcome={pending.spell.outcome}
           onDismiss={pending.spell.applyResult}
         />

@@ -294,6 +294,14 @@ export function ActionRollOverlay({
                     </span>
                   </>
                 )}
+                {pending.manaBarrierAbsorbed != null && pending.manaBarrierAbsorbed > 0 && (
+                  <>
+                    <span className="text-gray-300 dark:text-slate-600 font-bold">−</span>
+                    <span className="text-violet-400 text-sm">
+                      🔮 {pending.manaBarrierAbsorbed} barrier
+                    </span>
+                  </>
+                )}
                 <span className="text-gray-300 dark:text-slate-600 font-bold">=</span>
                 <span className="text-rose-700 font-black text-2xl">{pending.monsterDamage}</span>
                 <span className="text-gray-400 dark:text-slate-500 text-sm">dmg</span>

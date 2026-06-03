@@ -23,6 +23,7 @@ export function MonsterCounterPanel({
   playerDefFailed,
   playerDefStat,
   monsterAtk,
+  manaBarrierAbsorbed,
   monsterSpecial,
   chargingPrimed,
   playerStunnedApplied,
@@ -39,6 +40,8 @@ export function MonsterCounterPanel({
   playerDefStat?: number;
   /** Effective monster ATK for the damage formula line. */
   monsterAtk?: number;
+  /** HP the Wizard's Mana Barrier absorbed — shown in the formula to explain the gap. */
+  manaBarrierAbsorbed?: number;
   /** Special move the monster fired on this counter (heavy / pierce / burst / drain). */
   monsterSpecial?: MonsterSpecialMove | null;
   /** A telegraphed special the monster began winding up this round (the tell). */
@@ -144,6 +147,9 @@ export function MonsterCounterPanel({
                 : playerDefFailed
                   ? ` − 0 DEF`
                   : ` − ${playerDefStat ?? 0} DEF`}
+              {manaBarrierAbsorbed != null && manaBarrierAbsorbed > 0
+                ? ` − ${manaBarrierAbsorbed} 🔮 barrier`
+                : ''}
               {' = '}
               {monsterDamage} dmg
             </p>
