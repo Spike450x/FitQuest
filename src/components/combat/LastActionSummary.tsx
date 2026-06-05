@@ -6,6 +6,84 @@ import { getHighlightedDiceIndices } from './AbilityReference';
 import type { MonsterDef } from '@/types';
 import type { RoundEntry } from './types';
 
+/** Passive proc / monster passive event lines — shown at the bottom of every action summary. */
+function PassiveEventLines({ entry }: { entry: RoundEntry }) {
+  return (
+    <>
+      {/* Player passive procs */}
+      {entry.eagleEyeCrit && (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400">⚡ Eagle Eye crit!</p>
+      )}
+      {entry.executeTriggered && (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+          🗡️ Execute — instant kill!
+        </p>
+      )}
+      {(entry.soulDrainHeal ?? 0) > 0 && (
+        <p className="text-xs text-fuchsia-600 dark:text-fuchsia-400">
+          🩸 Soul Drain healed +{entry.soulDrainHeal} HP
+        </p>
+      )}
+      {(entry.hemorrhageDrain ?? 0) > 0 && (
+        <p className="text-xs text-rose-600 dark:text-rose-400">
+          🔱 Hemorrhage dealt {entry.hemorrhageDrain} extra dmg
+        </p>
+      )}
+      {(entry.momentumRestore ?? 0) > 0 && (
+        <p className="text-xs text-sky-600 dark:text-sky-400">
+          ⚡ Momentum → +{entry.momentumRestore} stamina
+        </p>
+      )}
+      {(entry.perRoundHpRestore ?? 0) > 0 && (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+          💚 Passive heal +{entry.perRoundHpRestore} HP
+        </p>
+      )}
+      {(entry.perRoundMagicRestore ?? 0) > 0 && (
+        <p className="text-xs text-violet-600 dark:text-violet-400">
+          🔮 Passive magic +{entry.perRoundMagicRestore}
+        </p>
+      )}
+      {(entry.manaBarrierAbsorbed ?? 0) > 0 && (
+        <p className="text-xs text-violet-600 dark:text-violet-400">
+          🔮 Mana Barrier blocked {entry.manaBarrierAbsorbed} dmg
+        </p>
+      )}
+      {/* Monster passive events */}
+      {(entry.thornsDamage ?? 0) > 0 && (
+        <p className="text-xs text-amber-600 dark:text-amber-400">
+          🌿 Thorns reflected {entry.thornsDamage} dmg
+        </p>
+      )}
+      {(entry.monsterRegen ?? 0) > 0 && (
+        <p className="text-xs text-purple-600 dark:text-purple-400">
+          💜 Monster regen +{entry.monsterRegen} HP
+        </p>
+      )}
+      {(entry.monsterVampiric ?? 0) > 0 && (
+        <p className="text-xs text-fuchsia-600 dark:text-fuchsia-400">
+          🩸 Monster vampiric +{entry.monsterVampiric} HP
+        </p>
+      )}
+      {(entry.monsterSiphon ?? 0) > 0 && (
+        <p className="text-xs text-amber-600 dark:text-amber-400">
+          ⚡ Siphon drained {entry.monsterSiphon} stamina
+        </p>
+      )}
+      {(entry.monsterDotDamage ?? 0) > 0 && (
+        <p className="text-xs text-orange-600 dark:text-orange-400">
+          🔥 DoT ticked for {entry.monsterDotDamage} dmg
+        </p>
+      )}
+      {entry.monsterActiveTriggered && (
+        <p className="text-xs text-amber-600 dark:text-amber-400">
+          ⚡ {entry.monsterActiveTriggered} triggered!
+        </p>
+      )}
+    </>
+  );
+}
+
 /**
  * Monster special-move + telegraph + stun recap lines — shared across every
  * action branch so the counter's full story reads the same everywhere.
@@ -62,6 +140,7 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
         >
           {entry.interceptCaught ? '🗡️ Caught it — slain!' : '💨 It got away with the reward!'}
         </p>
+        <PassiveEventLines entry={entry} />
       </div>
     );
   }
@@ -82,6 +161,7 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
         ) : entry.dodged ? (
           <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged the free hit!</p>
         ) : null}
+        <PassiveEventLines entry={entry} />
       </div>
     );
   }
@@ -124,6 +204,7 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
         {entry.dodged && (
           <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
         )}
+        <PassiveEventLines entry={entry} />
       </div>
     );
   }
@@ -210,6 +291,7 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
             Monster was stunned — no counter-attack this round.
           </p>
         )}
+        <PassiveEventLines entry={entry} />
       </div>
     );
   }
@@ -288,6 +370,7 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
             Monster was stunned — no counter-attack this round.
           </p>
         )}
+        <PassiveEventLines entry={entry} />
       </div>
     );
   }
@@ -316,6 +399,7 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
             <span className="text-orange-500 font-semibold"> · 💥 No defense</span>
           </p>
         )}
+        <PassiveEventLines entry={entry} />
       </div>
     );
   }
@@ -365,6 +449,7 @@ export function LastActionSummary({ entry, monster }: { entry: RoundEntry; monst
       {entry.dodged && (
         <p className="text-teal-600 dark:text-teal-400 font-medium">💨 Dodged! No damage taken</p>
       )}
+      <PassiveEventLines entry={entry} />
     </div>
   );
 }
