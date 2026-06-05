@@ -305,6 +305,78 @@ export function BattleLogEntry({
           ))}
         </ul>
       )}
+
+      {/* Player passive procs */}
+      {entry.eagleEyeCrit && (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400">⚡ Eagle Eye crit!</p>
+      )}
+      {entry.executeTriggered && (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+          🗡️ Execute — instant kill!
+        </p>
+      )}
+      {(entry.soulDrainHeal ?? 0) > 0 && (
+        <p className="text-xs text-fuchsia-600 dark:text-fuchsia-400">
+          🩸 Soul Drain healed +{entry.soulDrainHeal} HP
+        </p>
+      )}
+      {(entry.hemorrhageDrain ?? 0) > 0 && (
+        <p className="text-xs text-rose-600 dark:text-rose-400">
+          🔱 Hemorrhage dealt {entry.hemorrhageDrain} extra dmg
+        </p>
+      )}
+      {(entry.momentumRestore ?? 0) > 0 && (
+        <p className="text-xs text-sky-600 dark:text-sky-400">
+          ⚡ Momentum → +{entry.momentumRestore} stamina
+        </p>
+      )}
+      {(entry.perRoundHpRestore ?? 0) > 0 && (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+          💚 Passive heal +{entry.perRoundHpRestore} HP
+        </p>
+      )}
+      {(entry.perRoundMagicRestore ?? 0) > 0 && (
+        <p className="text-xs text-violet-600 dark:text-violet-400">
+          🔮 Passive magic +{entry.perRoundMagicRestore}
+        </p>
+      )}
+      {(entry.manaBarrierAbsorbed ?? 0) > 0 && (
+        <p className="text-xs text-violet-600 dark:text-violet-400">
+          🔮 Mana Barrier blocked {entry.manaBarrierAbsorbed} dmg
+        </p>
+      )}
+
+      {/* Monster passive events */}
+      {(entry.thornsDamage ?? 0) > 0 && (
+        <p className="text-xs text-amber-600 dark:text-amber-400">
+          🌿 Thorns reflected {entry.thornsDamage} dmg
+        </p>
+      )}
+      {(entry.monsterRegen ?? 0) > 0 && (
+        <p className="text-xs text-purple-600 dark:text-purple-400">
+          💜 Monster regen +{entry.monsterRegen} HP
+        </p>
+      )}
+      {(entry.monsterVampiric ?? 0) > 0 && (
+        <p className="text-xs text-fuchsia-600 dark:text-fuchsia-400">
+          🩸 Monster vampiric +{entry.monsterVampiric} HP
+        </p>
+      )}
+      {(entry.monsterSiphon ?? 0) > 0 && (
+        <p className="text-xs text-amber-600 dark:text-amber-400">
+          ⚡ Siphon drained {entry.monsterSiphon} stamina
+        </p>
+      )}
+      {(entry.monsterDotDamage ?? 0) > 0 && (
+        <p className="text-xs text-orange-600 dark:text-orange-400">
+          🔥 DoT ticked for {entry.monsterDotDamage} dmg
+        </p>
+      )}
+      {entry.monsterActiveTriggered && (
+        <p className="text-xs text-amber-600 dark:text-amber-400">
+          ⚡ {entry.monsterActiveTriggered} triggered!
+        </p>
+      )}
     </li>
   );
 }

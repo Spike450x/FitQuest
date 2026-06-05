@@ -38,6 +38,7 @@ import {
   effectiveStat,
 } from '@/lib/gameLogic/combat';
 import { getItemById, RARITY_BADGE, RARITY_CARD } from '@/lib/gameLogic/items';
+import { MONSTER_EMOJI } from '@/components/combat/MonsterCard';
 import { CombatArena } from '@/components/combat/CombatArena';
 import { CombatControls } from '@/components/combat/CombatControls';
 import { HpBar } from '@/components/combat/HpBar';
@@ -405,10 +406,10 @@ function DungeonCombatShell({
         monster={{
           name: isBossRoom ? `💀 ${monster.name}` : monster.name,
           id: monster.id,
-          emoji: isBossRoom ? '🐲' : '👹',
+          emoji: MONSTER_EMOJI[monster.id] ?? (isBossRoom ? '🐲' : '👾'),
           hp: fightState.monsterHp,
           maxHp: monster.hp,
-          defense: monster.defense,
+          defense: dragonIgnoresDef(enrageState) ? 0 : monster.defense,
           passive: isBossRoom ? undefined : monster.passive,
           activeLabel:
             !isBossRoom && fightState.activeUsed && monster.active
@@ -475,7 +476,7 @@ function DungeonCombatShell({
                 key={entry.round}
                 entry={entry}
                 monster={monster}
-                emoji={isBossRoom ? '🐲' : '👹'}
+                emoji={MONSTER_EMOJI[monster.id] ?? (isBossRoom ? '🐲' : '👾')}
               />
             ))}
           </ul>

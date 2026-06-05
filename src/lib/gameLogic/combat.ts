@@ -365,10 +365,10 @@ export function monsterXpScaling(playerLevel: number, monsterLevel: number): num
  * `winsToday` is the count BEFORE this win — so it is 0 on the very first
  * kill of the day.
  *
- *   wins 0–9   (1st through 10th win) → 1.0×
- *   wins 10–19 (11th through 20th)   → 0.5×
- *   wins 20–29 (21st through 30th)   → 0.25×
- *   wins 30+   (31st and beyond)     → 0.1×
+ *   wins  0– 4  (1st  through  5th win) → 1.0×
+ *   wins  5–14  (6th  through 15th win) → 0.5×
+ *   wins 15–24  (16th through 25th win) → 0.25×
+ *   wins 25+    (26th and beyond)       → 0.1×
  *
  * Mirrored server-side in `claimCombatVictory` Cloud Function — see
  * `functions/src/gameLogic/combatXp.ts` for the parity copy that enforces

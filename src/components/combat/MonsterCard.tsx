@@ -20,19 +20,35 @@ function specialMoveHint(effect: MonsterSpecialEffect): string {
   }
 }
 
-// Arena-only emoji map. Dungeon monster portraits are handled separately.
 export const MONSTER_EMOJI: Record<string, string> = {
+  // Original roster (L1–10)
   'goblin-scout': '👺',
   'giant-rat': '🐀',
+  'mud-imp': '😈',
   'forest-goblin': '👹',
+  'boar-runt': '🐗',
   'orc-grunt': '👊',
   'cave-spider': '🕷️',
+  'bog-lurker': '🐊',
   'skeleton-warrior': '💀',
+  'iron-husk': '🤖',
   'dark-wolf': '🐺',
+  'frost-wraith': '👻',
   'stone-troll': '🗿',
   'dark-mage': '🧙',
+  'gloom-knight': '🛡️',
   'lich-king': '☠️',
   'ancient-dragon': '🐉',
+  // Endgame roster (L11–14)
+  'obsidian-golem': '🪨',
+  ashwyrm: '🐍',
+  'void-revenant': '👁️',
+  'storm-djinn': '⚡',
+  // Dungeon bosses
+  'boss-goblin-king': '👑',
+  'boss-broodmother': '🕸️',
+  'boss-necromancer': '🧟',
+  'boss-dragon-king': '🐲',
 };
 
 export function MonsterCard({
