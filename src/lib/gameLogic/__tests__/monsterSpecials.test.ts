@@ -158,10 +158,10 @@ describe('effectiveAttackType', () => {
 // ── Catalog registration ─────────────────────────────────────────────────────
 
 describe('catalog — damage typing + special registration', () => {
-  it('Storm Djinn is a magic attacker (ATK trimmed to 32 in the balance pass)', () => {
+  it('Storm Djinn is a magic attacker (ATK trimmed to 26 in the balance pass)', () => {
     const djinn = getMonsterById('storm-djinn')!;
     expect(djinn.attackType).toBe('magic');
-    expect(djinn.attack).toBe(32);
+    expect(djinn.attack).toBe(26);
   });
 
   it('Ancient Dragon can breathe a burst (magic) special', () => {
