@@ -184,7 +184,9 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     name: 'Dark Mage',
     level: 8,
     hp: 95,
-    attack: 25,
+    // ATK 25 → 20, vampiric 30 → 20: magic + vampiric combo was flatly fatal for
+    // Warriors at L8 before meaningful gear; reduced to survivable-but-threatening.
+    attack: 20,
     defense: 4,
     attackType: 'magic',
     xpReward: 160,
@@ -197,7 +199,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'greater-health-potion', chance: 0.1 },
     ],
     description: 'Glass cannon. Kill it fast or get obliterated.',
-    passive: { id: 'vampiric', label: 'Life Tap', value: 30 },
+    passive: { id: 'vampiric', label: 'Life Tap', value: 20 },
     specialMoves: [
       {
         id: 'dark-nova',
@@ -213,7 +215,9 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     name: 'Lich King',
     level: 9,
     hp: 150,
-    attack: 28,
+    // ATK 28 → 24: magic + drain was fatal for Warriors pre-gear; still the hardest
+    // pre-gateway monster but no longer a guaranteed wipe without consumables.
+    attack: 24,
     defense: 9,
     attackType: 'magic',
     xpReward: 220,
@@ -452,7 +456,9 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     name: 'Ashwyrm',
     level: 12,
     hp: 290,
-    attack: 32,
+    // ATK 32 → 27: magic attacker + thorns combo was fatal for Warriors at L12;
+    // reduced to ~85% HP loss so it remains the scariest endgame approach monster.
+    attack: 27,
     defense: 14,
     attackType: 'magic',
     xpReward: 300,
@@ -520,10 +526,10 @@ export const MONSTER_CATALOG: MonsterDef[] = [
     name: 'Storm Djinn',
     level: 14,
     hp: 335,
-    // ATK 40 → 34 (#173, magic typing) → 32: armor-ignoring magic + vampiric + a
-    // stun special stack hard against the low-HP Rogue at L20; trimmed to keep the
-    // capstone fight punishing-but-winnable in the balance model.
-    attack: 32,
+    // ATK 40 → 34 (#173, magic typing) → 32 → 26: model treats Djinn as the L20
+    // capstone but it appears in arena for L13–15 players — 6-level mismatch means
+    // Warriors were dying in 2.6 rounds. Vampiric 25 → 15 cuts effective HP padding.
+    attack: 26,
     defense: 14,
     attackType: 'magic',
     xpReward: 400,
@@ -541,7 +547,7 @@ export const MONSTER_CATALOG: MonsterDef[] = [
       { itemId: 'spell-worldbreaker', chance: 0.03 },
     ],
     description: 'Air elemental, lightning lash. Drinks your blood like rain.',
-    passive: { id: 'vampiric', label: 'Skyfeast', value: 25 },
+    passive: { id: 'vampiric', label: 'Skyfeast', value: 15 },
     active: { id: 'enrage', triggerPct: 0.3, label: 'Tempest Wrath', value: 6 },
     specialMoves: [
       {

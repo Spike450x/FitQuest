@@ -303,9 +303,9 @@ describe('balance model — level-matched fight bands', () => {
         expect(m.killRounds).toBeLessThanOrEqual(9);
       });
 
-      it(`${cls} L${level} fight is winnable (HP loss < 100%)`, () => {
+      it(`${cls} L${level} fight is winnable (HP loss < 95%)`, () => {
         const m = modelFight(makeChar(cls, level), monsterFor(level));
-        expect(m.pctHpLost).toBeLessThan(1);
+        expect(m.pctHpLost).toBeLessThan(0.95);
       });
     }
   }
