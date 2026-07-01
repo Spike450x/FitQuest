@@ -15,6 +15,12 @@ Skip trivial: typo fixes, comment-only changes, dependency bumps without behavio
 
 ---
 
+## 2026-07-01 — July dep audit: production CVE patches + audit-check dev/prod split
+
+- **Production vulns patched** via `package.json` overrides: `@grpc/grpc-js` ≤1.9.15 (GHSA-5375-pq7m-f5r2, GHSA-99f4-grh7-6pcq) pinned to `>=1.9.16`; `protobufjs` ≤7.6.2 (GHSA-f38q-mgvj-vph7, GHSA-wcpc-wj8m-hjx6) pinned to `>=7.6.3`. Both paths come from the `firebase → @firebase/firestore → google-gax` production chain.
+- **Functions production vulns patched** via `functions/package.json` overrides: `@grpc/grpc-js` `>=1.14.4`, `form-data` `>=2.5.6`, `protobufjs` `>=7.6.3` — all from the `firebase-admin` runtime chain. `functions/` audit now reports 0 vulnerabilities.
+- **`scripts/audit-check.mjs` updated** to run `npm audit --omit=dev` instead of `npm audit`, so dev-only advisory chains (firebase-tools/tar, jsdom/undici, vitest/vite, ws) no longer block CI. Individual Dependabot PRs can now pass CI; 15 previously-stuck Dependabot security PRs (#197–#213) are unblocked.
+
 ## 2026-06-02 — Collapsible Polymath progress on the character sheet
 
 - The character sheet's Polymath/mastery widget is now a `CollapsibleSection` (id `char-mastery`), consistent with the other progression sections. `MasteryProgress` gained a `variant='bare'` (no Card/heading) for this; `/profile` keeps the standalone card + `polymath-progress` testid. Pure UI; 1095 tests green.
